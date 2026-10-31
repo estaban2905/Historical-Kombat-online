@@ -1,0 +1,37 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/fighter.gd" id="1_fighter"]
+[ext_resource type="Script" path="res://scripts/fighter_renderer.gd" id="2_renderer"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
+size = Vector2(26, 76)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hit"]
+size = Vector2(20, 10)
+
+[node name="Fighter" type="Node2D"]
+script = ExtResource("1_fighter")
+
+[node name="Visual" type="Node2D" parent="."]
+script = ExtResource("2_renderer")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+visible = false
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_mask = 0
+monitoring = false
+
+[node name="Shape" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -38)
+shape = SubResource("RectangleShape2D_hurt")
+debug_color = Color(0, 0.6, 0.7, 0.42)
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 2
+monitorable = false
+
+[node name="Shape" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("RectangleShape2D_hit")
+disabled = true
+debug_color = Color(0.9, 0.1, 0.1, 0.42)

@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/stage.gd" id="1_stage"]
+[ext_resource type="Script" path="res://stages/colosseum/colosseum_layer.gd" id="2_layer"]
+
+[node name="Colosseum" type="Node2D"]
+script = ExtResource("1_stage")
+display_name = "EL COLISEO ROMANO"
+floor_y = 206.0
+left_bound = 18.0
+right_bound = 408.0
+p1_spawn_x = 150.0
+p2_spawn_x = 276.0
+
+[node name="Back" type="Node2D" parent="."]
+script = ExtResource("2_layer")
+
+[node name="Crowd" type="Node2D" parent="."]
+script = ExtResource("2_layer")
+layer = 1
+
+[node name="Front" type="Node2D" parent="."]
+script = ExtResource("2_layer")
+layer = 2
+
+[node name="Fire" type="Node2D" parent="."]
+script = ExtResource("2_layer")
+layer = 3

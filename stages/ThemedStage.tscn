@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://stages/themed_stage.gd" id="1_stage"]
+
+[node name="ThemedStage" type="Node2D"]
+script = ExtResource("1_stage")
+floor_y = 206.0
+left_bound = 18.0
+right_bound = 408.0
+p1_spawn_x = 150.0
+p2_spawn_x = 276.0

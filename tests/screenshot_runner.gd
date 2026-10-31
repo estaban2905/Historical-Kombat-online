@@ -1,0 +1,84 @@
+## Captura pantallas de cada escena (requiere renderizado real, no --headless).
+## Uso: godot --path . res://tests/ScreenshotRunner.tscn -- <carpeta_salida>
+extends Node
+
+var out_dir: String = "user://screenshots"
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	var args := OS.get_cmdline_user_args()
+	if args.size() > 0:
+		out_dir = args[0]
+	DirAccess.make_dir_recursive_absolute(out_dir)
+	get_tree().current_scene = null
+	_run.call_deferred()
+
+func frames(n: int) -> void:
+	for i in n:
+		await get_tree().process_frame
+
+func shot(file_name: String) -> void:
+	await RenderingServer.frame_post_draw
+	var img := get_viewport().get_texture().get_image()
+	img.save_png(out_dir.path_join(file_name))
+	print("captura: ", file_name, " ", img.get_size())
+
+func _run() -> void:
+	get_tree().change_scene_to_file(Game.SCENE_MENU)
+	await frames(40)
+	await shot("01_menu.png")
+	get_tree().change_scene_to_file(Game.SCENE_SELECT)
+	await frames(40)
+	await shot("02_select.png")
+	get_tree().change_scene_to_file(Game.SCENE_FIGHT)
+	await frames(25)
+	await shot("03_round1.png")
+	var c := get_tree().current_scene as CombatManager
+	while c.round_manager.phase != RoundManager.Phase.FIGHT:
+		await frames(1)
+	c.p1.position.x = 170
+	c.p2.position.x = 236
+	c.p1.energy = 100
+	c.p2.energy = 100
+	await frames(10)
+	c.p1.input.press(&"kick_heavy")
+	await frames(12)
+	await shot("04_kick.png")
+	await frames(30)
+	c.p2.input.press(&"special_1")
+	c.p1.input.hold(&"crouch")
+	await frames(24)
+	await shot("05_cannon.png")
+	c.p1.input.hold(&"crouch", false)
+	await frames(30)
+	c.p1.position.x = 190
+	c.p2.position.x = 228
+	await frames(4)
+	c.p1.input.press(&"special_2")
+	await frames(19)
+	await shot("06_golf.png")
+	await frames(60)
+	c.p2.input.hold(&"block")
+	c.p1.input.press(&"special_1")
+	await frames(24)
+	await shot("07_megaphone_block.png")
+	c.p2.input.hold(&"block", false)
+	await frames(40)
+	c.p2.input.press(&"special_2")
+	await frames(14)
+	await shot("08_charge.png")
+	await frames(40)
+	c.p2.health = 1
+	c.p1.position.x = 200
+	c.p2.position.x = 232
+	await frames(3)
+	c.p1.input.press(&"punch_heavy")
+	await frames(40)
+	await shot("09_ko.png")
+	await frames(110)
+	await shot("10_wins.png")
+	Game.set_match_result(1, 2, 1)
+	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
+	await frames(40)
+	await shot("11_results.png")
+	get_tree().quit()

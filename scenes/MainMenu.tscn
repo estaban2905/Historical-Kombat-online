@@ -1,0 +1,106 @@
+[gd_scene format=3 uid="uid://ct5c8qg1ugdnv"]
+
+[ext_resource type="Script" uid="uid://cuj0t05488vxs" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" uid="uid://d22d4t8pkwli0" path="res://scripts/ui/menu_background.gd" id="2_bg"]
+
+[node name="MainMenu" type="Control" unique_id=1049248060]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Background" type="Control" parent="." unique_id=1708047735]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_top = 44.0
+offset_right = -4.0
+offset_bottom = 44.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_bg")
+title_y = 42.0
+
+[node name="Buttons" type="VBoxContainer" parent="." unique_id=195303599]
+layout_mode = 0
+offset_left = 138.0
+offset_top = 102.0
+offset_right = 288.0
+offset_bottom = 232.0
+theme_override_constants/separation = 4
+
+[node name="Play" type="Button" parent="Buttons" unique_id=1081200093]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+text = "ARCADE (VS CPU)"
+
+[node name="Versus" type="Button" parent="Buttons" unique_id=1649249306]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+text = "VERSUS LOCAL"
+
+[node name="Difficulty" type="Button" parent="Buttons" unique_id=1649249399]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+text = "DIFICULTAD: NORMAL"
+
+[node name="Roster" type="Button" parent="Buttons" unique_id=1032436232]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+text = "PERSONAJES"
+
+[node name="Options" type="Button" parent="Buttons" unique_id=330819020]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+text = "OPCIONES"
+
+[node name="Credits" type="Button" parent="Buttons" unique_id=597305843]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+text = "CRÉDITOS"
+
+[node name="Info" type="PanelContainer" parent="." unique_id=1418083221]
+visible = false
+layout_mode = 0
+offset_left = 34.0
+offset_top = 20.0
+offset_right = 392.0
+offset_bottom = 232.0
+
+[node name="Box" type="VBoxContainer" parent="Info" unique_id=1618273661]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Info/Box" unique_id=2135765060]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.753, 0.251, 1)
+theme_override_font_sizes/font_size = 16
+text = "TÍTULO"
+horizontal_alignment = 1
+
+[node name="Body" type="Label" parent="Info/Box" unique_id=1871353865]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/line_spacing = 3
+text = "..."
+
+[node name="Back" type="Button" parent="Info/Box" unique_id=1738598886]
+custom_minimum_size = Vector2(120, 16)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "VOLVER"
+
+[node name="Footer" type="Label" parent="." unique_id=1916439874]
+layout_mode = 0
+offset_left = 4.0
+offset_top = 228.0
+offset_right = 200.0
+offset_bottom = 238.0
+theme_override_colors/font_color = Color(0.54, 0.48, 0.44, 1)
+text = "v0.1.0"
