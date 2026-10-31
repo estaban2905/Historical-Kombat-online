@@ -54,6 +54,42 @@ func pressed_attack() -> StringName:
 func end_frame() -> void:
 	virtual_pressed.clear()
 
+# --- Entrada empaquetada (red, repeticiones, pruebas) --------------------
+## Orden fijo de bits de un frame de entrada. NO reordenar: forma parte del
+## protocolo de red y de las repeticiones guardadas.
+const FRAME_ACTIONS: Array[StringName] = [
+	&"left", &"right", &"jump", &"crouch", &"block",
+	&"punch_light", &"punch_heavy", &"special_1",
+	&"kick_light", &"kick_heavy", &"special_2",
+]
+
+## Máscara de la última entrada aplicada con apply_mask (para detectar pulsaciones nuevas).
+var _applied_mask: int = 0
+
+## Lee el teclado/entradas virtuales de este frame y lo empaqueta en un entero.
+## Un ataque cuenta como pulsado si se mantiene o si se pulsó en este frame.
+func sample_mask() -> int:
+	var mask := 0
+	for i in FRAME_ACTIONS.size():
+		var a := FRAME_ACTIONS[i]
+		if is_held(a) or (a in ATTACK_ACTIONS and just_pressed(a)):
+			mask |= 1 << i
+	return mask
+
+## Sustituye las entradas por las de la máscara. Una pulsación de ataque
+## "nueva" es un bit que antes no estaba activo, igual que just_pressed.
+func apply_mask(mask: int) -> void:
+	virtual_held.clear()
+	virtual_pressed.clear()
+	for i in FRAME_ACTIONS.size():
+		if (mask >> i) & 1 == 0:
+			continue
+		var a := FRAME_ACTIONS[i]
+		virtual_held[a] = true
+		if a in ATTACK_ACTIONS and (_applied_mask >> i) & 1 == 0:
+			virtual_pressed[a] = true
+	_applied_mask = mask
+
 # --- API para IA / pruebas ---------------------------------------------
 func press(action: StringName) -> void:
 	virtual_pressed[action] = true

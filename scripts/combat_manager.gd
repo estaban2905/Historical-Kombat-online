@@ -10,6 +10,8 @@ extends Node2D
 
 signal hit_landed(attacker: Fighter, defender: Fighter, attack: AttackData, result: Dictionary)
 signal fighter_knocked_out(fighter: Fighter)
+## Al final de cada tick de combate (tras incrementar tick_count).
+signal ticked
 
 const FIGHTER_SCENE := preload("res://scenes/fighters/Fighter.tscn")
 
@@ -29,6 +31,9 @@ var fighters: Array[Fighter] = []
 ## Cerebro de P2 en el modo contra la CPU (null en versus local).
 var ai: AIController
 var _shake: float = 0.0
+## Ticks de combate transcurridos (un tick = un frame de física a 60 Hz).
+var tick_count: int = 0
+var _input_source: Callable
 
 func _ready() -> void:
 	_load_stage()
@@ -103,6 +108,10 @@ func set_controls(enabled: bool) -> void:
 #  Bucle de combate
 # =========================================================================
 func _physics_process(delta: float) -> void:
+	if _input_source.is_valid():
+		var masks: Array = _input_source.call(tick_count)
+		p1.input.apply_mask(masks[0])
+		p2.input.apply_mask(masks[1])
 	if ai:
 		ai.think()
 	for f in fighters:
@@ -113,6 +122,36 @@ func _physics_process(delta: float) -> void:
 	_resolve_melee_hits()
 	_resolve_projectiles()
 	_update_shake(delta)
+	tick_count += 1
+	ticked.emit()
+
+## Sustituye el teclado por una fuente externa de entradas (partida online,
+## repeticiones, pruebas). `source` recibe el número de tick y devuelve
+## [máscara_P1, máscara_P2] (ver InputManager.apply_mask). Mientras esté
+## activa, el combate depende SOLO de esas máscaras: mismas máscaras = misma pelea.
+func set_input_source(source: Callable) -> void:
+	_input_source = source
+	for f in fighters:
+		f.input.use_keyboard = false
+
+## Resumen numérico del estado del combate. Dos máquinas que van sincronizadas
+## devuelven el mismo valor en el mismo tick; si difiere, hay desincronización.
+func state_checksum() -> int:
+	return hash(state_snapshot())
+
+## Estado relevante del combate como datos legibles (para depurar desincronizaciones).
+func state_snapshot() -> Array:
+	var parts: Array = [tick_count, round_manager.phase, round_manager.round_number,
+		round_manager.wins, round_manager.time_left]
+	for f in fighters:
+		parts.append([f.position, f.velocity, f.health, f.energy, f.state, f.state_frames,
+			f.facing, f.attack_frame, f.attack_instance, f.stun_frames, f.hitstop_frames,
+			f.combo_hits_taken, f.slow_frames, f.invert_frames, f.float_frames,
+			f.buffered_slot, f.buffered_frames, f.cooldowns])
+	for p in projectiles_root.get_children():
+		var pr := p as Projectile
+		parts.append([pr.position, pr.life, pr.alive])
+	return parts
 
 ## Empuje entre cuerpos: impide que se superpongan y que alguien quede
 ## atrapado. Si uno está claramente por encima del otro (salto), puede

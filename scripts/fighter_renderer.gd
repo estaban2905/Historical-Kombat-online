@@ -139,6 +139,8 @@ var airborne: bool = false
 ## Altura sobre el suelo (para la sombra).
 var height_above_floor: float = 0.0
 var walk_dir: int = 1
+## true si se desplaza hacia atrás respecto a donde mira (pose de correr en retirada).
+var moving_back: bool = false
 var anim_time: float = 0.0
 var ko_t: float = 0.0
 var flash: float = 0.0
@@ -226,6 +228,27 @@ func _compute_pose() -> Dictionary:
 			if data.idle_style == &"hand_in_coat":
 				p["fa_u"] = 8.0
 				p["fa_l"] = 112.0
+		&"run":
+			# Zancada amplia y brazos bombeando; hacia atrás: pasos invertidos,
+			# cuerpo erguido y guardia arriba.
+			var s := sin(anim_time * 18.0)
+			if moving_back:
+				s = -s
+				p["lean"] = -2.0
+				p["fa_u"] = 55.0
+				p["fa_l"] = 150.0
+				p["ba_u"] = 40.0
+				p["ba_l"] = 140.0
+			else:
+				p["lean"] = 14.0
+				p["fa_u"] = 20.0 + s * 35.0
+				p["fa_l"] = 100.0
+				p["ba_u"] = 20.0 - s * 35.0
+				p["ba_l"] = 100.0
+			p["fl_t"] = 30.0 + s * 40.0
+			p["fl_s"] = 10.0 + minf(s, 0.0) * 45.0
+			p["bl_t"] = 30.0 - s * 40.0
+			p["bl_s"] = 10.0 + minf(-s, 0.0) * 45.0
 		&"block":
 			p = _apply(p, POSE_BLOCK, 1.0)
 		&"hit", &"ko":

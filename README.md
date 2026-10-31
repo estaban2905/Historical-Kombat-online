@@ -1,10 +1,10 @@
-# HISTORICAL KOMBAT — El Torneo de los Siglos
+# HISTORY COMBAT — El Torneo de los Siglos
 
 ![Capturas del prototipo 0.1](docs/capturas.png)
 
 ## 1. Qué es
 
-**Historical Kombat** es un juego de lucha arcade 2D, uno contra uno, en pixel art, donde personajes históricos de distintas épocas se enfrentan en un torneo ficticio de tono caricaturesco y exagerado. Está hecho con **Godot 4** y **GDScript**, pensado para jugarse en el **navegador** con dos jugadores en el mismo teclado.
+**History Combat** es un juego de lucha arcade 2D, uno contra uno, en pixel art, donde personajes históricos de distintas épocas se enfrentan en un torneo ficticio de tono caricaturesco y exagerado. Está hecho con **Godot 4** y **GDScript**, pensado para jugarse en el **navegador** con dos jugadores en el mismo teclado.
 
 Todo el contenido visual y sonoro de esta versión es original y se genera por código (personajes, escenario, efectos y sonidos). No se usa ningún recurso de otros juegos.
 
@@ -64,6 +64,7 @@ No hay dependencias externas ni plugins.
 
 - **Menús:** flechas + Enter (o ratón). Esc vuelve atrás.
 - **Selección de luchador:** J1 mueve con WASD y confirma con **U** (J anula). J2 mueve con flechas y confirma con **Numpad 1** (Numpad 4 anula).
+- **Correr:** doble toque (pulsar, soltar y pulsar de nuevo en menos de 0,25 s) en ←/→ y mantener. Funciona hacia delante y hacia atrás, a 1,8 veces la velocidad de caminar. Se corta al soltar, cambiar de dirección, saltar, agacharse, bloquear, atacar o recibir un golpe. La pantalla CONTROLES (menú o pausa) permite probarlo.
 - Salto con dirección: mantener ←/→ al saltar. Ataque agachado: mantener abajo y atacar. Patada en el aire: atacar durante el salto.
 - Bloquear agachado: mantener abajo + bloqueo.
 - Las teclas del jugador 2 tienen una alternativa en el bloque de navegación para portátiles sin teclado numérico.

@@ -4,10 +4,12 @@
 ##   - Resultado del último combate (para la pantalla de victoria y la revancha).
 extends Node
 
+const SCENE_LOGIN := "res://scenes/Login.tscn"
 const SCENE_MENU := "res://scenes/MainMenu.tscn"
 const SCENE_SELECT := "res://scenes/CharacterSelect.tscn"
 const SCENE_FIGHT := "res://scenes/Fight.tscn"
 const SCENE_RESULTS := "res://scenes/Results.tscn"
+const SCENE_CONTROLS := "res://scenes/Controls.tscn"
 
 const VERSION := "0.1.0"
 

@@ -3,6 +3,7 @@ extends CanvasLayer
 
 var _panel: PanelContainer
 var _first_button: Button
+var _controls: Control
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -27,6 +28,7 @@ func _ready() -> void:
 	title.add_theme_color_override("font_color", HKTheme.GOLD)
 	box.add_child(title)
 	_first_button = _add_button(box, "CONTINUAR", resume)
+	_add_button(box, "CONTROLES", _open_controls)
 	_add_button(box, "REINICIAR COMBATE", func(): Game.goto(Game.SCENE_FIGHT))
 	_add_button(box, "SELECCIÓN DE LUCHADOR", func(): Game.goto(Game.SCENE_SELECT))
 	_add_button(box, "MENÚ PRINCIPAL", func(): Game.goto(Game.SCENE_MENU))
@@ -51,11 +53,25 @@ func _unhandled_input(event: InputEvent) -> void:
 			open()
 		get_viewport().set_input_as_handled()
 
+## Muestra la pantalla de controles encima de la pausa y devuelve el foco al cerrarla.
+func _open_controls() -> void:
+	var screen: Control = load(Game.SCENE_CONTROLS).instantiate()
+	screen.overlay = true
+	_controls = screen
+	_panel.visible = false
+	screen.closed.connect(func():
+		_panel.visible = true
+		_first_button.grab_focus())
+	add_child(screen)
+
 func open() -> void:
 	visible = true
 	get_tree().paused = true
 	_first_button.grab_focus()
 
 func resume() -> void:
+	if is_instance_valid(_controls):
+		_controls.queue_free()
+		_panel.visible = true
 	visible = false
 	get_tree().paused = false

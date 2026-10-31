@@ -57,6 +57,13 @@ static func theme() -> Theme:
 	t.set_color("font_outline_color", "Label", INK)
 	t.set_constant("outline_size", "Label", 0)
 	t.set_stylebox("panel", "PanelContainer", _box(PANEL, GOLD_DARK, 1))
+	t.set_stylebox("normal", "LineEdit", _box(Color(0.05, 0.03, 0.06, 0.95), Color("4a2a30")))
+	t.set_stylebox("focus", "LineEdit", _box(Color(0.1, 0.05, 0.08, 0.98), GOLD))
+	t.set_stylebox("read_only", "LineEdit", _box(Color(0.08, 0.06, 0.08, 0.7), Color("2a2026")))
+	t.set_color("font_color", "LineEdit", PAPER)
+	t.set_color("font_placeholder_color", "LineEdit", MUTED)
+	t.set_color("caret_color", "LineEdit", GOLD)
+	t.set_color("selection_color", "LineEdit", GOLD_DARK)
 	_theme = t
 	return t
 

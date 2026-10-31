@@ -9,6 +9,7 @@ extends Control
 @onready var btn_versus: Button = $Buttons/Versus
 @onready var btn_difficulty: Button = $Buttons/Difficulty
 @onready var btn_roster: Button = $Buttons/Roster
+@onready var btn_controls: Button = $Buttons/Controls
 @onready var btn_options: Button = $Buttons/Options
 @onready var btn_credits: Button = $Buttons/Credits
 @onready var info: PanelContainer = $Info
@@ -31,16 +32,43 @@ func _ready() -> void:
 	btn_versus.pressed.connect(func(): _go_select(Game.Mode.VERSUS))
 	btn_difficulty.pressed.connect(_cycle_difficulty)
 	btn_roster.pressed.connect(_show_roster)
+	btn_controls.pressed.connect(func(): Game.goto(Game.SCENE_CONTROLS))
 	btn_options.pressed.connect(_show_options)
 	btn_credits.pressed.connect(_show_credits)
 	info_back.pressed.connect(_close_info)
 	_refresh_difficulty()
-	for b in [btn_play, btn_versus, btn_difficulty, btn_roster, btn_options, btn_credits, info_back]:
+	for b in [btn_play, btn_versus, btn_difficulty, btn_roster, btn_controls, btn_options, btn_credits, info_back]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	info.visible = false
 	_spawn_previews()
+	_build_account_button()
 	btn_play.grab_focus()
+
+## Botón pequeño en la esquina: ENTRAR (sin sesión) o "NOMBRE · SALIR" (con sesión).
+## Solo existe si hay un servidor configurado.
+func _build_account_button() -> void:
+	if not Backend.is_configured():
+		return
+	var b := Button.new()
+	b.position = Vector2(212, 4)
+	b.custom_minimum_size = Vector2(210, 14)
+	b.size = Vector2(210, 14)
+	b.clip_text = true
+	if Backend.is_logged_in():
+		b.text = "%s · %d PTS · SALIR" % [Backend.username().to_upper().left(10), int(Backend.profile.get("points", 0))]
+	else:
+		b.text = "INICIAR SESIÓN"
+	b.pressed.connect(_on_account_pressed)
+	b.focus_entered.connect(func(): Sfx.play(&"select"))
+	add_child(b)
+
+func _on_account_pressed() -> void:
+	Sfx.play(&"confirm")
+	if Backend.is_logged_in():
+		await Backend.sign_out()
+	Backend.guest = false
+	Game.goto(Game.SCENE_LOGIN)
 
 func _spawn_previews() -> void:
 	var roster := FighterRegistry.all()
@@ -144,7 +172,7 @@ func _show_options() -> void:
 		"ESC / P: PAUSA")
 
 func _show_credits() -> void:
-	_open_info("CRÉDITOS", "HISTORICAL KOMBAT\nEL TORNEO DE LOS SIGLOS\n\n" +
+	_open_info("CRÉDITOS", "HISTORY COMBAT\nEL TORNEO DE LOS SIGLOS\n\n" +
 		"PROTOTIPO %s HECHO CON GODOT 4\n\n" % Game.VERSION +
 		"GRÁFICOS Y SONIDOS: ORIGINALES,\nGENERADOS POR CÓDIGO (PROVISIONALES)\n\n" +
 		"FUENTE: PRESS START 2P\n(CODEMAN38, SIL OPEN FONT LICENSE)\n\n" +

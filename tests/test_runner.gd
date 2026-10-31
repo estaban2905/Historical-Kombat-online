@@ -52,7 +52,7 @@ func wait_scene(scene_name: String, max_frames: int = 120) -> bool:
 
 # ==========================================================================
 func _run() -> void:
-	print("\n=== HISTORICAL KOMBAT · PRUEBAS AUTOMÁTICAS ===")
+	print("\n=== HISTORY COMBAT · PRUEBAS AUTOMÁTICAS ===")
 	_test_resources()
 	await _test_menu_to_fight()
 	await _test_fight()
@@ -170,6 +170,44 @@ func _test_fight() -> void:
 	key(KEY_U, true); await frames(3); key(KEY_U, false); await frames(3)
 	check(p1.state == Fighter.State.BLOCK, "bloqueando no se puede atacar")
 	key(KEY_SPACE, false); await frames(3)
+
+	# --- Abajo + ataque: barrido, aunque se pulsen a la vez ---
+	await _setup_duel(60)
+	key(KEY_S, true); key(KEY_J, true); await frames(3)
+	check(p1.state == Fighter.State.ATTACK and p1.attack_crouching and p1.get_pose_name() == &"sweep",
+		"↓ + patada pulsadas a la vez: barrido")
+	key(KEY_J, false); key(KEY_S, false); await frames(40)
+	await _setup_duel(60)
+	key(KEY_S, true); await frames(5); key(KEY_U, true); await frames(3)
+	check(p1.state == Fighter.State.ATTACK and p1.attack_crouching, "↓ mantenido + puño: ataque agachado")
+	key(KEY_U, false); key(KEY_S, false); await frames(40)
+
+	# --- Correr: doble toque adelante y atrás ---
+	await _setup_duel(200)
+	var walk_dx := 0.0
+	x0 = p1.position.x
+	key(KEY_D, true); await frames(10); key(KEY_D, false)
+	walk_dx = p1.position.x - x0
+	await frames(30)
+	check(not p1.running, "un solo toque no corre")
+	x0 = p1.position.x
+	key(KEY_D, true); await frames(3); key(KEY_D, false); await frames(3)
+	key(KEY_D, true); await frames(10)
+	check(p1.running and p1.get_pose_name() == &"run", "doble toque adelante: P1 corre")
+	key(KEY_D, false); await frames(3)
+	check(not p1.running, "soltar la dirección corta la carrera")
+	check(p1.position.x - x0 > walk_dx * 1.4, "correr avanza más que caminar (%.1f vs %.1f)" % [p1.position.x - x0, walk_dx])
+	await frames(30)
+	x0 = p1.position.x
+	key(KEY_A, true); await frames(3); key(KEY_A, false); await frames(3)
+	key(KEY_A, true); await frames(10)
+	check(p1.running and p1.position.x < x0 - 10, "doble toque atrás: P1 corre hacia atrás")
+	key(KEY_A, false); await frames(30)
+	key(KEY_D, true); await frames(3); key(KEY_D, false); await frames(25)
+	key(KEY_D, true); await frames(5)
+	check(not p1.running, "toques demasiado separados no corren")
+	key(KEY_D, false); await frames(10)
+	await _setup_duel(120)
 
 	# --- Movimiento P2 (flechas + numpad) ---
 	var x2 := p2.position.x

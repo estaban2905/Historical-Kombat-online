@@ -53,10 +53,10 @@ func _draw() -> void:
 func _draw_title() -> void:
 	var y := title_y
 	var shake := 0.0
-	HKTheme.draw_text(self, Vector2(2, y + 2), "HISTORICAL", 24, Color("5a0a10"), HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
-	HKTheme.draw_text(self, Vector2(0, y), "HISTORICAL", 24, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
-	HKTheme.draw_text(self, Vector2(3, y + 37 + shake), "KOMBAT", 32, Color("5a0a10"), HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	HKTheme.draw_text(self, Vector2(2, y + 2), "HISTORY", 24, Color("5a0a10"), HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	HKTheme.draw_text(self, Vector2(0, y), "HISTORY", 24, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
+	HKTheme.draw_text(self, Vector2(3, y + 37 + shake), "COMBAT", 32, Color("5a0a10"), HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 	var glow := 0.5 + 0.5 * sin(_t * 3.0)
-	HKTheme.draw_text(self, Vector2(0, y + 34), "KOMBAT", 32, HKTheme.GOLD.lerp(Color("fff0a0"), glow * 0.4), HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
+	HKTheme.draw_text(self, Vector2(0, y + 34), "COMBAT", 32, HKTheme.GOLD.lerp(Color("fff0a0"), glow * 0.4), HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
 	draw_rect(Rect2(110, y + 42, 206, 1), HKTheme.GOLD_DARK)
 	HKTheme.draw_text(self, Vector2(0, y + 54), "EL TORNEO DE LOS SIGLOS", 8, HKTheme.BLOOD.lightened(0.3), HORIZONTAL_ALIGNMENT_CENTER, 426, 2)

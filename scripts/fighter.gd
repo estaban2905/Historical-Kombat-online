@@ -32,6 +32,9 @@ const ENERGY_ON_HIT_TAKEN := 4.0
 const ENERGY_ON_BLOCK := 3.0
 const ENERGY_REGEN_PER_SECOND := 2.5
 const HISTORY_SIZE := 8
+## Correr: doble toque (pulsar, soltar, pulsar) en una dirección, hacia delante o atrás.
+const DOUBLE_TAP_FRAMES := 15
+const RUN_SPEED_MULT := 1.8
 
 @export var player_id: int = 1
 
@@ -84,6 +87,11 @@ var crouch_blocking: bool = false
 var slow_frames: int = 0
 var invert_frames: int = 0
 var float_frames: int = 0
+## true mientras corre (subestado de WALK). Se activa con doble toque en la dirección.
+var running: bool = false
+var _prev_h: int = 0
+var _tap_dir: int = 0
+var _tap_timer: int = 0
 var _hurt_shape: RectangleShape2D
 var _hit_shape: RectangleShape2D
 
@@ -126,6 +134,10 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	slow_frames = 0
 	invert_frames = 0
 	float_frames = 0
+	running = false
+	_prev_h = 0
+	_tap_dir = 0
+	_tap_timer = 0
 	modulate = Color.WHITE
 	cooldowns.clear()
 	buffered_slot = &""
@@ -155,6 +167,8 @@ func tick(delta: float) -> void:
 		input.end_frame()
 		return
 	state_frames += 1
+	if _tap_timer > 0:
+		_tap_timer -= 1
 	for slot in cooldowns.keys():
 		cooldowns[slot] = maxi(cooldowns[slot] - 1, 0)
 	if controls_enabled and state != State.KO:
@@ -190,6 +204,7 @@ func _ground_control() -> void:
 	var h := input.horizontal() if controls_enabled else 0
 	if invert_frames > 0:
 		h = -h
+	_update_run(h)
 	var want_block := controls_enabled and input.is_held(&"block")
 	var want_crouch := controls_enabled and input.is_held(&"crouch")
 	var want_jump := controls_enabled and input.is_held(&"jump")
@@ -215,13 +230,29 @@ func _ground_control() -> void:
 	if h != 0:
 		# Retroceder es algo más lento que avanzar.
 		var backwards := h != facing
-		velocity.x = h * data.walk_speed * (0.8 if backwards else 1.0)
+		velocity.x = h * data.walk_speed * (0.8 if backwards else 1.0) * (RUN_SPEED_MULT if running else 1.0)
 		if state != State.WALK:
 			_set_state(State.WALK)
 		return
 	velocity.x = 0.0
 	if state != State.IDLE:
 		_set_state(State.IDLE)
+
+## Detecta el doble toque en una dirección (adelante o atrás). Se corre mientras
+## se mantiene; soltar o cambiar de dirección lo corta. Usa solo el estado de las
+## teclas por frame, así funciona igual con teclado, IA, tests y repeticiones.
+func _update_run(h: int) -> void:
+	if h != _prev_h:
+		if h == 0:
+			running = false
+		elif h == _tap_dir and _tap_timer > 0:
+			running = true
+			_tap_timer = 0
+		else:
+			running = false
+			_tap_dir = h
+			_tap_timer = DOUBLE_TAP_FRAMES
+	_prev_h = h
 
 func _state_block() -> void:
 	_apply_friction(1.0 / 60.0)
@@ -323,7 +354,10 @@ func _try_start_attack(slot: StringName) -> bool:
 	attack_instance += 1
 	hit_targets.clear()
 	projectile_spawned = false
-	attack_crouching = state == State.CROUCH and atk.usable_crouching
+	# Cuenta la tecla mantenida y no solo el estado: si ↓ y el ataque se pulsan
+	# a la vez, el ataque sale antes de que el luchador llegue a agacharse.
+	var crouch_held := not airborne and controls_enabled and input != null and input.is_held(&"crouch")
+	attack_crouching = (state == State.CROUCH or crouch_held) and atk.usable_crouching
 	attack_airborne = airborne
 	if not airborne and atk.dash_speed <= 0.0:
 		velocity.x = 0.0
@@ -519,6 +553,8 @@ func _update_boxes() -> void:
 		hitbox_shape.set_deferred("disabled", not active)
 
 func _set_state(new_state: State) -> void:
+	if new_state != State.WALK:
+		running = false
 	state = new_state
 	state_frames = 0
 
@@ -526,7 +562,7 @@ func _set_state(new_state: State) -> void:
 func get_pose_name() -> StringName:
 	match state:
 		State.IDLE: return &"idle"
-		State.WALK: return &"walk"
+		State.WALK: return &"run" if running else &"walk"
 		State.JUMP: return &"jump"
 		State.CROUCH: return &"crouch"
 		State.BLOCK: return &"block"
@@ -554,6 +590,7 @@ func _update_visual() -> void:
 		return
 	visual.scale.x = facing
 	visual.pose_name = pose
+	visual.moving_back = state == State.WALK and velocity.x * facing < 0.0
 	visual.crouched = is_crouching()
 	visual.airborne = not is_on_ground() and state != State.KO
 	visual.height_above_floor = floor_y - position.y

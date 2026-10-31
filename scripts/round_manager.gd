@@ -117,8 +117,9 @@ func _end_round(reason: String) -> void:
 	else:
 		# Cada ronda se juega en el escenario de un luchador distinto (ver Game.stage_owner).
 		if combat.stage_changes_for(round_number + 1):
-			await Game.fade_to_black(0.14)
-			if not is_inside_tree():
+			# El fundido es solo visual; el cambio de escenario espera frames fijos.
+			Game.fade_to_black(0.14)
+			if not await _wait(0.15):
 				return
 			combat.swap_stage(round_number + 1)
 			Game.fade_from_black(0.22)
@@ -126,8 +127,15 @@ func _end_round(reason: String) -> void:
 		start_round()
 
 ## Espera respetando la pausa. Devuelve false si la escena ya no existe.
+## Cuenta ticks del combate, no segundos de reloj ni señales del motor: así la
+## ronda avanza en el MISMO tick en todos los PCs de una partida online. Con la
+## pausa el combate no avanza, así que la espera también se detiene.
 func _wait(seconds: float) -> bool:
 	if not is_inside_tree():
 		return false
-	await get_tree().create_timer(seconds * pause_scale, false).timeout
-	return is_inside_tree()
+	var target := combat.tick_count + ceili(seconds * 60.0 * pause_scale)
+	while combat.tick_count < target:
+		await combat.ticked
+		if not is_inside_tree():
+			return false
+	return true

@@ -14,10 +14,10 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Historical Kombat"
+config/name="History Combat"
 config/description="El Torneo de los Siglos — prototipo 0.1"
 config/version="0.1.0"
-run/main_scene="res://scenes/MainMenu.tscn"
+run/main_scene="res://scenes/Login.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.06, 0.04, 0.08, 1)
 boot_splash/show_image=false
@@ -27,6 +27,7 @@ config/icon="res://icon.svg"
 
 Game="*res://scripts/autoload/game.gd"
 Sfx="*res://scripts/autoload/sfx.gd"
+Backend="*res://scripts/autoload/backend.gd"
 
 [display]
 
@@ -35,11 +36,9 @@ window/size/viewport_height=240
 window/size/window_width_override=1278
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
-window/stretch/scale_mode="fractional"
 
 [gui]
 
-theme/default_font_antialiasing=1
 theme/default_font_hinting=0
 theme/default_font_subpixel_positioning=0
 
@@ -182,9 +181,7 @@ common/physics_jitter_fix=0.0
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
-anti_aliasing/quality/msaa_2d=2
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_2d=2
 environment/defaults/default_clear_color=Color(0.06, 0.04, 0.08, 1)
-2d/snap/snap_2d_transforms_to_pixel=false
-2d/snap/snap_2d_vertices_to_pixel=false
