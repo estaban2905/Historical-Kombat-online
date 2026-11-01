@@ -3,4 +3,4 @@ build/
 *.tmp
 __pycache__/
 node_modules/
-server/dist/
+dist/
