@@ -66,9 +66,6 @@ func show_stage_name(text: String) -> void:
 	_stage_name = text
 	_stage_name_t = 0.0
 
-func current_message() -> String:
-	return _message if _message_t < _message_dur else ""
-
 func _on_health_changed(f: Fighter) -> void:
 	# Vida al máximo (nueva ronda): la estela se reinicia.
 	if f.health >= f.data.max_health:

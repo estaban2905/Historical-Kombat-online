@@ -70,46 +70,10 @@ custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "CONTROLES"
 
-[node name="Options" type="Button" parent="Buttons" unique_id=330819020]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
-text = "OPCIONES"
-
 [node name="Credits" type="Button" parent="Buttons" unique_id=597305843]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "CRÉDITOS"
-
-[node name="Info" type="PanelContainer" parent="." unique_id=1418083221]
-visible = false
-layout_mode = 0
-offset_left = 34.0
-offset_top = 20.0
-offset_right = 392.0
-offset_bottom = 232.0
-
-[node name="Box" type="VBoxContainer" parent="Info" unique_id=1618273661]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Title" type="Label" parent="Info/Box" unique_id=2135765060]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.941, 0.753, 0.251, 1)
-theme_override_font_sizes/font_size = 16
-text = "TÍTULO"
-horizontal_alignment = 1
-
-[node name="Body" type="Label" parent="Info/Box" unique_id=1871353865]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/line_spacing = 3
-text = "..."
-
-[node name="Back" type="Button" parent="Info/Box" unique_id=1738598886]
-custom_minimum_size = Vector2(120, 16)
-layout_mode = 2
-size_flags_horizontal = 4
-text = "VOLVER"
 
 [node name="Footer" type="Label" parent="." unique_id=1916439874]
 layout_mode = 0

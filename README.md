@@ -12,7 +12,7 @@ Todo el contenido visual y sonoro de esta versión es original y se genera por c
 
 Incluye:
 
-- Menú principal (ARCADE, VERSUS LOCAL, **ENTRENAMIENTO**, DIFICULTAD, PERSONAJES, CONTROLES, OPCIONES, CRÉDITOS).
+- Menú principal (ARCADE, VERSUS LOCAL, **ENTRENAMIENTO**, DIFICULTAD, PERSONAJES, CONTROLES, CRÉDITOS).
 - Selección de luchador para 2 jugadores (rejilla de 42 casillas, 39 disponibles).
 - **39 luchadores** (ver lista en la sección 7), cada uno con silueta, colores, estadísticas, ataques, especiales y escenario propios. Trump y Napoleón se hicieron a mano; los otros 37 se generan con `tools/generate_fighters.py`.
 - Escenario: **El Coliseo Romano** (gradas con público animado, columnas, palco imperial, braseros, suelo de piedra).

@@ -1,11 +1,10 @@
-## Menú principal: ARCADE, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO, DIFICULTAD, PERSONAJES, OPCIONES, CRÉDITOS.
+## Menú principal: ARCADE, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO, DIFICULTAD, PERSONAJES, CONTROLES, CRÉDITOS.
 ## ARCADE (1 jugador contra la CPU), VERSUS LOCAL (2 jugadores) y DUELO ONLINE
 ## (contra otra persona por internet) llevan a la selección de luchador. DIFICULTAD cambia el nivel de la CPU.
 ## VERSUS LOCAL y ENTRENAMIENTO solo aparecen en el editor (desarrollo), no en builds exportadas.
-## El resto abre pantallas informativas mientras no estén implementadas.
+## PERSONAJES, CONTROLES y CRÉDITOS abren su propia pantalla.
 extends Control
 
-@onready var buttons: VBoxContainer = $Buttons
 @onready var btn_play: Button = $Buttons/Play
 @onready var btn_versus: Button = $Buttons/Versus
 @onready var btn_online: Button = $Buttons/Online
@@ -13,15 +12,8 @@ extends Control
 @onready var btn_difficulty: Button = $Buttons/Difficulty
 @onready var btn_roster: Button = $Buttons/Roster
 @onready var btn_controls: Button = $Buttons/Controls
-@onready var btn_options: Button = $Buttons/Options
 @onready var btn_credits: Button = $Buttons/Credits
-@onready var info: PanelContainer = $Info
-@onready var info_title: Label = $Info/Box/Title
-@onready var info_body: Label = $Info/Box/Body
-@onready var info_back: Button = $Info/Box/Back
 @onready var footer: Label = $Footer
-
-var _last_focus: Button
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -34,18 +26,15 @@ func _ready() -> void:
 	btn_difficulty.pressed.connect(_cycle_difficulty)
 	btn_roster.pressed.connect(_show_roster)
 	btn_controls.pressed.connect(func(): Game.goto(Game.SCENE_CONTROLS))
-	btn_options.pressed.connect(_show_options)
 	btn_credits.pressed.connect(_show_credits)
-	info_back.pressed.connect(_close_info)
 	_refresh_difficulty()
 	# VERSUS LOCAL y ENTRENAMIENTO son herramientas de desarrollo: solo se ven al correr desde el editor.
 	var dev := OS.has_feature("editor")
 	btn_versus.visible = dev
 	btn_training.visible = dev
-	for b in [btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_options, btn_credits, info_back]:
+	for b in [btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_credits]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
-	info.visible = false
 	_spawn_previews()
 	_build_account_button()
 	btn_play.grab_focus()
@@ -114,46 +103,8 @@ func _cycle_difficulty() -> void:
 func _refresh_difficulty() -> void:
 	btn_difficulty.text = "DIFICULTAD: %s" % Game.difficulty_name()
 
-func _open_info(title: String, body: String) -> void:
-	_last_focus = get_viewport().gui_get_focus_owner() as Button
-	info_title.text = title
-	info_body.text = body
-	info.visible = true
-	buttons.visible = false
-	info_back.grab_focus()
-
-func _close_info() -> void:
-	info.visible = false
-	buttons.visible = true
-	if _last_focus:
-		_last_focus.grab_focus()
-	else:
-		btn_play.grab_focus()
-
-func _unhandled_input(event: InputEvent) -> void:
-	if info.visible and event.is_action_pressed(&"ui_cancel"):
-		_close_info()
-		get_viewport().set_input_as_handled()
-
 func _show_roster() -> void:
 	Game.goto(Game.SCENE_ROSTER)
 
-func _show_options() -> void:
-	_open_info("OPCIONES", "NO DISPONIBLE EN LA VERSIÓN 0.1.\n\n" +
-		"CONTROLES ACTUALES\n" +
-		"J1: A/D MOVER · W SALTO · S AGACHAR\n" +
-		"    ESPACIO BLOQUEO\n" +
-		"    U/I PUÑOS · J/K PATADAS · O/L ESPECIALES\n" +
-		"J2: FLECHAS · NUM0 BLOQUEO\n" +
-		"    NUM1/2 PUÑOS · NUM4/5 PATADAS\n" +
-		"    NUM3/6 ESPECIALES\n" +
-		"    (SIN NUMPAD: SUPR FIN AVPÁG / INS INICIO REPÁG\n" +
-		"     Y ENTER PARA BLOQUEAR)\n" +
-		"ESC / P: PAUSA")
-
 func _show_credits() -> void:
-	_open_info("CRÉDITOS", "HISTORY COMBAT\nEL TORNEO DE LOS SIGLOS\n\n" +
-		"PROTOTIPO %s HECHO CON GODOT 4\n\n" % Game.VERSION +
-		"GRÁFICOS Y SONIDOS: ORIGINALES,\nGENERADOS POR CÓDIGO (PROVISIONALES)\n\n" +
-		"FUENTE: PRESS START 2P\n(CODEMAN38, SIL OPEN FONT LICENSE)\n\n" +
-		"PARODIA DE FICCIÓN. NINGÚN\nPERSONAJE REAL PARTICIPÓ EN EL TORNEO.")
+	Game.goto(Game.SCENE_CREDITS)

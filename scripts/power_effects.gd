@@ -293,9 +293,6 @@ const ART_GEOM := {
 	&"bell_wave": [24.0, 54.0, -30.0],
 }
 
-static func _ult_color(atk: AttackData) -> Color:
-	return atk.ult_color
-
 ## Programa un evento de pantalla (si el efecto existe).
 static func _ufx(cm: CombatManager, delay: float, type: StringName, args: Dictionary = {}) -> void:
 	if is_instance_valid(cm.ult_fx):

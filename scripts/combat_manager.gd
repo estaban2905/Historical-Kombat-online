@@ -48,7 +48,6 @@ var cinematic_frames: int = 0
 var cinematic_fighter: Fighter
 var cinematic_text: String = ""
 ## Ataque (attack_instance) del que ya se lanzó el efecto de impacto, por luchador.
-var _ult_fx_done: Dictionary = {}
 ## Efectos de pantalla del ultimate en curso (ambiente, grietas, rayos...).
 var ult_fx: UltimateFX
 
@@ -514,21 +513,6 @@ func _update_cinematic() -> void:
 	var target := cinematic_fighter.global_position + Vector2(0, -40)
 	var top_left := (target - view * 0.5).clamp(Vector2.ZERO, Vector2(426, 240) - view)
 	camera.position = Vector2.ZERO.lerp(top_left, t)
-
-## Efecto del golpe del ultimate: onda de choque y destello en el primer frame activo.
-func _ultimate_impact_fx(f: Fighter, atk: AttackData) -> void:
-	if _ult_fx_done.get(f.player_id, -1) == f.attack_instance:
-		return
-	_ult_fx_done[f.player_id] = f.attack_instance
-	var center := f.global_position + Vector2(atk.hitbox_offset.x * f.facing, atk.hitbox_offset.y)
-	PowerEffects._visual(self, f, center, {"art": &"ring", "color": f.data.accent_color,
-		"box": atk.hitbox_size, "life": 0.5})
-	PowerEffects._visual(self, f, center, {"art": &"lightburst", "color": f.data.coat_trim_color,
-		"box": atk.hitbox_size, "life": 0.4})
-	Sfx.play(&"hit_heavy")
-	shake(6.0)
-	fx.flash(0.5)
-	fx.hit_burst(center, f.facing, 2)
 
 # =========================================================================
 #  Partículas (solo decorado)

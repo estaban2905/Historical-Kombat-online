@@ -6,7 +6,6 @@ class_name InputManager
 extends RefCounted
 
 ## Nombres de acción sin prefijo. Con prefijo quedan p1_left, p2_block, etc.
-const MOVE_ACTIONS: Array[StringName] = [&"left", &"right", &"jump", &"crouch", &"block"]
 const ATTACK_ACTIONS: Array[StringName] = [
 	&"punch_light", &"punch_heavy", &"special_1",
 	&"kick_light", &"kick_heavy", &"special_2",
