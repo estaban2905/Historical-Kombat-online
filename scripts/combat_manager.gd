@@ -201,9 +201,11 @@ func _resolve_melee_hits() -> void:
 	# Primero se recogen TODOS los impactos y luego se aplican: así un
 	# intercambio simultáneo de golpes afecta a los dos luchadores.
 	var hits: Array = []
+	# El nivel se guarda ya: si hay intercambio, el primer impacto termina el
+	# ataque del otro antes de aplicar el suyo.
 	for f in fighters:
 		for target in f.get_hit_candidates():
-			hits.append([f, target, f.current_attack])
+			hits.append([f, target, f.current_attack, f.current_hit_level()])
 	for h in hits:
 		(h[0] as Fighter).register_hit(h[1])
 	var grabs: Array = []
@@ -215,7 +217,7 @@ func _resolve_melee_hits() -> void:
 			grabs.append(h)
 			continue
 		var point := _contact_point(attacker.hitbox_shape.global_position, target)
-		_apply_hit(attacker, target, atk, attacker.facing, point, false)
+		_apply_hit(attacker, target, atk, attacker.facing, point, false, h[3])
 	# Los agarres se resuelven después: si en el mismo frame el agarrador recibe
 	# un golpe, gana el golpe. Si los dos se agarran a la vez, se zafan.
 	if grabs.size() == 2:
@@ -277,7 +279,7 @@ func _resolve_projectiles() -> void:
 			if target != p.owner_fighter and target.can_be_hit() and p.can_hit(target) \
 					and rect.intersects(target.get_hurt_rect()):
 				_apply_hit(p.owner_fighter, target, p.attack, p.hit_direction(target),
-					_contact_point(p.global_position, target), true)
+					_contact_point(p.global_position, target), true, p.attack.hit_level)
 				p.register_hit(target)
 				if not p.alive:
 					break
@@ -287,8 +289,8 @@ func _contact_point(from: Vector2, target: Fighter) -> Vector2:
 	return Vector2(lerpf(from.x, center.x, 0.4), from.y)
 
 func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: int,
-		point: Vector2, from_projectile: bool) -> void:
-	var result := target.receive_hit(attacker, atk, direction)
+		point: Vector2, from_projectile: bool, level: AttackData.HitLevel = AttackData.HitLevel.MID) -> void:
+	var result := target.receive_hit(attacker, atk, direction, level)
 	if not result.blocked:
 		# Efectos de los poderes: estados alterados y energía recuperada.
 		if atk.status != &"" and atk.status_frames > 0:

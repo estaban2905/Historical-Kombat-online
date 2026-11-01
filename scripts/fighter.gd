@@ -452,6 +452,24 @@ func _record_history(slot: StringName) -> void:
 		if combo and combo.matches(input_history):
 			combo_performed.emit(self, combo)
 
+## Nivel del ataque en curso: en el aire es alto (overhead), una patada
+## agachada es baja y, si no, el que diga su AttackData.
+func current_hit_level() -> AttackData.HitLevel:
+	if attack_airborne:
+		return AttackData.HitLevel.OVERHEAD
+	if attack_crouching and current_attack.kind == AttackData.Kind.KICK:
+		return AttackData.HitLevel.LOW
+	return current_attack.hit_level
+
+## true si nuestra guardia actual (de pie o agachada) para un golpe de ese nivel.
+func guards_against(level: AttackData.HitLevel) -> bool:
+	match level:
+		AttackData.HitLevel.LOW:
+			return crouch_blocking
+		AttackData.HitLevel.OVERHEAD:
+			return not crouch_blocking
+	return true
+
 ## true si la hitbox cuerpo a cuerpo está activa en este frame.
 func is_hitbox_active() -> bool:
 	if state != State.ATTACK or current_attack == null or current_attack.is_projectile() or current_attack.is_power():
@@ -535,11 +553,13 @@ func _clear_throw() -> void:
 #  Recibir daño
 # =========================================================================
 ## Aplica un golpe. `direction` = hacia dónde sale despedido (+1 / -1).
+## `level`: alto/medio/bajo (decide si la guardia actual lo para).
 ## Devuelve {blocked: bool, damage: float, ko: bool}.
-func receive_hit(attacker: Fighter, atk: AttackData, direction: int) -> Dictionary:
+func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
+		level: AttackData.HitLevel = AttackData.HitLevel.MID) -> Dictionary:
 	var result := {"blocked": false, "damage": 0.0, "ko": false}
 	var dmg := atk.damage * attacker.data.strength / maxf(data.resistance, 0.1)
-	if state == State.BLOCK and is_on_ground():
+	if state == State.BLOCK and is_on_ground() and guards_against(level):
 		# BLOQUEO: daño muy reducido que nunca llega a noquear.
 		dmg *= BLOCK_DAMAGE_FACTOR
 		health = maxf(health - dmg, minf(health, 1.0))

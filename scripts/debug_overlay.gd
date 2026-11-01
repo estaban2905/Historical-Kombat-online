@@ -14,7 +14,9 @@ const PHASE_COLORS := {&"startup": Color(1.0, 0.9, 0.3), &"active": Color(1.0, 0
 	&"recovery": Color(0.5, 0.7, 1.0)}
 const FONT_SIZE := 8
 const SLOT_SHORT := {&"punch_light": "PD", &"punch_heavy": "PF", &"kick_light": "KD",
-	&"kick_heavy": "KF", &"special_1": "E1", &"special_2": "E2", &"ultimate": "ULT"}
+	&"kick_heavy": "KF", &"special_1": "E1", &"special_2": "E2", &"ultimate": "ULT", &"grab": "AGA"}
+## Nivel del golpe (indexado por AttackData.HitLevel): medio, bajo, alto.
+const LEVEL_SHORT: Array[String] = ["MED", "BAJO", "ALTO"]
 
 var combat: CombatManager
 
@@ -63,7 +65,8 @@ func _label(f: Fighter) -> void:
 			phase = &"startup"
 		elif f.attack_frame <= atk.startup + atk.active:
 			phase = &"active"
-		lines.append(["%s %d/%d" % [SLOT_SHORT.get(f.current_slot, "ATQ"), f.attack_frame, atk.total_frames()],
+		lines.append(["%s %s %d/%d" % [SLOT_SHORT.get(f.current_slot, "ATQ"), LEVEL_SHORT[f.current_hit_level()],
+			f.attack_frame, atk.total_frames()],
 			PHASE_COLORS[phase]])
 	if f.stun_frames > 0:
 		lines.append(["STUN %d" % f.stun_frames, PHASE_COLORS[&"active"]])

@@ -23,6 +23,8 @@ var _block_hold: int = 0
 var _seen_instance: int = -1
 ## Frame de la llave en que intentará zafarse (-1 = no lo intentará).
 var _break_at: int = -1
+## true: el bloqueo planeado es agachado (contra golpes bajos).
+var _block_low: bool = false
 
 func _init(p_me: Fighter, p_foe: Fighter, p_level: float) -> void:
 	me = p_me
@@ -50,6 +52,7 @@ func think() -> void:
 	if _jump_left > 0:
 		_jump_left -= 1
 	inp.hold(&"block", blocking)
+	inp.hold(&"crouch", blocking and _block_low)
 	inp.hold(&"jump", _jump_left > 0)
 	if blocking:
 		_move_dir = 0
@@ -77,6 +80,10 @@ func _aggression() -> float:
 
 func _block_chance() -> float:
 	return lerpf(0.10, 0.75, level)
+
+## Probabilidad de elegir bien entre guardia alta y baja.
+func _read_level_chance() -> float:
+	return lerpf(0.5, 0.95, level)
 
 func _grab_chance() -> float:
 	return lerpf(0.15, 0.7, level)
@@ -212,3 +219,7 @@ func _watch_foe_attack() -> void:
 	if threat and _rng.randf() < _block_chance():
 		_block_wait = maxi(int(_reaction() * 0.5), 2)
 		_block_hold = hold
+		# Proyectiles y poderes usan el nivel de su ataque; los golpes, el contexto.
+		var low := (atk.hit_level if atk.is_projectile() or atk.is_power() else foe.current_hit_level()) \
+			== AttackData.HitLevel.LOW
+		_block_low = low if _rng.randf() < _read_level_chance() else not low

@@ -68,6 +68,7 @@ No hay dependencias externas ni plugins.
 - **Correr:** doble toque (pulsar, soltar y pulsar de nuevo en menos de 0,25 s) en ←/→ y mantener. Funciona hacia delante y hacia atrás, a 1,8 veces la velocidad de caminar. Se corta al soltar, cambiar de dirección, saltar, agacharse, bloquear, atacar o recibir un golpe. La pantalla CONTROLES (menú o pausa) permite probarlo.
 - Salto con dirección: mantener ←/→ al saltar. Ataque agachado: mantener abajo y atacar. Patada en el aire: atacar durante el salto.
 - Bloquear agachado: mantener abajo + bloqueo.
+- **Altos y bajos:** los ataques aéreos son **altos** (solo se bloquean de pie), las patadas agachadas son **bajas** (solo se bloquean agachado) y el resto son **medios** (se bloquean de las dos formas). Cada `AttackData` tiene `hit_level` para dar a un golpe de pie su propio nivel (p. ej. un overhead).
 - **Agarre:** puño débil + patada débil a la vez (la segunda tecla puede llegar hasta 2 frames tarde). Atraviesa el bloqueo, pero falla contra un rival en el aire, aturdido o en bloqueo forzado, y si falla deja mucho tiempo de recuperación. Si un golpe y un agarre llegan en el mismo frame, gana el golpe.
 - **Zafarse de un agarre:** pulsar puño débil + patada débil en los primeros 10 frames de la llave. Si los dos jugadores se agarran a la vez, también se zafan.
 - Las teclas del jugador 2 tienen una alternativa en el bloque de navegación para portátiles sin teclado numérico.

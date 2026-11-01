@@ -5,10 +5,15 @@
 extends Node
 
 const BIT_JUMP := 2
+const BIT_CROUCH := 3
 const BIT_BLOCK := 4
 const BIT_LP := 5
+const BIT_S1 := 7
 const BIT_LK := 8
+const BIT_HK := 9
 const GRAB := (1 << BIT_LP) | (1 << BIT_LK)
+const STAND_BLOCK := 1 << BIT_BLOCK
+const CROUCH_BLOCK := (1 << BIT_BLOCK) | (1 << BIT_CROUCH)
 
 var passed: int = 0
 var failed: int = 0
@@ -47,6 +52,7 @@ func _run() -> void:
 		await combat.ticked
 
 	await _test_grab()
+	await _test_hit_levels()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -177,3 +183,54 @@ func _test_grab() -> void:
 	check(p1.state == Fighter.State.HIT and p2.state != Fighter.State.THROWN,
 		"si el golpe y el agarre llegan a la vez, gana el golpe")
 	await _ticks(40)
+
+# --- Bloqueo alto / bajo ----------------------------------------------------
+## Resultado del primer impacto de P1 en la prueba en curso: "hit", "block" o "none".
+func _first_hit_result() -> String:
+	for h in _hits:
+		if h[0] == combat.p1:
+			return "block" if h[3].blocked else "hit"
+	return "none"
+
+## P1 lanza `mask` (manteniendo `hold` antes y después) contra P2 con la guardia `guard`.
+func _attack_vs_guard(dx: float, guard: int, mask: int, hold: int = 0) -> String:
+	await _place(dx, guard)
+	_masks[0] = hold
+	await _ticks(4)
+	await _press(0, hold | mask, hold)
+	await _until(func(): return _first_hit_result() != "none", 60)
+	var r := _first_hit_result()
+	_masks = [0, 0]
+	await _ticks(40)
+	return r
+
+## Salta en vertical y lanza la patada fuerte en el aire contra la guardia `guard`.
+func _air_attack_vs_guard(dx: float, guard: int) -> String:
+	await _place(dx, guard)
+	await _press(0, 1 << BIT_JUMP)
+	await _ticks(8)
+	await _press(0, 1 << BIT_HK)
+	await _until(func(): return _first_hit_result() != "none", 40)
+	var r := _first_hit_result()
+	_masks = [0, 0]
+	await _ticks(50)
+	return r
+
+func _test_hit_levels() -> void:
+	print("\n# Bloqueo alto / bajo")
+	var crouch := 1 << BIT_CROUCH
+	var r := await _attack_vs_guard(34.0, STAND_BLOCK, 1 << BIT_LK, crouch)
+	check(r == "hit", "patada agachada (baja) atraviesa la guardia de pie (%s)" % r)
+	r = await _attack_vs_guard(34.0, CROUCH_BLOCK, 1 << BIT_LK, crouch)
+	check(r == "block", "patada agachada se bloquea agachado (%s)" % r)
+	r = await _attack_vs_guard(34.0, CROUCH_BLOCK, 1 << BIT_LP)
+	check(r == "block", "puño de pie (medio) se bloquea agachado (%s)" % r)
+	r = await _attack_vs_guard(34.0, STAND_BLOCK, 1 << BIT_LP)
+	check(r == "block", "puño de pie (medio) se bloquea de pie (%s)" % r)
+	r = await _air_attack_vs_guard(34.0, CROUCH_BLOCK)
+	check(r == "hit", "ataque aéreo (alto) atraviesa la guardia agachada (%s)" % r)
+	r = await _air_attack_vs_guard(34.0, STAND_BLOCK)
+	check(r == "block", "ataque aéreo se bloquea de pie (%s)" % r)
+	combat.p1.energy = Fighter.MAX_ENERGY
+	r = await _attack_vs_guard(130.0, CROUCH_BLOCK, 1 << BIT_S1)
+	check(r != "hit", "un proyectil (medio) no atraviesa la guardia agachada (%s)" % r)

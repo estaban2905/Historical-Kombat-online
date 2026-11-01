@@ -8,6 +8,8 @@ extends Resource
 
 ## GRAB: agarre. Ignora el bloqueo; ver Fighter.can_be_grabbed().
 enum Kind { PUNCH, KICK, SPECIAL, ULTIMATE, GRAB }
+## Cómo se bloquea: MID de pie o agachado, LOW solo agachado, OVERHEAD solo de pie.
+enum HitLevel { MID, LOW, OVERHEAD }
 
 @export_group("Identidad")
 ## Identificador interno (p. ej. "punch_light", "cannonball").
@@ -33,6 +35,10 @@ enum Kind { PUNCH, KICK, SPECIAL, ULTIMATE, GRAB }
 @export var hitstop: int = 4
 ## Tamaño del efecto visual de impacto (1 = normal).
 @export var effect_scale: float = 1.0
+## Nivel del golpe lanzado de pie. Da igual lo que ponga aquí: lanzado en el
+## aire es siempre OVERHEAD y una patada agachada siempre LOW
+## (ver Fighter.current_hit_level).
+@export var hit_level: HitLevel = HitLevel.MID
 
 @export_group("Tiempos (frames)")
 @export var startup: int = 4
