@@ -6,6 +6,8 @@ declare module "fastify" {
   interface FastifyInstance {
     matchmaking: MatchmakingService;
     appConfig: AppConfig;
+    /** true si hay base de datos conectada (cuentas disponibles). */
+    hasDb: boolean;
   }
 }
 
@@ -14,7 +16,9 @@ export function registerServices(
   app: FastifyInstance,
   config: AppConfig,
   matchmaking: MatchmakingService = new MatchmakingService(),
+  hasDb = false,
 ): void {
   app.decorate("appConfig", config);
   app.decorate("matchmaking", matchmaking);
+  app.decorate("hasDb", hasDb);
 }

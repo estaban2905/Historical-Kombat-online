@@ -5,9 +5,10 @@ export const healthSchema = {
   response: {
     200: {
       type: "object",
-      required: ["ok", "queued", "rooms"],
+      required: ["ok", "db", "queued", "rooms"],
       properties: {
         ok: { type: "boolean", examples: [true] },
+        db: { type: "boolean", description: "Hay base de datos conectada (cuentas disponibles)", examples: [true] },
         queued: { type: "integer", description: "Jugadores esperando rival", examples: [1] },
         rooms: { type: "integer", description: "Partidas en curso", examples: [3] },
       },

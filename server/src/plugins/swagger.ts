@@ -11,13 +11,20 @@ export async function registerSwagger(app: FastifyInstance): Promise<void> {
         description:
           "Empareja jugadores y reenvía sus inputs para el duelo online.\n\n" +
           "El combate en tiempo real va por **WebSocket** en `/ws`; OpenAPI no puede describirlo, " +
-          "por eso los mensajes están en `GET /protocol`.",
+          "por eso los mensajes están en `GET /protocol`.\n\n" +
+          "Cuentas: regístrate o inicia sesión en `/auth/*`, y usa el `access_token` en las rutas con candado " +
+          "(botón **Authorize**).",
         version: "0.1.0",
       },
       tags: [
         { name: "system", description: "Estado del servidor" },
         { name: "protocol", description: "Mensajes del WebSocket" },
+        { name: "auth", description: "Registro, inicio de sesión y sesiones" },
+        { name: "profile", description: "Perfil y ranking" },
       ],
+      components: {
+        securitySchemes: { bearerAuth: { type: "http", scheme: "bearer" } },
+      },
     },
   });
   await app.register(swaggerUi, { routePrefix: "/docs" });

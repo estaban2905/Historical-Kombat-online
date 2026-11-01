@@ -22,6 +22,8 @@ npm run build && npm start
 | `GET /protocol` | Catálogo de mensajes del WebSocket |
 | `GET /docs` | Swagger UI (`/docs/json` es el OpenAPI) |
 | `WS /ws` | Conexión de juego |
+| `POST /auth/register` · `/auth/login` · `/auth/refresh` · `/auth/logout` | Cuentas y sesiones (solo con base de datos) |
+| `GET /me` · `GET /leaderboard` | Mi perfil (con token) y ranking |
 
 ## Estructura
 
@@ -30,16 +32,19 @@ src/
   index.ts                 arranque y cierre limpio
   app.ts                   arma la app (plugins, servicios, rutas)
   config/env.ts            variables de entorno
-  models/                  tipos: mensajes, jugador, sala
+  db/                      acceso a Postgres (pg-db.ts) y migraciones automáticas (migrate.ts)
+  models/                  tipos: mensajes, jugador, sala, cuenta
+  repositories/            todo el SQL (cuentas, sesiones)
   validators/              validación de lo que manda el cliente
-  services/                lógica: emparejamiento, límite de mensajes
+  services/                lógica: emparejamiento, cuentas, contraseñas, tokens
   controllers/             traducen HTTP/WebSocket a llamadas a servicios
   routes/                  registran las rutas de Fastify
   schemas/                 esquemas JSON (validan y alimentan Swagger)
   plugins/                 servicios compartidos y Swagger
+migrations/                SQL numerado (001_init.sql...). Se aplican solas al arrancar; las ya publicadas no se editan
 test/
   unit/                    lógica sin red
-  integration/             servidor real con WebSockets
+  integration/             servidor real: WebSockets, cuentas con Postgres embebido y el driver pg real
 ```
 
 Regla: las dependencias van de fuera hacia dentro (`routes → controllers → services → models`). Los servicios no conocen Fastify ni WebSocket.
@@ -54,6 +59,9 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 | `MAX_MESSAGES_PER_SECOND` | 120 | Límite por conexión |
 | `HEARTBEAT_MS` | 15000 | Intervalo del ping |
 | `LOG` | true | `false` apaga los logs |
+| `DATABASE_URL` | (vacía) | Postgres. En Railway: `${{Postgres.DATABASE_URL}}`. Sin ella no hay cuentas, solo emparejamiento |
+| `ALLOWED_ORIGINS` | (vacía = cualquiera) | Dominios de la web del juego, separados por comas |
+| `AUTH_RATE_LIMIT_PER_MINUTE` | 10 | Intentos de registro/login por minuto y por IP |
 
 ## Protocolo (resumen)
 

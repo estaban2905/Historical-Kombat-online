@@ -7,7 +7,7 @@ test("/health responde ok con las estadísticas", async (t) => {
   t.after(() => app.close());
   const res = await app.inject({ method: "GET", url: "/health" });
   assert.equal(res.statusCode, 200);
-  assert.deepEqual(res.json(), { ok: true, queued: 0, rooms: 0 });
+  assert.deepEqual(res.json(), { ok: true, db: false, queued: 0, rooms: 0 });
 });
 
 test("/protocol lista los mensajes del cliente y del servidor", async (t) => {
