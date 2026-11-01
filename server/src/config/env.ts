@@ -1,8 +1,6 @@
 /** Toda la configuración sale de variables de entorno, con valores por defecto sensatos. */
 export interface AppConfig {
   port: number;
-  /** Carpeta con el juego exportado a Web; si no existe, solo se sirve el online. */
-  staticDir: string;
   /** Publica Swagger UI en /docs. */
   docsEnabled: boolean;
   /** Tamaño máximo de un mensaje WebSocket, en bytes. */
@@ -17,7 +15,6 @@ export interface AppConfig {
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
     port: toInt(env["PORT"], 8787),
-    staticDir: env["STATIC_DIR"] ?? "public",
     docsEnabled: env["DOCS_ENABLED"] !== "false",
     maxPayload: toInt(env["MAX_PAYLOAD"], 1024),
     maxMessagesPerSecond: toInt(env["MAX_MESSAGES_PER_SECOND"], 120),

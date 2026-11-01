@@ -2,7 +2,6 @@ import Fastify, { type FastifyInstance } from "fastify";
 import websocket from "@fastify/websocket";
 import { loadConfig, type AppConfig } from "./config/env.js";
 import { registerServices } from "./plugins/services.js";
-import { registerStatic } from "./plugins/static.js";
 import { registerSwagger } from "./plugins/swagger.js";
 import { gameRoutes } from "./routes/game.routes.js";
 import { systemRoutes } from "./routes/system.routes.js";
@@ -26,7 +25,5 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
 
   await app.register(systemRoutes);
   await app.register(gameRoutes);
-  // Al final: así /docs, /health, /protocol y /ws tienen prioridad sobre los archivos.
-  if (await registerStatic(app, config.staticDir)) app.log.info("sirviendo el juego web desde %s", config.staticDir);
   return app;
 }

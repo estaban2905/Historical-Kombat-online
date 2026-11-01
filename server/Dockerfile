@@ -12,8 +12,6 @@ ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
-# El juego exportado a Web (lo deja el pipeline en public/ antes del deploy).
-COPY public ./public
 USER node
 EXPOSE 8787
 CMD ["node", "dist/index.js"]

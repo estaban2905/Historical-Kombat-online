@@ -5,7 +5,6 @@ import { loadConfig } from "../../src/config/env.js";
 test("valores por defecto", () => {
   const c = loadConfig({});
   assert.equal(c.port, 8787);
-  assert.equal(c.staticDir, "public");
   assert.equal(c.docsEnabled, true);
   assert.equal(c.maxMessagesPerSecond, 120);
 });

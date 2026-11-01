@@ -16,19 +16,24 @@ env:
   GODOT_VERSION: "4.7-stable"
 
 jobs:
-  server:
-    name: Servidor (typecheck + tests + build)
+  # server/ (partidas online) y web/ (página del juego): mismas comprobaciones.
+  node:
+    name: ${{ matrix.app }} (typecheck + tests + build)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [server, web]
     defaults:
       run:
-        working-directory: server
+        working-directory: ${{ matrix.app }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: server/package-lock.json
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
@@ -38,8 +43,12 @@ jobs:
         run: npm run build
 
   docker:
-    name: Docker build (servidor)
+    name: Docker build (${{ matrix.app }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [server, web]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -47,11 +56,11 @@ jobs:
       # o un paso de build que falla antes de que lo haga el deploy.
       - uses: docker/build-push-action@v6
         with:
-          context: server
-          file: server/Dockerfile
+          context: ${{ matrix.app }}
+          file: ${{ matrix.app }}/Dockerfile
           push: false
-          cache-from: type=gha,scope=server
-          cache-to: type=gha,scope=server,mode=max
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,scope=${{ matrix.app }},mode=max
 
   godot-tests:
     name: Godot (pruebas del juego)
@@ -118,14 +127,15 @@ jobs:
       - name: Descargar Godot y plantillas de Web
         if: steps.godot-cache.outputs.cache-hit != 'true'
         run: |
-          mkdir -p ~/godot ~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
+          TEMPLATES=~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
+          mkdir -p ~/godot "$TEMPLATES"
           curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
           unzip -q godot.zip -d ~/godot
           mv ~/godot/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot/godot
           chmod +x ~/godot/godot
           # Las plantillas pesan 1,2 GB: se extrae solo lo necesario para Web.
           curl -fsSL -o templates.tpz "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
-          unzip -q -j templates.tpz "templates/web_nothreads_release.zip" "templates/web_nothreads_debug.zip" "templates/version.txt"             -d ~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
+          unzip -q -j templates.tpz "templates/web_nothreads_release.zip" "templates/web_nothreads_debug.zip" "templates/version.txt" -d "$TEMPLATES"
           rm templates.tpz
       - name: Importar y exportar
         run: |
@@ -138,7 +148,7 @@ jobs:
           node-version: 22
       # Brotli/gzip: el .wasm pesa ~40 MB y baja a ~8 MB.
       - name: Comprimir
-        run: node server/scripts/precompress.mjs build/web
+        run: node web/scripts/precompress.mjs build/web
       - uses: actions/upload-artifact@v4
         with:
           name: web
@@ -146,8 +156,8 @@ jobs:
           retention-days: 7
 
   deploy-server:
-    name: Deploy servidor (Railway)
-    needs: [server, docker, godot-tests, web-export]
+    name: Deploy server (Railway)
+    needs: [node, docker, godot-tests]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'develop' }}
@@ -159,13 +169,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # El juego exportado va dentro de server/public: un solo servicio entrega
-      # la página y atiende el online.
-      - uses: actions/download-artifact@v4
-        with:
-          name: web
-          path: server/public
       # Se sube solo la carpeta server/ (con su Dockerfile y railway.json).
       - name: Deploy a Railway
         working-directory: server
         run: npx --yes @railway/cli@5.64.2 up --ci --service server --environment "$DEPLOY_ENV"
+
+  deploy-web:
+    name: Deploy web (Railway)
+    # Primero el servidor: así la página nunca apunta a un servidor más viejo que ella.
+    needs: [deploy-server, web-export]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'develop' }}
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      DEPLOY_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'develop' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # El juego exportado va dentro de web/public, que el Dockerfile copia a la imagen.
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: web/public
+      - name: Deploy a Railway
+        working-directory: web
+        run: npx --yes @railway/cli@5.64.2 up --ci --service web --environment "$DEPLOY_ENV"

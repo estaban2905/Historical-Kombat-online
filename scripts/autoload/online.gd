@@ -55,10 +55,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	url = Config.SERVER_URL
 	if OS.has_feature("web"):
-		# En el navegador el juego y el servidor viven en la misma dirección:
-		# https://host/ → wss://host/ws (y http → ws, para probar en local).
-		var web_url: Variant = JavaScriptBridge.eval(
-			"(location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'")
+		# En el navegador, el servicio web entrega la dirección del servidor en
+		# /config.js (variable SERVER_URL del servicio), que index.html carga antes del juego.
+		var web_url: Variant = JavaScriptBridge.eval("window.HC_SERVER_URL || ''")
 		if web_url is String and web_url != "":
 			url = web_url
 	var cfg := ConfigFile.new()
