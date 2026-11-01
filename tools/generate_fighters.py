@@ -757,6 +757,76 @@ def build_normals(c, h, tempo):
     return out
 
 
+# --------------------------------------------------------------------------
+#  Ultimates: cada luchador tiene el suyo. Tipo (escena de pantalla completa), dibujo
+#  principal, color de las grietas, color con el que se nubla el ambiente y animación.
+#  Tipos: barrage (bombardeo) · charge (estampida) · quake (terremoto) · storm (tormenta)
+#         light (luz sagrada) · wave (ondas de choque) · summon (aliados desde los lados)
+#         meteor (meteoritos) · slash (lluvia de cortes en la oscuridad)
+# --------------------------------------------------------------------------
+ULTS = {
+    "donald_trump": ("wave", "ring", "ffb030", "261a08", "megaphone"),
+    "napoleon": ("barrage", "bomb", "ffb030", "241808", "cannon"),
+    "kim_jong_un": ("barrage", "bomb", "ff5030", "2a0808", "cannon"),
+    "vladimir_putin": ("summon", "bear", "d0d0d8", "0a1a2a", "cast"),
+    "xi_jinping": ("summon", "dragon", "ffd040", "2a0808", "cast"),
+    "nicolas_maduro": ("wave", "dance", "ff70c0", "2a0a22", "cast"),
+    "adolf_hitler": ("quake", "", "d8c8a0", "1a160c", "rush"),
+    "joseph_stalin": ("quake", "", "9ab0c8", "10141c", "straight"),
+    "benito_mussolini": ("charge", "legion", "d8d0b0", "1a1a1a", "rush"),
+    "saddam_hussein": ("meteor", "meteor", "ffb030", "3a2208", "cast"),
+    "osama_bin_laden": ("slash", "", "c0b0e0", "05030a", "cast"),
+    "gengis_kan": ("charge", "horses", "e0a040", "2a2008", "charge"),
+    "fidel_castro": ("wave", "ring", "ff9030", "281408", "megaphone"),
+    "cleopatra": ("summon", "jackal", "40d060", "14200a", "cast"),
+    "julio_cesar": ("summon", "legion", "e04040", "2a0808", "charge"),
+    "alejandro_magno": ("charge", "horses", "b060e0", "1c0a2a", "charge"),
+    "isabel_ii": ("summon", "corgis", "6a9ad0", "0a1428", "cast"),
+    "abraham_lincoln": ("storm", "", "ffe880", "0e1018", "axe"),
+    "jesus_de_nazaret": ("light", "", "fff0b0", "1a1408", "cast"),
+    "buda": ("wave", "ring", "ffd040", "1a1200", "cast"),
+    "papa_francisco": ("light", "", "fff4d0", "1a1408", "cast"),
+    "rasputin": ("slash", "", "a050e0", "060210", "cast"),
+    "pablo_escobar": ("barrage", "bill", "50c060", "08200c", "cannon"),
+    "albert_einstein": ("wave", "ring", "70e0ff", "041020", "cast"),
+    "nikola_tesla": ("storm", "", "70e0ff", "060c1c", "cast"),
+    "leonardo_da_vinci": ("barrage", "bomb", "ffb030", "241808", "cast"),
+    "marie_curie": ("barrage", "sphere", "60f070", "061a0a", "flask"),
+    "galileo_galilei": ("meteor", "meteor", "ffd070", "080818", "cast"),
+    "charles_darwin": ("summon", "monkeys", "70d060", "0a1a0a", "cast"),
+    "cristobal_colon": ("charge", "caravel", "60b0ff", "08202e", "cast"),
+    "janequeo": ("slash", "", "d0d4dc", "14080a", "staff"),
+    "lautaro": ("charge", "toqui", "e03030", "1a0808", "staff"),
+    "pachacutec": ("light", "", "ffc040", "1a1204", "axe"),
+    "ivan_el_terrible": ("storm", "", "a0e0ff", "08121e", "cast"),
+    "boudica": ("charge", "chariot", "d04040", "0c1a0c", "cast"),
+    "juana_de_arco": ("light", "", "ffe0a0", "1a1408", "charge"),
+    "augusto_pinochet": ("slash", "", "9aaa9a", "000000", "cast"),
+    "salvador_allende": ("wave", "ring", "e03030", "260606", "cast"),
+    "arturo_prat": ("charge", "shipfull", "5090e0", "081828", "charge"),
+}
+
+
+def ultimate_attack(cid, name):
+    """El ultimate: un poder a pantalla completa (PowerEffects._cast_ultimate) con su ambiente."""
+    kind, art, color, tint, anim = ULTS[cid]
+    extra = ['power = &"ult"', f'ult_kind = &"{kind}"', f'ult_art = &"{art}"',
+             f"ult_color = {col(color)}", f"ult_tint = {col(tint)}"]
+    return attack("ultimate", name, 3, anim, 35, 60, 8, 260, 0, 14, 1.0,
+                  20, 4, 40, (60, -40), (120, 80), (0, 0), (0, 0), True, True,
+                  100, 0, 0, 0, "ball", extra=extra)
+
+
+def patch_hand_made_ultimate(fid, text):
+    """Pone a Trump / Napoleón el ultimate nuevo conservando su nombre."""
+    import re
+    name = re.search(r'id = &"ultimate"\ndisplay_name = "([^"]*)"', text).group(1)
+    pat = re.compile(r'(\[sub_resource type="Resource" id="[^"]+"\]\nscript = ExtResource\("[^"]+"\)\n)(id = &"ultimate"\n.*?)(\n\n)', re.S)
+    text, n = pat.subn(lambda mm: mm.group(1) + "\n".join(ultimate_attack(fid, name)) + mm.group(3), text, count=1)
+    assert n == 1, f"no se encontró el ultimate de {fid}"
+    return text
+
+
 def look_lines(c):
     """Rasgos de aspecto (silueta, falda, gafas, capa, joyas) de la ficha."""
     out = []
@@ -806,9 +876,7 @@ def build_attacks(c, h, tempo):
     out = build_normals(c, h, tempo)
     out["special_1"] = special(c["s1"], "special_1", h, k, r, 25, 45)
     out["special_2"] = special(c["s2"], "special_2", h, k, r, 40, 60)
-    out["ultimate"] = attack("ultimate", c["ult"], 3, "charge", 35, 60, 8, 260, 0, 14, 1.0,
-                             20, 30, 30, (60, -40), (120, 80), (0, 0), (0, 0), True, True,
-                             100, 0, 0, 0, "ball")
+    out["ultimate"] = ultimate_attack(c["id"], c["ult"])
     return out
 
 
@@ -1121,6 +1189,7 @@ def patch_hand_made(fid):
     text = re.sub(r'^intro_quote = .*$', lambda mm: f'intro_quote = "{esc(intro)}"', text, flags=re.M)
     text = re.sub(r'^victory_quote = .*$', lambda mm: f'victory_quote = "{esc(victory)}"', text, flags=re.M)
     text = patch_hand_made_normals(fid, text)
+    text = patch_hand_made_ultimate(fid, text)
     path.write_text(text, encoding="utf-8", newline="\n")
     print("PARCHE", path)
 

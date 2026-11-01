@@ -83,6 +83,7 @@ func setup(p_owner: Fighter, p_attack: AttackData, spawn_position: Vector2) -> v
 func configure(d: Dictionary) -> void:
 	art = d.get("art", &"")
 	art_color = d.get("color", art_color)
+	direction = int(d.get("dir", direction))
 	box = d.get("box", box)
 	_shape.size = box
 	speed = d.get("speed", 0.0)

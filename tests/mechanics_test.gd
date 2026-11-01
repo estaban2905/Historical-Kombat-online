@@ -735,8 +735,12 @@ func _test_ultimate() -> void:
 	check(combat.cinematic_frames < CombatManager.ULT_CINEMATIC_FRAMES and combat.camera.zoom.x > 1.0, "la cámara se acerca")
 	await _until(func(): return not _hits.is_empty(), 120)
 	check(combat.cinematic_frames == 0 and is_equal_approx(combat.camera.zoom.x, 1.0), "al acabar la cámara vuelve")
-	check(not _hits.is_empty() and is_equal_approx(_hits[0][3].damage, _full_damage(ult)),
-		"el ultimate hace su daño (%.1f)" % (0.0 if _hits.is_empty() else _hits[0][3].damage))
+	await _ticks(260)
+	var dealt := p2.data.max_health - p2.health
+	var cap := _full_damage(ult) * 1.01
+	check(_hits.size() >= 3, "el ultimate es una escena de varios golpes (%d)" % _hits.size())
+	check(dealt > _full_damage(ult) * 0.3 and dealt <= cap, "el daño total del ultimate cabe en su daño base (%.1f de %.1f)" % [dealt, _full_damage(ult)])
+	check(not is_instance_valid(combat.ult_fx) or combat.ult_fx.age > 0.5, "el ambiente del ultimate se activa")
 	await _ticks(100)
 
 	# Bloqueado: daño de rozadura y la guardia se gasta.

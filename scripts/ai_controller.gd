@@ -151,7 +151,7 @@ func _decide() -> void:
 	if me.is_on_ground():
 		# Ultimate con la energía llena y el rival a tiro.
 		var ult := me.data.ultimate
-		if ult != null and me.can_use_ultimate() and dist <= _reach(ult, foe.data.body_width) \
+		if ult != null and me.can_use_ultimate() and dist <= (210.0 if ult.is_power() else _reach(ult, foe.data.body_width)) \
 				and _rng.randf() < 0.5 + 0.4 * level:
 			me.input.press(&"special_1")
 			me.input.press(&"special_2")

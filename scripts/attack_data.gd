@@ -85,6 +85,14 @@ enum HitLevel { MID, LOW, OVERHEAD }
 ## Energía que recupera el atacante cuando el golpe conecta (sin bloqueo).
 @export var energy_on_hit: float = 0.0
 
+@export_group("Ultimate (efectos de pantalla)")
+## Tipo de ultimate: barrage | charge | quake | storm | light | wave | summon | meteor | slash
+@export var ult_kind: StringName = &""
+## Dibujo principal de sus golpes (ver PowerArt) y colores de las grietas y del ambiente.
+@export var ult_art: StringName = &""
+@export var ult_color: Color = Color("ffd040")
+@export var ult_tint: Color = Color(0.1, 0.05, 0.1, 1)
+
 ## Duración total en frames.
 func total_frames() -> int:
 	return startup + active + recovery

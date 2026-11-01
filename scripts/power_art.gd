@@ -50,7 +50,11 @@ static func draw(ci: CanvasItem, style: StringName, t: float, prog: float, a: fl
 		&"lightblade": _lightblade(ci, t)
 		&"barrier": _barrier(ci, prog, box)
 		&"redshield": _redshield(ci, t, box)
-		&"ship": _ship(ci, t, box)
+		&"ship": _ship(ci, t, box, 0.4)
+		&"shipfull": _ship(ci, t, box, 0.95)
+		&"corgis": _corgis(ci, t)
+		&"lightpillar": _lightpillar(ci, prog, a, box, col)
+		&"meteor": _meteor(ci, t, col)
 		&"anchor": _anchor(ci, t)
 		_: ci.draw_circle(Vector2.ZERO, 4.0, col)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -550,8 +554,7 @@ static func _redshield(ci: CanvasItem, t: float, box: Vector2) -> void:
 	ci.draw_arc(Vector2.ZERO, box.x * 0.5 - 4.0, -2.4, -1.2, 8, Color(1, 0.8, 0.8, 0.8), 2.0)
 
 ## Prat: silueta de la corbeta Esmeralda (decorado de fondo, algo transparente).
-static func _ship(ci: CanvasItem, t: float, box: Vector2) -> void:
-	var a := 0.4
+static func _ship(ci: CanvasItem, t: float, box: Vector2, a: float = 0.4) -> void:
 	var hull := Color(0.1, 0.14, 0.26, a)
 	var sail := Color(0.92, 0.9, 0.82, a)
 	var bob := sin(t * 3.0) * 2.0
@@ -579,3 +582,48 @@ static func _anchor(ci: CanvasItem, t: float) -> void:
 	ci.draw_line(Vector2(0, -6), Vector2(0, 6), Color("7a7a88"), 3.0)
 	ci.draw_circle(Vector2(-10, 0), 3.5, OL)
 	ci.draw_circle(Vector2(-10, 0), 2.5, Color("b0b0c0"))
+
+## Isabel II: una jauría de corgis al galope.
+static func _corgis(ci: CanvasItem, t: float) -> void:
+	for i in 4:
+		_corgi(ci, -24.0 + i * 16.0, 4.0 + (i % 2) * 2.0, t, i * 1.3)
+
+static func _corgi(ci: CanvasItem, ox: float, oy: float, t: float, ph: float) -> void:
+	var g := sin(t * 22.0 + ph)
+	for i in 4:
+		var lx := ox - 6.0 + i * 4.0
+		var sw := g * (3.0 if i % 2 == 0 else -3.0)
+		ci.draw_line(Vector2(lx, oy - 1), Vector2(lx + sw, oy + 4), OL, 3.0)
+		ci.draw_line(Vector2(lx, oy - 1), Vector2(lx + sw, oy + 4), Color("f4ecd8"), 1.5)
+	_rect(ci, ox - 8, oy - 9, 16, 8, Color("e0902a"))
+	_rect(ci, ox - 6, oy - 3, 12, 3, Color("f4ecd8"))
+	_rect(ci, ox + 6, oy - 14, 8, 8, Color("e0902a"))
+	_rect(ci, ox + 9, oy - 18, 3, 5, Color("e0902a"))
+	ci.draw_rect(Rect2(ox + 11, oy - 11, 2, 2), OL)
+	ci.draw_rect(Rect2(ox + 13, oy - 9, 2, 2), OL)
+	ci.draw_rect(Rect2(ox - 10, oy - 8, 3, 3), Color("e0902a"))
+
+## Columna de luz que baja del cielo (antes del impacto solo se ve un hilo).
+static func _lightpillar(ci: CanvasItem, prog: float, a: float, box: Vector2, col: Color) -> void:
+	var h := box.y
+	if prog < 1.0:
+		ci.draw_rect(Rect2(-1.5, -h * 0.5, 3.0, h), Color(col.r, col.g, col.b, 0.35 * prog))
+		return
+	var k := clampf(a / 0.12, 0.0, 1.0)
+	var w := box.x * (0.5 + 0.5 * k)
+	ci.draw_rect(Rect2(-w * 0.5, -h * 0.5, w, h), Color(col.r, col.g, col.b, 0.35))
+	ci.draw_rect(Rect2(-w * 0.32, -h * 0.5, w * 0.64, h), Color(1.0, 0.97, 0.82, 0.55))
+	ci.draw_rect(Rect2(-w * 0.14, -h * 0.5, w * 0.28, h), Color(1, 1, 1, 0.95))
+	for i in 4:
+		ci.draw_circle(Vector2(sin(a * 6.0 + i * 1.7) * w * 0.4, h * 0.5 - fmod(a * 160.0 + i * 50.0, h)), 2.0, Color(1, 1, 0.9, 0.9))
+	ci.draw_circle(Vector2(0, h * 0.5 - 2.0), w * 0.55, Color(1, 1, 0.9, 0.5))
+
+## Roca en llamas con estela de fuego.
+static func _meteor(ci: CanvasItem, t: float, col: Color) -> void:
+	for i in 6:
+		var ca := Color(col.r, col.g, col.b, 0.75 - i * 0.12)
+		ci.draw_circle(Vector2(sin(t * 30.0 + i) * 2.0, -10.0 - i * 8.0), 8.0 - i * 1.1, ca)
+	ci.draw_circle(Vector2.ZERO, 10.0, OL)
+	ci.draw_circle(Vector2.ZERO, 8.5, Color("5a3a30"))
+	ci.draw_circle(Vector2(-2, -2), 5.0, col.darkened(0.2))
+	ci.draw_circle(Vector2(-3, -3), 2.0, Color("fff0a0"))

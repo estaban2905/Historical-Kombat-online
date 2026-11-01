@@ -49,6 +49,8 @@ var cinematic_fighter: Fighter
 var cinematic_text: String = ""
 ## Ataque (attack_instance) del que ya se lanzó el efecto de impacto, por luchador.
 var _ult_fx_done: Dictionary = {}
+## Efectos de pantalla del ultimate en curso (ambiente, grietas, rayos...).
+var ult_fx: UltimateFX
 
 func _ready() -> void:
 	_load_stage()
@@ -122,6 +124,9 @@ func _spawn_fighter(data: FighterData, player_id: int) -> Fighter:
 
 ## Coloca a los luchadores para una nueva ronda (vida al máximo).
 func reset_round() -> void:
+	if is_instance_valid(ult_fx):
+		ult_fx.queue_free()
+	ult_fx = null
 	cinematic_frames = 0
 	_update_cinematic()
 	for p in projectiles_root.get_children():
@@ -417,12 +422,24 @@ func _on_attack_started(fighter: Fighter, atk: AttackData) -> void:
 func _start_cinematic(f: Fighter, atk: AttackData) -> void:
 	cinematic_frames = ULT_CINEMATIC_FRAMES
 	cinematic_fighter = f
+	_start_ult_fx(atk)
 	cinematic_text = atk.display_name.to_upper()
 	Sfx.play(&"confirm")
 	Sfx.play(&"megaphone")
 	fx.flash(0.7)
 	shake(3.0)
 	_update_cinematic()
+
+## Crea los efectos de pantalla del ultimate (el ambiente ya se oscurece durante el zoom).
+func _start_ult_fx(atk: AttackData) -> void:
+	if is_instance_valid(ult_fx):
+		ult_fx.queue_free()
+	ult_fx = null
+	if atk.ult_kind == &"":
+		return
+	ult_fx = UltimateFX.new()
+	ult_fx.setup(self, atk)
+	effects_root.add_child(ult_fx)
 
 ## Cámara de la cinemática: se acerca a quien lanza el ultimate, aguanta y vuelve.
 ## Es solo presentación: no entra en el estado del combate.
@@ -474,9 +491,6 @@ func _update_fx() -> void:
 			continue
 		var phase := tick_count + i * 3
 		var atk := f.current_attack
-		if atk != null and atk.kind == AttackData.Kind.ULTIMATE and f.state == Fighter.State.ATTACK \
-				and f.attack_frame == atk.startup + 1:
-			_ultimate_impact_fx(f, atk)
 		# Estela mientras la hitbox de patadas y especiales está activa.
 		if atk != null and f.is_hitbox_active() and atk.kind != AttackData.Kind.PUNCH and phase % 2 == 0:
 			fx.trail(f.hitbox_shape.global_position, Color("ffd040") if atk.kind == AttackData.Kind.KICK else Color("ff7020"))

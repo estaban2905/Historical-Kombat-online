@@ -194,8 +194,8 @@ launch = 0.0
 hitstop = 14
 effect_scale = 1.0
 startup = 20
-active = 30
-recovery = 30
+active = 4
+recovery = 40
 hitbox_offset = Vector2(60, -40)
 hitbox_size = Vector2(120, 80)
 crouch_offset = Vector2(0, 0)
@@ -208,6 +208,11 @@ dash_speed = 0.0
 projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
+power = &"ult"
+ult_kind = &"wave"
+ult_art = &"ring"
+ult_color = Color(1, 0.690196, 0.188235, 1)
+ult_tint = Color(0.14902, 0.101961, 0.0313725, 1)
 
 [sub_resource type="Resource" id="C_donald_trump_0"]
 script = ExtResource("1_67may")

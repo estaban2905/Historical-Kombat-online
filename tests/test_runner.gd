@@ -57,6 +57,7 @@ func _run() -> void:
 	await _test_menu_to_fight()
 	await _test_fight()
 	await _test_powers()
+	await _test_ultimates()
 	await _test_rounds_and_results()
 	await _test_soak()
 	await _test_arcade()
@@ -387,6 +388,46 @@ func _test_powers() -> void:
 		check(c.projectiles_root.get_child_count() == 0, "%s: no quedan efectos en pantalla" % d.id)
 	Engine.time_scale = 1.0
 	# Las rondas ganadas por tiempo durante la prueba ensucian el marcador: se recarga el combate.
+	get_tree().change_scene_to_file(Game.SCENE_FIGHT)
+	await wait_scene("Fight", 240)
+	await _wait_fight_phase()
+
+## Lanza el ultimate de los 39 luchadores contra un rival parado: tiene que ser una escena
+## de varios golpes que no pase de su daño base, con su ambiente de pantalla, y todo debe
+## desaparecer solo.
+func _test_ultimates() -> void:
+	print("
+# Ultimates de los 39 luchadores")
+	var c := _fight()
+	Engine.time_scale = 3.0
+	var kinds := {}
+	for d in FighterRegistry.all():
+		var atk := d.ultimate
+		c.round_manager.time_left = 99.0
+		await _setup_duel(70)
+		c.p1.setup(d, 1, c.p1.input)
+		c.p1.position.x = 160
+		c.p1.energy = 100.0
+		c.p1.controls_enabled = true
+		c.p2.position.x = 230
+		await frames(3)
+		var hp2 := c.p2.health
+		var fx_seen := false
+		c.p1.input.press(&"special_1")
+		c.p1.input.press(&"special_2")
+		for i in 420:
+			await frames(1)
+			fx_seen = fx_seen or is_instance_valid(c.ult_fx)
+		var dealt := hp2 - c.p2.health
+		var cap := atk.damage * d.strength / c.p2.data.resistance + 0.05
+		kinds[atk.ult_kind] = true
+		check(atk.is_power() and atk.ult_kind != &"", "%s: «%s» es un ultimate de tipo %s" % [d.id, atk.display_name, atk.ult_kind])
+		check(dealt > 0.0 and dealt <= cap, "%s: «%s» conecta (daño %.1f, máx. %.1f)" % [d.id, atk.display_name, dealt, cap])
+		check(fx_seen and not is_instance_valid(c.ult_fx), "%s: el ambiente aparece y se retira solo" % d.id)
+		check(c.projectiles_root.get_child_count() == 0, "%s: no quedan efectos en pantalla" % d.id)
+		c.p2.health = c.p2.data.max_health
+	check(kinds.size() >= 9, "hay %d tipos distintos de ultimate" % kinds.size())
+	Engine.time_scale = 1.0
 	get_tree().change_scene_to_file(Game.SCENE_FIGHT)
 	await wait_scene("Fight", 240)
 	await _wait_fight_phase()

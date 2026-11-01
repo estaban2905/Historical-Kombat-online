@@ -267,6 +267,8 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 				"show": true})
 			_spawn(cm, f, atk, {"art": &"anchor", "off": Vector2(28, -44), "box": Vector2(24, 26), "speed": 330.0,
 				"life": 0.9, "pull": true, "knock": 300.0, "stun": 30, "sound": &"cannon"})
+		&"ult":
+			_cast_ultimate(cm, f, atk)
 		_:
 			push_warning("PowerEffects: poder desconocido «%s»" % atk.power)
 
@@ -278,6 +280,181 @@ static func reflect(cm: CombatManager, f: Fighter, foe: Fighter) -> void:
 	f.facing = 1 if foe.position.x >= f.position.x else -1
 	_spawn(cm, f, atk, {"art": &"bigwave", "color": Color("e03030"), "off": Vector2(26, -40), "box": Vector2(26, 44),
 		"speed": 270.0, "life": 1.5, "knock": 260.0, "stun": 28, "shake": 3.0, "sound": &"hit_heavy"})
+
+# =========================================================================
+#  Ultimates: cada tipo es una escena a pantalla completa (golpes múltiples + ambiente)
+# =========================================================================
+## Caja (ancho, alto) y altura del centro respecto a los pies de los dibujos que se lanzan.
+const ART_GEOM := {
+	&"horses": [66.0, 34.0, -16.0], &"toqui": [58.0, 36.0, -22.0], &"chariot": [76.0, 36.0, -18.0],
+	&"legion": [62.0, 44.0, -22.0], &"caravel": [78.0, 44.0, -18.0], &"shipfull": [130.0, 90.0, -42.0],
+	&"bear": [40.0, 28.0, -13.0], &"dragon": [64.0, 30.0, -50.0], &"jackal": [50.0, 30.0, -14.0],
+	&"guard": [44.0, 40.0, -20.0], &"monkeys": [48.0, 42.0, -20.0], &"corgis": [70.0, 24.0, -12.0],
+	&"bell_wave": [24.0, 54.0, -30.0],
+}
+
+static func _ult_color(atk: AttackData) -> Color:
+	return atk.ult_color
+
+## Programa un evento de pantalla (si el efecto existe).
+static func _ufx(cm: CombatManager, delay: float, type: StringName, args: Dictionary = {}) -> void:
+	if is_instance_valid(cm.ult_fx):
+		cm.ult_fx.at(delay, type, args)
+
+static func _cast_ultimate(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	if not is_instance_valid(cm.ult_fx):
+		cm._start_ult_fx(atk)
+	match atk.ult_kind:
+		&"barrage": _ult_barrage(cm, f, atk)
+		&"charge": _ult_charge(cm, f, atk)
+		&"quake": _ult_quake(cm, f, atk)
+		&"storm": _ult_storm(cm, f, atk)
+		&"light": _ult_light(cm, f, atk)
+		&"wave": _ult_wave(cm, f, atk)
+		&"summon": _ult_summon(cm, f, atk)
+		&"meteor": _ult_meteor(cm, f, atk)
+		&"slash": _ult_slash(cm, f, atk)
+		_: push_warning("PowerEffects: tipo de ultimate desconocido «%s»" % atk.ult_kind)
+
+## Lluvia de bombas sobre toda la zona del rival; cada impacto abre una grieta.
+static func _ult_barrage(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	# Las bombas centrales caen sobre el rival (casi todo el daño); las de los lados abren el suelo.
+	var order: Array[float] = [0.0, -15.0, 15.0, -30.0, 30.0, -50.0, 50.0, -75.0, 75.0, -100.0, 100.0, -130.0, 130.0]
+	var weight: Array[float] = []
+	var total := 0.0
+	for off in order:
+		var w := 1.0 if absf(off) <= 30.0 else 0.12
+		weight.append(w)
+		total += w
+	var fall := 0.85
+	var art := atk.ult_art if atk.ult_art != &"" else &"bomb"
+	for i in order.size():
+		var d := {"off": Vector2(order[i], -f.floor_y + 10.0), "at_opp": true, "box": Vector2(20, 20), "speed": 0.0,
+			"accel_y": 520.0, "floor_y": f.floor_y - 2.0, "boom": true, "color": atk.ult_color, "delay": 4 + i * 6,
+			"life": 1.8, "share": weight[i] / total, "knock": 40.0, "stun": 26}
+		if art == &"bill":
+			d["style"] = &"spin"
+			d["box"] = Vector2(18, 14)
+			d["boom"] = false
+		else:
+			d["art"] = art
+		_spawn(cm, f, atk, d)
+		var t := float(4 + i * 6) / 60.0 + fall
+		_ufx(cm, t, &"crack", {"x": o + order[i] * f.facing, "len": 60.0, "shake": 2.5})
+	_ufx(cm, 0.4, &"flash", {"amount": 0.3})
+
+## Estampida: tres oleadas cruzan la pantalla rompiendo el suelo a su paso.
+static func _ult_charge(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var g: Array = ART_GEOM.get(atk.ult_art, [60.0, 34.0, -18.0])
+	for i in 3:
+		_spawn(cm, f, atk, {"art": atk.ult_art, "off": Vector2(-24.0 - i * 16.0, g[2]), "box": Vector2(g[0], g[1]),
+			"speed": 320.0, "delay": i * 18, "life": 2.1, "pierce": true, "share": 1.0 / 3.0, "knock": 300.0,
+			"launch": -150.0 if i == 2 else 0.0, "stun": 28, "shake": 3.0, "sound": &"whoosh"})
+	for k in 9:
+		var x := f.position.x + f.facing * (30.0 + k * 38.0)
+		_ufx(cm, 0.1 + k * 0.1, &"crack", {"x": x, "len": 50.0, "shake": 2.0})
+		_ufx(cm, 0.1 + k * 0.1, &"dust", {"x": x})
+
+## Terremoto: el suelo se parte, suben rocas y cae polvo del techo.
+static func _ult_quake(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	var offs: Array[float] = [0.0, -70.0, 70.0, -140.0, 140.0]
+	for i in offs.size():
+		_spawn(cm, f, atk, {"art": &"quake", "at_opp": true, "off": Vector2(offs[i], -12.0), "box": Vector2(84, 26),
+			"delay": 8 + i * 12, "show": true, "life": 0.5, "pierce": true, "share": 1.0 / float(offs.size()), "knock": 120.0,
+			"launch": -230.0 if i == 0 else 0.0, "stun": 40, "shake": 6.0, "sound": &"hit_heavy"})
+		var t := float(8 + i * 12) / 60.0
+		_ufx(cm, t, &"crack", {"x": o + offs[i] * f.facing, "len": 130.0, "shake": 5.0})
+		_ufx(cm, t, &"debris", {"x": o + offs[i] * f.facing})
+	_ufx(cm, 0.0, &"flash", {"amount": 0.5})
+
+## Tormenta: rayos que caen sobre el rival, con relámpagos que iluminan toda la pantalla.
+static func _ult_storm(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	var offs: Array[float] = [0.0, -70.0, 60.0, -30.0, 90.0, -95.0, 30.0]
+	for i in offs.size():
+		var delay := 10 + i * 9
+		_spawn(cm, f, atk, {"art": &"icebolt", "at_opp": true, "off": Vector2(offs[i], -105.0), "box": Vector2(20, 210),
+			"delay": delay, "show": true, "life": 0.3, "pierce": true, "share": 1.0 / float(offs.size()), "knock": 90.0,
+			"stun": 22, "sound": &"hit_heavy", "color": atk.ult_color if i % 2 == 0 else Color.WHITE})
+		var t := float(delay) / 60.0
+		_ufx(cm, t, &"bolt")
+		_ufx(cm, t, &"crack", {"x": o + offs[i] * f.facing, "len": 40.0, "shake": 1.0})
+
+## Luz: tres pilares sagrados y una explosión final que lanza al rival.
+static func _ult_light(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	var offs: Array[float] = [0.0, -55.0, 55.0]
+	for i in offs.size():
+		_spawn(cm, f, atk, {"art": &"lightpillar", "at_opp": true, "off": Vector2(offs[i], -105.0), "box": Vector2(40, 210),
+			"delay": 12 + i * 12, "show": true, "life": 0.6, "pierce": true, "share": 0.22, "knock": 60.0, "stun": 26,
+			"color": atk.ult_color, "sound": &"confirm"})
+		_ufx(cm, float(12 + i * 12) / 60.0, &"crack", {"x": o + offs[i] * f.facing, "len": 70.0, "shake": 2.0})
+	_spawn(cm, f, atk, {"art": &"ring", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -36), "box": Vector2(190, 90),
+		"delay": 52, "show": true, "life": 0.5, "pierce": true, "radial": true, "share": 0.34, "knock": 320.0,
+		"launch": -260.0, "stun": 40, "shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, 52.0 / 60.0, &"ring", {"x": o})
+	_ufx(cm, 52.0 / 60.0, &"flash", {"amount": 0.7})
+
+## Ondas de choque concéntricas que recorren el suelo.
+static func _ult_wave(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	var art := atk.ult_art if atk.ult_art != &"" else &"ring"
+	for i in 4:
+		_spawn(cm, f, atk, {"art": art, "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -36), "box": Vector2(230, 96),
+			"delay": 10 + i * 16, "show": true, "life": 0.4, "pierce": true, "radial": true, "share": 0.25, "knock": 240.0,
+			"launch": -230.0 if i == 3 else 0.0, "stun": 30, "shake": 4.0, "sound": &"confirm"})
+		_ufx(cm, float(10 + i * 16) / 60.0, &"ring", {"x": o})
+		_ufx(cm, float(10 + i * 16) / 60.0, &"crack", {"x": o, "len": 40.0 + i * 25.0, "shake": 3.0})
+
+## Invocación: aliados que llegan desde los dos lados y aplastan al rival.
+static func _ult_summon(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	var g: Array = ART_GEOM.get(atk.ult_art, [50.0, 34.0, -18.0])
+	var n := 0
+	for wave in 2:
+		for side in [-1, 1]:
+			_spawn(cm, f, atk, {"art": atk.ult_art, "at_opp": true, "off": Vector2(side * 190.0 * f.facing, g[2]),
+				"dir": -side, "box": Vector2(g[0], g[1]), "speed": 230.0, "delay": wave * 26 + (0 if side < 0 else 6),
+				"life": 1.9, "pierce": true, "share": 0.25, "knock": 220.0, "launch": -120.0 if wave == 1 else 0.0,
+				"stun": 26, "shake": 3.0, "sound": &"whoosh"})
+			n += 1
+	for k in 6:
+		_ufx(cm, 0.3 + k * 0.18, &"crack", {"x": o + (-1.0 if k % 2 == 0 else 1.0) * (20.0 + k * 22.0), "len": 60.0, "shake": 2.5})
+		_ufx(cm, 0.3 + k * 0.18, &"dust", {"x": o + (-1.0 if k % 2 == 0 else 1.0) * (30.0 + k * 20.0)})
+
+## Meteoritos que arrasan la pantalla: unos golpean al rival y otros hunden el suelo.
+static func _ult_meteor(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	var art := atk.ult_art if atk.ult_art != &"" else &"meteor"
+	var hits: Array[float] = [0.0, -45.0, 45.0, -90.0, 90.0]
+	var fall := 0.95
+	for i in hits.size():
+		_spawn(cm, f, atk, {"art": art, "color": atk.ult_color, "at_opp": true, "off": Vector2(hits[i], -f.floor_y + 4.0),
+			"box": Vector2(24, 24), "speed": 0.0, "accel_y": 520.0, "floor_y": f.floor_y - 2.0, "boom": true,
+			"delay": 6 + i * 9, "life": 2.0, "share": 0.2, "knock": 200.0, "stun": 28})
+		_ufx(cm, float(6 + i * 9) / 60.0 + fall, &"crack", {"x": o + hits[i] * f.facing, "len": 90.0, "shake": 4.0})
+	# Meteoritos de adorno por toda la pantalla.
+	var decor: Array[float] = [-170.0, -130.0, 130.0, 170.0, -110.0, 110.0]
+	for i in decor.size():
+		_visual(cm, f, Vector2(o + decor[i] * f.facing, 0.0), {"art": art, "color": atk.ult_color, "box": Vector2(24, 24),
+			"vy": 280.0, "delay": 14 + i * 8, "life": 1.3})
+		_ufx(cm, float(14 + i * 8) / 60.0 + 1.0, &"crack", {"x": o + decor[i] * f.facing, "len": 60.0, "shake": 2.0})
+
+## Lluvia de cortes: el rival recibe una ráfaga y un tajo final que lo lanza.
+static func _ult_slash(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var offs: Array[float] = [-30.0, 25.0, -10.0, 35.0, -35.0, 15.0, 0.0, 30.0, -20.0]
+	for i in offs.size():
+		_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(offs[i], -36.0 + (i % 3) * 8.0),
+			"box": Vector2(46, 60), "delay": 6 + i * 6, "life": 0.2, "pierce": true, "share": 0.07,
+			"knock": 60.0, "stun": 18, "sound": &"hit_light"})
+		_ufx(cm, float(6 + i * 6) / 60.0, &"cut")
+	_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -40), "box": Vector2(90, 100), "delay": 66,
+		"show": true, "life": 0.3, "pierce": true, "share": 0.37, "knock": 320.0, "launch": -260.0, "stun": 40,
+		"shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, 66.0 / 60.0, &"crack", {"x": f.opponent.position.x, "len": 120.0, "shake": 6.0})
+	_ufx(cm, 66.0 / 60.0, &"flash", {"amount": 0.7})
 
 ## Fragmentos de piedra en el suelo tras `frames` (cuando el poder golpea).
 static func _stones_later(cm: CombatManager, x: float, frames: int) -> void:
