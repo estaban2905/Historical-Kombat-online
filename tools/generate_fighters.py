@@ -21,13 +21,15 @@ SKIP = {"donald_trump", "napoleon"}
 #  resistencia, ritmo de los ataques normales.
 # --------------------------------------------------------------------------
 ARCHETYPES = {
+    # (vida, andar, salto, salto adelante, fuerza, resistencia, tempo). La vida efectiva
+    # (vida x resistencia) va de ~84 (glass) a ~115 (tank); la fuerza compensa.
     "balanced": (100, 72, -360, 110, 1.00, 1.00, "normal"),
-    "rusher":   (88, 88, -375, 125, 1.00, 0.95, "fast"),
-    "bruiser":  (112, 62, -340, 98, 1.10, 1.05, "slow"),
-    "zoner":    (92, 72, -360, 112, 0.95, 0.95, "normal"),
-    "glass":    (80, 92, -380, 130, 1.12, 0.85, "fast"),
-    "tank":     (118, 56, -330, 90, 1.00, 1.20, "slow"),
-    "agile":    (90, 84, -385, 128, 0.98, 0.98, "fast"),
+    "rusher":   (94, 88, -375, 125, 1.00, 0.97, "fast"),
+    "bruiser":  (106, 62, -340, 98, 1.05, 1.02, "slow"),
+    "zoner":    (94, 72, -360, 112, 0.98, 0.97, "normal"),
+    "glass":    (88, 92, -380, 130, 1.10, 0.96, "fast"),
+    "tank":     (108, 56, -330, 90, 0.97, 1.06, "slow"),
+    "agile":    (94, 84, -385, 128, 0.99, 0.97, "fast"),
 }
 
 # Cuerpos: muslo, espinilla, ancho pierna, torso, ancho torso, brazo, antebrazo,
@@ -685,9 +687,9 @@ POWERS = {
     "jesus_de_nazaret": W(name="Luz Divina", anim="cast", power="divine_light", dmg=16, energy=30),
     "buda": W(name="Iluminación", anim="cast", power="enlightenment", dmg=20),
     "papa_francisco": W(name="Campanas del Vaticano", anim="cast", power="vatican_bells", dmg=18),
-    "rasputin": W(name="Hipnosis Oscura", anim="cast", power="dark_hypnosis", dmg=14, status="invert", status_frames=210),
+    "rasputin": W(name="Hipnosis Oscura", anim="cast", power="dark_hypnosis", dmg=14, status="invert", status_frames=150),
     "pablo_escobar": W(name="Lluvia de Billetes", anim="cannon", power="bill_rain", dmg=20),
-    "albert_einstein": W(name="Relatividad", anim="cast", power="relativity", dmg=12, status="slow", status_frames=240),
+    "albert_einstein": W(name="Relatividad", anim="cast", power="relativity", dmg=12, status="slow", status_frames=150),
     "nikola_tesla": W(name="Tormenta Tesla", anim="cast", power="tesla_storm", dmg=20),
     "leonardo_da_vinci": W(name="Máquina Voladora", anim="cast", power="flying_machine", dmg=20),
     "marie_curie": W(name="Radiación Radiante", anim="flask", power="radiant_sphere", dmg=20),

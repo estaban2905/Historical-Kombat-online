@@ -180,7 +180,7 @@ projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"relativity"
 status = &"slow"
-status_frames = 240
+status_frames = 150
 
 [sub_resource type="Resource" id="R_albert_einstein_ultimate"]
 script = ExtResource("2_attack")
@@ -221,12 +221,12 @@ era = "1879 – 1955"
 intro_quote = "¡Todo es relativo, excepto mi victoria!"
 victory_quote = "¡Era cuestión de física!"
 bio = "El genio de la relatividad. Pelo imposible y la mente más rápida del torneo."
-max_health = 92.0
+max_health = 94.0
 walk_speed = 72.0
 jump_velocity = -360.0
 jump_forward_speed = 112.0
-strength = 0.95
-resistance = 0.95
+strength = 0.98
+resistance = 0.97
 punch_light = SubResource("R_albert_einstein_punch_light")
 punch_heavy = SubResource("R_albert_einstein_punch_heavy")
 kick_light = SubResource("R_albert_einstein_kick_light")

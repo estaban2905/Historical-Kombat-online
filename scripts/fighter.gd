@@ -101,6 +101,8 @@ const SWEEP_LAUNCH := -170.0
 const INPUT_BUFFER_FRAMES := 6
 ## Energía con la que empieza cada ronda (no se arrastra de la anterior).
 const ROUND_START_ENERGY := 30.0
+## Frames de aviso (el luchador se tiñe) antes de que los controles se inviertan de verdad.
+const INVERT_WARNING := 24
 ## Ultimate = Especial 1 + Especial 2 a la vez (la segunda tecla puede llegar hasta
 ## ULT_INPUT_FRAMES frames tarde) con la energía llena. Solo en el suelo.
 const ULT_INPUT_FRAMES := 2
@@ -203,6 +205,8 @@ var crouch_blocking: bool = false
 ## Estados alterados provocados por poderes del rival (frames restantes).
 var slow_frames: int = 0
 var invert_frames: int = 0
+## Aviso de los controles invertidos: no se invierten hasta pasados INVERT_WARNING frames.
+var invert_grace: int = 0
 var float_frames: int = 0
 ## true mientras corre (subestado de WALK). Se activa con doble toque en la dirección.
 var running: bool = false
@@ -278,6 +282,7 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	combo_hits_taken = 0
 	slow_frames = 0
 	invert_frames = 0
+	invert_grace = 0
 	float_frames = 0
 	running = false
 	_clear_throw()
@@ -372,7 +377,7 @@ func _ground_control() -> void:
 		_set_state(State.JUMP)
 		return
 	var h := input.horizontal() if controls_enabled else 0
-	if invert_frames > 0:
+	if is_inverted():
 		h = -h
 	var backdash := _update_run(h)
 	var want_block := controls_enabled and input.is_held(&"block")
@@ -414,6 +419,10 @@ func _ground_control() -> void:
 ## Recuerda la pulsación de salto unos frames. Solo cuenta el flanco (tecla que
 ## pasa de suelta a pulsada), así mantener la tecla no encadena saltos. Se lee del
 ## estado de las teclas por frame, igual que el resto: vale para teclado, IA y tests.
+## true si los controles están invertidos de verdad (pasado el aviso).
+func is_inverted() -> bool:
+	return invert_frames > 0 and invert_grace <= 0
+
 func _read_jump_buffer() -> void:
 	var held := controls_enabled and input != null and input.is_held(&"jump")
 	if held and not _prev_jump_held:
@@ -468,7 +477,7 @@ func _state_prejump() -> void:
 	if state_frames < PREJUMP_FRAMES:
 		return
 	var h := input.horizontal() if controls_enabled else 0
-	if invert_frames > 0:
+	if is_inverted():
 		h = -h
 	air_attack_used = false
 	velocity.y = data.jump_velocity
@@ -574,7 +583,7 @@ func _state_knockdown() -> void:
 		return
 	combo_hits_taken = 0
 	var h := input.horizontal() if controls_enabled else 0
-	if invert_frames > 0:
+	if is_inverted():
 		h = -h
 	if h != 0 and h != facing:
 		velocity.x = -facing * ROLL_SPEED
@@ -1021,6 +1030,8 @@ func _tick_status() -> void:
 		slow_frames -= 1
 	if invert_frames > 0:
 		invert_frames -= 1
+		if invert_grace > 0:
+			invert_grace -= 1
 	var tint := Color.WHITE
 	if slow_frames > 0:
 		tint = Color(0.6, 0.8, 1.0)
@@ -1035,7 +1046,9 @@ func _tick_status() -> void:
 func apply_status(status: StringName, frames: int) -> void:
 	match status:
 		&"slow": slow_frames = frames
-		&"invert": invert_frames = frames
+		&"invert":
+			invert_frames = frames
+			invert_grace = INVERT_WARNING
 		&"float": float_frames = frames
 
 func _apply_physics(delta: float) -> void:

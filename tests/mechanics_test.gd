@@ -62,6 +62,7 @@ func _run() -> void:
 	await _test_knockdown()
 	await _test_ultimate()
 	await _test_ai()
+	_test_balance()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -904,3 +905,28 @@ func _test_ai() -> void:
 	check(rolled, "la CPU se levanta con voltereta a veces")
 	_ai_off()
 	await _ticks(60)
+
+# --- Balance ----------------------------------------------------------------
+func _test_balance() -> void:
+	print("
+# Balance")
+	var lo := INF
+	var hi := 0.0
+	var lo_id := ""
+	var hi_id := ""
+	for d in FighterRegistry.all():
+		var ehp := d.max_health * d.resistance
+		if ehp < lo:
+			lo = ehp
+			lo_id = d.id
+		if ehp > hi:
+			hi = ehp
+			hi_id = d.id
+	check(hi / lo <= 1.4, "la vida efectiva va de %.0f (%s) a %.0f (%s): como mucho 1,4 veces" % [lo, lo_id, hi, hi_id])
+	var inv := Fighter.new()
+	inv.invert_frames = 100
+	inv.invert_grace = Fighter.INVERT_WARNING
+	check(not inv.is_inverted(), "los controles invertidos avisan antes de invertirse")
+	inv.invert_grace = 0
+	check(inv.is_inverted(), "y luego se invierten")
+	inv.free()
