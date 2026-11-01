@@ -959,6 +959,7 @@ LOOKS = {
     "julio_cesar": dict(cape="b02020"),
     "alejandro_magno": dict(cape="7a2a8a"),
     "cristobal_colon": dict(cape="8a2a2a"),
+    "arturo_prat": dict(hair_style="bald", hat_style="none"),   # calvo y sin gorra, con barba
     "leonardo_da_vinci": dict(cape="6a2a2a"),
 }
 
