@@ -53,6 +53,7 @@ func _run() -> void:
 
 	await _test_grab()
 	await _test_hit_levels()
+	await _test_guard()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -234,3 +235,67 @@ func _test_hit_levels() -> void:
 	combat.p1.energy = Fighter.MAX_ENERGY
 	r = await _attack_vs_guard(130.0, CROUCH_BLOCK, 1 << BIT_S1)
 	check(r != "hit", "un proyectil (medio) no atraviesa la guardia agachada (%s)" % r)
+
+# --- Guardia ------------------------------------------------------------------
+## Daño de un ataque de P1 sobre P2 antes de reducirlo por el bloqueo.
+func _full_damage(atk: AttackData) -> float:
+	return atk.damage * combat.p1.data.strength / combat.p2.data.resistance
+
+func _test_guard() -> void:
+	print("
+# Guardia")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	var jab := p1.data.get_attack(&"punch_light")
+
+	# Cada golpe bloqueado gasta guardia.
+	await _place(34.0, STAND_BLOCK)
+	check(is_equal_approx(p2.guard, Fighter.MAX_GUARD), "la guardia empieza llena")
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 30)
+	var expected := Fighter.MAX_GUARD - _full_damage(jab) * Fighter.GUARD_DRAIN
+	check(_hits[0][3].blocked and is_equal_approx(p2.guard, expected),
+		"un golpe bloqueado gasta guardia (%.1f de %.1f)" % [p2.guard, expected])
+
+	# No se recupera antes del retraso y sí después.
+	var after_hit := p2.guard
+	await _ticks(Fighter.GUARD_REGEN_DELAY - 12)
+	check(is_equal_approx(p2.guard, after_hit), "la guardia no se recupera durante el retraso")
+	await _ticks(50)
+	check(p2.guard > after_hit + 5.0 and p2.guard <= Fighter.MAX_GUARD, "después del retraso se recupera (%.1f)" % p2.guard)
+
+	# Guardia rota: aturdimiento, el siguiente golpe ya no se bloquea.
+	await _place(34.0, STAND_BLOCK)
+	p2.guard = 5.0
+	var health_before := p2.health
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 30)
+	check(p2.guard_is_broken and p2.state == Fighter.State.HIT, "con la guardia a 0 se rompe y queda aturdido")
+	check(is_equal_approx(p2.guard, Fighter.GUARD_AFTER_BREAK), "tras romperse la guardia vuelve al %d %%" % int(Fighter.GUARD_AFTER_BREAK))
+	check(is_equal_approx(health_before - p2.health, _full_damage(jab) * Fighter.BLOCK_DAMAGE_FACTOR),
+		"el golpe que la rompe solo hace daño de bloqueo")
+	check(p2.stun_frames > Fighter.GUARD_BREAK_STUN - 5, "el aturdimiento dura ~%d frames (%d)" % [Fighter.GUARD_BREAK_STUN, p2.stun_frames])
+	await _until(func(): return p1.state == Fighter.State.IDLE, 40)
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return _hits.size() >= 2, 30)
+	check(_hits.size() >= 2 and not _hits[1][3].blocked, "con la guardia rota el siguiente golpe entra completo")
+	await _until(func(): return p2.state != Fighter.State.HIT, 120)
+	check(not p2.guard_is_broken, "el aviso de guardia rota termina con el aturdimiento")
+
+	# Chip: los golpes normales no matan, los especiales sí.
+	await _place(34.0, STAND_BLOCK)
+	p2.health = 1.0
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 30)
+	check(p2.state != Fighter.State.KO and p2.health >= 1.0, "un golpe normal bloqueado no mata")
+	await _place(130.0, STAND_BLOCK)
+	p1.energy = Fighter.MAX_ENERGY
+	p2.health = 1.0
+	await _press(0, 1 << BIT_S1)
+	await _until(func(): return p2.state == Fighter.State.KO, 120)
+	check(p2.state == Fighter.State.KO, "un especial bloqueado puede rematar con el daño de rozadura")
+
+	# Una ronda nueva devuelve la guardia.
+	p2.guard = 10.0
+	await _place(60.0)
+	check(is_equal_approx(p2.guard, Fighter.MAX_GUARD), "cada ronda empieza con la guardia llena")

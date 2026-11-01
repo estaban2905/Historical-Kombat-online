@@ -160,7 +160,8 @@ func state_snapshot() -> Array:
 		parts.append([f.position, f.velocity, f.health, f.energy, f.state, f.state_frames,
 			f.facing, f.attack_frame, f.attack_instance, f.stun_frames, f.hitstop_frames,
 			f.combo_hits_taken, f.slow_frames, f.invert_frames, f.float_frames,
-			f.buffered_slot, f.buffered_frames, f.cooldowns, f.throw_timer, f.tech_requested])
+			f.buffered_slot, f.buffered_frames, f.cooldowns, f.throw_timer, f.tech_requested,
+			f.guard, f.guard_idle])
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
 		parts.append([pr.position, pr.life, pr.alive])
@@ -307,10 +308,19 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 		if target.is_at_wall():
 			attacker.velocity.x = -direction * atk.knockback * 0.5
 	var fx_type := HitEffect.Type.BLOCK if result.blocked else HitEffect.Type.HIT
+	if result.guard_break:
+		fx_type = HitEffect.Type.HIT
 	if result.ko:
 		fx_type = HitEffect.Type.KO
-	HitEffect.spawn(effects_root, point, fx_type, atk.effect_scale)
-	if result.blocked:
+	HitEffect.spawn(effects_root, point, fx_type, atk.effect_scale * (1.5 if result.guard_break else 1.0))
+	if result.guard_break:
+		# Guardia rota: sonido y sacudida de golpe pesado.
+		Sfx.play(&"hit_heavy")
+		shake(3.0)
+		fx.sparks(point, -direction)
+		fx.hit_burst(point, direction, 1)
+		fx.flash(0.35)
+	elif result.blocked and not result.ko:
 		Sfx.play(&"block", 0.08)
 		fx.sparks(point, -direction)
 	elif result.ko:

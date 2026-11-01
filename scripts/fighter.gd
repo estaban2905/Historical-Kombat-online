@@ -11,6 +11,7 @@ extends Node2D
 
 signal health_changed(fighter: Fighter)
 signal energy_changed(fighter: Fighter)
+signal guard_broken(fighter: Fighter)
 signal knocked_out(fighter: Fighter)
 signal attack_started(fighter: Fighter, attack: AttackData)
 signal projectile_requested(fighter: Fighter, attack: AttackData, spawn_position: Vector2)
@@ -28,6 +29,16 @@ const GROUND_FRICTION := 900.0
 const MAX_ENERGY := 100.0
 ## El bloqueo deja pasar solo este porcentaje del daño ("chip damage").
 const BLOCK_DAMAGE_FACTOR := 0.15
+## Guardia: cada golpe bloqueado gasta (daño sin reducir × GUARD_DRAIN). Se
+## recupera GUARD_REGEN_PER_SECOND tras GUARD_REGEN_DELAY frames sin bloquear
+## ningún golpe. Al llegar a 0 se rompe: GUARD_BREAK_STUN frames de aturdimiento
+## (sin poder bloquear) y la guardia vuelve al GUARD_AFTER_BREAK %.
+const MAX_GUARD := 100.0
+const GUARD_DRAIN := 2.0
+const GUARD_REGEN_DELAY := 60
+const GUARD_REGEN_PER_SECOND := 30.0
+const GUARD_BREAK_STUN := 50
+const GUARD_AFTER_BREAK := 50.0
 ## Frames que se recuerda una pulsación de ataque hecha antes de tiempo.
 const INPUT_BUFFER_FRAMES := 6
 const ENERGY_ON_HIT_DEALT := 6.0
@@ -69,6 +80,11 @@ var facing: int = 1
 var velocity: Vector2 = Vector2.ZERO
 var health: float = 100.0
 var energy: float = 0.0
+var guard: float = MAX_GUARD
+## Frames desde el último golpe bloqueado (la guardia no se recupera antes de GUARD_REGEN_DELAY).
+var guard_idle: int = 0
+## true mientras dura el aturdimiento de una guardia rota (para el HUD).
+var guard_is_broken: bool = false
 ## Si es false el luchador ignora los controles (presentación / fin de ronda).
 var controls_enabled: bool = false
 var floor_y: float = 200.0
@@ -156,6 +172,9 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	velocity = Vector2.ZERO
 	facing = p_facing
 	health = data.max_health
+	guard = MAX_GUARD
+	guard_idle = 0
+	guard_is_broken = false
 	_end_attack()
 	stun_frames = 0
 	hitstop_frames = 0
@@ -203,6 +222,7 @@ func tick(delta: float) -> void:
 		cooldowns[slot] = maxi(cooldowns[slot] - 1, 0)
 	if controls_enabled and state != State.KO:
 		add_energy(ENERGY_REGEN_PER_SECOND * delta)
+	_tick_guard(delta)
 
 	match state:
 		State.IDLE, State.WALK, State.CROUCH:
@@ -227,6 +247,13 @@ func tick(delta: float) -> void:
 	_update_boxes()
 	_update_visual()
 	input.end_frame()
+
+## Recupera la guardia si hace GUARD_REGEN_DELAY frames que no se bloquea un golpe.
+func _tick_guard(delta: float) -> void:
+	if guard_idle < GUARD_REGEN_DELAY:
+		guard_idle += 1
+	elif guard < MAX_GUARD and state != State.KO:
+		guard = minf(guard + GUARD_REGEN_PER_SECOND * delta, MAX_GUARD)
 
 # =========================================================================
 #  Estados
@@ -557,17 +584,29 @@ func _clear_throw() -> void:
 ## Devuelve {blocked: bool, damage: float, ko: bool}.
 func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		level: AttackData.HitLevel = AttackData.HitLevel.MID) -> Dictionary:
-	var result := {"blocked": false, "damage": 0.0, "ko": false}
+	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false}
 	var dmg := atk.damage * attacker.data.strength / maxf(data.resistance, 0.1)
 	if state == State.BLOCK and is_on_ground() and guards_against(level):
-		# BLOQUEO: daño muy reducido que nunca llega a noquear.
+		# BLOQUEO: daño muy reducido. Los golpes normales nunca noquean; los
+		# especiales (proyectiles, poderes) sí pueden rematar con el daño de rozadura.
+		var full := dmg
 		dmg *= BLOCK_DAMAGE_FACTOR
-		health = maxf(health - dmg, minf(health, 1.0))
+		var lethal := atk.is_projectile() or atk.is_power() \
+			or atk.kind == AttackData.Kind.SPECIAL or atk.kind == AttackData.Kind.ULTIMATE
+		health = maxf(health - dmg, 0.0 if lethal else minf(health, 1.0))
 		stun_frames = atk.blockstun
 		velocity.x = direction * atk.knockback * 0.6
 		add_energy(ENERGY_ON_BLOCK)
 		visual.flash_block()
 		result.blocked = true
+		guard_idle = 0
+		guard = maxf(guard - full * GUARD_DRAIN, 0.0)
+		if health <= 0.0:
+			_knock_out(direction)
+			result.ko = true
+		elif guard <= 0.0:
+			_break_guard()
+			result.guard_break = true
 	else:
 		health = maxf(health - dmg, 0.0)
 		combo_hits_taken = combo_hits_taken + 1 if state == State.HIT else 1
@@ -588,6 +627,15 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 	result.damage = dmg
 	health_changed.emit(self)
 	return result
+
+## La guardia llega a 0: aturdimiento sin poder bloquear y la guardia vuelve a medias.
+func _break_guard() -> void:
+	guard = GUARD_AFTER_BREAK
+	guard_is_broken = true
+	combo_hits_taken = 0
+	stun_frames = GUARD_BREAK_STUN
+	_set_state(State.HIT)
+	guard_broken.emit(self)
 
 func _knock_out(direction: int) -> void:
 	health = 0.0
@@ -703,6 +751,8 @@ func _update_boxes() -> void:
 func _set_state(new_state: State) -> void:
 	if new_state != State.WALK:
 		running = false
+	if new_state != State.HIT:
+		guard_is_broken = false
 	state = new_state
 	state_frames = 0
 

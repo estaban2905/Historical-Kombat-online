@@ -29,7 +29,7 @@ const FIGHTER_SCALE := 1.25
 ## Altura de las teclas dibujadas y de cada fila de las listas.
 const CAP_H := 12.0
 const KEY_ROW_H := 14.0
-const MOVE_ROW_H := 13.0
+const MOVE_ROW_H := 12.0
 
 ## Cámara lenta de la demo: multiplicador de los frames de cada fase del ataque.
 const SLOW_STARTUP := 4.0
@@ -511,6 +511,7 @@ func _move_rows() -> Array:
 		["AGACHARSE", [down], "", GREEN],
 		["BLOQUEAR DE PIE", [block], "PARA MEDIOS Y ALTOS", GRAY],
 		["BLOQUEAR AGACHADO", [down, "+", block], "PARA MEDIOS Y BAJOS", GRAY],
+		["GUARDIA", [], "SE ROMPE SI BLOQUEAS MUCHO", GRAY],
 		["BARRIDO (BAJO)", [down, "+", lk, "/", hk], "PATADA AGACHADO", BLUE],
 		["AÉREO (ALTO)", [up, " LUEGO ", lp, hp, lk, hk], "", RED],
 		["AGARRE", [lp, "+", lk], "ROMPE EL BLOQUEO", PURPLE],

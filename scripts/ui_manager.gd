@@ -12,6 +12,8 @@ const BAR_H := 9
 const BAR_Y := 16
 const ENERGY_W := 96
 const ENERGY_Y := 28
+const GUARD_Y := 36
+const GUARD_H := 3
 
 var combat: CombatManager
 var round_number: int = 1
@@ -89,7 +91,7 @@ func _draw() -> void:
 	var f1 := combat.p1
 	var f2 := combat.p2
 	# Franja superior oscura para legibilidad
-	draw_rect(Rect2(0, 0, 426, 36), Color(0.05, 0.02, 0.06, 0.55))
+	draw_rect(Rect2(0, 0, 426, 41), Color(0.05, 0.02, 0.06, 0.55))
 	_draw_side(f1, 1)
 	_draw_side(f2, 2)
 	_draw_timer()
@@ -155,10 +157,11 @@ func _draw_side(f: Fighter, i: int) -> void:
 		if not left:
 			mx = ex + ENERGY_W - roundf(ENERGY_W * cost / Fighter.MAX_ENERGY)
 		draw_rect(Rect2(mx, ENERGY_Y - 1, 1, 6), HKTheme.PAPER)
+	_draw_guard(f, ex)
 	if _no_energy_t[i] > 0.0:
 		var nx := 8.0 if left else 426.0 - 8.0 - 120.0
 		var na := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
-		HKTheme.draw_text(self, Vector2(nx, 46), "SIN ENERGÍA", 8, HKTheme.BLOOD, na, 120)
+		HKTheme.draw_text(self, Vector2(nx, 50), "SIN ENERGÍA", 8, HKTheme.BLOOD, na, 120)
 	# Medallas de rondas ganadas (junto al reloj)
 	for r in Game.rounds_to_win:
 		var mx := x0 + BAR_W - 9 - r * 10 if left else x0 + 1 + r * 10
@@ -175,6 +178,32 @@ func _draw_side(f: Fighter, i: int) -> void:
 		var align := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
 		HKTheme.draw_text(self, Vector2(cx, 62), "%d GOLPES" % _combo[i], 8, HKTheme.GOLD, align, 100)
 		HKTheme.draw_text(self, Vector2(cx, 72), "COMBO!", 8, HKTheme.BLOOD, align, 100)
+
+## Barra fina de guardia bajo la de energía (mismo lado y ancho).
+## Verde-azulada llena; amarilla por debajo del 50 %; naranja por debajo del 25 %;
+## parpadea en rojo mientras la guardia está rota.
+func _draw_guard(f: Fighter, ex: float) -> void:
+	var left := f.player_id == 1
+	var r := Rect2(ex, GUARD_Y, ENERGY_W, GUARD_H)
+	draw_rect(r.grow(1), HKTheme.INK)
+	draw_rect(r, Color("1a2a2a"))
+	var ratio := clampf(f.guard / Fighter.MAX_GUARD, 0.0, 1.0)
+	var w := roundf(ENERGY_W * ratio)
+	var col := Color("40d0b0")
+	if f.guard_is_broken:
+		col = Color("f04030") if int(_time * 10.0) % 2 == 0 else Color("f8f0d0")
+	elif ratio < 0.25:
+		col = Color("f08030")
+	elif ratio < 0.5:
+		col = Color("e8c838")
+	if w > 0:
+		var fill := Rect2(ex, GUARD_Y, w, GUARD_H) if left else Rect2(ex + ENERGY_W - w, GUARD_Y, w, GUARD_H)
+		draw_rect(fill, col)
+		draw_rect(Rect2(fill.position, Vector2(fill.size.x, 1)), col.lightened(0.4))
+	if f.guard_is_broken:
+		var gx := ex if left else ex + ENERGY_W - 120.0
+		var ga := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
+		HKTheme.draw_text(self, Vector2(gx, 60), "¡GUARDIA ROTA!", 8, HKTheme.BLOOD, ga, 120)
 
 func _draw_timer() -> void:
 	var box := Rect2(213 - 17, 3, 34, 24)
