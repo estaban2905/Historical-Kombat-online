@@ -102,9 +102,52 @@ jobs:
           (cd server && npm ci && npm run build)
           GODOT=$HOME/godot/godot bash tests/run_online_e2e.sh
 
+  web-export:
+    name: Exportar juego a Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache de Godot y plantillas
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-web-${{ env.GODOT_VERSION }}
+      - name: Descargar Godot y plantillas de Web
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot ~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+          # Las plantillas pesan 1,2 GB: se extrae solo lo necesario para Web.
+          curl -fsSL -o templates.tpz "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          unzip -q -j templates.tpz "templates/web_nothreads_release.zip" "templates/web_nothreads_debug.zip" "templates/version.txt"             -d ~/.local/share/godot/export_templates/${GODOT_VERSION/-/.}
+          rm templates.tpz
+      - name: Importar y exportar
+        run: |
+          ~/godot/godot --headless --path . --import
+          mkdir -p build/web
+          ~/godot/godot --headless --path . --export-release "Web" build/web/index.html
+          test -s build/web/index.wasm && test -s build/web/index.pck
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Brotli/gzip: el .wasm pesa ~40 MB y baja a ~8 MB.
+      - name: Comprimir
+        run: node server/scripts/precompress.mjs build/web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: build/web
+          retention-days: 7
+
   deploy-server:
     name: Deploy servidor (Railway)
-    needs: [server, docker, godot-tests]
+    needs: [server, docker, godot-tests, web-export]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'develop' }}
@@ -116,6 +159,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # El juego exportado va dentro de server/public: un solo servicio entrega
+      # la página y atiende el online.
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: server/public
       # Se sube solo la carpeta server/ (con su Dockerfile y railway.json).
       - name: Deploy a Railway
         working-directory: server

@@ -304,7 +304,8 @@ Menú principal → **DUELO ONLINE** → eliges luchador → *buscando rival* �
 - **Servidor:** carpeta `server/` (Fastify + WebSocket, ver `server/README.md`). Solo empareja y reenvía botones; no simula la pelea. Swagger en `/docs`.
 - **Cliente:** `scripts/autoload/online.gd` (conexión y cola), `scripts/lockstep_session.gd` (sincronización) y `scripts/ui/online_lobby.gd` (pantalla de espera).
 - **Sincronización (lockstep):** cada PC simula la pelea entera y solo se envían los botones de cada tick. Un botón se aplica 4 ticks (66 ms) después de pulsarlo, en los dos PC; si el rival aún no llegó, el combate espera ("ESPERANDO AL RIVAL..."). Funciona porque la simulación es determinista (`tests/determinism_test.gd`): **no uses azar (`randf`) en la lógica del combate**, solo en efectos visuales.
-- **Dirección del servidor:** `scripts/autoload/online_config.gd` (`wss://...` en producción) o `user://online.cfg` con `[server] url="ws://localhost:8787/ws"`.
+- **Versión web:** el servidor entrega también la página del juego (`server/public/`, ver `server/README.md`). En el navegador el juego se conecta solo a la misma dirección desde la que se abrió (`https://host/` → `wss://host/ws`). Todo vive en un único servicio de Railway.
+- **Dirección del servidor (Godot/.exe):** `scripts/autoload/online_config.gd` (`wss://...` en producción) o `user://online.cfg` con `[server] url="ws://localhost:8787/ws"`.
 - **Probar en local:** `cd server && npm install && npm run dev`, y abrir el juego dos veces (dos instancias de Godot o dos pestañas).
 - **Pruebas:** `godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn` (dos PC simulados con lag) y `GODOT=godot bash tests/run_online_e2e.sh` (servidor real + dos clientes).
 - **Limitaciones actuales:** sin revancha online (se vuelve al menú), sin detección de desincronización en vivo, sin pausa online (ESC solo permite abandonar). Si un jugador abandona, el otro gana la partida.

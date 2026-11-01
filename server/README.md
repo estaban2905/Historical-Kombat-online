@@ -22,6 +22,11 @@ npm run build && npm start
 | `GET /protocol` | Catálogo de mensajes del WebSocket |
 | `GET /docs` | Swagger UI (`/docs/json` es el OpenAPI) |
 | `WS /ws` | Conexión de juego |
+| `GET /` | El juego exportado a Web (si existe `public/`) |
+
+## Juego web en el mismo servidor
+
+El servidor también entrega la página del juego: una sola dirección para jugar y para el WebSocket, sin CORS. El pipeline exporta el juego, lo comprime (`scripts/precompress.mjs`) y lo deja en `server/public/` antes de desplegar. Para probarlo en local: exportar a `build/web/`, copiarlo a `server/public/`, `node scripts/precompress.mjs public` y abrir `http://localhost:8787`. El contenido de `public/` no se versiona (solo `.gitkeep`).
 
 ## Estructura
 
@@ -54,6 +59,7 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 | `MAX_MESSAGES_PER_SECOND` | 120 | Límite por conexión |
 | `HEARTBEAT_MS` | 15000 | Intervalo del ping |
 | `LOG` | true | `false` apaga los logs |
+| `STATIC_DIR` | public | Carpeta del juego exportado a Web |
 
 ## Protocolo (resumen)
 
