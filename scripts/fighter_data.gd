@@ -48,7 +48,7 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var ultimate: AttackData
 ## Agarre (puño débil + patada débil a la vez). Vacío = agarre común (default_grab).
 @export var grab: AttackData
-## Combos de comando (estructura preparada, ver combo_data.gd).
+## Combos con nombre propios (ver combo_data.gd). Vacío = los comunes.
 @export var combos: Array[ComboData] = []
 
 @export_group("Cuerpo (hurtbox)")
@@ -112,6 +112,29 @@ func get_attack(slot: StringName) -> AttackData:
 		&"ultimate": return ultimate
 		&"grab": return grab if grab else default_grab()
 	return null
+
+static var _default_combos: Array[ComboData] = []
+
+## Combos de este personaje: los suyos o, si no tiene, los comunes.
+func get_combos() -> Array[ComboData]:
+	return combos if not combos.is_empty() else default_combos()
+
+## Dos combos comunes a todos los luchadores, que se hacen cancelando golpes.
+static func default_combos() -> Array[ComboData]:
+	if _default_combos.is_empty():
+		_default_combos = [
+			_make_combo(&"trio", "TRÍO", [&"punch_light", &"punch_heavy", &"kick_heavy"], 3.0),
+			_make_combo(&"cuarteto", "CUARTETO", [&"punch_light", &"kick_light", &"punch_heavy", &"kick_heavy"], 5.0),
+		]
+	return _default_combos
+
+static func _make_combo(p_id: StringName, p_name: String, slots: Array[StringName], bonus: float) -> ComboData:
+	var c := ComboData.new()
+	c.id = p_id
+	c.display_name = p_name
+	c.sequence = slots
+	c.bonus_damage = bonus
+	return c
 
 static var _default_grab: AttackData
 

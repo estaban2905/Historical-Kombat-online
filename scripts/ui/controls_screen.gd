@@ -27,9 +27,9 @@ const FIGHTER_X := STAGE_X + STAGE_W * 0.5 - 10.0
 const KEY_LABEL_X := KEYS_X + 82.0
 const FIGHTER_SCALE := 1.25
 ## Altura de las teclas dibujadas y de cada fila de las listas.
-const CAP_H := 12.0
+const CAP_H := 11.0
 const KEY_ROW_H := 14.0
-const MOVE_ROW_H := 12.0
+const MOVE_ROW_H := 11.0
 
 ## Cámara lenta de la demo: multiplicador de los frames de cada fase del ataque.
 const SLOW_STARTUP := 4.0
@@ -514,6 +514,7 @@ func _move_rows() -> Array:
 		["GUARDIA", [], "SE ROMPE SI BLOQUEAS MUCHO", GRAY],
 		["BARRIDO (BAJO)", [down, "+", lk, "/", hk], "PATADA AGACHADO", BLUE],
 		["AÉREO (ALTO)", [up, " LUEGO ", lp, hp, lk, hk], "", RED],
+		["COMBO", [lp, ">", hp, ">", hk], "CANCELA AL CONECTAR", RED],
 		["AGARRE", [lp, "+", lk], "ROMPE EL BLOQUEO", PURPLE],
 		["ZAFARSE", [lp, "+", lk], "AL SER AGARRADO", PURPLE],
 		["ESPECIAL 1", [_key_for(&"special_1")], _energy_note(data.special_1), HKTheme.GOLD],

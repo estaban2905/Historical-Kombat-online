@@ -30,6 +30,10 @@ var _stage_name_t: float = 99.0
 var _combo: Array[int] = [0, 0, 0]        # golpes encadenados POR el jugador i
 var _combo_t: Array[float] = [0.0, 0.0, 0.0]
 var _no_energy_t: Array[float] = [0.0, 0.0, 0.0]
+## Avisos de counter-hit y de combo con nombre completado, por jugador que los hace.
+var _counter_t: Array[float] = [0.0, 0.0, 0.0]
+var _combo_name: Array[String] = ["", "", ""]
+var _combo_name_t: Array[float] = [0.0, 0.0, 0.0]
 var _time: float = 0.0
 
 func bind(p_combat: CombatManager) -> void:
@@ -68,6 +72,11 @@ func _on_hit_landed(attacker: Fighter, defender: Fighter, _atk: AttackData, resu
 		return
 	_combo[attacker.player_id] = defender.combo_hits_taken
 	_combo_t[attacker.player_id] = 1.2
+	if result.counter:
+		_counter_t[attacker.player_id] = 1.2
+	if result.combo_name != "":
+		_combo_name[attacker.player_id] = result.combo_name
+		_combo_name_t[attacker.player_id] = 1.6
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -83,6 +92,8 @@ func _process(delta: float) -> void:
 			_trail[i] = maxf(_trail[i], ratio)
 			_combo_t[i] = maxf(_combo_t[i] - delta, 0.0)
 			_no_energy_t[i] = maxf(_no_energy_t[i] - delta * 1.5, 0.0)
+			_counter_t[i] = maxf(_counter_t[i] - delta, 0.0)
+			_combo_name_t[i] = maxf(_combo_name_t[i] - delta, 0.0)
 	queue_redraw()
 
 func _draw() -> void:
@@ -178,6 +189,14 @@ func _draw_side(f: Fighter, i: int) -> void:
 		var align := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
 		HKTheme.draw_text(self, Vector2(cx, 62), "%d GOLPES" % _combo[i], 8, HKTheme.GOLD, align, 100)
 		HKTheme.draw_text(self, Vector2(cx, 72), "COMBO!", 8, HKTheme.BLOOD, align, 100)
+	# Counter-hit y combo con nombre, debajo del contador
+	var cx2 := 12.0 if left else 426.0 - 12.0 - 100.0
+	var align2 := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
+	if _counter_t[i] > 0.0:
+		var ccol := Color("60d0ff") if int(_time * 12.0) % 2 == 0 else HKTheme.PAPER
+		HKTheme.draw_text(self, Vector2(cx2, 84), "¡COUNTER!", 8, ccol, align2, 100)
+	if _combo_name_t[i] > 0.0:
+		HKTheme.draw_text(self, Vector2(cx2, 94), _combo_name[i], 8, HKTheme.GOLD, align2, 100)
 
 ## Barra fina de guardia bajo la de energía (mismo lado y ancho).
 ## Verde-azulada llena; amarilla por debajo del 50 %; naranja por debajo del 25 %;

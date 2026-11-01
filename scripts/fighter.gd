@@ -39,6 +39,22 @@ const GUARD_REGEN_DELAY := 60
 const GUARD_REGEN_PER_SECOND := 30.0
 const GUARD_BREAK_STUN := 50
 const GUARD_AFTER_BREAK := 50.0
+## Combos. Un golpe que conecta o es bloqueado se puede cancelar en otro de rango
+## igual o mayor (débil → fuerte → especial), sin repetir golpe en la cadena.
+## Cada golpe del combo hace COMBO_SCALE_STEP menos de daño (mínimo COMBO_SCALE_MIN)
+## y acorta HITSTUN_DECAY frames el aturdimiento (mínimo HITSTUN_MIN). A un rival
+## en el aire solo se le pueden dar JUGGLE_LIMIT golpes seguidos.
+const COMBO_SCALE_STEP := 0.1
+const COMBO_SCALE_MIN := 0.4
+const HITSTUN_DECAY := 2
+const HITSTUN_MIN := 8
+const JUGGLE_LIMIT := 3
+## Counter-hit: golpear a un rival que aún está en el startup de su ataque.
+const COUNTER_DAMAGE := 1.2
+const COUNTER_HITSTUN := 4
+## Rango de cada ranura para las cancelaciones (las que no están no se cancelan).
+const CANCEL_RANK := {&"punch_light": 1, &"kick_light": 1, &"punch_heavy": 2, &"kick_heavy": 2,
+	&"special_1": 3, &"special_2": 3}
 ## Frames que se recuerda una pulsación de ataque hecha antes de tiempo.
 const INPUT_BUFFER_FRAMES := 6
 const ENERGY_ON_HIT_DEALT := 6.0
@@ -101,6 +117,14 @@ var attack_airborne: bool = false
 var attack_instance: int = 0
 var hit_targets: Array[Fighter] = []
 var projectile_spawned: bool = false
+## true cuando el ataque en curso ha golpeado o ha sido bloqueado (ya se puede cancelar).
+var attack_connected: bool = false
+## Ranuras ya usadas en la cadena de cancelaciones en curso.
+var chain_slots: Array[StringName] = []
+## Combo con nombre que completa el ataque en curso (da su bono si conecta).
+var attack_combo: ComboData
+## Golpes seguidos recibidos en el aire (límite JUGGLE_LIMIT).
+var juggle_hits: int = 0
 
 var stun_frames: int = 0
 var hitstop_frames: int = 0
@@ -175,6 +199,7 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	guard = MAX_GUARD
 	guard_idle = 0
 	guard_is_broken = false
+	juggle_hits = 0
 	_end_attack()
 	stun_frames = 0
 	hitstop_frames = 0
@@ -336,6 +361,8 @@ func _state_attack() -> void:
 	if attack_frame < GRAB_INPUT_FRAMES and _is_grab_pair(current_slot, buffered_slot) \
 			and _try_start_attack(&"grab"):
 		return
+	if _try_cancel():
+		return
 	attack_frame += 1
 	var atk := current_attack
 	var in_motion := attack_frame <= atk.startup + atk.active
@@ -409,7 +436,9 @@ func _state_thrown() -> void:
 #  Ataques
 # =========================================================================
 func _read_attack_buffer() -> void:
-	if buffered_frames > 0:
+	# Durante el hitstop el tiempo del búfer no corre: así la pulsación que se
+	# adelanta a un golpe que conecta sigue viva cuando se puede cancelar.
+	if buffered_frames > 0 and hitstop_frames == 0:
 		buffered_frames -= 1
 		if buffered_frames == 0:
 			buffered_slot = &""
@@ -426,8 +455,23 @@ func _read_attack_buffer() -> void:
 static func _is_grab_pair(a: StringName, b: StringName) -> bool:
 	return (a == &"punch_light" and b == &"kick_light") or (a == &"kick_light" and b == &"punch_light")
 
+## Cancela el ataque en curso en el que hay en el búfer, si las reglas lo permiten:
+## el golpe tiene que haber conectado (o ser bloqueado), la ranura nueva no puede
+## estar ya en la cadena y su rango no puede ser menor. Los especiales no se cancelan.
+func _try_cancel() -> bool:
+	if not attack_connected or buffered_slot == &"" or current_attack == null:
+		return false
+	var cur_rank: int = CANCEL_RANK.get(current_slot, 0)
+	var new_rank: int = CANCEL_RANK.get(buffered_slot, 0)
+	if cur_rank == 0 or cur_rank >= 3 or new_rank < cur_rank or chain_slots.has(buffered_slot):
+		return false
+	if attack_frame <= current_attack.startup:
+		return false
+	return _try_start_attack(buffered_slot, true)
+
 ## Intenta iniciar un ataque. Devuelve false si no es posible ahora.
-func _try_start_attack(slot: StringName) -> bool:
+## `chained`: viene de cancelar otro ataque (continúa la cadena y el combo).
+func _try_start_attack(slot: StringName, chained: bool = false) -> bool:
 	var atk := data.get_attack(slot)
 	if atk == null:
 		return false
@@ -451,6 +495,11 @@ func _try_start_attack(slot: StringName) -> bool:
 	attack_instance += 1
 	hit_targets.clear()
 	projectile_spawned = false
+	attack_connected = false
+	attack_combo = null
+	if not chained:
+		chain_slots.clear()
+	chain_slots.append(slot)
 	# Cuenta la tecla mantenida y no solo el estado: si ↓ y el ataque se pulsan
 	# a la vez, el ataque sale antes de que el luchador llegue a agacharse.
 	var crouch_held := not airborne and controls_enabled and input != null and input.is_held(&"crouch")
@@ -459,7 +508,7 @@ func _try_start_attack(slot: StringName) -> bool:
 	if not airborne and atk.dash_speed <= 0.0:
 		velocity.x = 0.0
 	_set_state(State.ATTACK)
-	_record_history(slot)
+	_record_history(slot, chained)
 	attack_started.emit(self, atk)
 	return true
 
@@ -469,15 +518,27 @@ func _end_attack() -> void:
 	attack_frame = 0
 	attack_crouching = false
 	attack_airborne = false
+	attack_connected = false
+	attack_combo = null
+	chain_slots.clear()
 	hit_targets.clear()
 
-func _record_history(slot: StringName) -> void:
-	input_history.append({"slot": slot, "frame": frame_counter})
+## Apunta el ataque en el historial. `chained` = viene de una cancelación: los
+## combos con nombre solo cuentan si cada golpe (menos el primero) está enlazado.
+func _record_history(slot: StringName, chained: bool = false) -> void:
+	input_history.append({"slot": slot, "frame": frame_counter, "chained": chained})
 	if input_history.size() > HISTORY_SIZE:
 		input_history.pop_front()
-	for combo in data.combos:
+	for combo in data.get_combos():
 		if combo and combo.matches(input_history):
+			# Si encajan varios, vale el de más bono.
+			if attack_combo == null or combo.bonus_damage > attack_combo.bonus_damage:
+				attack_combo = combo
 			combo_performed.emit(self, combo)
+
+## El ataque en curso ha golpeado o ha sido bloqueado (lo llama CombatManager).
+func on_attack_connected() -> void:
+	attack_connected = true
 
 ## Nivel del ataque en curso: en el aire es alto (overhead), una patada
 ## agachada es baja y, si no, el que diga su AttackData.
@@ -527,9 +588,12 @@ func get_hit_rect() -> Rect2:
 func register_hit(target: Fighter) -> void:
 	hit_targets.append(target)
 
-## Durante una llave ninguno de los dos puede recibir otros golpes.
+## Durante una llave ninguno de los dos puede recibir otros golpes. Un rival que
+## ya ha recibido JUGGLE_LIMIT golpes en el aire no puede recibir más hasta aterrizar.
 func can_be_hit() -> bool:
-	return not (state in [State.KO, State.VICTORY, State.THROW, State.THROWN])
+	if state in [State.KO, State.VICTORY, State.THROW, State.THROWN]:
+		return false
+	return juggle_hits < JUGGLE_LIMIT or is_on_ground()
 
 ## Un agarre solo atrapa a un rival en el suelo que no esté aturdido
 ## (ni golpeado ni en bloqueo forzado).
@@ -582,9 +646,10 @@ func _clear_throw() -> void:
 ## Aplica un golpe. `direction` = hacia dónde sale despedido (+1 / -1).
 ## `level`: alto/medio/bajo (decide si la guardia actual lo para).
 ## Devuelve {blocked: bool, damage: float, ko: bool}.
+## `bonus`: daño extra de un combo con nombre completado (solo si el golpe entra).
 func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
-		level: AttackData.HitLevel = AttackData.HitLevel.MID) -> Dictionary:
-	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false}
+		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0) -> Dictionary:
+	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false, "counter": false}
 	var dmg := atk.damage * attacker.data.strength / maxf(data.resistance, 0.1)
 	if state == State.BLOCK and is_on_ground() and guards_against(level):
 		# BLOQUEO: daño muy reducido. Los golpes normales nunca noquean; los
@@ -608,15 +673,28 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 			_break_guard()
 			result.guard_break = true
 	else:
+		# Golpes que ya lleva el combo (si no estaba aturdido, empieza uno nuevo).
+		var hits_before := combo_hits_taken if state == State.HIT else 0
+		# Counter-hit: le pillamos en el startup de su ataque.
+		var counter := state == State.ATTACK and current_attack != null \
+			and attack_frame <= current_attack.startup
+		if counter:
+			dmg *= COUNTER_DAMAGE
+			result.counter = true
+		dmg *= maxf(COMBO_SCALE_MIN, 1.0 - COMBO_SCALE_STEP * hits_before)
+		dmg += bonus * attacker.data.strength / maxf(data.resistance, 0.1)
 		health = maxf(health - dmg, 0.0)
-		combo_hits_taken = combo_hits_taken + 1 if state == State.HIT else 1
+		combo_hits_taken = hits_before + 1
+		if not is_on_ground():
+			juggle_hits += 1
 		_end_attack()
 		velocity.x = direction * atk.knockback
 		if atk.launch < 0.0:
 			velocity.y = atk.launch
 		elif not is_on_ground():
 			velocity.y = minf(velocity.y, -140.0)
-		stun_frames = atk.hitstun
+		var stun := atk.hitstun + (COUNTER_HITSTUN if counter else 0) - HITSTUN_DECAY * hits_before
+		stun_frames = maxi(stun, mini(HITSTUN_MIN, atk.hitstun))
 		_set_state(State.HIT)
 		add_energy(ENERGY_ON_HIT_TAKEN)
 		attacker.add_energy(ENERGY_ON_HIT_DEALT)
@@ -701,6 +779,7 @@ func _apply_physics(delta: float) -> void:
 		position.y = floor_y
 		if velocity.y > 0.0:
 			velocity.y = 0.0
+			juggle_hits = 0
 			landed.emit(self)
 			if state == State.JUMP:
 				velocity.x = 0.0
@@ -753,6 +832,7 @@ func _set_state(new_state: State) -> void:
 		running = false
 	if new_state != State.HIT:
 		guard_is_broken = false
+		juggle_hits = 0
 	state = new_state
 	state_frames = 0
 

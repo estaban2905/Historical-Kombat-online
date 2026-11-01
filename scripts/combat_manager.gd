@@ -161,7 +161,7 @@ func state_snapshot() -> Array:
 			f.facing, f.attack_frame, f.attack_instance, f.stun_frames, f.hitstop_frames,
 			f.combo_hits_taken, f.slow_frames, f.invert_frames, f.float_frames,
 			f.buffered_slot, f.buffered_frames, f.cooldowns, f.throw_timer, f.tech_requested,
-			f.guard, f.guard_idle])
+			f.guard, f.guard_idle, f.attack_connected, f.chain_slots.size(), f.juggle_hits])
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
 		parts.append([pr.position, pr.life, pr.alive])
@@ -206,7 +206,7 @@ func _resolve_melee_hits() -> void:
 	# ataque del otro antes de aplicar el suyo.
 	for f in fighters:
 		for target in f.get_hit_candidates():
-			hits.append([f, target, f.current_attack, f.current_hit_level()])
+			hits.append([f, target, f.current_attack, f.current_hit_level(), f.attack_combo])
 	for h in hits:
 		(h[0] as Fighter).register_hit(h[1])
 	var grabs: Array = []
@@ -218,7 +218,10 @@ func _resolve_melee_hits() -> void:
 			grabs.append(h)
 			continue
 		var point := _contact_point(attacker.hitbox_shape.global_position, target)
-		_apply_hit(attacker, target, atk, attacker.facing, point, false, h[3])
+		_apply_hit(attacker, target, atk, attacker.facing, point, false, h[3], h[4])
+		# Golpe dado o bloqueado: ya se puede cancelar en otro.
+		if attacker.state == Fighter.State.ATTACK and attacker.current_attack == atk:
+			attacker.on_attack_connected()
 	# Los agarres se resuelven después: si en el mismo frame el agarrador recibe
 	# un golpe, gana el golpe. Si los dos se agarran a la vez, se zafan.
 	if grabs.size() == 2:
@@ -290,8 +293,11 @@ func _contact_point(from: Vector2, target: Fighter) -> Vector2:
 	return Vector2(lerpf(from.x, center.x, 0.4), from.y)
 
 func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: int,
-		point: Vector2, from_projectile: bool, level: AttackData.HitLevel = AttackData.HitLevel.MID) -> void:
-	var result := target.receive_hit(attacker, atk, direction, level)
+		point: Vector2, from_projectile: bool, level: AttackData.HitLevel = AttackData.HitLevel.MID,
+		combo: ComboData = null) -> void:
+	var result := target.receive_hit(attacker, atk, direction, level, combo.bonus_damage if combo else 0.0)
+	# Nombre del combo completado: solo si el golpe final entra (el HUD lo muestra).
+	result["combo_name"] = combo.display_name if combo and not result.blocked else ""
 	if not result.blocked:
 		# Efectos de los poderes: estados alterados y energía recuperada.
 		if atk.status != &"" and atk.status_frames > 0:
@@ -312,7 +318,8 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 		fx_type = HitEffect.Type.HIT
 	if result.ko:
 		fx_type = HitEffect.Type.KO
-	HitEffect.spawn(effects_root, point, fx_type, atk.effect_scale * (1.5 if result.guard_break else 1.0))
+	var fx_scale := atk.effect_scale * (1.5 if result.guard_break else 1.0) * (1.3 if result.counter else 1.0)
+	HitEffect.spawn(effects_root, point, fx_type, fx_scale)
 	if result.guard_break:
 		# Guardia rota: sonido y sacudida de golpe pesado.
 		Sfx.play(&"hit_heavy")
@@ -330,7 +337,7 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 		fx.ko_stain(target.position.x)
 		fx.flash(0.6)
 	else:
-		var heavy := atk.damage >= 10.0
+		var heavy: bool = atk.damage >= 10.0 or result.counter
 		Sfx.play(&"hit_heavy" if heavy else &"hit_light", 0.1)
 		shake(3.0 if heavy else 1.0)
 		stage.excite(0.25 if heavy else 0.1)

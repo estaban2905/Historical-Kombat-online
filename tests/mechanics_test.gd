@@ -8,9 +8,11 @@ const BIT_JUMP := 2
 const BIT_CROUCH := 3
 const BIT_BLOCK := 4
 const BIT_LP := 5
+const BIT_HP := 6
 const BIT_S1 := 7
 const BIT_LK := 8
 const BIT_HK := 9
+const BIT_S2 := 10
 const GRAB := (1 << BIT_LP) | (1 << BIT_LK)
 const STAND_BLOCK := 1 << BIT_BLOCK
 const CROUCH_BLOCK := (1 << BIT_BLOCK) | (1 << BIT_CROUCH)
@@ -54,6 +56,7 @@ func _run() -> void:
 	await _test_grab()
 	await _test_hit_levels()
 	await _test_guard()
+	await _test_combos()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -299,3 +302,165 @@ func _test_guard() -> void:
 	p2.guard = 10.0
 	await _place(60.0)
 	check(is_equal_approx(p2.guard, Fighter.MAX_GUARD), "cada ronda empieza con la guardia llena")
+
+# --- Combos -------------------------------------------------------------------
+## Coloca a P1 y P2 pegados a la pared derecha (el rival no se aleja al recibir
+## golpes), con la distancia `dx` entre ellos.
+func _place_in_corner(dx: float) -> void:
+	var wall := combat.p1.bounds.y
+	combat.p1.reset_for_round(wall - dx, 1)
+	combat.p2.reset_for_round(wall, -1)
+	combat.round_manager.time_left = 9999.0
+	_masks = [0, 0]
+	await _ticks(8)
+	_hits.clear()
+
+## Pulsa cada ranura en cuanto el golpe anterior conecta (cancelando). Devuelve
+## cuántos golpes de la cadena conectaron.
+func _chain(bits: Array) -> int:
+	for i in bits.size():
+		await _press(0, 1 << bits[i])
+		if not await _until(func(): return _hits.size() > i, 60):
+			return i
+	return bits.size()
+
+func _test_combos() -> void:
+	print("
+# Combos")
+	# La prueba anterior termina con un K.O.: se espera a la ronda siguiente.
+	await _until(func(): return combat.round_manager.phase == RoundManager.Phase.FIGHT, 900)
+	var p1 := combat.p1
+	var p2 := combat.p2
+	var pl := p1.data.get_attack(&"punch_light")
+	var ph := p1.data.get_attack(&"punch_heavy")
+	var kh := p1.data.get_attack(&"kick_heavy")
+
+	# Cancelar al conectar: débil → fuerte.
+	await _place(24.0)
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return _hits.size() >= 1, 30)
+	await _press(0, 1 << BIT_HP)
+	await _until(func(): return _hits.size() >= 2, 60)
+	check(_hits.size() >= 2 and _hits[1][2] == ph, "puño débil cancela en puño fuerte al conectar")
+	check(p2.combo_hits_taken == 2, "los dos golpes cuentan como un combo (%d)" % p2.combo_hits_taken)
+	check(_hits.size() >= 2 and is_equal_approx(_hits[1][3].damage, _full_damage(ph) * (1.0 - Fighter.COMBO_SCALE_STEP)),
+		"el segundo golpe hace un %d %% menos de daño" % int(Fighter.COMBO_SCALE_STEP * 100))
+	check(p2.stun_frames == ph.hitstun - Fighter.HITSTUN_DECAY,
+		"el segundo golpe acorta el aturdimiento (%d frames)" % p2.stun_frames)
+
+	# Cancelar bloqueado.
+	await _place(24.0, STAND_BLOCK)
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return _hits.size() >= 1, 30)
+	await _press(0, 1 << BIT_HP)
+	await _until(func(): return _hits.size() >= 2, 60)
+	check(_hits.size() >= 2 and _hits[0][3].blocked and _hits[1][2] == ph, "también se cancela cuando el golpe es bloqueado")
+
+	# No se cancela si el golpe falla.
+	await _place(90.0)
+	await _press(0, 1 << BIT_LP)
+	await _ticks(6)
+	var instance := p1.attack_instance
+	await _press(0, 1 << BIT_HP)
+	await _ticks(3)
+	check(p1.attack_instance == instance and p1.current_slot == &"punch_light", "un golpe que falla no se puede cancelar")
+	await _ticks(40)
+
+	# Sin repetir el mismo golpe ni bajar de rango.
+	await _place(24.0)
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return _hits.size() >= 1, 30)
+	instance = p1.attack_instance
+	await _press(0, 1 << BIT_LP)
+	await _ticks(9)
+	check(p1.attack_instance == instance, "no se puede cancelar en el mismo golpe")
+	await _ticks(40)
+	await _place(24.0)
+	await _press(0, 1 << BIT_HP)
+	await _until(func(): return _hits.size() >= 1, 30)
+	instance = p1.attack_instance
+	await _press(0, 1 << BIT_LP)
+	await _ticks(12)
+	check(p1.attack_instance == instance, "un golpe fuerte no se cancela en uno débil")
+	await _ticks(40)
+
+	# Cancelar en un especial (cuesta energía y no se cancela desde él).
+	await _place(24.0)
+	p1.energy = Fighter.MAX_ENERGY
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return _hits.size() >= 1, 30)
+	await _press(0, 1 << BIT_S2)
+	await _ticks(8)
+	check(p1.current_slot == &"special_2", "un golpe débil se cancela en el especial 2")
+	await _ticks(80)
+
+	# Escalado mínimo y aturdimiento mínimo (golpes directos al motor).
+	await _place(60.0)
+	p2._set_state(Fighter.State.HIT)
+	p2.combo_hits_taken = 9
+	var r := p2.receive_hit(p1, pl, 1)
+	check(is_equal_approx(r.damage, _full_damage(pl) * Fighter.COMBO_SCALE_MIN),
+		"el daño nunca baja del %d %%" % int(Fighter.COMBO_SCALE_MIN * 100))
+	check(p2.stun_frames == Fighter.HITSTUN_MIN, "el aturdimiento nunca baja de %d frames" % Fighter.HITSTUN_MIN)
+
+	# Counter-hit: golpear a un rival en su startup.
+	await _place(34.0)
+	_masks = [1 << BIT_LP, 1 << BIT_HP]
+	await combat.ticked
+	_masks = [0, 0]
+	await _until(func(): return _hits.size() >= 1, 30)
+	check(_hits.size() >= 1 and _hits[0][3].counter, "golpear en el startup del rival es counter-hit")
+	check(is_equal_approx(_hits[0][3].damage, _full_damage(pl) * Fighter.COUNTER_DAMAGE),
+		"el counter-hit hace un %d %% más de daño" % roundi((Fighter.COUNTER_DAMAGE - 1.0) * 100.0))
+	check(p2.stun_frames == pl.hitstun + Fighter.COUNTER_HITSTUN, "el counter-hit alarga el aturdimiento (%d)" % p2.stun_frames)
+	await _ticks(50)
+	await _place(34.0)
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return _hits.size() >= 1, 30)
+	check(_hits.size() >= 1 and not _hits[0][3].counter, "un golpe normal no es counter-hit")
+
+	# Límite de golpes en el aire.
+	await _place(60.0)
+	p2.position.y = p2.floor_y - 60.0
+	p2.velocity.y = -200.0
+	p2._set_state(Fighter.State.HIT)
+	for i in Fighter.JUGGLE_LIMIT:
+		p2.receive_hit(p1, pl, 1)
+	check(p2.juggle_hits == Fighter.JUGGLE_LIMIT and not p2.can_be_hit(),
+		"tras %d golpes en el aire no se le puede golpear más" % Fighter.JUGGLE_LIMIT)
+	p2.position.y = p2.floor_y
+	p2.velocity.y = 120.0
+	await _ticks(2)
+	check(p2.juggle_hits == 0 and p2.can_be_hit(), "al aterrizar se puede volver a golpear")
+
+	# Combos con nombre: hay que enlazarlos con cancelaciones.
+	var c := p1.data.get_combos()[0]
+	var seq := c.sequence
+	var good: Array = []
+	for i in seq.size():
+		good.append({"slot": seq[i], "frame": i * 10, "chained": i > 0})
+	check(c.matches(good), "ComboData acepta la secuencia enlazada")
+	good[1]["chained"] = false
+	check(not c.matches(good), "ComboData rechaza la secuencia sin cancelar")
+	good[1]["chained"] = true
+	good[1]["frame"] = c.max_gap_frames + 5
+	check(not c.matches(good), "ComboData rechaza una pausa demasiado larga")
+
+	var names: Array = []
+	p1.combo_performed.connect(func(_f, combo): names.append(combo.display_name))
+	await _place_in_corner(24.0)
+	var n := await _chain([BIT_LP, BIT_LK, BIT_HP, BIT_HK])
+	check(n == 4, "la cadena débil-débil-fuerte-fuerte conecta los 4 golpes (%d)" % n)
+	check(names.has("CUARTETO") and _hits.size() >= 4 and _hits[3][3].combo_name == "CUARTETO",
+		"completar la cadena de 4 es el combo CUARTETO")
+	var bonus := p1.data.get_combos()[1].bonus_damage * p1.data.strength / p2.data.resistance
+	var last_damage: float = _hits[3][3].damage if _hits.size() >= 4 else -1.0
+	check(is_equal_approx(last_damage, _full_damage(kh) * 0.7 + bonus),
+		"el último golpe suma el bono del combo (%.2f)" % last_damage)
+	await _ticks(60)
+	names.clear()
+	await _place_in_corner(24.0)
+	n = await _chain([BIT_LP, BIT_HP, BIT_HK])
+	check(n == 3 and names.has("TRÍO") and _hits.size() >= 3 and _hits[2][3].combo_name == "TRÍO",
+		"débil-fuerte-fuerte es el combo TRÍO")
+	await _ticks(60)

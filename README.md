@@ -68,6 +68,9 @@ No hay dependencias externas ni plugins.
 - **Correr:** doble toque (pulsar, soltar y pulsar de nuevo en menos de 0,25 s) en ←/→ y mantener. Funciona hacia delante y hacia atrás, a 1,8 veces la velocidad de caminar. Se corta al soltar, cambiar de dirección, saltar, agacharse, bloquear, atacar o recibir un golpe. La pantalla CONTROLES (menú o pausa) permite probarlo.
 - Salto con dirección: mantener ←/→ al saltar. Ataque agachado: mantener abajo y atacar. Patada en el aire: atacar durante el salto.
 - Bloquear agachado: mantener abajo + bloqueo.
+- **Combos (cancelaciones):** si un golpe **conecta o es bloqueado**, se puede cancelar pulsando otro de rango igual o mayor: débil → fuerte → especial. No se repite el mismo golpe en una cadena, no se cancela un golpe que falla y los especiales no se cancelan. Cada golpe del combo hace un 10 % menos de daño (mínimo 40 %) y acorta 2 frames el aturdimiento (mínimo 8); a un rival en el aire solo se le dan 3 golpes seguidos.
+- **Combos con nombre:** cadenas concretas dan daño extra al último golpe y muestran su nombre: **TRÍO** (puño débil, puño fuerte, patada fuerte: +3) y **CUARTETO** (puño débil, patada débil, puño fuerte, patada fuerte: +5). Cada personaje puede definir los suyos en `FighterData.combos`.
+- **Counter-hit:** golpear a un rival que aún está preparando su ataque (en el *startup*) hace un 20 % más de daño y 4 frames más de aturdimiento (`¡COUNTER!`).
 - **Guardia:** la barra fina verde bajo la energía. Cada golpe bloqueado la gasta (2 × el daño del golpe), se recupera sola tras 1 s sin bloquear y, al llegar a 0, **se rompe**: 50 frames de aturdimiento sin poder bloquear, y vuelve al 50 %. Los golpes normales bloqueados nunca matan, pero los **especiales** (proyectiles y poderes) sí pueden rematar con su daño de rozadura. Constantes en `scripts/fighter.gd` (`GUARD_*`).
 - **Altos y bajos:** los ataques aéreos son **altos** (solo se bloquean de pie), las patadas agachadas son **bajas** (solo se bloquean agachado) y el resto son **medios** (se bloquean de las dos formas). Cada `AttackData` tiene `hit_level` para dar a un golpe de pie su propio nivel (p. ej. un overhead).
 - **Agarre:** puño débil + patada débil a la vez (la segunda tecla puede llegar hasta 2 frames tarde). Atraviesa el bloqueo, pero falla contra un rival en el aire, aturdido o en bloqueo forzado, y si falla deja mucho tiempo de recuperación. Si un golpe y un agarre llegan en el mismo frame, gana el golpe.
@@ -194,7 +197,7 @@ Para crear un poder nuevo: añade su estilo en `power_art.gd` (si necesita un di
 
 Las constantes globales del sistema (gravedad, porcentaje de daño al bloquear, regeneración de energía, búfer de entrada) están al principio de `scripts/fighter.gd`. Las reglas de rondas y tiempo, en `scripts/autoload/game.gd`.
 
-**Combos:** `scripts/combo_data.gd` define combos de comando (secuencias de botones con ventana de tiempo). El luchador ya guarda un historial de entradas y emite `combo_performed` cuando una secuencia de su lista `combos` coincide. En la 0.1 no hay combos de comando definidos; los combos por encadenamiento (golpear mientras el rival sigue aturdido) sí funcionan y se cuentan en el HUD.
+**Combos:** las cancelaciones están en `Fighter._try_cancel()` (rango en `CANCEL_RANK`) y el escalado, el aturdimiento decreciente, el límite de golpes en el aire y el counter-hit en `Fighter.receive_hit()`; todas las constantes están al principio de `scripts/fighter.gd` (`COMBO_*`, `HITSTUN_*`, `JUGGLE_LIMIT`, `COUNTER_*`). `scripts/combo_data.gd` define los combos con nombre: una secuencia de ranuras que deben salir **enlazadas** con cancelaciones, con un `bonus_damage` para el último golpe. Si el personaje no define `combos`, usa los comunes de `FighterData.default_combos()`.
 
 ## 10. Arquitectura
 
@@ -211,7 +214,7 @@ scripts/
   fighter.gd               Máquina de estados, física, ataques, bloqueo, energía
   fighter_data.gd          Ficha de personaje (Resource)
   attack_data.gd           Datos de un ataque (Resource)
-  combo_data.gd            Estructura de combos de comando
+  combo_data.gd            Combos con nombre (secuencias enlazadas con bono de daño)
   fighter_registry.gd      Lista de personajes disponibles
   fighter_renderer.gd      Pixel art procedural provisional de los luchadores
   input_manager.gd         Acciones p1_/p2_ y entradas virtuales (IA, tests)
@@ -262,7 +265,7 @@ Capturas de pantalla (necesita pantalla o `xvfb-run`): `godot --path . res://tes
 - Equilibrar a los 30 luchadores con partidas reales (las estadísticas actuales son una primera propuesta por arquetipo).
 - Sprites definitivos dibujados a mano y retratos (el sistema ya los admite).
 - Ataque definitivo (los datos ya existen en cada ficha; falta asignarle entrada y animación).
-- Combos de comando concretos por personaje y cancelaciones.
+- Combos con nombre propios por personaje (hoy todos usan TRÍO y CUARTETO) y que la CPU enlace cancelaciones.
 - Movimientos especiales con secuencias de joystick (↓↘→ + botón).
 - Agarres / llaves.
 - Más escenarios y selector de escenario.
