@@ -34,6 +34,7 @@ var _no_energy_t: Array[float] = [0.0, 0.0, 0.0]
 var _counter_t: Array[float] = [0.0, 0.0, 0.0]
 var _combo_name: Array[String] = ["", "", ""]
 var _combo_name_t: Array[float] = [0.0, 0.0, 0.0]
+var _perfect_t: Array[float] = [0.0, 0.0, 0.0]
 var _time: float = 0.0
 
 func bind(p_combat: CombatManager) -> void:
@@ -69,6 +70,8 @@ func _on_health_changed(f: Fighter) -> void:
 
 func _on_hit_landed(attacker: Fighter, defender: Fighter, _atk: AttackData, result: Dictionary) -> void:
 	if result.blocked:
+		if result.perfect:
+			_perfect_t[defender.player_id] = 1.0
 		return
 	_combo[attacker.player_id] = defender.combo_hits_taken
 	_combo_t[attacker.player_id] = 1.2
@@ -93,6 +96,7 @@ func _process(delta: float) -> void:
 			_combo_t[i] = maxf(_combo_t[i] - delta, 0.0)
 			_no_energy_t[i] = maxf(_no_energy_t[i] - delta * 1.5, 0.0)
 			_counter_t[i] = maxf(_counter_t[i] - delta, 0.0)
+			_perfect_t[i] = maxf(_perfect_t[i] - delta, 0.0)
 			_combo_name_t[i] = maxf(_combo_name_t[i] - delta, 0.0)
 	queue_redraw()
 
@@ -201,6 +205,8 @@ func _draw_side(f: Fighter, i: int) -> void:
 	# Counter-hit y combo con nombre, debajo del contador
 	var cx2 := 12.0 if left else 426.0 - 12.0 - 100.0
 	var align2 := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
+	if _perfect_t[i] > 0.0:
+		HKTheme.draw_text(self, Vector2(cx2, 84), "¡PERFECTO!", 8, Color("60ff90"), align2, 100)
 	if _counter_t[i] > 0.0:
 		var ccol := Color("60d0ff") if int(_time * 12.0) % 2 == 0 else HKTheme.PAPER
 		HKTheme.draw_text(self, Vector2(cx2, 84), "¡COUNTER!", 8, ccol, align2, 100)

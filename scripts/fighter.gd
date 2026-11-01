@@ -101,6 +101,13 @@ const SWEEP_LAUNCH := -170.0
 const INPUT_BUFFER_FRAMES := 6
 ## Energía con la que empieza cada ronda (no se arrastra de la anterior).
 const ROUND_START_ENERGY := 30.0
+## Bloqueo perfecto: si el bloqueo se pulsa PERFECT_BLOCK_FRAMES frames o menos antes
+## de que llegue el golpe, no hay daño de rozadura ni gasto de guardia, da
+## PERFECT_BLOCK_ENERGY de energía extra y el bloqueo dura PERFECT_BLOCKSTUN_CUT
+## frames menos (ventaja para quien bloquea).
+const PERFECT_BLOCK_FRAMES := 6
+const PERFECT_BLOCK_ENERGY := 8.0
+const PERFECT_BLOCKSTUN_CUT := 4
 ## Frames de aviso (el luchador se tiñe) antes de que los controles se inviertan de verdad.
 const INVERT_WARNING := 24
 ## Ultimate = Especial 1 + Especial 2 a la vez (la segunda tecla puede llegar hasta
@@ -172,6 +179,8 @@ var attack_connected: bool = false
 var jump_buffer: int = 0
 var _prev_jump_held: bool = false
 var _prev_block_held: bool = false
+## Frames desde que se pulsó el bloqueo (grande si no se mantiene).
+var block_age: int = 999
 ## true cuando ya se ha usado el ataque aéreo de este salto.
 var air_attack_used: bool = false
 ## Variantes de antiaéreo por ataque base (se crean al usarse).
@@ -275,6 +284,7 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	jump_buffer = 0
 	_prev_jump_held = false
 	_prev_block_held = false
+	block_age = 999
 	air_attack_used = false
 	_end_attack()
 	stun_frames = 0
@@ -562,6 +572,12 @@ func _read_tech_fall_buffer() -> void:
 		tech_fall_buffer = TECH_FALL_WINDOW + 1
 	elif tech_fall_buffer > 0 and hitstop_frames == 0:
 		tech_fall_buffer -= 1
+	if held and not _prev_block_held:
+		block_age = 0
+	elif held:
+		block_age += 1
+	else:
+		block_age = 999
 	_prev_block_held = held
 
 ## Aterriza derribado: o evita el derribo (bloqueo pulsado al caer) o queda tumbado.
@@ -920,19 +936,23 @@ func _clear_throw() -> void:
 ## `bonus`: daño extra de un combo con nombre completado (solo si el golpe entra).
 func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0) -> Dictionary:
-	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false, "counter": false}
+	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false, "counter": false, "perfect": false}
 	var dmg := atk.damage * attacker.data.strength / maxf(data.resistance, 0.1)
 	if state == State.BLOCK and is_on_ground() and guards_against(level):
 		# BLOQUEO: daño muy reducido. Los golpes normales nunca noquean; los
 		# especiales (proyectiles, poderes) sí pueden rematar con el daño de rozadura.
 		var full := dmg
-		dmg *= BLOCK_DAMAGE_FACTOR
+		var perfect := block_age <= PERFECT_BLOCK_FRAMES and stun_frames <= 0
+		if perfect:
+			full = 0.0
+		dmg *= 0.0 if perfect else BLOCK_DAMAGE_FACTOR
 		var lethal := atk.is_projectile() or atk.is_power() \
 			or atk.kind == AttackData.Kind.SPECIAL or atk.kind == AttackData.Kind.ULTIMATE
 		health = maxf(health - dmg, 0.0 if lethal else minf(health, 1.0))
-		stun_frames = atk.blockstun
+		stun_frames = maxi(atk.blockstun - (PERFECT_BLOCKSTUN_CUT if perfect else 0), 1)
 		velocity.x = direction * atk.knockback * 0.6
-		add_energy(ENERGY_ON_BLOCK)
+		add_energy(ENERGY_ON_BLOCK + (PERFECT_BLOCK_ENERGY if perfect else 0.0))
+		result.perfect = perfect
 		visual.flash_block()
 		result.blocked = true
 		guard_idle = 0

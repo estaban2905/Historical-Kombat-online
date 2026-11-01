@@ -62,6 +62,7 @@ func _run() -> void:
 	await _test_knockdown()
 	await _test_ultimate()
 	await _test_ai()
+	await _test_perfect_block()
 	_test_balance()
 
 	await get_tree().physics_frame
@@ -930,3 +931,31 @@ func _test_balance() -> void:
 	inv.invert_grace = 0
 	check(inv.is_inverted(), "y luego se invierten")
 	inv.free()
+
+# --- Bloqueo perfecto -------------------------------------------------------
+func _test_perfect_block() -> void:
+	print("
+# Bloqueo perfecto")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	await _wait_round()
+	var jab := p1.data.punch_light
+	# Bloqueo mantenido de sobra: daño de rozadura normal.
+	await _place(34.0, STAND_BLOCK)
+	await _ticks(10)
+	var hp := p2.health
+	var guard := p2.guard
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 30)
+	check(not _hits.is_empty() and _hits[0][3].blocked and not _hits[0][3].perfect, "un bloqueo mantenido no es perfecto")
+	check(p2.health < hp and p2.guard < guard, "y gasta vida y guardia")
+	await _ticks(60)
+	# Bloqueo pulsado justo a tiempo.
+	await _place(34.0)
+	await _press(0, 1 << BIT_LP)
+	_masks[1] = STAND_BLOCK
+	await _until(func(): return not _hits.is_empty(), 30)
+	_masks[1] = 0
+	check(not _hits.is_empty() and _hits[0][3].blocked and _hits[0][3].perfect, "pulsar el bloqueo justo antes del golpe es perfecto")
+	check(is_equal_approx(p2.health, p2.data.max_health) and is_equal_approx(p2.guard, Fighter.MAX_GUARD), "no hay rozadura ni gasto de guardia")
+	await _ticks(60)
