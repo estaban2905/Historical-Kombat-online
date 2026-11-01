@@ -238,6 +238,7 @@ display_name = "FIDEL CASTRO"
 short_name = "FIDEL"
 country = "Cuba"
 era = "1926 – 2016"
+year = 1926
 intro_quote = "¡Prepárate, que esto va para largo!"
 victory_quote = "¡La resistencia ha triunfado!"
 power_quote = ""

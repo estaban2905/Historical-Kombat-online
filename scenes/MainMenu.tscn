@@ -38,7 +38,7 @@ theme_override_constants/separation = 1
 [node name="Play" type="Button" parent="Buttons" unique_id=1081200093]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
-text = "ARCADE (VS CPU)"
+text = "MODO HISTORIA"
 
 [node name="Versus" type="Button" parent="Buttons" unique_id=1649249306]
 custom_minimum_size = Vector2(0, 12)

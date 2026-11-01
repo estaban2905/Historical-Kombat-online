@@ -237,6 +237,7 @@ display_name = "PACHACÚTEC"
 short_name = "PACHACÚTEC"
 country = "Imperio inca"
 era = "1418 – 1471"
+year = 1418
 intro_quote = "¡Desde los Andes se levantará mi imperio!"
 victory_quote = "¡El Tahuantinsuyo jamás será olvidado!"
 power_quote = "¡Que tiemble la tierra!"

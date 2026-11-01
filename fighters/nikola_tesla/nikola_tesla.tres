@@ -237,6 +237,7 @@ display_name = "NIKOLA TESLA"
 short_name = "TESLA"
 country = "Serbia"
 era = "1856 – 1943"
+year = 1856
 intro_quote = "¡Prepárate para una descarga de genialidad!"
 victory_quote = "¡La electricidad nunca falla!"
 power_quote = ""

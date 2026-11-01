@@ -238,6 +238,7 @@ display_name = "GENGIS KAN"
 short_name = "GENGIS KAN"
 country = "Imperio mongol"
 era = "1162 – 1227"
+year = 1162
 intro_quote = "¡Mi imperio no conoce fronteras!"
 victory_quote = "¡Otro territorio conquistado!"
 power_quote = ""

@@ -15,6 +15,7 @@ const SCENE_PROFILE := "res://scenes/Profile.tscn"
 const SCENE_RANKING := "res://scenes/Ranking.tscn"
 const SCENE_ROSTER := "res://scenes/Roster.tscn"
 const SCENE_CREDITS := "res://scenes/Credits.tscn"
+const SCENE_STORY := "res://scenes/Story.tscn"
 
 const VERSION := "0.1.0"
 
@@ -41,15 +42,36 @@ enum Difficulty { EASY, NORMAL, HARD }
 const DIFFICULTY_NAMES: Array[String] = ["FÁCIL", "NORMAL", "DIFÍCIL"]
 ## Nivel base de la IA (0..1) por dificultad; el arcade lo sube en cada combate.
 const DIFFICULTY_LEVEL: Array[float] = [0.2, 0.5, 0.8]
-const ARCADE_RIVALS := 6
+## Revanchas por capítulo del modo Historia (se recuperan al empezar cada capítulo).
 const ARCADE_CONTINUES := 3
+## Jefe secreto: aparece tras el último capítulo si se llega sin gastar ninguna revancha.
+const STORY_SECRET_ID := &"jesus_de_nazaret"
+## Capítulos de la línea del tiempo, del más reciente al más antiguo: [nombre, año mínimo].
+const STORY_CHAPTERS := [
+	["EL MUNDO ACTUAL", 1940],
+	["EL SIGLO XX", 1880],
+	["CIENCIA E INDUSTRIA", 1800],
+	["IMPERIOS Y DESCUBRIMIENTOS", 1400],
+	["LA ANTIGÜEDAD", -100000],
+]
+const STORY_SECRET_NAME := "EL ÚLTIMO SECRETO"
+## Refuerzo [vida, fuerza, resistencia] del jefe de cada capítulo y del jefe secreto.
+const BOSS_BOOST := [1.12, 1.05, 1.0]
+const SECRET_BOOST := [1.6, 1.25, 1.1]
 
 var mode: Mode = Mode.VERSUS
 var difficulty: Difficulty = Difficulty.NORMAL
-## Rivales del arcade en orden, el combate actual y las revanchas que quedan.
+## Modo Historia (Mode.ARCADE): rivales en orden de la línea del tiempo, el combate actual
+## y las revanchas que quedan en el capítulo.
 var arcade_ladder: Array[StringName] = []
 var arcade_stage: int = 0
 var arcade_continues: int = ARCADE_CONTINUES
+## Revanchas gastadas en toda la partida (si es 0 al final, aparece el jefe secreto).
+var story_continues_used: int = 0
+## true cuando el jefe secreto ya se añadió a la escalera.
+var story_secret: bool = false
+## Fichas reforzadas de los jefes (se crean una vez por combate).
+var _boss_cache := {}
 
 # --- Efectos ---
 ## Sangre de los golpes fuertes: estrellitas y sudor (por defecto), roja o ninguna.
@@ -88,7 +110,28 @@ func p1_data() -> FighterData:
 	return FighterRegistry.get_by_id(p1_fighter_id)
 
 func p2_data() -> FighterData:
-	return FighterRegistry.get_by_id(p2_fighter_id)
+	var base := FighterRegistry.get_by_id(p2_fighter_id)
+	if mode != Mode.ARCADE or arcade_ladder.is_empty():
+		return base
+	var boost := _boss_boost()
+	if boost.is_empty():
+		return base
+	var key := "%s:%d" % [p2_fighter_id, arcade_stage]
+	if not _boss_cache.has(key):
+		var d := base.duplicate() as FighterData
+		d.max_health *= boost[0]
+		d.strength *= boost[1]
+		d.resistance *= boost[2]
+		_boss_cache[key] = d
+	return _boss_cache[key]
+
+## Refuerzo del rival actual del modo Historia (vacío = ninguno).
+func _boss_boost() -> Array:
+	if is_story_secret_fight():
+		return SECRET_BOOST
+	if story_is_chapter_boss(arcade_stage):
+		return BOSS_BOOST
+	return []
 
 ## Luchador cuyo escenario se usa en la ronda dada. En versus, la ronda 1
 ## es el escenario de P1, la 2 el de P2, y así alternando. En arcade, todas
@@ -154,38 +197,84 @@ func difficulty_name() -> String:
 ## Nivel de la IA (0..1): base de la dificultad + 0.04 por combate superado.
 func ai_level() -> float:
 	var level := DIFFICULTY_LEVEL[difficulty]
-	if mode == Mode.ARCADE:
-		level += arcade_stage * 0.04
+	if mode == Mode.ARCADE and not arcade_ladder.is_empty():
+		if is_story_secret_fight():
+			return 1.0
+		# Sube de forma pareja a lo largo de toda la escalera (hasta +0.5 al llegar al final).
+		level += 0.5 * arcade_stage / maxf(arcade_ladder.size() - 1.0, 1.0)
 	return clampf(level, 0.0, 1.0)
 
-## Empieza un arcade nuevo: rivales al azar (sin repetir ni incluir al jugador).
-func start_arcade(player_id: StringName) -> void:
+## Empieza el modo Historia: todos los luchadores menos el jugador (y el jefe secreto),
+## del más reciente al más antiguo.
+func start_story(player_id: StringName) -> void:
 	mode = Mode.ARCADE
 	p1_fighter_id = player_id
-	var others: Array[StringName] = []
+	var rivals: Array[FighterData] = []
 	for d in FighterRegistry.all():
-		if d.id != player_id:
-			others.append(d.id)
-	others.shuffle()
+		if d.id != player_id and d.id != STORY_SECRET_ID:
+			rivals.append(d)
+	rivals.sort_custom(func(a: FighterData, b: FighterData) -> bool: return a.year > b.year)
 	arcade_ladder.clear()
-	for i in mini(ARCADE_RIVALS, others.size()):
-		arcade_ladder.append(others[i])
+	for d in rivals:
+		arcade_ladder.append(d.id)
 	arcade_stage = 0
 	arcade_continues = ARCADE_CONTINUES
+	story_continues_used = 0
+	story_secret = false
+	_boss_cache.clear()
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
 
+## true si al ganar el último combate toca enfrentarse al jefe secreto.
+func _secret_unlocked() -> bool:
+	return not story_secret and p1_fighter_id != STORY_SECRET_ID and story_continues_used == 0 \
+		and FighterRegistry.get_by_id(STORY_SECRET_ID).id == STORY_SECRET_ID
+
+## ¿El rival actual es el jefe secreto?
+func is_story_secret_fight() -> bool:
+	return story_secret and arcade_stage == arcade_ladder.size() - 1
+
+## Capítulo (índice en STORY_CHAPTERS) al que pertenece un luchador. El jefe secreto va aparte.
+func story_chapter_of(fighter_id: StringName) -> int:
+	if fighter_id == STORY_SECRET_ID and p1_fighter_id != STORY_SECRET_ID:
+		return STORY_CHAPTERS.size()
+	var year := FighterRegistry.get_by_id(fighter_id).year
+	for i in STORY_CHAPTERS.size():
+		if year >= STORY_CHAPTERS[i][1]:
+			return i
+	return STORY_CHAPTERS.size() - 1
+
+func story_chapter_name(chapter: int) -> String:
+	return STORY_CHAPTERS[chapter][0] if chapter < STORY_CHAPTERS.size() else STORY_SECRET_NAME
+
+## ¿El combate `stage` abre un capítulo nuevo?
+func story_chapter_start(stage: int) -> bool:
+	return stage == 0 or story_chapter_of(arcade_ladder[stage]) != story_chapter_of(arcade_ladder[stage - 1])
+
+## ¿Es el último combate de su capítulo (el jefe)?
+func story_is_chapter_boss(stage: int) -> bool:
+	return stage >= arcade_ladder.size() - 1 or story_chapter_of(arcade_ladder[stage + 1]) != story_chapter_of(arcade_ladder[stage])
+
 ## Qué toca tras el último combate:
-##   next = siguiente rival · complete = arcade ganado
-##   retry = repetir rival gastando una revancha · over = sin revanchas
+##   next = siguiente rival · secret = tras el último rival aparece el jefe secreto
+##   complete = historia ganada · retry = repetir rival gastando una revancha · over = sin revanchas
 func arcade_outcome() -> StringName:
 	if last_winner == 1:
-		return &"complete" if arcade_stage >= arcade_ladder.size() - 1 else &"next"
+		if arcade_stage < arcade_ladder.size() - 1:
+			return &"next"
+		return &"secret" if _secret_unlocked() else &"complete"
 	return &"retry" if arcade_continues > 0 else &"over"
 
 func arcade_advance() -> void:
+	if arcade_stage >= arcade_ladder.size() - 1 and _secret_unlocked():
+		story_secret = true
+		arcade_ladder.append(STORY_SECRET_ID)
 	arcade_stage = mini(arcade_stage + 1, arcade_ladder.size() - 1)
 	p2_fighter_id = arcade_ladder[arcade_stage]
+	# Cada capítulo nuevo devuelve las revanchas.
+	if story_chapter_start(arcade_stage):
+		arcade_continues = ARCADE_CONTINUES
 
 func arcade_use_continue() -> void:
 	arcade_continues = maxi(arcade_continues - 1, 0)
+	story_continues_used += 1

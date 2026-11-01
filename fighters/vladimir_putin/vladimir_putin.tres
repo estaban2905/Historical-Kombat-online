@@ -238,6 +238,7 @@ display_name = "VLADIMIR PUTIN"
 short_name = "PUTIN"
 country = "Rusia"
 era = "1952 –"
+year = 1952
 intro_quote = "No sabes con quién te estás metiendo."
 victory_quote = "El resultado estaba decidido."
 power_quote = ""

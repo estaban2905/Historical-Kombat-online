@@ -11,7 +11,7 @@ const SETTLE_WAIT := 40.0
 
 var _t: float = 0.0
 var _winner_data: FighterData
-## Arcade: qué toca después (next | complete | retry | over). Vacío en versus.
+## Modo Historia: qué toca después (next | secret | complete | retry | over). Vacío en versus.
 var _arcade: StringName = &""
 ## Online: lo que confirmó el servidor ({} mientras espera) y un aviso si no llegó.
 var _settled: Dictionary = {}
@@ -59,7 +59,15 @@ func _setup_buttons() -> void:
 			btn_rematch.text = "SIGUIENTE COMBATE"
 			btn_rematch.pressed.connect(func():
 				Game.arcade_advance()
-				Game.goto(Game.SCENE_FIGHT))
+				Game.goto(Game.SCENE_STORY))
+		&"secret":
+			btn_rematch.text = "¿UN RIVAL MÁS?"
+			btn_rematch.pressed.connect(func():
+				Game.arcade_advance()
+				Game.goto(Game.SCENE_STORY))
+		&"complete":
+			btn_rematch.text = "VER CRÉDITOS"
+			btn_rematch.pressed.connect(func(): Game.goto(Game.SCENE_CREDITS))
 		&"retry":
 			btn_rematch.text = "CONTINUAR (%d)" % Game.arcade_continues
 			btn_rematch.pressed.connect(func():
@@ -122,6 +130,9 @@ func _draw() -> void:
 	HKTheme.draw_text(self, Vector2(x0, 74), "RONDAS  %d - %d" % [Game.last_p1_rounds, Game.last_p2_rounds], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)
 	if _arcade != &"":
 		HKTheme.draw_text(self, Vector2(x0, 18), _arcade_status(), 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w)
+		var epilogue := _epilogue()
+		for i in epilogue.size():
+			HKTheme.draw_text(self, Vector2(x0, 150 + i * 11), epilogue[i], 8, Color("fff0a0"), HORIZONTAL_ALIGNMENT_CENTER, w, 1)
 	if Game.is_online():
 		_draw_online_points(x0, w)
 
@@ -155,11 +166,24 @@ func _not_saved_reason(reason: String) -> String:
 		"too_short": return "DUELO DEMASIADO CORTO"
 	return "ERROR DEL SERVIDOR"
 
+## Líneas finales al ganar el último combate del modo Historia.
+func _epilogue() -> PackedStringArray:
+	match _arcade:
+		&"secret":
+			return PackedStringArray(["¡LLEGASTE AL ORIGEN!", "ALGO MÁS TE ESPERA..."])
+		&"complete":
+			if Game.story_secret:
+				return PackedStringArray(["¡VENCISTE AL ÚLTIMO SECRETO!", "HAS DOMINADO LA HISTORIA"])
+			return PackedStringArray(["HAS RECORRIDO LA HISTORIA", "SIN VENCER AL SECRETO..."]) if Game.p1_fighter_id != Game.STORY_SECRET_ID 				else PackedStringArray(["HAS RECORRIDO LA HISTORIA", "COMO LA LUZ DEL MUNDO"])
+	return PackedStringArray()
+
 func _arcade_status() -> String:
 	var fight := "COMBATE %d/%d" % [Game.arcade_stage + 1, Game.arcade_ladder.size()]
 	match _arcade:
 		&"complete":
-			return "¡ARCADE COMPLETADO!"
+			return "¡HISTORIA COMPLETADA!"
+		&"secret":
+			return "¡CAPÍTULOS COMPLETADOS!"
 		&"over":
 			return "FIN DEL JUEGO · %s" % fight
 	return "%s · %s" % [fight, Game.difficulty_name()]

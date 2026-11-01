@@ -238,6 +238,7 @@ display_name = "ALEJANDRO MAGNO"
 short_name = "ALEJANDRO"
 country = "Macedonia"
 era = "356 – 323 a.C."
+year = -356
 intro_quote = "¡El mundo entero será mío!"
 victory_quote = "¡Una conquista más para la historia!"
 power_quote = ""

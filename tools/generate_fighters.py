@@ -11,6 +11,7 @@ fighters/<id>/<id>.tres. Napoleón y Trump se hicieron a mano y NO se
 regeneran (ver SKIP). Para retocar un personaje a mano basta con editar su
 .tres en Godot; vuelve a ejecutar el script solo si cambias esta tabla.
 """
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -535,6 +536,17 @@ def vec(x, y):
     return f"Vector2({x:g}, {y:g})"
 
 
+def year_of(era):
+    """Año de referencia para ordenar la línea de tiempo del modo Historia: el de
+    nacimiento (negativo si es a.C.). Ej.: "1769 – 1821" -> 1769, "69 – 30 a.C." -> -69."""
+    special = {"Siglo XXI": 1946, "m. 61 d.C.": 61, "c. 1600": 1600}
+    if era in special:
+        return special[era]
+    n = int(re.match(r"\s*(\d+)", era).group(1))
+    first = era.split("–")[0] if "–" in era else era
+    return -n if ("a.C." in first or era.strip().endswith("a.C.")) else n
+
+
 def esc(s):
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
@@ -948,6 +960,7 @@ def build_tres(c):
         f'short_name = "{esc(c["short"])}"',
         f'country = "{esc(c["country"])}"',
         f'era = "{esc(c["era"])}"',
+        f'year = {year_of(c["era"])}',
         f'intro_quote = "{esc(c["intro"])}"',
         f'victory_quote = "{esc(c["victory"])}"',
         f'power_quote = "{esc(c.get("power_quote", ""))}"',

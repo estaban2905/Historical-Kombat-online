@@ -238,6 +238,7 @@ display_name = "PAPA FRANCISCO"
 short_name = "FRANCISCO"
 country = "Vaticano"
 era = "1936 – 2025"
+year = 1936
 intro_quote = "¡Que Dios nos acompañe en este combate!"
 victory_quote = "¡La paz sea contigo!"
 power_quote = ""

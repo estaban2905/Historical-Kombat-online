@@ -237,6 +237,7 @@ display_name = "LEONARDO DA VINCI"
 short_name = "DA VINCI"
 country = "Italia"
 era = "1452 – 1519"
+year = 1452
 intro_quote = "¡El arte de ganar es una ciencia!"
 victory_quote = "¡Una obra maestra!"
 power_quote = ""

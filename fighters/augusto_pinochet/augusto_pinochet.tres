@@ -239,6 +239,7 @@ display_name = "AUGUSTO PINOCHET"
 short_name = "PINOCHET"
 country = "Chile"
 era = "1915 – 2006"
+year = 1915
 intro_quote = "¡Aquí se hace lo que yo ordeno!"
 victory_quote = "¡Se acabó el combate!"
 power_quote = "¡Se declara el Estado de Sitio!"

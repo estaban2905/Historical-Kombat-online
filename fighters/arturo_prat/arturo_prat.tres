@@ -237,6 +237,7 @@ display_name = "ARTURO PRAT"
 short_name = "PRAT"
 country = "Chile"
 era = "1848 – 1879"
+year = 1848
 intro_quote = "¡Al abordaje, muchachos!"
 victory_quote = "¡Mientras exista valor, nunca habrá derrota!"
 power_quote = "¡A toda máquina, Esmeralda!"

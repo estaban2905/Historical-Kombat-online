@@ -240,6 +240,7 @@ display_name = "GALILEO GALILEI"
 short_name = "GALILEO"
 country = "Italia"
 era = "1564 – 1642"
+year = 1564
 intro_quote = "¡Y, sin embargo, te voy a derrotar!"
 victory_quote = "¡Tenía razón!"
 power_quote = ""

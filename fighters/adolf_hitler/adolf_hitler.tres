@@ -237,6 +237,7 @@ display_name = "ADOLF HITLER"
 short_name = "HITLER"
 country = "Alemania"
 era = "1889 – 1945"
+year = 1889
 intro_quote = "¡Este combate será una conquista!"
 victory_quote = "¡El combate ha terminado!"
 power_quote = ""

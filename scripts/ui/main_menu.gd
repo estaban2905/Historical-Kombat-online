@@ -1,5 +1,5 @@
-## Menú principal: ARCADE, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO, DIFICULTAD, PERSONAJES, CONTROLES, CRÉDITOS.
-## ARCADE (1 jugador contra la CPU), VERSUS LOCAL (2 jugadores) y DUELO ONLINE
+## Menú principal: MODO HISTORIA, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO, DIFICULTAD, PERSONAJES, CONTROLES, CRÉDITOS.
+## MODO HISTORIA (1 jugador contra la CPU, de hoy al origen), VERSUS LOCAL (2 jugadores) y DUELO ONLINE
 ## (contra otra persona por internet) llevan a la selección de luchador. DIFICULTAD cambia el nivel de la CPU.
 ## VERSUS LOCAL y ENTRENAMIENTO solo aparecen en el editor (desarrollo), no en builds exportadas.
 ## PERSONAJES, CONTROLES y CRÉDITOS abren su propia pantalla.

@@ -238,6 +238,7 @@ display_name = "JULIO CÉSAR"
 short_name = "CÉSAR"
 country = "Roma"
 era = "100 – 44 a.C."
+year = -100
 intro_quote = "¡Vine, vi y venceré!"
 victory_quote = "¡Veni, vidi, vici!"
 power_quote = ""

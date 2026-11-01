@@ -237,6 +237,7 @@ display_name = "DONALD TRUMP"
 short_name = "TRUMP"
 country = "Estados Unidos"
 era = "Siglo XXI"
+year = 1946
 intro_quote = "¡Este combate será el mejor de todos los tiempos!"
 victory_quote = "¡Una victoria espectacular! ¡Nadie pelea mejor que yo!"
 bio = "Magnate inmobiliario y presidente de EE. UU. Pega como juega al golf y habla siempre a todo volumen."

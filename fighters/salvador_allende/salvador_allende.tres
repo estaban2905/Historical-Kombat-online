@@ -238,6 +238,7 @@ display_name = "SALVADOR ALLENDE"
 short_name = "ALLENDE"
 country = "Chile"
 era = "1908 – 1973"
+year = 1908
 intro_quote = "¡La historia la escriben los pueblos!"
 victory_quote = "¡La historia es nuestra y la hacen los pueblos!"
 power_quote = "¡Que avance la vía chilena!"

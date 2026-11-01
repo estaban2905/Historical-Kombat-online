@@ -237,6 +237,7 @@ display_name = "MARIE CURIE"
 short_name = "CURIE"
 country = "Polonia-Francia"
 era = "1867 – 1934"
+year = 1867
 intro_quote = "¡La ciencia tiene sus propios secretos!"
 victory_quote = "¡Una victoria científicamente comprobada!"
 power_quote = ""

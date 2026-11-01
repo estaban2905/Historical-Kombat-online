@@ -47,7 +47,6 @@ var _input_source: Callable
 var cinematic_frames: int = 0
 var cinematic_fighter: Fighter
 var cinematic_text: String = ""
-## Ataque (attack_instance) del que ya se lanzó el efecto de impacto, por luchador.
 ## Efectos de pantalla del ultimate en curso (ambiente, grietas, rayos...).
 var ult_fx: UltimateFX
 

@@ -238,6 +238,7 @@ display_name = "REINA ISABEL II"
 short_name = "ISABEL II"
 country = "Reino Unido"
 era = "1926 – 2022"
+year = 1926
 intro_quote = "La corona no se inclina ante nadie."
 victory_quote = "God save the Queen."
 power_quote = ""

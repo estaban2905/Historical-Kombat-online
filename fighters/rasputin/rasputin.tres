@@ -239,6 +239,7 @@ display_name = "GRIGORI RASPUTÍN"
 short_name = "RASPUTÍN"
 country = "Imperio ruso"
 era = "1869 – 1916"
+year = 1869
 intro_quote = "¡No puedes matar lo que no puedes comprender!"
 victory_quote = "¡Te dije que no era fácil deshacerte de mí!"
 power_quote = ""

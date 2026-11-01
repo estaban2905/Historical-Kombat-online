@@ -237,6 +237,7 @@ display_name = "NAPOLEÓN BONAPARTE"
 short_name = "NAPOLEÓN"
 country = "Francia"
 era = "1769 – 1821"
+year = 1769
 intro_quote = "¡La victoria es cuestión de estrategia!"
 victory_quote = "¡Otra conquista para el emperador!"
 bio = "Emperador de los franceses y estratega legendario. Bajito de estatura, gigante de ego y de sombrero."

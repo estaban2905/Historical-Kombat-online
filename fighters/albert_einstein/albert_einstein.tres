@@ -240,6 +240,7 @@ display_name = "ALBERT EINSTEIN"
 short_name = "EINSTEIN"
 country = "Alemania"
 era = "1879 – 1955"
+year = 1879
 intro_quote = "¡Todo es relativo, excepto mi victoria!"
 victory_quote = "¡Era cuestión de física!"
 power_quote = ""

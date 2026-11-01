@@ -238,6 +238,7 @@ display_name = "CHARLES DARWIN"
 short_name = "DARWIN"
 country = "Reino Unido"
 era = "1809 – 1882"
+year = 1809
 intro_quote = "¡Solo los más fuertes sobreviven!"
 victory_quote = "¡La evolución ha elegido al ganador!"
 power_quote = ""

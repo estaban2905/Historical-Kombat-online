@@ -238,6 +238,7 @@ display_name = "JOSEPH STALIN"
 short_name = "STALIN"
 country = "Unión Soviética"
 era = "1878 – 1953"
+year = 1878
 intro_quote = "Aquí no hay lugar para los débiles."
 victory_quote = "La victoria pertenece al Estado."
 power_quote = ""

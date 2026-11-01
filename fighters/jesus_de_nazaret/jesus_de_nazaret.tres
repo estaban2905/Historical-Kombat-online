@@ -238,6 +238,7 @@ display_name = "JESÚS DE NAZARET"
 short_name = "JESÚS"
 country = "Judea"
 era = "4 a.C.–30 d.C."
+year = -4
 intro_quote = "Que comience el combate; que prevalezca la paz."
 victory_quote = "La luz siempre encuentra su camino."
 power_quote = ""

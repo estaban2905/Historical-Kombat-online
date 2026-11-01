@@ -236,6 +236,7 @@ display_name = "ABRAHAM LINCOLN"
 short_name = "LINCOLN"
 country = "Estados Unidos"
 era = "1809 – 1865"
+year = 1809
 intro_quote = "¡La libertad también se defiende en combate!"
 victory_quote = "¡La libertad ha prevalecido!"
 power_quote = ""

@@ -12,7 +12,7 @@ Todo el contenido visual y sonoro de esta versión es original y se genera por c
 
 Incluye:
 
-- Menú principal (ARCADE, VERSUS LOCAL, **ENTRENAMIENTO**, DIFICULTAD, PERSONAJES, CONTROLES, CRÉDITOS).
+- Menú principal (MODO HISTORIA, VERSUS LOCAL, **ENTRENAMIENTO**, DIFICULTAD, PERSONAJES, CONTROLES, CRÉDITOS).
 - Selección de luchador para 2 jugadores (rejilla de 42 casillas, 39 disponibles).
 - **39 luchadores** (ver lista en la sección 7), cada uno con silueta, colores, estadísticas, ataques, especiales y escenario propios. Trump y Napoleón se hicieron a mano; los otros 37 se generan con `tools/generate_fighters.py`.
 - Escenario: **El Coliseo Romano** (gradas con público animado, columnas, palco imperial, braseros, suelo de piedra).
@@ -107,6 +107,15 @@ Las acciones se llaman `p1_left`, `p1_right`, `p1_jump`, `p1_crouch`, `p1_block`
 | Estilo | Lento, mucha vida y resistencia | Rápido, salta más, pega algo más fuerte |
 
 El daño real se multiplica por la `strength` del atacante y se divide por la `resistance` del defensor.
+
+### Modo Historia (1 jugador contra la CPU)
+
+Viaje hacia atrás en el tiempo: eliges un luchador y te enfrentas a todos los demás **del más reciente al más antiguo** (por `year` de cada ficha, nacimiento; negativo = a.C.).
+- **Capítulos** (`Game.STORY_CHAPTERS`): El mundo actual (desde 1940), El siglo XX (desde 1880), Ciencia e industria (desde 1800), Imperios y descubrimientos (desde 1400) y La antigüedad. Cada uno abre con una tarjeta de título y las 3 revanchas se recuperan al empezar.
+- **Línea del tiempo** (`scenes/Story.tscn`): se muestra antes de cada combate. Punto dorado = vencido, rombo = jefe del capítulo (el rival más antiguo del capítulo, con +12% de vida).
+- **Jefe secreto:** si llegas al final sin gastar ninguna revancha, aparece **Jesús de Nazaret** tras el último rival, con +60% de vida, +25% de fuerza y la IA al máximo (`Game.SECRET_BOOST`). Si eliges a Jesús como luchador, no hay jefe secreto.
+- La IA sube de nivel de forma pareja hasta +0.5 sobre la dificultad elegida.
+- Al crear un luchador nuevo hay que darle `year` (el generador lo calcula de `era`).
 
 ## 6. Exportar para navegador
 
@@ -326,7 +335,6 @@ Menú principal → **DUELO ONLINE** → eliges luchador → *buscando rival* �
 - Movimientos especiales con secuencias de joystick (↓↘→ + botón).
 - Agarres / llaves.
 - Más escenarios y selector de escenario.
-- Modo historia / arcade y IA para jugar contra la CPU (la entrada virtual ya está preparada).
 - Menú de opciones: reasignar teclas, volumen, número de rondas y tiempo.
 - Música.
 - Soporte de mandos y controles táctiles para móvil.

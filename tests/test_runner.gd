@@ -68,7 +68,7 @@ func _test_resources() -> void:
 	print("\n# Datos y escenas")
 	for path in ["res://scenes/MainMenu.tscn", "res://scenes/CharacterSelect.tscn", "res://scenes/Fight.tscn",
 			"res://scenes/Results.tscn", "res://scenes/fighters/Fighter.tscn", "res://ui/HUD.tscn",
-			"res://stages/colosseum/Colosseum.tscn"]:
+			"res://stages/colosseum/Colosseum.tscn", "res://scenes/Story.tscn", "res://scenes/Roster.tscn", "res://scenes/Credits.tscn"]:
 		var ps := load(path) as PackedScene
 		check(ps != null and ps.can_instantiate(), "escena carga: " + path)
 	var roster := FighterRegistry.all()
@@ -79,6 +79,7 @@ func _test_resources() -> void:
 		seen[d.id] = true
 	for d in roster:
 		check(d.validate().is_empty(), "ficha completa: %s" % d.id)
+		check(d.year != 0 or d.id == &"jesus_de_nazaret", "año de la línea del tiempo definido: %s" % d.id)
 	for d in roster:
 		var sp := StageRegistry.scene_for(d.id)
 		var ps := load(sp) as PackedScene
@@ -118,6 +119,10 @@ func _test_menu_to_fight() -> void:
 	await tap(KEY_U)        # P1 confirma
 	await tap(KEY_KP_1)     # P2 confirma con el numpad
 	check(await wait_scene("Fight", 240), "con ambos confirmados empieza el combate")
+
+func rematch_text_is(text: String) -> bool:
+	var b := scene().get_node_or_null("Buttons/Rematch") as Button
+	return b != null and b.visible and b.text == text
 
 func _fight() -> CombatManager:
 	return scene() as CombatManager
@@ -535,8 +540,8 @@ func _test_soak() -> void:
 	check(stuck == 0, "nadie queda atascado en ATAQUE/DAÑO")
 	check(attacks > 50 and counter.hits > 10, "hubo combate real: %d ataques, %d impactos, %d combates completos" % [attacks, counter.hits, matches])
 
-## Modo arcade: menú -> selección de J1 -> combate contra la CPU -> escalera
-## de rivales, continuaciones y fin de partida.
+## Modo Historia (arcade): menú -> selección de J1 -> pantalla de la línea del tiempo ->
+## combate contra la CPU -> escalera de rivales, continuaciones, jefe secreto y fin de partida.
 func _test_arcade() -> void:
 	print("\n# Arcade (1 jugador contra la CPU)")
 	Game.difficulty = Game.Difficulty.NORMAL
@@ -558,10 +563,22 @@ func _test_arcade() -> void:
 	check(Game.is_vs_cpu() and scene().confirmed[2], "en arcade solo elige J1 (la CPU ya está lista)")
 	await frames(5)
 	await tap(KEY_U)
-	check(await wait_scene("Fight", 240), "con J1 confirmado empieza el combate")
-	var c := _fight()
+	check(await wait_scene("Story", 240), "con J1 confirmado se muestra la línea del tiempo")
 	var ladder := Game.arcade_ladder
-	check(ladder.size() == Game.ARCADE_RIVALS, "el arcade tiene %d rivales" % Game.ARCADE_RIVALS)
+	var expected := FighterRegistry.all().size() - 2   # sin el jugador y sin el jefe secreto
+	check(ladder.size() == expected, "la escalera tiene %d rivales (%d)" % [expected, ladder.size()])
+	var ordered := true
+	for i in range(1, ladder.size()):
+		if FighterRegistry.get_by_id(ladder[i]).year > FighterRegistry.get_by_id(ladder[i - 1]).year:
+			ordered = false
+	check(ordered, "los rivales van del más reciente al más antiguo")
+	check(not ladder.has(Game.STORY_SECRET_ID), "el jefe secreto no está en la escalera")
+	check(Game.story_chapter_start(0), "el primer combate abre el capítulo I")
+	await tap(KEY_ENTER)   # salta la tarjeta del capítulo
+	await frames(60)
+	await tap(KEY_ENTER)
+	check(await wait_scene("Fight", 240), "COMBATIR empieza el combate")
+	var c := _fight()
 	var seen := {}
 	for id in ladder:
 		seen[id] = true
@@ -642,10 +659,14 @@ func _test_arcade() -> void:
 	check(not (scene().get_node("Buttons/Select") as Button).visible, "en arcade no se puede cambiar de luchador")
 	await frames(5)
 	await tap(KEY_ENTER)
-	check(await wait_scene("Fight", 240), "SIGUIENTE COMBATE abre el combate")
+	check(await wait_scene("Story", 240), "SIGUIENTE COMBATE abre la línea del tiempo")
+	await frames(10)
+	await tap(KEY_ENTER)
+	check(await wait_scene("Fight", 240), "COMBATIR abre el combate")
 	c = _fight()
 	check(Game.arcade_stage == 1 and c.p2.data.id == ladder[1], "el segundo combate es contra el segundo rival")
-	check(absf(c.ai.level - 0.54) < 0.001, "la CPU sube de nivel: %.2f" % c.ai.level)
+	var expected_level := 0.5 + 0.5 / (ladder.size() - 1.0)
+	check(absf(c.ai.level - expected_level) < 0.001, "la CPU sube de nivel: %.3f" % c.ai.level)
 
 	# --- Perder: continuar gasta una revancha y repite rival ---
 	Game.set_match_result(2, 0, 2)
@@ -676,5 +697,20 @@ func _test_arcade() -> void:
 	check(Game.arcade_outcome() == &"complete", "ganar al último rival completa el arcade")
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
 	check(await wait_scene("Results"), "resultados del arcade completado")
-	check(not (scene().get_node("Buttons/Rematch") as Button).visible, "arcade completado: solo menú")
+	check(rematch_text_is("VER CRÉDITOS"), "historia completada: se ofrece VER CRÉDITOS")
+
+	# --- Sin gastar revanchas aparece el jefe secreto, reforzado ---
+	Game.story_continues_used = 0
+	Game.story_secret = false
+	Game.arcade_stage = ladder.size() - 1
+	Game.set_match_result(1, 2, 0)
+	check(Game.arcade_outcome() == &"secret", "sin revanchas gastadas toca el jefe secreto")
+	var base_hp := FighterRegistry.get_by_id(Game.STORY_SECRET_ID).max_health
+	Game.arcade_advance()
+	check(Game.is_story_secret_fight() and Game.p2_fighter_id == Game.STORY_SECRET_ID, "el último rival es el jefe secreto")
+	check(Game.p2_data().max_health > base_hp * 1.5, "el jefe secreto tiene más vida (%.0f > %.0f)" % [Game.p2_data().max_health, base_hp])
+	check(Game.ai_level() == 1.0, "el jefe secreto usa la IA al máximo")
+	Game.set_match_result(1, 2, 0)
+	check(Game.arcade_outcome() == &"complete", "vencer al jefe secreto completa la historia")
+	check(Game.story_chapter_of(Game.STORY_SECRET_ID) == Game.STORY_CHAPTERS.size(), "el jefe secreto tiene su propio capítulo")
 	Game.mode = Game.Mode.VERSUS

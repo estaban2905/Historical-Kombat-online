@@ -237,6 +237,7 @@ display_name = "BOUDICA"
 short_name = "BOUDICA"
 country = "Britania"
 era = "m. 61 d.C."
+year = 61
 intro_quote = "¡Mi pueblo no nació para ser esclavo!"
 victory_quote = "¡La reina de los icenos nunca se rinde!"
 power_quote = "¡Que ruja mi carro de guerra!"

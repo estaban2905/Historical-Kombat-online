@@ -12,6 +12,13 @@ const CELL := Vector2(24, 18)
 const GRID_ORIGIN := Vector2(129, 34)
 const P1_COLOR := Color("e83a3a")
 const P2_COLOR := Color("3a8af0")
+const SHADE := Color(0.05, 0.02, 0.07, 0.78)
+## Placas de información de cada jugador (a los lados de la rejilla).
+const PLATE_W := 104.0
+const PLATE_Y := 27.0
+const PREVIEW_X := [62.0, 364.0]
+## Alto en pantalla del luchador de la vista previa.
+const PREVIEW_H := 104.0
 
 var roster: Array[FighterData] = []
 var cursor: Array[int] = [0, 0, 1]      # índice de casilla por jugador (1 y 2)
@@ -19,12 +26,16 @@ var confirmed: Array[bool] = [false, false, false]
 var _previews: Array = [null, null, null]
 var _t: float = 0.0
 var _starting: bool = false
-## Arcade (1 jugador vs CPU) y online: solo elige J1; el rival lo sortea Game o lo
-## pone el servidor. Se llama _cpu porque oculta el panel de J2.
+## Modo Historia (1 jugador vs CPU) y online: solo elige J1; el rival lo pone la línea del
+## tiempo de Game o el servidor. Se llama _cpu porque oculta el panel de J2.
 var _cpu: bool = false
 var _inputs: Array = [null, InputManager.new(1), InputManager.new(2)]
 ## Capa superior para dibujar los cursores por encima de los retratos.
 var _overlay: Control
+## Escenario de fondo: el del último luchador que se miró.
+var _stage: Stage
+var _stage_id: StringName = &""
+var _floor_y: float = 206.0
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -35,6 +46,7 @@ func _ready() -> void:
 	cursor[2] = FighterRegistry.index_of(Game.p2_fighter_id)
 	if roster.size() > 1 and cursor[1] == cursor[2]:
 		cursor[2] = (cursor[1] + 1) % roster.size()
+	_load_stage(roster[cursor[1]].id if cursor[1] < roster.size() else roster[0].id)
 	_build_cells()
 	_overlay = Control.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -44,12 +56,12 @@ func _ready() -> void:
 	for p in [1, 2]:
 		var r := FighterRenderer.new()
 		add_child(r)
-		r.position = Vector2(64 if p == 1 else 362, 172)
-		r.scale.x = 1 if p == 1 else -1
 		_previews[p] = r
 		_refresh_preview(p)
 		if _cpu and p == 2:
 			r.visible = false
+	# La capa de cursores y del VS va la última para quedar encima de todo.
+	move_child(_overlay, -1)
 
 func _build_cells() -> void:
 	for i in roster.size():
@@ -75,8 +87,34 @@ func _refresh_preview(p: int) -> void:
 		r.visible = true
 		r.setup(roster[cursor[p]])
 		r.pose_name = &"victory" if confirmed[p] else &"idle"
+		# Todos se escalan a un alto parecido y quedan de pie sobre el suelo del escenario.
+		var sc := clampf(PREVIEW_H / maxf(r.approx_height(), 1.0), 0.8, 1.5)
+		r.scale = Vector2(sc if p == 1 else -sc, sc)
+		r.position = Vector2(PREVIEW_X[p - 1], _floor_y)
 	else:
 		r.visible = false
+
+## Pone de fondo el escenario del luchador (el mismo que tendrá en combate).
+func _load_stage(fighter_id: StringName) -> void:
+	if _stage and _stage_id == fighter_id:
+		return
+	_stage_id = fighter_id
+	if _stage:
+		_stage.queue_free()
+	var packed := load(StageRegistry.scene_for(fighter_id)) as PackedScene
+	if packed == null:
+		packed = load(StageRegistry.COLOSSEUM)
+	_stage = packed.instantiate() as Stage
+	if _stage is ThemedStage:
+		(_stage as ThemedStage).fighter_id = fighter_id
+	# Un hijo se dibuja encima del padre; así el escenario queda detrás de la rejilla y los textos.
+	_stage.show_behind_parent = true
+	add_child(_stage)
+	move_child(_stage, 0)
+	_floor_y = _stage.floor_y
+	for p in [1, 2]:
+		if _previews[p]:
+			(_previews[p] as FighterRenderer).position.y = _floor_y
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -102,6 +140,8 @@ func _handle_player(p: int) -> void:
 		if moved:
 			cursor[p] = c
 			Sfx.play(&"select")
+			if c < roster.size():
+				_load_stage(roster[c].id)
 			_refresh_preview(p)
 		if inp.just_pressed(&"punch_light"):
 			if cursor[p] < roster.size():
@@ -127,19 +167,23 @@ func _check_start() -> void:
 		if Game.is_online():
 			Game.p1_fighter_id = roster[cursor[1]].id
 		elif _cpu:
-			Game.start_arcade(roster[cursor[1]].id)
+			Game.start_story(roster[cursor[1]].id)
 		else:
 			Game.p1_fighter_id = roster[cursor[1]].id
 			Game.p2_fighter_id = roster[cursor[2]].id
 		Sfx.play(&"fight")
 		await get_tree().create_timer(1.0).timeout
 		if is_inside_tree():
-			Game.goto(Game.SCENE_LOBBY if Game.is_online() else Game.SCENE_FIGHT)
+			Game.goto(Game.SCENE_LOBBY if Game.is_online() else (Game.SCENE_STORY if _cpu else Game.SCENE_FIGHT))
 
 func _draw() -> void:
-	HKTheme.draw_text(self, Vector2(0, 20), "ELIGE TU LUCHADOR", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
-	# Rejilla (fondo continuo para que no se vea el cielo entre casillas)
-	draw_rect(Rect2(GRID_ORIGIN - Vector2(2, 2), CELL * Vector2(COLS, ROWS) + Vector2(3, 3)), HKTheme.INK)
+	# Franjas oscuras arriba y abajo para que el título y la ayuda se lean sobre cualquier escenario.
+	draw_rect(Rect2(0, 0, 426, 22), SHADE)
+	draw_rect(Rect2(0, 220, 426, 20), SHADE)
+	HKTheme.draw_text(self, Vector2(0, 15), "ELIGE TU LUCHADOR", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
+	# Rejilla (fondo continuo para que no se vea el escenario entre casillas)
+	var grid := Rect2(GRID_ORIGIN - Vector2(2, 2), CELL * Vector2(COLS, ROWS) + Vector2(3, 3))
+	draw_rect(grid, HKTheme.INK)
 	for i in COLS * ROWS:
 		var pos := _cell_pos(i)
 		var r := Rect2(pos, CELL - Vector2(1, 1))
@@ -149,64 +193,89 @@ func _draw() -> void:
 		else:
 			draw_rect(r.grow(-1), Color("1c1220"))
 			HKTheme.draw_text(self, pos + Vector2(0, 14), "?", 8, Color("4a3a48"), HORIZONTAL_ALIGNMENT_CENTER, CELL.x - 1, 0)
-	# Fichas de cada jugador
+	# Placas de información de cada jugador y frases de presentación
 	for p in [1, 2]:
-		var x0 := 4.0 if p == 1 else 300.0
-		var w := 122.0
-		var col: Color = P1_COLOR if p == 1 else P2_COLOR
-		if Game.is_online() and p == 2:
-			HKTheme.draw_text(self, Vector2(x0, 44), "RIVAL", 8, col, HORIZONTAL_ALIGNMENT_CENTER, w)
-			HKTheme.draw_text(self, Vector2(x0, 100), "OTRA PERSONA", 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w)
-			HKTheme.draw_text(self, Vector2(x0, 112), "POR INTERNET", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)
-			continue
-		if _cpu and p == 2:
-			HKTheme.draw_text(self, Vector2(x0, 44), "CPU", 8, col, HORIZONTAL_ALIGNMENT_CENTER, w)
-			HKTheme.draw_text(self, Vector2(x0, 100), "%d RIVALES" % Game.ARCADE_RIVALS, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w)
-			HKTheme.draw_text(self, Vector2(x0, 112), "AL AZAR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)
-			HKTheme.draw_text(self, Vector2(x0, 130), Game.difficulty_name(), 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w)
-			continue
-		HKTheme.draw_text(self, Vector2(x0, 44), "JUGADOR %d" % p, 8, col, HORIZONTAL_ALIGNMENT_CENTER, w)
-		var idx: int = cursor[p]
-		if idx < roster.size():
-			var d := roster[idx]
-			HKTheme.draw_text(self, Vector2(x0, 188), d.short_name, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w)
-			HKTheme.draw_text(self, Vector2(x0, 199), d.country.to_upper(), 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
-			HKTheme.draw_text(self, Vector2(x0, 209), d.era, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
-		else:
-			HKTheme.draw_text(self, Vector2(x0, 120), "BLOQUEADO", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)
-		if confirmed[p]:
-			HKTheme.draw_text(self, Vector2(x0, 58), "¡LISTO!", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w)
-	# Frase de presentación del luchador bajo el cursor de J1 / J2
-	var quote_y := 156.0
-	for p in ([1] if _cpu else [1, 2]):
-		if cursor[p] < roster.size():
-			var q := "\"%s\"" % roster[cursor[p]].intro_quote
-			_draw_wrapped(Vector2(129, quote_y), q, 168, HKTheme.PAPER if p == 1 else Color("b8d0f0"))
-			quote_y += 32
-	if _starting:
-		HKTheme.draw_text(self, Vector2(0, 120), "VS", 32, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
+		_draw_plate(p)
+	_draw_quotes(grid.end.y + 6.0)
 	var hint := "J1: WASD+U   ESC: VOLVER" if _cpu else "J1: WASD+U   J2: FLECHAS+NUM1   ESC: VOLVER"
 	if Game.mode == Game.Mode.TRAINING:
 		hint = "J1: WASD+U  MUÑECO: FLECHAS+NUM1  ESC: VOLVER"
-	HKTheme.draw_text(self, Vector2(0, 234), hint, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+	HKTheme.draw_text(self, Vector2(0, 233), hint, 8, HKTheme.MUTED.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+
+## Placa compacta de un jugador: etiqueta (y "LISTO") arriba y, debajo, nombre, país y época.
+func _draw_plate(p: int) -> void:
+	var x0 := 6.0 if p == 1 else 426.0 - 6.0 - PLATE_W
+	var col: Color = P1_COLOR if p == 1 else P2_COLOR
+	var tag := "J%d" % p
+	var lines: Array = []   # [texto, color]
+	if Game.is_online() and p == 2:
+		tag = "RIVAL"
+		lines = [["POR INTERNET", HKTheme.PAPER]]
+	elif _cpu and p == 2:
+		tag = "CPU"
+		lines = [["MODO HISTORIA", HKTheme.PAPER], [Game.difficulty_name(), HKTheme.GOLD]]
+	else:
+		var idx: int = cursor[p]
+		if idx < roster.size():
+			var d := roster[idx]
+			lines.append([d.short_name, HKTheme.PAPER])
+			for l in _wrap(d.country.to_upper(), PLATE_W - 8.0):
+				lines.append([l, HKTheme.GOLD])
+			lines.append([d.era, HKTheme.MUTED.lightened(0.25)])
+		else:
+			lines.append(["BLOQUEADO", HKTheme.MUTED])
+	var box := Rect2(x0, PLATE_Y, PLATE_W, 6.0 + (lines.size() + 1) * 10.0)
+	draw_rect(box, SHADE)
+	draw_rect(box, col.darkened(0.2), false, 1.0)
+	var y := PLATE_Y + 11.0
+	HKTheme.draw_text(self, Vector2(x0 + 4, y), tag, 8, col, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	if confirmed[p] and not (_cpu and p == 2):
+		HKTheme.draw_text(self, Vector2(x0, y), "¡LISTO!", 8, Color("60d060"), HORIZONTAL_ALIGNMENT_RIGHT, PLATE_W - 4.0, 1)
+	for l in lines:
+		y += 10.0
+		HKTheme.draw_text(self, Vector2(x0, y), l[0], 8, l[1], HORIZONTAL_ALIGNMENT_CENTER, PLATE_W, 1)
+
+## Frases de presentación de los luchadores bajo la rejilla, en una sola caja.
+func _draw_quotes(top: float) -> void:
+	var entries: Array = []
+	for p in ([1] if _cpu else [1, 2]):
+		if cursor[p] < roster.size():
+			var quote := "\"%s\"" % roster[cursor[p]].intro_quote
+			entries.append([_wrap(quote, 160.0), HKTheme.PAPER if p == 1 else Color("b8d0f0")])
+	if entries.is_empty():
+		return
+	var rows := 0
+	for e in entries:
+		rows += (e[0] as PackedStringArray).size()
+	var box := Rect2(GRID_ORIGIN.x - 2, top, CELL.x * COLS + 3, 8.0 + rows * 10.0 + (entries.size() - 1) * 4.0)
+	draw_rect(box, SHADE)
+	draw_rect(box, HKTheme.GOLD_DARK.darkened(0.3), false, 1.0)
+	var y := top + 10.0
+	for e in entries:
+		for line in e[0]:
+			HKTheme.draw_text(self, Vector2(GRID_ORIGIN.x + 4, y), line, 8, e[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+			y += 10.0
+		y += 4.0
 
 ## Texto de 8 px partido en líneas de un ancho máximo.
-func _draw_wrapped(pos: Vector2, text: String, width: float, color: Color) -> void:
-	var words := text.split(" ")
+func _wrap(text: String, width: float) -> PackedStringArray:
+	var lines := PackedStringArray()
 	var line := ""
-	var y := pos.y
-	for w in words:
-		var test := w if line.is_empty() else line + " " + w
+	for word in text.split(" "):
+		var test: String = word if line.is_empty() else line + " " + word
 		if HKTheme.text_width(test, 8) > width and not line.is_empty():
-			HKTheme.draw_text(self, Vector2(pos.x, y), line, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-			y += 10
-			line = w
+			lines.append(line)
+			line = word
 		else:
 			line = test
 	if not line.is_empty():
-		HKTheme.draw_text(self, Vector2(pos.x, y), line, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		lines.append(line)
+	return lines
 
 func _draw_cursors() -> void:
+	# El VS va en esta capa para quedar por encima de la rejilla y de los retratos.
+	if _starting:
+		HKTheme.draw_text(_overlay, Vector2(0, 100), "VS", 32, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
 	for p in ([1] if _cpu else [1, 2]):
 		var pos := _cell_pos(cursor[p])
 		var col: Color = P1_COLOR if p == 1 else P2_COLOR
