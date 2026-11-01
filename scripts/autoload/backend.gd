@@ -1,80 +1,71 @@
-## Autoload "Backend": cuenta del jugador y comunicación con Supabase.
-##   - Registro, inicio y cierre de sesión (Supabase Auth, por HTTP).
+## Autoload "Backend": cuenta del jugador y comunicación con el servidor (server/).
+##   - Registro, inicio y cierre de sesión (rutas /auth/* del servidor, por HTTP).
 ##   - Sesión recordada entre ejecuciones (solo el refresh token, en user://).
-##   - Perfil del jugador (nombre, puntos, victorias, derrotas).
-## Si no hay servidor configurado el juego funciona igual, sin cuentas.
+##   - Perfil del jugador (nombre, puntos, victorias, derrotas), ranking e historial.
+## Si el servidor no está o no tiene cuentas, el juego funciona igual, sin cuentas.
 ##
-## Configuración: backend_config.gd, o un archivo user://backend.cfg con
-##   [supabase]
-##   url="https://xxxx.supabase.co"
-##   anon_key="..."
-## Nunca pongas aquí la clave service_role: este código la expondría a todos.
+## La dirección del servidor se resuelve en server_config.gd.
 extends Node
 
 signal session_changed
 
 ## Archivo de la sesión guardada (las pruebas usan otro para no pisar el real).
 var session_path: String = "user://session.cfg"
-const CONFIG_PATH := "user://backend.cfg"
-const Config := preload("res://scripts/autoload/backend_config.gd")
 const REQUEST_TIMEOUT := 10.0
-
-var url: String = ""
-var anon_key: String = ""
+## Respuesta rápida: no se espera 10 s para saber que el servidor no está.
+const HEALTH_TIMEOUT := 4.0
+## Se renueva el token si le quedan menos de 60 s de vida.
+const TOKEN_MARGIN_MSEC := 60_000
 
 var access_token: String = ""
 var refresh_token: String = ""
 var user_id: String = ""
-var email: String = ""
-## Fila de la tabla players del usuario: username, points, wins, losses.
+## Perfil del jugador: username, points, wins, losses.
 var profile: Dictionary = {}
 ## true si el jugador eligió jugar sin cuenta en esta ejecución.
 var guest: bool = false
+## true si se comprobó que el servidor responde y tiene cuentas (check_available).
+var available: bool = false
 
-func _ready() -> void:
-	configure(Config.SUPABASE_URL, Config.SUPABASE_ANON_KEY)
-	var cfg := ConfigFile.new()
-	if cfg.load(CONFIG_PATH) == OK:
-		configure(cfg.get_value("supabase", "url", url), cfg.get_value("supabase", "anon_key", anon_key))
+var _access_expires_msec: int = 0
 
-func configure(p_url: String, p_anon_key: String) -> void:
-	url = p_url.strip_edges().trim_suffix("/")
-	anon_key = p_anon_key.strip_edges()
-
+## ¿Hay cuentas disponibles? Es false hasta que check_available() lo confirme.
 func is_configured() -> bool:
-	return url != "" and anon_key != ""
+	return available
 
 func is_logged_in() -> bool:
 	return access_token != ""
 
 func username() -> String:
-	return str(profile.get("username", email.get_slice("@", 0)))
+	return str(profile.get("username", ""))
 
 func has_saved_session() -> bool:
 	return load_saved_refresh_token() != ""
 
+## Pregunta al servidor si está vivo y tiene base de datos (GET /health).
+func check_available() -> bool:
+	var r := await _request("GET", "/health", null, false, true, HEALTH_TIMEOUT)
+	available = r.ok and r.data is Dictionary and r.data.get("db", false) == true
+	return available
+
 # =========================================================================
 #  Cuenta
 # =========================================================================
-## Devuelve {ok: bool, error: String, needs_confirmation: bool}.
+## Devuelve {ok: bool, error: String}.
 func sign_up(p_email: String, password: String, p_username: String) -> Dictionary:
-	var r := await _request("POST", "/auth/v1/signup", {
-		"email": p_email, "password": password, "data": {"username": p_username}}, false)
+	var r := await _request("POST", "/auth/register",
+		{"email": p_email, "password": password, "username": p_username}, false)
 	if not r.ok:
-		return {"ok": false, "error": _auth_error(r)}
-	if r.data is Dictionary and r.data.has("access_token"):
-		await _start_session(r.data)
-		return {"ok": true, "needs_confirmation": false}
-	# Con la confirmación por email activada, no hay sesión hasta confirmarla.
-	return {"ok": true, "needs_confirmation": true}
+		return {"ok": false, "error": _error_text(r)}
+	_start_session(r.data)
+	return {"ok": true}
 
 ## Devuelve {ok: bool, error: String}.
 func sign_in(p_email: String, password: String) -> Dictionary:
-	var r := await _request("POST", "/auth/v1/token?grant_type=password",
-		{"email": p_email, "password": password}, false)
+	var r := await _request("POST", "/auth/login", {"email": p_email, "password": password}, false)
 	if not r.ok:
-		return {"ok": false, "error": _auth_error(r)}
-	await _start_session(r.data)
+		return {"ok": false, "error": _error_text(r)}
+	_start_session(r.data)
 	return {"ok": true}
 
 ## Recupera la sesión guardada. Devuelve {ok: bool, error: String}.
@@ -87,12 +78,12 @@ func restore_session() -> Dictionary:
 		# Un rechazo del servidor invalida el token; un fallo de red lo conserva.
 		if r.code >= 400 and r.code < 500:
 			_forget_session()
-		return {"ok": false, "error": _auth_error(r)}
+		return {"ok": false, "error": _error_text(r)}
 	return {"ok": true}
 
 func sign_out() -> void:
-	if is_logged_in() and is_configured():
-		await _request("POST", "/auth/v1/logout", null, true)
+	if is_logged_in():
+		await _request("POST", "/auth/logout", null, true)
 	_clear_state()
 	_forget_session()
 	session_changed.emit()
@@ -101,34 +92,62 @@ func sign_out() -> void:
 func fetch_profile() -> bool:
 	if not is_logged_in():
 		return false
-	var r := await _request("GET", "/rest/v1/players?id=eq.%s&select=username,points,wins,losses" % user_id, null, true)
-	if r.ok and r.data is Array and not r.data.is_empty():
-		profile = r.data[0]
+	var r := await _request("GET", "/me", null, true)
+	if r.ok and r.data is Dictionary:
+		profile = r.data
 		session_changed.emit()
 		return true
 	return false
+
+## Los mejores jugadores: [{username, points, wins, losses}]. Vacío si falla.
+func fetch_ranking(limit: int = 10) -> Array:
+	var r := await _request("GET", "/leaderboard?limit=%d" % limit, null, false)
+	return r.data if r.ok and r.data is Array else []
+
+## Mis últimos duelos (solo con sesión). Vacío si falla.
+func fetch_matches(limit: int = 8) -> Array:
+	if not is_logged_in():
+		return []
+	var r := await _request("GET", "/me/matches?limit=%d" % limit, null, true)
+	return r.data if r.ok and r.data is Array else []
+
+## Renueva el token si le queda poco de vida (antes de entrar a un duelo).
+## Devuelve true si hay una sesión válida.
+func ensure_fresh_token() -> bool:
+	if not is_logged_in():
+		return false
+	if Time.get_ticks_msec() + TOKEN_MARGIN_MSEC < _access_expires_msec:
+		return true
+	var r := await _refresh(refresh_token)
+	return r.ok
+
+## Aplica los puntos que el servidor confirmó al terminar un duelo (mensaje "settled").
+func apply_settled(msg: Dictionary) -> void:
+	if not is_logged_in() or not msg.get("ranked", false) or not msg.get("ok", false):
+		return
+	profile["points"] = int(msg.get("points", profile.get("points", 0)))
+	profile["wins"] = int(msg.get("wins", profile.get("wins", 0)))
+	profile["losses"] = int(msg.get("losses", profile.get("losses", 0)))
+	session_changed.emit()
 
 # =========================================================================
 #  Sesión
 # =========================================================================
 func _start_session(data: Dictionary) -> void:
-	_apply_tokens(data)
-	user_id = str(data.get("user", {}).get("id", user_id))
-	email = str(data.get("user", {}).get("email", email))
-	await fetch_profile()
-	session_changed.emit()
-
-func _apply_tokens(data: Dictionary) -> void:
 	access_token = str(data.get("access_token", ""))
 	refresh_token = str(data.get("refresh_token", ""))
+	_access_expires_msec = Time.get_ticks_msec() + int(data.get("expires_in", 0)) * 1000
+	profile = data.get("player", {})
+	user_id = str(profile.get("id", ""))
 	var cfg := ConfigFile.new()
 	cfg.set_value("session", "refresh_token", refresh_token)
 	cfg.save(session_path)
+	session_changed.emit()
 
 func _refresh(token: String) -> Dictionary:
-	var r := await _request("POST", "/auth/v1/token?grant_type=refresh_token", {"refresh_token": token}, false)
+	var r := await _request("POST", "/auth/refresh", {"refresh_token": token}, false)
 	if r.ok:
-		await _start_session(r.data)
+		_start_session(r.data)
 	return r
 
 func load_saved_refresh_token() -> String:
@@ -145,8 +164,8 @@ func _clear_state() -> void:
 	access_token = ""
 	refresh_token = ""
 	user_id = ""
-	email = ""
 	profile = {}
+	_access_expires_msec = 0
 
 # =========================================================================
 #  HTTP
@@ -154,20 +173,18 @@ func _clear_state() -> void:
 ## Devuelve {ok: bool, code: int, data: Variant}. code 0 = sin conexión.
 ## Si el servidor responde 401 a una petición con sesión, renueva el token
 ## una vez y reintenta.
-func _request(method: String, path: String, body: Variant, use_token: bool, retry: bool = true) -> Dictionary:
-	if not is_configured():
-		return {"ok": false, "code": 0, "data": {"msg": "not_configured"}}
-	var headers := PackedStringArray(["apikey: " + anon_key, "Content-Type: application/json"])
-	headers.append("Authorization: Bearer " + (access_token if use_token and access_token != "" else anon_key))
+func _request(method: String, path: String, body: Variant, use_token: bool,
+		retry: bool = true, timeout: float = REQUEST_TIMEOUT) -> Dictionary:
+	var headers := PackedStringArray(["Content-Type: application/json"])
+	if use_token and access_token != "":
+		headers.append("Authorization: Bearer " + access_token)
 	var http := HTTPRequest.new()
-	http.timeout = REQUEST_TIMEOUT
+	http.timeout = timeout
 	add_child(http)
 	var verb := HTTPClient.METHOD_GET
-	match method:
-		"POST": verb = HTTPClient.METHOD_POST
-		"PATCH": verb = HTTPClient.METHOD_PATCH
-		"DELETE": verb = HTTPClient.METHOD_DELETE
-	var err := http.request(url + path, headers, verb, "" if body == null else JSON.stringify(body))
+	if method == "POST":
+		verb = HTTPClient.METHOD_POST
+	var err := http.request(ServerConfig.http_url() + path, headers, verb, "" if body == null else JSON.stringify(body))
 	if err != OK:
 		http.queue_free()
 		return {"ok": false, "code": 0, "data": {}}
@@ -179,26 +196,21 @@ func _request(method: String, path: String, body: Variant, use_token: bool, retr
 	if code == 401 and use_token and retry and refresh_token != "":
 		var rr := await _refresh(refresh_token)
 		if rr.ok:
-			return await _request(method, path, body, true, false)
+			return await _request(method, path, body, true, false, timeout)
 	return {"ok": code >= 200 and code < 300, "code": code, "data": data if data != null else {}}
 
-## Mensaje en español para un error de Supabase Auth.
-func _auth_error(r: Dictionary) -> String:
+## Mensaje en español para un error del servidor (que responde {error, message}).
+func _error_text(r: Dictionary) -> String:
 	if r.code == 0:
 		return "SIN CONEXIÓN CON EL SERVIDOR"
 	var d: Dictionary = r.data if r.data is Dictionary else {}
-	var kind := str(d.get("error_code", d.get("error", "")))
-	var msg := str(d.get("msg", d.get("message", d.get("error_description", ""))))
-	match kind:
+	match str(d.get("error", "")):
 		"invalid_credentials": return "EMAIL O CONTRASEÑA INCORRECTOS"
-		"user_already_exists", "email_exists": return "ESE EMAIL YA ESTÁ REGISTRADO"
-		"weak_password": return "CONTRASEÑA DEMASIADO DÉBIL (MÍN. 6)"
-		"email_not_confirmed": return "CONFIRMA TU EMAIL ANTES DE ENTRAR"
-		"validation_failed", "email_address_invalid": return "EMAIL NO VÁLIDO"
-		"over_request_rate_limit", "over_email_send_rate_limit": return "DEMASIADOS INTENTOS, ESPERA UN POCO"
-	# El trigger de la base de datos rechaza nombres inválidos o repetidos.
-	if "Database error" in msg:
-		return "NOMBRE DE USUARIO NO VÁLIDO O YA EN USO"
+		"email_taken": return "ESE EMAIL YA ESTÁ REGISTRADO"
+		"username_taken": return "ESE NOMBRE YA ESTÁ EN USO"
+		"invalid_request": return "DATOS NO VÁLIDOS"
+		"rate_limited": return "DEMASIADOS INTENTOS, ESPERA UN POCO"
+		"invalid_token": return "SESIÓN CADUCADA, ENTRA DE NUEVO"
 	return "ERROR DEL SERVIDOR (%d)" % r.code
 
 ## Valida los datos del formulario antes de enviarlos. "" = correcto.

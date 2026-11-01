@@ -27,8 +27,14 @@ func _exit_tree() -> void:
 
 func _search() -> void:
 	_error = ""
-	var player_name := Backend.username() if Backend.is_logged_in() else "JUGADOR"
-	Online.find_match(_my_id, player_name.to_upper())
+	# Con cuenta se juega con puntos; sin cuenta, de invitado (amistoso).
+	var token := ""
+	if Backend.is_logged_in():
+		if not await Backend.ensure_fresh_token():
+			_error = "TU SESIÓN CADUCÓ, ENTRA DE NUEVO"
+			return
+		token = Backend.access_token
+	Online.find_match(_my_id, Backend.username(), token)
 
 func _on_failed(message: String) -> void:
 	# Si el rival se va durante el VS, se cancela el inicio y se puede reintentar.
@@ -85,6 +91,8 @@ func _draw() -> void:
 	draw_rect(Rect2(0, 0, 426, 240), HKTheme.INK)
 	if _matched:
 		HKTheme.draw_text(self, Vector2(0, 40), "¡RIVAL ENCONTRADO!", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+		HKTheme.draw_text(self, Vector2(0, 62), "DUELO CON RANKING" if Online.ranked else "AMISTOSO · SIN PUNTOS", 8,
+			HKTheme.PAPER if Online.ranked else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 		HKTheme.draw_text(self, Vector2(0, 124), "VS", 32, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
 		var mine := Game.p1_data() if Online.side == 1 else Game.p2_data()
 		var theirs := Game.p2_data() if Online.side == 1 else Game.p1_data()
@@ -105,4 +113,6 @@ func _draw() -> void:
 		8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	HKTheme.draw_text(self, Vector2(0, 150), "TU LUCHADOR: %s" % FighterRegistry.get_by_id(_my_id).short_name,
 		8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+	var who := "JUEGAS COMO: %s" % Backend.username().to_upper() if Backend.is_logged_in() else "INVITADO · SIN PUNTOS"
+	HKTheme.draw_text(self, Vector2(0, 164), who, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	HKTheme.draw_text(self, Vector2(0, 234), "ESC: CANCELAR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)

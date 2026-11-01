@@ -38,7 +38,7 @@ func _run() -> void:
 	select.queue_free()
 
 	# Servidor inalcanzable: el lobby debe avisar, no colgarse.
-	Online.url = "ws://127.0.0.1:1/ws"
+	ServerConfig.override_ws = "ws://127.0.0.1:1/ws"
 	Game.p1_fighter_id = &"napoleon"
 	var lobby := _show(Game.SCENE_LOBBY)
 	var t := 0.0

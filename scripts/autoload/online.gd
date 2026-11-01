@@ -5,9 +5,7 @@
 ##     (la sincronización en sí está en lockstep_session.gd).
 ## Si la conexión se pierde o el rival se va, avisa por señal y el juego decide.
 ##
-## Servidor: online_config.gd, o un archivo user://online.cfg con
-##   [server]
-##   url="wss://xxxx.up.railway.app/ws"
+## La dirección del servidor se resuelve en server_config.gd.
 extends Node
 
 signal state_changed(state: State)
@@ -15,17 +13,18 @@ signal state_changed(state: State)
 signal matched
 ## El rival se fue en plena pelea y ya no quedan botones suyos por aplicar.
 signal opponent_left
+## El servidor cerró el duelo: puntos ganados o perdidos (ver `last_settled`).
+signal settled(msg: Dictionary)
 ## Fallo de conexión (mensaje legible para mostrar en pantalla).
 signal failed(message: String)
 
 enum State { IDLE, CONNECTING, QUEUED, MATCHED, FIGHTING }
 
-const CONFIG_PATH := "user://online.cfg"
-const Config := preload("res://scripts/autoload/online_config.gd")
 ## Si el servidor no responde en este tiempo, se da por caído.
 const CONNECT_TIMEOUT := 8.0
 const DEFAULT_NAME := "JUGADOR"
 
+## Dirección usada en la última búsqueda (informativa).
 var url: String = ""
 var state: State = State.IDLE
 ## 1 = controlo a P1, 2 = controlo a P2.
@@ -34,6 +33,10 @@ var side: int = 1
 var match_seed: int = 0
 var opponent_fighter: StringName = &""
 var opponent_name: String = ""
+## true si los dos son cuentas: el resultado cuenta para puntos y ranking.
+var ranked: bool = false
+## Último cierre de duelo del servidor ({} si aún no llegó): ranked, ok, delta, points, wins, losses, reason.
+var last_settled: Dictionary = {}
 
 ## Ticks seguidos esperando los botones del rival (para avisar al jugador).
 var stalled_ticks: int:
@@ -50,35 +53,34 @@ var _sampler := InputManager.new(1)
 ## aplicar: si terminó la partida antes que yo, aún me faltan ticks por jugar.
 var _opponent_gone: bool = false
 var _left_emitted: bool = false
+var _result_sent: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	url = Config.SERVER_URL
-	if OS.has_feature("web"):
-		# En el navegador, el servicio web entrega la dirección del servidor en
-		# /config.js (variable SERVER_URL del servicio), que index.html carga antes del juego.
-		var web_url: Variant = JavaScriptBridge.eval("window.HC_SERVER_URL || ''")
-		if web_url is String and web_url != "":
-			url = web_url
-	var cfg := ConfigFile.new()
-	if cfg.load(CONFIG_PATH) == OK:
-		url = str(cfg.get_value("server", "url", url))
 	set_process(false)
 
 # =========================================================================
 #  Emparejamiento
 # =========================================================================
-## Conecta y entra en la cola con el luchador elegido.
-func find_match(fighter_id: StringName, player_name: String) -> void:
+## Conecta y entra en la cola con el luchador elegido. `token` es el access token de la
+## cuenta (Backend.access_token); vacío = se juega de invitado, sin puntos.
+func find_match(fighter_id: StringName, player_name: String, token: String = "") -> void:
 	disconnect_from_server()
+	ranked = false
+	last_settled = {}
+	_result_sent = false
 	_set_state(State.CONNECTING)
 	_connect_time = 0.0
+	url = ServerConfig.ws_url()
 	_ws = WebSocketPeer.new()
 	var err := _ws.connect_to_url(url)
 	if err != OK:
 		_fail("NO SE PUDO CONECTAR")
 		return
-	_pending.append({"t": "find", "fighter": String(fighter_id), "name": player_name})
+	var find := {"t": "find", "fighter": String(fighter_id), "name": player_name}
+	if token != "":
+		find["token"] = token
+	_pending.append(find)
 	set_process(true)
 
 ## Sale de la cola (antes de encontrar rival).
@@ -93,6 +95,15 @@ func disconnect_from_server() -> void:
 	_opponent_gone = false
 	_left_emitted = false
 	_set_state(State.IDLE)
+
+## Al terminar la pelea, dice al servidor quién ganó según ESTA simulación. En un duelo
+## entre cuentas solo cuenta si el rival reporta lo mismo. Devuelve false si no se pudo enviar.
+func report_result(winner: int, p1_rounds: int, p2_rounds: int) -> bool:
+	if _result_sent or _ws == null or _ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		return false
+	_result_sent = true
+	_send({"t": "result", "winner": winner, "p1Rounds": p1_rounds, "p2Rounds": p2_rounds})
+	return true
 
 ## Llamar al empezar el combate: marca la pelea en curso.
 func begin_fight() -> void:
@@ -156,6 +167,7 @@ func _on_message(text: String) -> void:
 			var opp: Dictionary = data.get("opponent", {})
 			opponent_fighter = StringName(str(opp.get("fighter", "")))
 			opponent_name = str(opp.get("name", DEFAULT_NAME))
+			ranked = bool(data.get("ranked", false))
 			# La sesión existe desde ya: el rival puede entrar al combate antes que yo
 			# y sus primeros botones no deben perderse.
 			_session = _new_session()
@@ -167,12 +179,18 @@ func _on_message(text: String) -> void:
 				_session.receive(int(data["f"]), int(data["m"]))
 		"opponent_left":
 			if state == State.FIGHTING:
+				# El socket sigue abierto: aún puede hacer falta mandar mi resultado o recibir los puntos.
 				_opponent_gone = true
-				_close_socket()
 			else:
 				_fail("EL RIVAL SE FUE")
+		"settled":
+			last_settled = data
+			settled.emit(data)
 		"error":
-			push_warning("Servidor: %s" % str(data.get("msg", "")))
+			if str(data.get("msg", "")) == "invalid_token":
+				_fail("TU SESIÓN CADUCÓ, ENTRA DE NUEVO")
+			else:
+				push_warning("Servidor: %s" % str(data.get("msg", "")))
 
 func _on_closed() -> void:
 	var was := state

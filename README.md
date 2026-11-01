@@ -307,7 +307,14 @@ Menú principal → **DUELO ONLINE** → eliges luchador → *buscando rival* �
 - **Servicios en Railway** (se despliegan desde GitHub Actions, cada uno con su Dockerfile): `server/` (partidas, WebSocket), `web/` (entrega el juego exportado a Web) y Postgres. El servicio `web` tiene la variable `SERVER_URL` (`wss://<dominio-del-server>/ws`) y la publica en `/config.js`, que el juego lee en el navegador; así el mismo build sirve en `develop` y en producción.
 - **Dirección del servidor (Godot/.exe):** `scripts/autoload/online_config.gd` (`wss://...` en producción) o `user://online.cfg` con `[server] url="ws://localhost:8787/ws"`.
 - **Probar en local:** `cd server && npm install && npm run dev`, y abrir el juego dos veces (dos instancias de Godot o dos pestañas).
-- **Pruebas:** `godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn` (dos PC simulados con lag) y `GODOT=godot bash tests/run_online_e2e.sh` (servidor real + dos clientes).
+- **Pruebas:** `godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn` (dos PC simulados con lag), `GODOT=godot bash tests/run_online_e2e.sh` (servidor real + dos clientes), `tests/run_account_e2e.sh` (cuentas) y `tests/run_ranked_e2e.sh` (duelo con puntos entre dos cuentas). Los dos últimos usan el servidor de desarrollo con base de datos embebida, sin Postgres.
+- **Probar con cuentas en tu PC:** `cd server && npm install && npm run dev:local` (Postgres embebido en `server/.dev-data/`), y abrir el juego. Sin esto, o con el servidor apagado, el juego salta el login y funciona offline.
+
+### Cuentas, perfil y ranking
+
+- **Cuentas en tu servidor con Postgres** (no hay Supabase): `scripts/autoload/backend.gd` habla con `/auth/*`, `/me`, `/me/matches` y `/leaderboard`. La sesión se recuerda (refresh token en `user://`) y se renueva sola.
+- **Pantallas:** `login.gd` (entrar / crear cuenta / jugar sin cuenta), `profile.gd` (puntos, victorias, derrotas y últimos duelos), `ranking.gd` y los botones RANKING / PERFIL del menú.
+- **Duelo con ranking:** si los dos jugadores tienen cuenta, el resultado cuenta. Al terminar, `results.gd` reporta el resultado y espera a que el servidor confirme los puntos (`+16 PUNTOS`, `TOTAL 1016`). Contra un invitado el duelo es amistoso. Reglas completas en `server/README.md`.
 - **Limitaciones actuales:** sin revancha online (se vuelve al menú), sin detección de desincronización en vivo, sin pausa online (ESC solo permite abandonar). Si un jugador abandona, el otro gana la partida.
 
 ## 11. Pendiente para próximas versiones
@@ -323,7 +330,7 @@ Menú principal → **DUELO ONLINE** → eliges luchador → *buscando rival* �
 - Menú de opciones: reasignar teclas, volumen, número de rondas y tiempo.
 - Música.
 - Soporte de mandos y controles táctiles para móvil.
-- Online: revancha, detección de desincronización y ranking con las cuentas de Supabase.
+- Online: revancha, detección de desincronización y recuperar la contraseña por email.
 
 ---
 

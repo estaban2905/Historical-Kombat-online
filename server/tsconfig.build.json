@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "rootDir": "src" },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/dev.ts", "src/db/pglite-db.ts"]
 }

@@ -1,5 +1,5 @@
 ## Pantalla de inicio de sesión / registro. Es la escena principal del juego.
-##   - Sin servidor configurado: pasa directo al menú (el juego funciona offline).
+##   - Sin servidor, o con un servidor sin cuentas: pasa directo al menú (el juego funciona offline).
 ##   - Con una sesión guardada: la recupera y pasa al menú.
 ##   - Si no: formulario de ENTRAR / CREAR CUENTA, o JUGAR SIN CUENTA.
 extends Control
@@ -21,17 +21,23 @@ var _guest: Button
 func _ready() -> void:
 	theme = HKTheme.theme()
 	get_tree().paused = false
-	if not Backend.is_configured() or Backend.is_logged_in() or Backend.guest:
+	if Backend.is_logged_in() or Backend.guest:
 		_go_menu.call_deferred()
 		return
 	_build_form()
+	_set_busy(true, "CONECTANDO...")
+	if not await Backend.check_available():
+		# Sin servidor (o sin cuentas) se juega igual: arcade, versus y entrenamiento no lo necesitan.
+		_go_menu()
+		return
 	if Backend.has_saved_session():
-		_set_busy(true, "CONECTANDO...")
 		var r := await Backend.restore_session()
 		if r.ok:
 			_go_menu()
 			return
 		_set_busy(false, r.error)
+	else:
+		_set_busy(false)
 	_email.grab_focus()
 
 func _go_menu() -> void:
@@ -122,10 +128,6 @@ func _on_submit() -> void:
 	if not r.ok:
 		_set_busy(false, r.error)
 		Sfx.play(&"denied")
-		return
-	if r.get("needs_confirmation", false):
-		_set_registering(false)
-		_set_busy(false, "REVISA TU EMAIL Y CONFIRMA")
 		return
 	_go_menu()
 

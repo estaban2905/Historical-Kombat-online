@@ -9,6 +9,7 @@ Fastify + `@fastify/websocket` + Swagger. Node 22+.
 ```
 npm install
 npm run dev        # servidor con recarga en http://localhost:8787
+npm run dev:local  # lo mismo pero CON cuentas, sin Postgres: base de datos embebida en .dev-data/
 npm test           # pruebas unitarias e integración
 npm run typecheck
 npm run build && npm start

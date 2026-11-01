@@ -110,6 +110,11 @@ jobs:
         run: |
           (cd server && npm ci && npm run build)
           GODOT=$HOME/godot/godot bash tests/run_online_e2e.sh
+      # Servidor de desarrollo con base de datos embebida (PGlite): cuentas y duelos con puntos.
+      - name: Cuentas (cliente de Godot contra el servidor real)
+        run: GODOT=$HOME/godot/godot bash tests/run_account_e2e.sh
+      - name: Duelo con ranking (dos clientes con cuenta)
+        run: GODOT=$HOME/godot/godot bash tests/run_ranked_e2e.sh
 
   web-export:
     name: Exportar juego a Web

@@ -49,28 +49,39 @@ func _ready() -> void:
 	_build_account_button()
 	btn_play.grab_focus()
 
-## Botón pequeño en la esquina: ENTRAR (sin sesión) o "NOMBRE · SALIR" (con sesión).
-## Solo existe si hay un servidor configurado.
+## Botones cortos en las esquinas de arriba (el título ocupa el centro): RANKING a la izquierda
+## y PERFIL / ENTRAR a la derecha. Con sesión, abajo a la derecha se lee "NOMBRE · PUNTOS".
+## Solo existen si el servidor responde y tiene cuentas.
 func _build_account_button() -> void:
 	if not Backend.is_configured():
 		return
-	var b := Button.new()
-	b.position = Vector2(212, 4)
-	b.custom_minimum_size = Vector2(210, 14)
-	b.size = Vector2(210, 14)
-	b.clip_text = true
+	_corner_button("RANKING", Vector2(4, 4), func(): Game.goto(Game.SCENE_RANKING))
+	_corner_button("PERFIL" if Backend.is_logged_in() else "ENTRAR", Vector2(338, 4), _on_account_pressed)
 	if Backend.is_logged_in():
-		b.text = "%s · %d PTS · SALIR" % [Backend.username().to_upper().left(10), int(Backend.profile.get("points", 0))]
-	else:
-		b.text = "INICIAR SESIÓN"
-	b.pressed.connect(_on_account_pressed)
+		var who := Label.new()
+		who.text = "%s · %d PTS" % [Backend.username().to_upper().left(14), int(Backend.profile.get("points", 0))]
+		who.position = Vector2(196, 228)
+		who.size = Vector2(226, 10)
+		who.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		who.add_theme_color_override("font_color", HKTheme.GOLD)
+		add_child(who)
+
+func _corner_button(text: String, pos: Vector2, on_press: Callable) -> void:
+	var b := Button.new()
+	b.text = text
+	b.position = pos
+	b.custom_minimum_size = Vector2(84, 14)
+	b.pressed.connect(func():
+		Sfx.play(&"confirm")
+		on_press.call())
 	b.focus_entered.connect(func(): Sfx.play(&"select"))
 	add_child(b)
+	b.size = Vector2(84, 14)   # tras añadirlo: ya tiene el tema
 
 func _on_account_pressed() -> void:
-	Sfx.play(&"confirm")
 	if Backend.is_logged_in():
-		await Backend.sign_out()
+		Game.goto(Game.SCENE_PROFILE)
+		return
 	Backend.guest = false
 	Game.goto(Game.SCENE_LOGIN)
 

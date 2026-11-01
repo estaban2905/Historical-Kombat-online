@@ -6,20 +6,25 @@ extends Control
 @onready var btn_select: Button = $Buttons/Select
 @onready var btn_menu: Button = $Buttons/Menu
 
+## Segundos que se espera la confirmación de puntos antes de rendirse.
+const SETTLE_WAIT := 40.0
+
 var _t: float = 0.0
 var _winner_data: FighterData
 ## Arcade: qué toca después (next | complete | retry | over). Vacío en versus.
 var _arcade: StringName = &""
+## Online: lo que confirmó el servidor ({} mientras espera) y un aviso si no llegó.
+var _settled: Dictionary = {}
+var _online_note: String = ""
 
 func _ready() -> void:
 	theme = HKTheme.theme()
 	get_tree().paused = false
 	if Game.is_vs_cpu():
 		_arcade = Game.arcade_outcome()
-	if Game.is_online():
-		# La partida terminó: se libera la conexión con el servidor.
-		Online.disconnect_from_server()
 	_setup_buttons()
+	if Game.is_online():
+		_finish_online()
 	for b in [btn_rematch, btn_select, btn_menu]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
@@ -63,6 +68,28 @@ func _setup_buttons() -> void:
 		_:
 			btn_rematch.visible = false
 
+## Duelo online: dice al servidor cómo terminó y espera a que confirme los puntos.
+## La conexión se mantiene hasta entonces: el rival puede ir unos ticks por detrás y el
+## servidor necesita los dos reportes para guardar el duelo.
+func _finish_online() -> void:
+	Online.report_result(Game.last_winner, Game.last_p1_rounds, Game.last_p2_rounds)
+	if not Online.last_settled.is_empty():
+		_on_settled(Online.last_settled)   # p. ej. el rival abandonó y ya se resolvió
+		return
+	if Online.state == Online.State.IDLE:
+		_online_note = "SIN CONEXIÓN CON EL SERVIDOR"
+		return
+	Online.settled.connect(_on_settled, CONNECT_ONE_SHOT)
+	await get_tree().create_timer(SETTLE_WAIT).timeout
+	if is_inside_tree() and _settled.is_empty():
+		_online_note = "SIN CONFIRMACIÓN DEL SERVIDOR"
+		Online.disconnect_from_server()
+
+func _on_settled(msg: Dictionary) -> void:
+	_settled = msg
+	Backend.apply_settled(msg)
+	Online.disconnect_from_server()
+
 func _add_figure(d: FighterData, pos: Vector2, s: int, pose: StringName) -> void:
 	var r := FighterRenderer.new()
 	add_child(r)
@@ -95,6 +122,38 @@ func _draw() -> void:
 	HKTheme.draw_text(self, Vector2(x0, 74), "RONDAS  %d - %d" % [Game.last_p1_rounds, Game.last_p2_rounds], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)
 	if _arcade != &"":
 		HKTheme.draw_text(self, Vector2(x0, 18), _arcade_status(), 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w)
+	if Game.is_online():
+		_draw_online_points(x0, w)
+
+## Línea de puntos del duelo online: pendiente, ganados/perdidos, no registrado o amistoso.
+func _draw_online_points(x0: float, w: float) -> void:
+	var y := 150.0
+	if _settled.is_empty():
+		var text := _online_note if _online_note != "" else "GUARDANDO RESULTADO..."
+		HKTheme.draw_text(self, Vector2(x0, y), text, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+		return
+	if not _settled.get("ranked", false):
+		HKTheme.draw_text(self, Vector2(x0, y), "AMISTOSO · SIN PUNTOS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+		return
+	if not _settled.get("ok", false):
+		HKTheme.draw_text(self, Vector2(x0, y), "DUELO NO REGISTRADO", 8, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+		HKTheme.draw_text(self, Vector2(x0, y + 11), _not_saved_reason(str(_settled.get("reason", ""))), 8,
+			HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+		return
+	var delta := int(_settled.get("delta", 0))
+	var color := Color("60d060") if delta > 0 else (HKTheme.BLOOD if delta < 0 else HKTheme.PAPER)
+	HKTheme.draw_text(self, Vector2(x0, y), "%+d PUNTOS" % delta, 16, color, HORIZONTAL_ALIGNMENT_CENTER, w, 3)
+	HKTheme.draw_text(self, Vector2(x0, y + 22), "TOTAL %d · %dV %dD" % [int(_settled.get("points", 0)),
+		int(_settled.get("wins", 0)), int(_settled.get("losses", 0))], 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+	if _settled.get("reason", "") == "forfeit":
+		HKTheme.draw_text(self, Vector2(x0, y + 34), "POR ABANDONO", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+
+func _not_saved_reason(reason: String) -> String:
+	match reason:
+		"mismatch": return "LOS RESULTADOS NO COINCIDEN"
+		"timeout": return "EL RIVAL NO CONFIRMÓ A TIEMPO"
+		"too_short": return "DUELO DEMASIADO CORTO"
+	return "ERROR DEL SERVIDOR"
 
 func _arcade_status() -> String:
 	var fight := "COMBATE %d/%d" % [Game.arcade_stage + 1, Game.arcade_ladder.size()]
