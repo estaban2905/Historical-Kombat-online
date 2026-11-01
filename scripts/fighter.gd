@@ -98,6 +98,11 @@ var _hurt_shape: RectangleShape2D
 var _hit_shape: RectangleShape2D
 
 func _ready() -> void:
+	# Las Area2D solo sirven para ver las cajas (Depurar → Formas de colisión
+	# visibles). Los impactos se calculan con get_hurt_rect() / get_hit_rect()
+	# en el mismo tick, sin esperar al motor de física.
+	hitbox.monitoring = false
+	hurtbox.monitorable = false
 	# Cada luchador necesita sus propias formas (no compartir el recurso de la escena).
 	_hurt_shape = RectangleShape2D.new()
 	hurtbox_shape.shape = _hurt_shape
@@ -395,11 +400,20 @@ func get_hit_candidates() -> Array[Fighter]:
 	var result: Array[Fighter] = []
 	if not is_hitbox_active():
 		return result
-	for area in hitbox.get_overlapping_areas():
-		var target := area.get_parent() as Fighter
-		if target and target != self and not hit_targets.has(target) and target.can_be_hit():
-			result.append(target)
+	var target := opponent
+	if target and not hit_targets.has(target) and target.can_be_hit() \
+			and get_hit_rect().intersects(target.get_hurt_rect()):
+		result.append(target)
 	return result
+
+## Caja del cuerpo en coordenadas globales, con la posición ACTUAL (tras el
+## empuje entre cuerpos). Es la que reciben golpes y proyectiles.
+func get_hurt_rect() -> Rect2:
+	return Rect2(global_position + hurtbox_shape.position - _hurt_shape.size * 0.5, _hurt_shape.size)
+
+## Caja del golpe en coordenadas globales (solo tiene sentido si is_hitbox_active()).
+func get_hit_rect() -> Rect2:
+	return Rect2(global_position + hitbox_shape.position - _hit_shape.size * 0.5, _hit_shape.size)
 
 func register_hit(target: Fighter) -> void:
 	hit_targets.append(target)
@@ -552,6 +566,7 @@ func _update_boxes() -> void:
 			off += atk.air_offset
 		_hit_shape.size = atk.hitbox_size
 		hitbox_shape.position = Vector2(off.x * facing, off.y)
+	# Solo afecta al dibujo de depuración; los impactos usan get_hit_rect().
 	if hitbox_shape.disabled == active:
 		hitbox_shape.set_deferred("disabled", not active)
 

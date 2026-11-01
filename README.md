@@ -236,6 +236,14 @@ godot --headless --path . res://tests/TestRunner.tscn
 
 Simulan pulsaciones reales de teclado y comprueban: carga de escenas y datos, Input Map sin teclas compartidas, menú → selección → combate, movimiento/salto/agacharse/bloqueo de ambos jugadores, daño exacto de los 12 ataques (un solo impacto cada uno), reducción por bloqueo, intercambio simultáneo de golpes, energía, límites de la arena, que nadie quede atascado, K.O., victoria por tiempo, empate, pantalla de victoria, revancha y 6000 frames de combate con entradas aleatorias.
 
+Frame data de todos los ataques cuerpo a cuerpo (frame en que conectan, ventaja al golpear y al bloquear, y con qué normales enlazan). Falla si algún ataque no conecta en `startup + 1`:
+
+```bash
+godot --headless --fixed-fps 60 --path . res://tests/FrameDataTest.tscn -- [--only=napoleon,donald_trump] [--csv=user://frame_data.csv]
+```
+
+En combate, **F1** muestra la capa de depuración: las cajas reales de impacto (azul = cuerpo, rojo = golpe, naranja = proyectil), el estado de cada luchador, el frame del ataque (amarillo = preparación, rojo = activo, azul = recuperación) y el aturdimiento.
+
 Capturas de pantalla (necesita pantalla o `xvfb-run`): `godot --path . res://tests/ScreenshotRunner.tscn -- <carpeta>`.
 
 ## 11. Pendiente para próximas versiones

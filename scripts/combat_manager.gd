@@ -52,6 +52,7 @@ func _ready() -> void:
 	if Game.is_vs_cpu():
 		p2.input.use_keyboard = false
 		ai = AIController.new(p2, p1, Game.ai_level())
+	add_child(DebugOverlay.new(self))
 	hud.bind(self)
 	round_manager.start_match()
 
@@ -212,24 +213,30 @@ func _resolve_melee_hits() -> void:
 		_apply_hit(attacker, target, atk, attacker.facing, point, false)
 
 func _resolve_projectiles() -> void:
-	for node in projectiles_root.get_children():
+	var nodes := projectiles_root.get_children()
+	for node in nodes:
 		var p := node as Projectile
 		if p == null or not p.alive or p.harmless or not p.is_armed():
 			continue
-		for area in p.get_overlapping_areas():
-			if area is Projectile:
-				var other := area as Projectile
-				if p.clashable and other.clashable and other.alive and not other.harmless \
-						and other.is_armed() and other.owner_fighter != p.owner_fighter:
+		var rect := p.get_rect()
+		if p.clashable:
+			for other_node in nodes:
+				var other := other_node as Projectile
+				if other and other != p and other.clashable and other.alive and not other.harmless \
+						and other.is_armed() and other.owner_fighter != p.owner_fighter \
+						and rect.intersects(other.get_rect()):
 					# Choque de proyectiles: se anulan.
 					HitEffect.spawn(effects_root, (p.position + other.position) * 0.5, HitEffect.Type.CLASH, 1.4)
 					Sfx.play(&"block")
 					p.destroy()
 					other.destroy()
 					break
+			if not p.alive:
 				continue
-			var target := area.get_parent() as Fighter
-			if target and target != p.owner_fighter and target.can_be_hit() and p.can_hit(target):
+		# Orden fijo [P1, P2]: mismo resultado en todos los PCs.
+		for target in fighters:
+			if target != p.owner_fighter and target.can_be_hit() and p.can_hit(target) \
+					and rect.intersects(target.get_hurt_rect()):
 				_apply_hit(p.owner_fighter, target, p.attack, p.hit_direction(target),
 					_contact_point(p.global_position, target), true)
 				p.register_hit(target)

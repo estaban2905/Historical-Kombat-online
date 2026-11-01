@@ -1,6 +1,7 @@
 ## Proyectil o efecto de un ataque especial (cañonazo, onda del megáfono,
-## oso, dragón, muro...). Es un Area2D: el CombatManager comprueba sus
-## solapamientos con hurtboxes y con otros proyectiles (choque = ambos se anulan).
+## oso, dragón, muro...). El CombatManager compara su get_rect() con las
+## hurtboxes y con otros proyectiles (choque = ambos se anulan). El Area2D
+## solo se usa para ver la caja en depuración.
 ##
 ## Sin configurar es el proyectil clásico: se mueve en horizontal y se destruye
 ## al impactar. PowerEffects lo configura (configure) para los poderes:
@@ -59,11 +60,10 @@ func setup(p_owner: Fighter, p_attack: AttackData, spawn_position: Vector2) -> v
 	life = p_attack.projectile_lifetime
 	position = spawn_position
 	box = p_attack.hitbox_size
-	# Capa 3 (proyectil) y detecta capa 1 (hurtbox) + capa 3 (otros proyectiles).
-	collision_layer = 4
-	collision_mask = 1 | 4
-	monitoring = true
-	monitorable = true
+	monitoring = false
+	monitorable = false
+	collision_layer = 0
+	collision_mask = 0
 	var shape := CollisionShape2D.new()
 	_shape = RectangleShape2D.new()
 	_shape.size = box
@@ -120,6 +120,10 @@ static func make_visual(p_owner: Fighter, pos: Vector2, d: Dictionary) -> Projec
 
 func is_armed() -> bool:
 	return _armed
+
+## Caja de impacto en coordenadas globales, centrada en el proyectil.
+func get_rect() -> Rect2:
+	return Rect2(global_position - box * 0.5, box)
 
 func tick(delta: float) -> void:
 	if not alive:
