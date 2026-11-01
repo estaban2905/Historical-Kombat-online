@@ -3,7 +3,7 @@
 ##   wss://history-combat-server.up.railway.app/ws
 ## Alternativa sin tocar el código: crear user://online.cfg (ver online.gd):
 ##   [server]
-##   url="ws://localhost:8080/ws"
+##   url="ws://localhost:8787/ws"
 extends RefCounted
 
-const SERVER_URL := "ws://localhost:8080/ws"
+const SERVER_URL := "ws://localhost:8787/ws"

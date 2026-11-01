@@ -4,7 +4,7 @@
 ## con botones al azar usando Online (WebSocket de verdad) y escribe una línea
 ## "CHK <tick> <checksum>" cada 100 ticks. Si los dos PCs van sincronizados, las
 ## líneas coinciden.
-## Uso:  godot --headless --path . res://tests/OnlineClientTest.tscn -- --url=ws://127.0.0.1:8080/ws --fighter=napoleon --seed=1
+## Uso:  godot --headless --path . res://tests/OnlineClientTest.tscn -- --url=ws://127.0.0.1:8787/ws --fighter=napoleon --seed=1
 extends Node
 
 const TICKS := 600

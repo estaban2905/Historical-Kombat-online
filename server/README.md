@@ -8,7 +8,7 @@ Fastify + `@fastify/websocket` + Swagger. Node 22+.
 
 ```
 npm install
-npm run dev        # servidor con recarga en http://localhost:8080
+npm run dev        # servidor con recarga en http://localhost:8787
 npm test           # pruebas unitarias e integración
 npm run typecheck
 npm run build && npm start
@@ -48,7 +48,7 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 
 | Variable | Defecto | Descripción |
 |---|---|---|
-| `PORT` | 8080 | Puerto (Railway lo define solo) |
+| `PORT` | 8787 | Puerto (Railway lo define solo) |
 | `DOCS_ENABLED` | true | `false` oculta `/docs` |
 | `MAX_PAYLOAD` | 1024 | Bytes máximos por mensaje |
 | `MAX_MESSAGES_PER_SECOND` | 120 | Límite por conexión |

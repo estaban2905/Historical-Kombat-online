@@ -14,7 +14,7 @@ export interface AppConfig {
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
-    port: toInt(env["PORT"], 8080),
+    port: toInt(env["PORT"], 8787),
     docsEnabled: env["DOCS_ENABLED"] !== "false",
     maxPayload: toInt(env["MAX_PAYLOAD"], 1024),
     maxMessagesPerSecond: toInt(env["MAX_MESSAGES_PER_SECOND"], 120),
