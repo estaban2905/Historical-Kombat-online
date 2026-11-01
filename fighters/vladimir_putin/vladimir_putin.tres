@@ -218,6 +218,7 @@ country = "Rusia"
 era = "1952 –"
 intro_quote = "No sabes con quién te estás metiendo."
 victory_quote = "El resultado estaba decidido."
+power_quote = ""
 bio = "Maestro del judo y de la mirada gélida. Pelea sin quitarse la camisa. Casi."
 max_health = 100.0
 walk_speed = 72.0

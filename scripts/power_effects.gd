@@ -23,8 +23,13 @@
 ##   floor_y / boom  se destruye al llegar al suelo, explotando
 ##   clash    puede chocar con otros proyectiles
 ##   nostatus no aplica el estado alterado del ataque
+##   pull     el golpe arrastra al rival hacia quien lo lanza (en vez de empujarlo)
+##   follow   (solo visuales) acompaña a quien lo lanza hasta que acaba su escudo
 class_name PowerEffects
 extends RefCounted
+
+## Frames que dura el escudo de Allende.
+const SHIELD_FRAMES := 120
 
 static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 	match atk.power:
@@ -204,8 +209,75 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 			_spawn(cm, f, atk, {"art": &"caravel", "off": Vector2(-26, -17), "box": Vector2(76, 42),
 				"speed": 215.0, "life": 2.3, "pierce": true, "knock": 320.0, "launch": -120.0, "stun": 30,
 				"sound": &"whoosh"})
+		&"weichan_spirit":
+			# Janequeo: carga con la lanza, da tres lanzadas seguidas y la última suelta una onda.
+			f.velocity.x = f.facing * 150.0
+			for i in 3:
+				_spawn(cm, f, atk, {"art": &"slash", "off": Vector2(34.0 + i * 8.0, -40.0 + (i % 2) * 8.0),
+					"box": Vector2(34, 34), "delay": i * 9, "life": 0.18, "pierce": true, "share": 0.2,
+					"knock": 70.0, "stun": 16, "sound": &"whoosh"})
+			_spawn(cm, f, atk, {"art": &"bigwave", "off": Vector2(40, -42), "box": Vector2(22, 34),
+				"speed": 230.0, "delay": 27, "life": 1.2, "share": 0.4, "knock": 220.0, "stun": 26,
+				"sound": &"megaphone"})
+		&"toqui_charge":
+			# Lautaro: monta su caballo y atraviesa la pantalla con la lanza.
+			_spawn(cm, f, atk, {"art": &"toqui", "off": Vector2(-14, -22), "box": Vector2(56, 34), "speed": 250.0,
+				"life": 1.9, "pierce": true, "knock": 300.0, "launch": -130.0, "stun": 30, "sound": &"whoosh"})
+		&"andean_quake":
+			# Pachacútec: golpea el suelo con el cetro y la tierra se abre bajo el rival.
+			_visual(cm, f, f.position + Vector2(30.0 * f.facing, -8.0), {"art": &"groundwave", "color": Color("b09060"),
+				"box": Vector2(30, 12), "life": 0.4})
+			_spawn(cm, f, atk, {"art": &"quake", "at_opp": true, "off": Vector2(0, -12), "box": Vector2(76, 24),
+				"delay": 20, "show": true, "life": 0.5, "pierce": true, "knock": 120.0, "launch": -230.0,
+				"stun": 36, "shake": 6.0, "sound": &"hit_heavy"})
+			_stones_later(cm, f.opponent.position.x, 20)
+		&"tsar_fury":
+			# Iván: tormenta de rayos y hielo sobre el rival.
+			for i in 3:
+				_spawn(cm, f, atk, {"art": &"icebolt", "at_opp": true, "off": Vector2(-26.0 + i * 26.0, -45.0),
+					"box": Vector2(18, 90), "delay": 14 + i * 10, "show": true, "life": 0.3, "pierce": true,
+					"share": 1.0 / 3.0, "knock": 90.0, "stun": 20, "sound": &"hit_heavy",
+					"color": Color("a0e0ff") if i != 1 else Color("fff080")})
+		&"war_chariot":
+			# Boudica: un carro de guerra tirado por caballos arrolla al rival.
+			_spawn(cm, f, atk, {"art": &"chariot", "off": Vector2(-20, -18), "box": Vector2(74, 34), "speed": 255.0,
+				"life": 1.9, "pierce": true, "knock": 330.0, "launch": -130.0, "stun": 30, "sound": &"whoosh"})
+		&"orleans_blade":
+			# Juana de Arco: levanta la espada y lanza un corte de luz.
+			_visual(cm, f, f.position + Vector2(16.0 * f.facing, -52.0), {"art": &"lightburst", "box": Vector2(40, 40),
+				"life": 0.3})
+			_spawn(cm, f, atk, {"art": &"lightblade", "off": Vector2(30, -40), "box": Vector2(26, 56), "speed": 280.0,
+				"life": 1.3, "knock": 240.0, "stun": 28, "clash": true, "sound": &"confirm"})
+		&"state_siege":
+			# Pinochet: una barrera militar inmoviliza al rival y lo deja a merced de un ataque.
+			_spawn(cm, f, atk, {"art": &"barrier", "at_opp": true, "off": Vector2(0, -22), "box": Vector2(60, 44),
+				"delay": 10, "show": true, "life": 0.6, "pierce": true, "share": 0.3, "knock": 0.0, "stun": 12,
+				"sound": &"confirm"})
+			_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -34), "box": Vector2(44, 56),
+				"delay": 44, "life": 0.25, "pierce": true, "share": 0.7, "knock": 200.0, "stun": 26,
+				"nostatus": true, "shake": 4.0, "sound": &"hit_heavy"})
+		&"chilean_way":
+			# Allende: escudo de energía roja que absorbe un golpe y lo devuelve como onda (ver reflect).
+			f.shield_frames = SHIELD_FRAMES
+			_visual(cm, f, f.position + Vector2(0, -36), {"art": &"redshield", "box": Vector2(46, 74),
+				"life": float(SHIELD_FRAMES) / 60.0, "follow": true, "show": true})
+		&"esmeralda":
+			# Prat: aparece la silueta de la Esmeralda y un ancla gigante arrastra al rival.
+			_visual(cm, f, Vector2(213.0, f.floor_y - 66.0), {"art": &"ship", "box": Vector2(170, 100), "life": 1.2,
+				"show": true})
+			_spawn(cm, f, atk, {"art": &"anchor", "off": Vector2(28, -44), "box": Vector2(24, 26), "speed": 330.0,
+				"life": 0.9, "pull": true, "knock": 300.0, "stun": 30, "sound": &"cannon"})
 		_:
 			push_warning("PowerEffects: poder desconocido «%s»" % atk.power)
+
+## Escudo de Allende: devuelve al que atacó una onda roja con el daño de su poder.
+static func reflect(cm: CombatManager, f: Fighter, foe: Fighter) -> void:
+	var atk := f.data.special_2
+	if atk == null:
+		return
+	f.facing = 1 if foe.position.x >= f.position.x else -1
+	_spawn(cm, f, atk, {"art": &"bigwave", "color": Color("e03030"), "off": Vector2(26, -40), "box": Vector2(26, 44),
+		"speed": 270.0, "life": 1.5, "knock": 260.0, "stun": 28, "shake": 3.0, "sound": &"hit_heavy"})
 
 ## Fragmentos de piedra en el suelo tras `frames` (cuando el poder golpea).
 static func _stones_later(cm: CombatManager, x: float, frames: int) -> void:

@@ -218,6 +218,7 @@ country = "Judea"
 era = "4 a.C.–30 d.C."
 intro_quote = "Que comience el combate; que prevalezca la paz."
 victory_quote = "La luz siempre encuentra su camino."
+power_quote = ""
 bio = "Maestro de Galilea. Aquí pelea con luz y bondad, poniendo la otra mejilla... al final."
 max_health = 100.0
 walk_speed = 72.0

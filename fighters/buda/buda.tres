@@ -218,6 +218,7 @@ country = "India"
 era = "563 – 483 a.C."
 intro_quote = "La mente tranquila es mi mayor poder."
 victory_quote = "La verdadera victoria comienza dentro de uno mismo."
+power_quote = ""
 bio = "El Iluminado. Tan sereno que nada parece afectarle. Casi nada."
 max_health = 108.0
 walk_speed = 56.0

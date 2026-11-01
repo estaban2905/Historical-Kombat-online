@@ -191,7 +191,7 @@ func state_snapshot() -> Array:
 			f.facing, f.attack_frame, f.attack_instance, f.stun_frames, f.hitstop_frames,
 			f.combo_hits_taken, f.slow_frames, f.invert_frames, f.float_frames,
 			f.buffered_slot, f.buffered_frames, f.cooldowns, f.throw_timer, f.tech_requested,
-			f.guard, f.guard_idle, f.attack_connected, f.chain_slots.size(), f.juggle_hits,
+			f.guard, f.guard_idle, f.attack_connected, f.chain_slots.size(), f.juggle_hits, f.root_frames, f.shield_frames,
 				f.knockdown_pending, f.tech_fall_buffer, f.wake_frames, f.wake_rolling])
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
@@ -328,6 +328,13 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 		point: Vector2, from_projectile: bool, level: AttackData.HitLevel = AttackData.HitLevel.MID,
 		combo: ComboData = null) -> void:
 	var result := target.receive_hit(attacker, atk, direction, level, combo.bonus_damage if combo else 0.0)
+	if result.absorbed:
+		HitEffect.spawn(effects_root, point, HitEffect.Type.CLASH, 1.6)
+		Sfx.play(&"block")
+		fx.flash(0.3)
+		PowerEffects.reflect(self, target, attacker)
+		hit_landed.emit(attacker, target, atk, result)
+		return
 	# Nombre del combo completado: solo si el golpe final entra (el HUD lo muestra).
 	result["combo_name"] = combo.display_name if combo and not result.blocked else ""
 	if not result.blocked:
@@ -392,6 +399,8 @@ func _on_power_requested(fighter: Fighter, atk: AttackData) -> void:
 	PowerEffects.cast(self, fighter, atk)
 
 func _on_attack_started(fighter: Fighter, atk: AttackData) -> void:
+	if fighter.current_slot == &"special_2" and fighter.data.power_quote != "":
+		hud.show_shout(fighter, fighter.data.power_quote)
 	if atk.kind == AttackData.Kind.ULTIMATE:
 		_start_cinematic(fighter, atk)
 	elif not atk.is_projectile():

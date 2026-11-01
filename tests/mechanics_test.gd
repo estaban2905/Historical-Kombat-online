@@ -63,6 +63,7 @@ func _run() -> void:
 	await _test_ultimate()
 	await _test_ai()
 	await _test_perfect_block()
+	await _test_new_powers()
 	_test_balance()
 
 	await get_tree().physics_frame
@@ -959,3 +960,60 @@ func _test_perfect_block() -> void:
 	check(not _hits.is_empty() and _hits[0][3].blocked and _hits[0][3].perfect, "pulsar el bloqueo justo antes del golpe es perfecto")
 	check(is_equal_approx(p2.health, p2.data.max_health) and is_equal_approx(p2.guard, Fighter.MAX_GUARD), "no hay rozadura ni gasto de guardia")
 	await _ticks(60)
+
+# --- Poderes de los personajes nuevos ---------------------------------------
+func _set_fighters(a: StringName, b: StringName) -> void:
+	combat.p1.setup(FighterRegistry.get_by_id(a), 1, combat.p1.input)
+	combat.p2.setup(FighterRegistry.get_by_id(b), 2, combat.p2.input)
+
+func _test_new_powers() -> void:
+	print("
+# Poderes nuevos")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	await _wait_round()
+
+	# Escudo de Allende: absorbe el primer golpe sin daño y devuelve una onda.
+	_set_fighters(&"salvador_allende", &"napoleon")
+	await _place(34.0)
+	p1.energy = Fighter.MAX_ENERGY
+	await _press(0, 1 << BIT_S2)
+	await _until(func(): return p1.shield_frames > 0, 60)
+	check(p1.shield_frames > 0, "el escudo de Allende se activa")
+	var hp := p1.health
+	_hits.clear()
+	await _press(1, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 60)
+	check(not _hits.is_empty() and _hits[0][3].absorbed and is_equal_approx(p1.health, hp), "absorbe el golpe sin daño")
+	check(p1.shield_frames == 0, "y el escudo se consume")
+	var p2_hp := p2.data.max_health
+	await _until(func(): return p2.health < p2_hp, 120)
+	check(p2.health < p2_hp, "devuelve una onda al atacante (%.1f de daño)" % (p2_hp - p2.health))
+	await _ticks(90)
+
+	# Estado de Sitio: el rival queda inmovilizado.
+	_set_fighters(&"augusto_pinochet", &"napoleon")
+	await _place(70.0)
+	p1.energy = Fighter.MAX_ENERGY
+	await _press(0, 1 << BIT_S2)
+	await _until(func(): return p2.root_frames > 0, 80)
+	check(p2.root_frames > 0, "la barrera inmoviliza al rival")
+	var x0 := p2.position.x
+	_masks[1] = 1 << 1
+	await _ticks(20)
+	_masks[1] = 0
+	check(absf(p2.position.x - x0) < 3.0, "y no puede caminar mientras dura")
+	await _ticks(160)
+
+	# Ancla de la Esmeralda: arrastra al rival hacia Prat.
+	_set_fighters(&"arturo_prat", &"napoleon")
+	await _place(110.0)
+	p1.energy = Fighter.MAX_ENERGY
+	var d0 := p2.position.x - p1.position.x
+	await _press(0, 1 << BIT_S2)
+	await _until(func(): return not _hits.is_empty(), 90)
+	await _ticks(20)
+	check(not _hits.is_empty() and p2.position.x - p1.position.x < d0 - 15.0, "el ancla acerca al rival (%.0f → %.0f px)" % [d0, p2.position.x - p1.position.x])
+	await _ticks(120)
+
+	_set_fighters(&"napoleon", &"donald_trump")

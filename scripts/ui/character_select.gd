@@ -1,14 +1,14 @@
 ## Selección de luchador para Versus local.
-## Rejilla de 30 casillas: las de los personajes disponibles y el resto
+## Rejilla de 42 casillas: las de los personajes disponibles y el resto
 ## bloqueadas ("?") como adelanto del roster completo.
 ##   J1: A/D/W/S mover · U confirmar · J cancelar
 ##   J2: Flechas mover · Num1 (o Supr) confirmar · Num4 (o Insert) cancelar
 ##   ESC: volver al menú
 extends Control
 
-const COLS := 6
-const ROWS := 5
-const CELL := Vector2(28, 20)
+const COLS := 7
+const ROWS := 6
+const CELL := Vector2(24, 18)
 const GRID_ORIGIN := Vector2(129, 34)
 const P1_COLOR := Color("e83a3a")
 const P2_COLOR := Color("3a8af0")
@@ -169,12 +169,12 @@ func _draw() -> void:
 		if confirmed[p]:
 			HKTheme.draw_text(self, Vector2(x0, 58), "¡LISTO!", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w)
 	# Frase de presentación del luchador bajo el cursor de J1 / J2
-	var quote_y := 150.0
+	var quote_y := 156.0
 	for p in ([1] if _cpu else [1, 2]):
 		if cursor[p] < roster.size():
 			var q := "\"%s\"" % roster[cursor[p]].intro_quote
 			_draw_wrapped(Vector2(129, quote_y), q, 168, HKTheme.PAPER if p == 1 else Color("b8d0f0"))
-			quote_y += 34
+			quote_y += 32
 	if _starting:
 		HKTheme.draw_text(self, Vector2(0, 120), "VS", 32, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
 	var hint := "J1: WASD+U   ESC: VOLVER" if _cpu else "J1: WASD+U   J2: FLECHAS+NUM1   ESC: VOLVER"

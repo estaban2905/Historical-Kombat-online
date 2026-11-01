@@ -44,6 +44,10 @@ var sound_on_arm: StringName = &""
 ## > 0: se destruye al llegar a esta altura (bombas). Con `boom` explota.
 var floor_y: float = -1.0
 var boom: bool = false
+## El golpe arrastra al objetivo hacia el lanzador.
+var pull: bool = false
+## Visual que acompaña al lanzador mientras tiene el escudo activo.
+var follow: bool = false
 
 var _t: float = 0.0
 var _armed: bool = true
@@ -90,6 +94,7 @@ func configure(d: Dictionary) -> void:
 	sound_on_arm = d.get("sound", &"")
 	floor_y = d.get("floor_y", -1.0)
 	boom = d.get("boom", false)
+	pull = d.get("pull", false)
 	clashable = d.get("clash", art == &"")
 	_armed = delay <= 0.0
 	visible = _armed or show_before_arm
@@ -116,6 +121,7 @@ static func make_visual(p_owner: Fighter, pos: Vector2, d: Dictionary) -> Projec
 	p._armed = p.delay <= 0.0
 	p.visible = p._armed or d.get("show", false)
 	p.show_before_arm = d.get("show", false)
+	p.follow = d.get("follow", false)
 	return p
 
 func is_armed() -> bool:
@@ -130,6 +136,13 @@ func tick(delta: float) -> void:
 		return
 	_t += delta
 	life -= delta
+	if follow:
+		if owner_fighter == null or owner_fighter.shield_frames <= 0 or life <= 0.0:
+			destroy()
+			return
+		position = owner_fighter.position + Vector2(0, -36)
+		queue_redraw()
+		return
 	for target in _hit_log:
 		_hit_log[target][1] = maxi(_hit_log[target][1] - 1, 0)
 	if not _armed:
@@ -181,7 +194,7 @@ func register_hit(target: Fighter) -> void:
 func hit_direction(target: Fighter) -> int:
 	if radial:
 		return 1 if target.position.x >= position.x else -1
-	return direction
+	return -direction if pull else direction
 
 func _spawn_boom() -> void:
 	var parent := get_parent()

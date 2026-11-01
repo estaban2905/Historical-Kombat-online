@@ -218,6 +218,7 @@ country = "Egipto"
 era = "69 – 30 a.C."
 intro_quote = "¡Arrodíllate ante la reina del Nilo!"
 victory_quote = "¡La reina nunca pierde su corona!"
+power_quote = ""
 bio = "Última reina de Egipto. Inteligente, seductora y letal con una sandalia."
 max_health = 94.0
 walk_speed = 84.0

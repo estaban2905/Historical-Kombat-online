@@ -217,6 +217,7 @@ country = "Italia"
 era = "1883 – 1945"
 intro_quote = "¡Mírame bien, porque soy el espectáculo!"
 victory_quote = "¡Una victoria digna de un gran discurso!"
+power_quote = ""
 bio = "Dictador italiano de mentón desafiante y discursos teatrales."
 max_health = 100.0
 walk_speed = 72.0

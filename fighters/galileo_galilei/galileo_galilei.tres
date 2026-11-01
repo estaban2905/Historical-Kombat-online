@@ -220,6 +220,7 @@ country = "Italia"
 era = "1564 – 1642"
 intro_quote = "¡Y, sin embargo, te voy a derrotar!"
 victory_quote = "¡Tenía razón!"
+power_quote = ""
 bio = "Astrónomo que apuntó el telescopio al cielo. Desde la Torre de Pisa tira de todo."
 max_health = 94.0
 walk_speed = 72.0

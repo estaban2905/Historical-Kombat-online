@@ -219,6 +219,7 @@ country = "Imperio ruso"
 era = "1869 – 1916"
 intro_quote = "¡No puedes matar lo que no puedes comprender!"
 victory_quote = "¡Te dije que no era fácil deshacerte de mí!"
+power_quote = ""
 bio = "Místico de la corte rusa. Según la leyenda, fue casi imposible de matar."
 max_health = 108.0
 walk_speed = 56.0

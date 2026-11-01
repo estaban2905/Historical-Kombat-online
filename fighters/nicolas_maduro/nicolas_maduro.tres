@@ -218,6 +218,7 @@ country = "Venezuela"
 era = "1962 –"
 intro_quote = "¡La victoria está garantizada, hermano!"
 victory_quote = "¡Victoria revolucionaria!"
+power_quote = ""
 bio = "Ex conductor de autobús convertido en político. Bigote legendario y mucho aguante."
 max_health = 106.0
 walk_speed = 62.0

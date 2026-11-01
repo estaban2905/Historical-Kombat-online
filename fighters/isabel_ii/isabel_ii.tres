@@ -218,6 +218,7 @@ country = "Reino Unido"
 era = "1926 – 2022"
 intro_quote = "La corona no se inclina ante nadie."
 victory_quote = "God save the Queen."
+power_quote = ""
 bio = "Reina durante 70 años. Pequeña, imperturbable y con un bolso peligrosísimo."
 max_health = 108.0
 walk_speed = 56.0

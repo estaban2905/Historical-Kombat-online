@@ -220,6 +220,7 @@ country = "Alemania"
 era = "1879 – 1955"
 intro_quote = "¡Todo es relativo, excepto mi victoria!"
 victory_quote = "¡Era cuestión de física!"
+power_quote = ""
 bio = "El genio de la relatividad. Pelo imposible y la mente más rápida del torneo."
 max_health = 94.0
 walk_speed = 72.0

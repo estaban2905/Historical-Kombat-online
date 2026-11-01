@@ -43,6 +43,15 @@ static func draw(ci: CanvasItem, style: StringName, t: float, prog: float, a: fl
 		&"cannon": _cannon(ci)
 		&"bigwave": _bigwave(ci, t)
 		&"slash": _slash(ci, a)
+		&"toqui": _toqui(ci, t)
+		&"chariot": _chariot(ci, t)
+		&"quake": _quake(ci, prog, a, box)
+		&"icebolt": _icebolt(ci, prog, a, box, col)
+		&"lightblade": _lightblade(ci, t)
+		&"barrier": _barrier(ci, prog, box)
+		&"redshield": _redshield(ci, t, box)
+		&"ship": _ship(ci, t, box)
+		&"anchor": _anchor(ci, t)
 		_: ci.draw_circle(Vector2.ZERO, 4.0, col)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -427,3 +436,146 @@ static func _slash(ci: CanvasItem, a: float) -> void:
 	for i in 3:
 		ci.draw_arc(Vector2(-6, 0), 14.0 + i * 7.0, -1.0 + i * 0.1, 1.0 - i * 0.1, 10, OL, 5.0)
 		ci.draw_arc(Vector2(-6, 0), 14.0 + i * 7.0, -1.0 + i * 0.1, 1.0 - i * 0.1, 10, c if i != 1 else Color(0.8, 0.6, 1.0, c.a), 3.0)
+
+
+# --- Poderes de los personajes nuevos -----------------------------------------
+## Lautaro: jinete mapuche con lanza sobre su caballo.
+static func _toqui(ci: CanvasItem, t: float) -> void:
+	_horse(ci, 0.0, 6.0, t, 0.0, Color("3a3030"), Color("c02828"))
+	_rect(ci, -4, -14, 8, 12, Color("1c1c24"))
+	ci.draw_circle(Vector2(0, -19), 4.0, OL)
+	ci.draw_circle(Vector2(0, -19), 3.0, Color("b87c4c"))
+	ci.draw_rect(Rect2(-3, -23, 6, 2), Color("c02828"))
+	ci.draw_line(Vector2(2, -9), Vector2(34, -13), OL, 3.0)
+	ci.draw_line(Vector2(2, -9), Vector2(34, -13), Color("8a6a3a"), 1.5)
+	_poly(ci, [Vector2(34, -16), Vector2(43, -13), Vector2(34, -10)], Color("d0d8e0"))
+
+## Boudica: carro de guerra con dos caballos y la reina de pie.
+static func _chariot(ci: CanvasItem, t: float) -> void:
+	_horse(ci, 12.0, 6.0, t, 0.0, Color("a07040"), Color("3a2a1a"))
+	_horse(ci, 26.0, 2.0, t, 1.9, Color("e8e0d0"), Color("6a4a2a"))
+	ci.draw_line(Vector2(-2, 0), Vector2(12, 0), OL, 3.0)
+	ci.draw_line(Vector2(-2, 0), Vector2(12, 0), Color("6a4a2a"), 1.5)
+	_rect(ci, -32, -4, 30, 11, Color("6a4a2a"))
+	ci.draw_rect(Rect2(-32, -4, 30, 2), Color("c0a040"))
+	for i in 2:
+		var c := Vector2(-24.0 + i * 14.0, 10.0)
+		ci.draw_circle(c, 8.0, OL)
+		ci.draw_circle(c, 6.5, Color("8a6a3a"))
+		var ang := t * 14.0
+		for k in 4:
+			var d := Vector2(cos(ang + k * PI * 0.5), sin(ang + k * PI * 0.5)) * 6.0
+			ci.draw_line(c - d, c + d, OL, 1.5)
+	_rect(ci, -22, -20, 7, 16, Color("2a6a3a"))
+	ci.draw_circle(Vector2(-18, -25), 4.0, OL)
+	ci.draw_circle(Vector2(-18, -25), 3.0, Color("f0d0b0"))
+	ci.draw_rect(Rect2(-24, -29, 8, 5), Color("c04a20"))
+	ci.draw_line(Vector2(-15, -14), Vector2(10, -24), OL, 3.0)
+	ci.draw_line(Vector2(-15, -14), Vector2(10, -24), Color("b8b8c0"), 1.5)
+
+## Pachacútec: el suelo se agrieta y suben rocas.
+static func _quake(ci: CanvasItem, prog: float, a: float, box: Vector2) -> void:
+	var hw := box.x * 0.5
+	var rise := _ease(a / 0.15) if prog >= 1.0 else prog * 0.25
+	var pts := PackedVector2Array()
+	for i in 8:
+		pts.append(Vector2(-hw + i * box.x / 7.0, 8.0 + (4.0 if i % 2 == 0 else -2.0)))
+	ci.draw_polyline(pts, OL, 4.0)
+	ci.draw_polyline(pts, Color("5a3a20"), 2.0)
+	for i in 5:
+		var x := -hw + 8.0 + i * (box.x - 16.0) / 4.0
+		var h := (10.0 + (i % 3) * 8.0) * rise
+		_poly(ci, [Vector2(x - 5, 8), Vector2(x - 2, 8 - h), Vector2(x + 3, 8 - h * 0.8), Vector2(x + 6, 8)], Color("8a6a4a"))
+	if prog < 1.0:
+		for i in 4:
+			ci.draw_circle(Vector2(-hw + 10.0 + i * box.x / 4.0, 6.0 - sin(prog * 30.0 + i) * 3.0), 2.0, Color(0.7, 0.6, 0.45, 0.7))
+
+## Iván: rayo con esquirlas de hielo; antes de caer solo se ve la marca en el suelo.
+static func _icebolt(ci: CanvasItem, prog: float, a: float, box: Vector2, col: Color) -> void:
+	var h := box.y
+	if prog < 1.0:
+		ci.draw_circle(Vector2(0, h * 0.5 - 3.0), 2.0 + 6.0 * prog, Color(col.r, col.g, col.b, 0.55))
+		return
+	var pts := PackedVector2Array()
+	for i in 7:
+		pts.append(Vector2(-5.0 if (i + int(a * 40.0)) % 2 == 0 else 5.0, -h * 0.5 + i * h / 6.0))
+	ci.draw_polyline(pts, OL, 5.0)
+	ci.draw_polyline(pts, col, 3.0)
+	ci.draw_polyline(pts, Color.WHITE, 1.0)
+	for i in 3:
+		var x := -9.0 + i * 9.0
+		_poly(ci, [Vector2(x - 3, h * 0.5), Vector2(x, h * 0.5 - 10.0 - (i % 2) * 5.0), Vector2(x + 3, h * 0.5)], Color("c8f0ff"))
+
+## Juana de Arco: media luna de luz.
+static func _lightblade(ci: CanvasItem, t: float) -> void:
+	for i in 3:
+		var c := Color(1.0, 0.92, 0.55, 0.5 - i * 0.15)
+		ci.draw_arc(Vector2(-14.0 - i * 6.0, 0), 26.0, -0.9, 0.9, 12, c, 6.0)
+	ci.draw_arc(Vector2(-14, 0), 26.0, -0.9, 0.9, 12, OL, 8.0)
+	ci.draw_arc(Vector2(-14, 0), 26.0, -0.9, 0.9, 12, Color("ffe880"), 5.0)
+	ci.draw_arc(Vector2(-14, 0), 26.0, -0.8, 0.8, 12, Color.WHITE, 2.0)
+
+## Pinochet: barrera militar (sacos de arena y alambre de espino) que se levanta.
+static func _barrier(ci: CanvasItem, prog: float, box: Vector2) -> void:
+	var k := _ease(prog)
+	var hw := box.x * 0.5
+	var base := box.y * 0.5
+	for row in 2:
+		var y := base - 9.0 - row * 9.0
+		if (base - y) > box.y * k + 9.0:
+			continue
+		for i in 4:
+			var x := -hw + 2.0 + i * (box.x - 4.0) / 4.0 + (row % 2) * 6.0
+			_rect(ci, x, y, 14.0, 8.0, Color("a09060") if (i + row) % 2 == 0 else Color("8a7a50"))
+	for i in 3:
+		var x := -hw + 8.0 + i * (box.x - 16.0) / 2.0
+		ci.draw_line(Vector2(x, base - 10), Vector2(x, base - 10 - (box.y - 18.0) * k), OL, 3.0)
+		ci.draw_line(Vector2(x, base - 10), Vector2(x, base - 10 - (box.y - 18.0) * k), Color("6a5a3a"), 1.5)
+	var y := base - 14.0 - (box.y - 26.0) * k
+	var wire := PackedVector2Array()
+	for i in 9:
+		wire.append(Vector2(-hw + 4.0 + i * (box.x - 8.0) / 8.0, y + (3.0 if i % 2 == 0 else -3.0)))
+	ci.draw_polyline(wire, Color("b8b8c0"), 1.5)
+
+## Allende: escudo elíptico de energía roja.
+static func _redshield(ci: CanvasItem, t: float, box: Vector2) -> void:
+	var pts := PackedVector2Array()
+	var pulse := 1.0 + sin(t * 10.0) * 0.04
+	for i in 21:
+		var ang := TAU * i / 20.0
+		pts.append(Vector2(cos(ang) * box.x * 0.5, sin(ang) * box.y * 0.5) * pulse)
+	ci.draw_colored_polygon(pts, Color(0.9, 0.12, 0.12, 0.22))
+	ci.draw_polyline(pts, OL, 4.0)
+	ci.draw_polyline(pts, Color("ff5050"), 2.0)
+	ci.draw_arc(Vector2.ZERO, box.x * 0.5 - 4.0, -2.4, -1.2, 8, Color(1, 0.8, 0.8, 0.8), 2.0)
+
+## Prat: silueta de la corbeta Esmeralda (decorado de fondo, algo transparente).
+static func _ship(ci: CanvasItem, t: float, box: Vector2) -> void:
+	var a := 0.4
+	var hull := Color(0.1, 0.14, 0.26, a)
+	var sail := Color(0.92, 0.9, 0.82, a)
+	var bob := sin(t * 3.0) * 2.0
+	var hw := box.x * 0.5
+	var by := box.y * 0.5 - 24.0 + bob
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(-hw, by), Vector2(hw, by), Vector2(hw - 14, by + 22), Vector2(-hw + 10, by + 22)]), hull)
+	ci.draw_rect(Rect2(-hw + 6, by - 3, box.x - 12, 3), Color(0.8, 0.65, 0.2, a))
+	for i in 3:
+		var mx := -hw * 0.55 + i * hw * 0.55
+		var mh := 52.0 - (8.0 if i == 2 else 0.0)
+		ci.draw_rect(Rect2(mx - 1, by - mh, 3, mh), Color(0.28, 0.2, 0.12, a))
+		ci.draw_rect(Rect2(mx - 17, by - mh + 4, 34, 15), sail)
+		ci.draw_rect(Rect2(mx - 15, by - mh * 0.5, 30, 14), sail)
+	ci.draw_rect(Rect2(-hw * 0.55 - 1, by - 58, 10, 4), Color(0.2, 0.3, 0.8, a))
+
+## Prat: ancla con cuerda.
+static func _anchor(ci: CanvasItem, t: float) -> void:
+	for i in 4:
+		ci.draw_circle(Vector2(-14.0 - i * 9.0, sin(t * 20.0 + i) * 1.5), 2.0, Color("8a6a3a"))
+	ci.draw_line(Vector2(-10, 0), Vector2(8, 0), OL, 5.0)
+	ci.draw_line(Vector2(-10, 0), Vector2(8, 0), Color("7a7a88"), 3.0)
+	ci.draw_arc(Vector2(5, 0), 9.0, -1.5, 1.5, 8, OL, 5.0)
+	ci.draw_arc(Vector2(5, 0), 9.0, -1.5, 1.5, 8, Color("9a9aaa"), 3.0)
+	ci.draw_line(Vector2(0, -6), Vector2(0, 6), OL, 5.0)
+	ci.draw_line(Vector2(0, -6), Vector2(0, 6), Color("7a7a88"), 3.0)
+	ci.draw_circle(Vector2(-10, 0), 3.5, OL)
+	ci.draw_circle(Vector2(-10, 0), 2.5, Color("b0b0c0"))

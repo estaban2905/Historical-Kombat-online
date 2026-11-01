@@ -217,6 +217,7 @@ country = "Serbia"
 era = "1856 – 1943"
 intro_quote = "¡Prepárate para una descarga de genialidad!"
 victory_quote = "¡La electricidad nunca falla!"
+power_quote = ""
 bio = "Inventor de la corriente alterna. Lanza rayos de verdad (más o menos)."
 max_health = 94.0
 walk_speed = 72.0

@@ -35,6 +35,9 @@ var _counter_t: Array[float] = [0.0, 0.0, 0.0]
 var _combo_name: Array[String] = ["", "", ""]
 var _combo_name_t: Array[float] = [0.0, 0.0, 0.0]
 var _perfect_t: Array[float] = [0.0, 0.0, 0.0]
+## Frase que un luchador grita al lanzar su poder (por jugador) y tiempo que le queda.
+var _shout: Array[String] = ["", "", ""]
+var _shout_t: Array[float] = [0.0, 0.0, 0.0]
 var _time: float = 0.0
 
 func bind(p_combat: CombatManager) -> void:
@@ -47,6 +50,10 @@ func bind(p_combat: CombatManager) -> void:
 func set_round(n: int, p_wins: Array[int]) -> void:
 	round_number = n
 	wins = p_wins.duplicate()
+
+func show_shout(f: Fighter, text: String) -> void:
+	_shout[f.player_id] = text
+	_shout_t[f.player_id] = 1.5
 
 func show_message(text: String, duration: float, color: Color = Color.WHITE) -> void:
 	_message = text
@@ -97,6 +104,7 @@ func _process(delta: float) -> void:
 			_no_energy_t[i] = maxf(_no_energy_t[i] - delta * 1.5, 0.0)
 			_counter_t[i] = maxf(_counter_t[i] - delta, 0.0)
 			_perfect_t[i] = maxf(_perfect_t[i] - delta, 0.0)
+			_shout_t[i] = maxf(_shout_t[i] - delta, 0.0)
 			_combo_name_t[i] = maxf(_combo_name_t[i] - delta, 0.0)
 	queue_redraw()
 
@@ -113,6 +121,7 @@ func _draw() -> void:
 	_draw_message()
 	_draw_stage_name()
 	_draw_ultimate_cinematic()
+	_draw_shouts()
 
 func _draw_stage_name() -> void:
 	if _stage_name.is_empty() or _stage_name_t >= 2.8:
@@ -259,6 +268,19 @@ func _draw_ultimate_cinematic() -> void:
 			HORIZONTAL_ALIGNMENT_CENTER, 426)
 		HKTheme.draw_text(self, Vector2(shake_x, 240.0 - 11.0), combat.cinematic_text, 16, accent,
 			HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+
+## Frase del poder sobre la cabeza de quien lo lanza.
+func _draw_shouts() -> void:
+	for f in combat.fighters:
+		var i := f.player_id
+		if _shout_t[i] <= 0.0 or combat.cinematic_frames > 0:
+			continue
+		var w := HKTheme.text_width(_shout[i], 8)
+		var x := clampf(f.global_position.x - w * 0.5, 4.0, 426.0 - 4.0 - w)
+		var y := maxf(f.global_position.y - f.data.stand_height - 12.0, 58.0)
+		var col := HKTheme.PAPER
+		col.a = clampf(_shout_t[i] / 0.3, 0.0, 1.0)
+		HKTheme.draw_text(self, Vector2(x, y), _shout[i], 8, col)
 
 func _draw_timer() -> void:
 	var box := Rect2(213 - 17, 3, 34, 24)

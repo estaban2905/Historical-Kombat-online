@@ -218,6 +218,7 @@ country = "Irak"
 era = "1937 – 2006"
 intro_quote = "¡Este territorio es mío!"
 victory_quote = "¡Nadie pudo derrotarme!"
+power_quote = ""
 bio = "Presidente de Irak, famoso por su bigote y su gusto por el dorado."
 max_health = 94.0
 walk_speed = 72.0

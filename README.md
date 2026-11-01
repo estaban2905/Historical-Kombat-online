@@ -13,8 +13,8 @@ Todo el contenido visual y sonoro de esta versión es original y se genera por c
 Incluye:
 
 - Menú principal (ARCADE, VERSUS LOCAL, **ENTRENAMIENTO**, DIFICULTAD, PERSONAJES, CONTROLES, OPCIONES, CRÉDITOS).
-- Selección de luchador para 2 jugadores (rejilla de 30 casillas, las 30 disponibles).
-- **30 luchadores** (ver lista en la sección 7), cada uno con silueta, colores, estadísticas, ataques y especiales propios. Trump y Napoleón se hicieron a mano; los otros 28 se generan con `tools/generate_fighters.py`.
+- Selección de luchador para 2 jugadores (rejilla de 42 casillas, 39 disponibles).
+- **39 luchadores** (ver lista en la sección 7), cada uno con silueta, colores, estadísticas, ataques, especiales y escenario propios. Trump y Napoleón se hicieron a mano; los otros 37 se generan con `tools/generate_fighters.py`.
 - Escenario: **El Coliseo Romano** (gradas con público animado, columnas, palco imperial, braseros, suelo de piedra).
 - Movimiento: caminar, saltar (vertical o con dirección), agacharse.
 - 6 ataques por jugador: 2 puños, 2 patadas, 2 especiales (proyectiles, lanzador y embestida).
@@ -130,7 +130,9 @@ Nota: los navegadores no reproducen sonido hasta la primera pulsación del jugad
 
 ## 7. Roster y cómo añadir personajes
 
-Orden en la pantalla de selección: 1 Donald Trump · 2 Kim Jong-un · 3 Vladimir Putin · 4 Xi Jinping · 5 Nicolás Maduro · 6 Adolf Hitler · 7 Joseph Stalin · 8 Benito Mussolini · 9 Saddam Hussein · 10 Osama bin Laden · 11 Napoleón Bonaparte · 12 Gengis Kan · 13 Fidel Castro · 14 Cleopatra · 15 Julio César · 16 Alejandro Magno · 17 Reina Isabel II · 18 Abraham Lincoln · 19 Jesús de Nazaret · 20 Buda · 21 Papa Francisco · 22 Grigori Rasputín · 23 Pablo Escobar · 24 Albert Einstein · 25 Nikola Tesla · 26 Leonardo da Vinci · 27 Marie Curie · 28 Galileo Galilei · 29 Charles Darwin · 30 Cristóbal Colón.
+Orden en la pantalla de selección: 1 Donald Trump · 2 Kim Jong-un · 3 Vladimir Putin · 4 Xi Jinping · 5 Nicolás Maduro · 6 Adolf Hitler · 7 Joseph Stalin · 8 Benito Mussolini · 9 Saddam Hussein · 10 Osama bin Laden · 11 Napoleón Bonaparte · 12 Gengis Kan · 13 Fidel Castro · 14 Cleopatra · 15 Julio César · 16 Alejandro Magno · 17 Reina Isabel II · 18 Abraham Lincoln · 19 Jesús de Nazaret · 20 Buda · 21 Papa Francisco · 22 Grigori Rasputín · 23 Pablo Escobar · 24 Albert Einstein · 25 Nikola Tesla · 26 Leonardo da Vinci · 27 Marie Curie · 28 Galileo Galilei · 29 Charles Darwin · 30 Cristóbal Colón · 31 Janequeo · 32 Lautaro · 33 Pachacútec · 34 Iván el Terrible · 35 Boudica · 36 Juana de Arco · 37 Augusto Pinochet · 38 Salvador Allende · 39 Arturo Prat.
+
+Los nueve últimos tienen una **frase al lanzar el poder** (`power_quote` en `FighterData`, se muestra sobre su cabeza) y poderes con mecánicas nuevas: *Estado de Sitio* (Pinochet) inmoviliza al rival (`root`, no camina ni salta unos 1,7 s) y lo golpea después; *Vía Chilena* (Allende) crea un escudo de 2 s que absorbe el siguiente golpe sin daño y devuelve una onda roja; el ancla de *Abordaje de la Esmeralda* (Prat) arrastra al rival hacia él (`pull`); *Terremoto Andino* (Pachacútec) tumba al rival. Capturas: `godot --path . res://tests/NewShots.tscn -- <carpeta>`.
 
 ### Generar o regenerar fichas con el script
 

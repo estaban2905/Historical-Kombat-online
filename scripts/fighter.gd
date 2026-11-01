@@ -18,6 +18,8 @@ signal projectile_requested(fighter: Fighter, attack: AttackData, spawn_position
 signal power_requested(fighter: Fighter, attack: AttackData)
 signal combo_performed(fighter: Fighter, combo: ComboData)
 signal not_enough_energy(fighter: Fighter)
+## Un escudo absorbió un golpe (el que atacaba, para devolverle la onda).
+signal shield_absorbed(fighter: Fighter, attacker: Fighter)
 ## Al tocar el suelo tras una caída (solo aviso visual; no cambia el estado).
 signal landed(fighter: Fighter)
 
@@ -217,6 +219,10 @@ var invert_frames: int = 0
 ## Aviso de los controles invertidos: no se invierten hasta pasados INVERT_WARNING frames.
 var invert_grace: int = 0
 var float_frames: int = 0
+## Atrapado por una barrera: no puede caminar, saltar ni hacer backdash (sí atacar y bloquear).
+var root_frames: int = 0
+## Escudo de energía: absorbe el siguiente golpe y lo devuelve como onda.
+var shield_frames: int = 0
 ## true mientras corre (subestado de WALK). Se activa con doble toque en la dirección.
 var running: bool = false
 # Llave en curso (agarre que conectó).
@@ -294,6 +300,8 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	invert_frames = 0
 	invert_grace = 0
 	float_frames = 0
+	root_frames = 0
+	shield_frames = 0
 	running = false
 	_clear_throw()
 	_prev_h = 0
@@ -389,6 +397,9 @@ func _ground_control() -> void:
 	var h := input.horizontal() if controls_enabled else 0
 	if is_inverted():
 		h = -h
+	if root_frames > 0:
+		h = 0
+		jump_buffer = 0
 	var backdash := _update_run(h)
 	var want_block := controls_enabled and input.is_held(&"block")
 	var want_crouch := controls_enabled and input.is_held(&"crouch")
@@ -936,7 +947,14 @@ func _clear_throw() -> void:
 ## `bonus`: daño extra de un combo con nombre completado (solo si el golpe entra).
 func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0) -> Dictionary:
-	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false, "counter": false, "perfect": false}
+	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false, "counter": false, "perfect": false, "absorbed": false}
+	if shield_frames > 0 and state != State.KO:
+		shield_frames = 0
+		result.blocked = true
+		result.absorbed = true
+		add_energy(ENERGY_ON_BLOCK)
+		shield_absorbed.emit(self, attacker)
+		return result
 	var dmg := atk.damage * attacker.data.strength / maxf(data.resistance, 0.1)
 	if state == State.BLOCK and is_on_ground() and guards_against(level):
 		# BLOQUEO: daño muy reducido. Los golpes normales nunca noquean; los
@@ -1048,6 +1066,10 @@ func _apply_friction(delta: float) -> void:
 func _tick_status() -> void:
 	if slow_frames > 0:
 		slow_frames -= 1
+	if root_frames > 0:
+		root_frames -= 1
+	if shield_frames > 0:
+		shield_frames -= 1
 	if invert_frames > 0:
 		invert_frames -= 1
 		if invert_grace > 0:
@@ -1059,6 +1081,8 @@ func _tick_status() -> void:
 		tint = Color(0.95, 0.6, 1.0)
 	elif float_frames > 0:
 		tint = Color(1.0, 1.0, 0.7)
+	elif root_frames > 0:
+		tint = Color(0.75, 0.85, 0.7)
 	if modulate != tint:
 		modulate = tint
 
@@ -1070,6 +1094,7 @@ func apply_status(status: StringName, frames: int) -> void:
 			invert_frames = frames
 			invert_grace = INVERT_WARNING
 		&"float": float_frames = frames
+		&"root": root_frames = frames
 
 func _apply_physics(delta: float) -> void:
 	if float_frames > 0:

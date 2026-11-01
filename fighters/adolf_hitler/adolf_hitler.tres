@@ -217,6 +217,7 @@ country = "Alemania"
 era = "1889 – 1945"
 intro_quote = "¡Este combate será una conquista!"
 victory_quote = "¡El combate ha terminado!"
+power_quote = ""
 bio = "Dictador del siglo XX. Aquí es una caricatura ridícula; nada de él se glorifica."
 max_health = 88.0
 walk_speed = 92.0

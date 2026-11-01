@@ -217,6 +217,7 @@ country = "Colombia"
 era = "1949 – 1993"
 intro_quote = "Plata o plomo, ¡tú eliges!"
 victory_quote = "¡El patrón sigue mandando!"
+power_quote = ""
 bio = "Narcotraficante colombiano. Aquí paga sus golpes con billetes y hasta hipopótamos."
 max_health = 100.0
 walk_speed = 72.0

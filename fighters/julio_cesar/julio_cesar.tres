@@ -218,6 +218,7 @@ country = "Roma"
 era = "100 – 44 a.C."
 intro_quote = "¡Vine, vi y venceré!"
 victory_quote = "¡Veni, vidi, vici!"
+power_quote = ""
 bio = "General y dictador romano. Conquistó la Galia y casi todo lo demás."
 max_health = 100.0
 walk_speed = 72.0

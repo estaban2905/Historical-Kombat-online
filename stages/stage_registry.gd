@@ -1,5 +1,5 @@
 ## Catálogo de escenarios: cada luchador tiene el suyo.
-## Las definiciones están en stage_defs_a.gd y stage_defs_b.gd (listas de
+## Las definiciones están en stage_defs_a.gd, stage_defs_b.gd y stage_defs_c.gd (listas de
 ## operaciones de dibujo). Julio César usa el Coliseo original.
 class_name StageRegistry
 extends RefCounted
@@ -18,6 +18,8 @@ static func def_for(fighter_id: StringName) -> Dictionary:
 		var d := StageDefsA.get_def(fighter_id)
 		if d.is_empty():
 			d = StageDefsB.get_def(fighter_id)
+		if d.is_empty():
+			d = StageDefsC.get_def(fighter_id)
 		_cache[fighter_id] = d
 	return _cache[fighter_id]
 

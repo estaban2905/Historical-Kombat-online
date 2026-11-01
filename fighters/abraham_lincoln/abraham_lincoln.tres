@@ -216,6 +216,7 @@ country = "Estados Unidos"
 era = "1809 – 1865"
 intro_quote = "¡La libertad también se defiende en combate!"
 victory_quote = "¡La libertad ha prevalecido!"
+power_quote = ""
 bio = "Presidente altísimo con sombrero de copa. Era leñador antes que estadista."
 max_health = 106.0
 walk_speed = 62.0

@@ -217,6 +217,7 @@ country = "Corea del Norte"
 era = "1984 –"
 intro_quote = "¡Mi poder no tiene límites!"
 victory_quote = "¡Victoria absoluta! ¡Que lo transmitan por televisión!"
+power_quote = ""
 bio = "Líder supremo con pasión por los misiles y los peinados atrevidos."
 max_health = 106.0
 walk_speed = 62.0

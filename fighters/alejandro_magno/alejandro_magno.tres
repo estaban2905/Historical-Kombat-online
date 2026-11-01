@@ -218,6 +218,7 @@ country = "Macedonia"
 era = "356 – 323 a.C."
 intro_quote = "¡El mundo entero será mío!"
 victory_quote = "¡Una conquista más para la historia!"
+power_quote = ""
 bio = "Rey de Macedonia que llegó hasta la India sin perder una batalla."
 max_health = 94.0
 walk_speed = 88.0

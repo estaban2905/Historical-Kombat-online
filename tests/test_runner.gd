@@ -71,7 +71,7 @@ func _test_resources() -> void:
 		var ps := load(path) as PackedScene
 		check(ps != null and ps.can_instantiate(), "escena carga: " + path)
 	var roster := FighterRegistry.all()
-	check(roster.size() == 30, "roster con 30 luchadores (%d)" % roster.size())
+	check(roster.size() == 39, "roster con 39 luchadores (%d)" % roster.size())
 	var seen := {}
 	for d in roster:
 		check(not seen.has(d.id), "id único: %s" % d.id)
@@ -317,11 +317,11 @@ func _attack_test(attacker: Fighter, defender: Fighter, slot: StringName, k: Key
 	check(hits == 1 and absf(dealt - expected) < 0.05,
 		"P%d %s (%s): %d impacto, daño %.2f (esperado %.2f)" % [attacker.player_id, slot, atk.display_name, hits, dealt, expected])
 
-## Lanza el poder especial (special_2) de los 30 luchadores contra un rival
+## Lanza el poder especial (special_2) de los 39 luchadores contra un rival
 ## parado y comprueba que conecta, que su efecto especial ocurre y que las
 ## entidades desaparecen solas.
 func _test_powers() -> void:
-	print("\n# Poderes especiales de los 30 luchadores")
+	print("\n# Poderes especiales de los 39 luchadores")
 	var c := _fight()
 	Engine.time_scale = 3.0
 	for d in FighterRegistry.all():
@@ -340,6 +340,9 @@ func _test_powers() -> void:
 		var min_y2 := 0.0
 		var max_slow := 0
 		var max_invert := 0
+		var max_root := 0
+		var max_shield := 0
+		var max_back := 0.0
 		var swapped := false
 		c.p1.input.press(&"special_2")
 		for i in 150:
@@ -348,13 +351,22 @@ func _test_powers() -> void:
 			min_y2 = minf(min_y2, c.p2.position.y - c.p2.floor_y)
 			max_slow = maxi(max_slow, c.p2.slow_frames)
 			max_invert = maxi(max_invert, c.p2.invert_frames)
+			max_root = maxi(max_root, c.p2.root_frames)
+			max_shield = maxi(max_shield, c.p1.shield_frames)
+			max_back = maxf(max_back, 160.0 - c.p2.position.x)
 			if c.p1.position.x > c.p2.position.x:
 				swapped = true
 		var dealt := hp2 - c.p2.health
 		var cap := atk.damage * d.strength / c.p2.data.resistance + 0.05
-		check(dealt > 0.0 and dealt <= cap, "%s: «%s» conecta (daño %.1f, máx. %.1f, hp0 %.1f, hp1 %.1f)" % [d.id, atk.display_name, dealt, cap, hp2, c.p2.health])
+		if atk.power == &"chilean_way":
+			# El escudo no hace daño: se comprueba que se activa (la onda devuelta se prueba en MechanicsTest).
+			check(max_shield > 0, "%s: «%s» activa el escudo" % [d.id, atk.display_name])
+		else:
+			check(dealt > 0.0 and dealt <= cap, "%s: «%s» conecta (daño %.1f, máx. %.1f, hp0 %.1f, hp1 %.1f)" % [d.id, atk.display_name, dealt, cap, hp2, c.p2.health])
 		match atk.power:
 			&"relativity": check(max_slow > 0, "%s: ralentiza al rival" % d.id)
+			&"state_siege": check(max_root > 0, "%s: inmoviliza al rival" % d.id)
+			&"andean_quake": check(min_y2 < -5.0, "%s: el terremoto lanza al rival (%.1f px)" % [d.id, min_y2])
 			&"dark_hypnosis": check(max_invert > 0, "%s: invierte los controles del rival" % d.id)
 			&"gravity_flip": check(min_y2 < -5.0, "%s: el rival flota (%.1f px)" % [d.id, min_y2])
 			&"enlightenment": check(min_y1 < -5.0, "%s: se eleva (%.1f px)" % [d.id, min_y1])

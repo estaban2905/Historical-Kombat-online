@@ -218,6 +218,7 @@ country = "Vaticano"
 era = "1936 – 2025"
 intro_quote = "¡Que Dios nos acompañe en este combate!"
 victory_quote = "¡La paz sea contigo!"
+power_quote = ""
 bio = "El papa argentino, humilde y cercano. Su Papamóvil acelera más de lo que parece."
 max_health = 100.0
 walk_speed = 72.0

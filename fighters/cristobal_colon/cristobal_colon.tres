@@ -217,6 +217,7 @@ country = "Génova"
 era = "1451 – 1506"
 intro_quote = "¡Prepárate para descubrir tu derrota!"
 victory_quote = "¡Tierra a la vista... y victoria asegurada!"
+power_quote = ""
 bio = "Navegante genovés que buscó la India y se encontró un continente por error."
 max_health = 94.0
 walk_speed = 88.0

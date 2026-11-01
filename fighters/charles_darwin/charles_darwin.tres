@@ -218,6 +218,7 @@ country = "Reino Unido"
 era = "1809 – 1882"
 intro_quote = "¡Solo los más fuertes sobreviven!"
 victory_quote = "¡La evolución ha elegido al ganador!"
+power_quote = ""
 bio = "Naturalista de barba inmensa. Su libro pesa más que muchos puños."
 max_health = 106.0
 walk_speed = 62.0

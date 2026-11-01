@@ -20,6 +20,8 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var era: String = ""
 @export_multiline var intro_quote: String = ""
 @export_multiline var victory_quote: String = ""
+## Frase que grita al lanzar su poder especial (vacía = no dice nada).
+@export var power_quote: String = ""
 @export_multiline var bio: String = ""
 
 @export_group("Estadísticas")

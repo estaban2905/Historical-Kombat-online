@@ -218,6 +218,7 @@ country = "Arabia Saudita"
 era = "1957 – 2011"
 intro_quote = "La sombra siempre encuentra su objetivo."
 victory_quote = "La batalla termina aquí."
+power_quote = ""
 bio = "Fugitivo de barba larga y turbante. En este torneo solo huye y golpea con la mirada."
 max_health = 94.0
 walk_speed = 84.0

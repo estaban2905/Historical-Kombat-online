@@ -218,6 +218,7 @@ country = "Unión Soviética"
 era = "1878 – 1953"
 intro_quote = "Aquí no hay lugar para los débiles."
 victory_quote = "La victoria pertenece al Estado."
+power_quote = ""
 bio = "Líder soviético de bigote inmenso. Duro como una estepa helada."
 max_health = 108.0
 walk_speed = 56.0

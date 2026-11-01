@@ -218,6 +218,7 @@ country = "Imperio mongol"
 era = "1162 – 1227"
 intro_quote = "¡Mi imperio no conoce fronteras!"
 victory_quote = "¡Otro territorio conquistado!"
+power_quote = ""
 bio = "Fundador del mayor imperio continuo de la historia. Jinete implacable."
 max_health = 94.0
 walk_speed = 88.0

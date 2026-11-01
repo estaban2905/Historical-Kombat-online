@@ -45,6 +45,10 @@ const STYLES := {
 	"sailor": {"uni": "e0d8c0", "legs": "5a4a3a", "trim": "3a5a9a", "helm": "capknit", "hc": "b02020", "weap": "none"},
 	"conquistador": {"uni": "8a8a90", "legs": "4a2a22", "trim": "b02020", "helm": "morion", "hc": "a0a0a8", "weap": "halberd"},
 	"scientist": {"uni": "e8e8f0", "legs": "3a3a4a", "helm": "hair", "hc": "d8d8d8", "weap": "none"},
+	"mapuche": {"uni": "8a2020", "legs": "3a2a2a", "boots": "3a2a1a", "trim": "c0c4cc", "helm": "hair", "hc": "141010", "skin": "b87c4c", "weap": "spear"},
+	"inca": {"uni": "c04820", "legs": "e8c040", "boots": "a07040", "trim": "e8c040", "helm": "hair", "hc": "141010", "skin": "b07848", "weap": "spear", "shield": "e8c040"},
+	"celt": {"uni": "2a6a3a", "legs": "6a3a2a", "boots": "3a2a1a", "helm": "hair", "hc": "c04a20", "skin": "f0c8a0", "weap": "spear", "shield": "8a6a3a"},
+	"chilean": {"uni": "4a5a4a", "legs": "3a4a3a", "helm": "steel", "hc": "4a5a4a", "weap": "rifle"},
 	"florentine": {"uni": "8a3a2a", "legs": "3a3a4a", "trim": "d8b040", "helm": "beret", "hc": "2a2a5a", "weap": "none"},
 }
 
