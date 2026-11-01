@@ -65,8 +65,12 @@ No hay dependencias externas ni plugins.
 
 - **Menús:** flechas + Enter (o ratón). Esc vuelve atrás.
 - **Selección de luchador:** J1 mueve con WASD y confirma con **U** (J anula). J2 mueve con flechas y confirma con **Numpad 1** (Numpad 4 anula).
-- **Correr:** doble toque (pulsar, soltar y pulsar de nuevo en menos de 0,25 s) en ←/→ y mantener. Funciona hacia delante y hacia atrás, a 1,8 veces la velocidad de caminar. Se corta al soltar, cambiar de dirección, saltar, agacharse, bloquear, atacar o recibir un golpe. La pantalla CONTROLES (menú o pausa) permite probarlo.
-- Salto con dirección: mantener ←/→ al saltar. Ataque agachado: mantener abajo y atacar. Patada en el aire: atacar durante el salto.
+- **Correr:** doble toque (pulsar, soltar y pulsar de nuevo en menos de 0,25 s) hacia **delante** y mantener, a 1,8 veces la velocidad de caminar. Se corta al soltar, cambiar de dirección, saltar, agacharse, bloquear, atacar o recibir un golpe.
+- **Backdash:** el mismo doble toque hacia **atrás** (no se corre hacia atrás). Desliza unos 55 px hacia atrás, no se le puede golpear ni agarrar los primeros 4 frames y hasta los 20 frames no puede actuar. La pantalla CONTROLES (menú o pausa) permite probarlo.
+- **Saltar:** solo salta al **pulsar** la tecla (mantenerla no encadena saltos). Tarda 3 frames en despegar (preparación en el suelo) y se recuerda una pulsación hecha hasta 4 frames antes de poder saltar. Con dirección: mantener ←/→ al despegar.
+- **Ataque aéreo:** atacar durante el salto; solo **uno por salto**. Si se usó, aterrizar deja 5 frames de recuperación.
+- **Antiaéreo:** **abajo + puño fuerte**. Caja alta que lanza al rival por los aires y, durante sus 4 primeros frames, no le alcanzan los ataques aéreos. Deja más recuperación si falla.
+- Ataque agachado: mantener abajo y atacar.
 - Bloquear agachado: mantener abajo + bloqueo.
 - **Combos (cancelaciones):** si un golpe **conecta o es bloqueado**, se puede cancelar pulsando otro de rango igual o mayor: débil → fuerte → especial. No se repite el mismo golpe en una cadena, no se cancela un golpe que falla y los especiales no se cancelan. Cada golpe del combo hace un 10 % menos de daño (mínimo 40 %) y acorta 2 frames el aturdimiento (mínimo 8); a un rival en el aire solo se le dan 3 golpes seguidos.
 - **Combos con nombre:** cadenas concretas dan daño extra al último golpe y muestran su nombre: **TRÍO** (puño débil, puño fuerte, patada fuerte: +3) y **CUARTETO** (puño débil, patada débil, puño fuerte, patada fuerte: +5). Cada personaje puede definir los suyos en `FighterData.combos`.
@@ -234,7 +238,7 @@ ui/HUD.tscn                Escena del HUD
 tests/                     Pruebas automáticas y capturas
 ```
 
-Estados del luchador: `IDLE`, `WALK`, `JUMP`, `CROUCH`, `BLOCK`, `ATTACK`, `HIT`, `KO` (+ `VICTORY`). Prioridad de entrada en el suelo: bloqueo > ataque > salto > agacharse > caminar.
+Estados del luchador: `IDLE`, `WALK`, `JUMP`, `CROUCH`, `BLOCK`, `ATTACK`, `HIT`, `KO` (+ `VICTORY`, `THROW`, `THROWN`, `PREJUMP`, `LAND`, `BACKDASH`). Prioridad de entrada en el suelo: bloqueo > backdash > ataque > salto > agacharse > caminar.
 
 ### Pruebas automáticas
 

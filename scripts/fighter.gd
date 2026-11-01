@@ -22,7 +22,9 @@ signal not_enough_energy(fighter: Fighter)
 signal landed(fighter: Fighter)
 
 ## THROW: está ejecutando una llave · THROWN: la está sufriendo.
-enum State { IDLE, WALK, JUMP, CROUCH, BLOCK, ATTACK, HIT, KO, VICTORY, THROW, THROWN }
+## PREJUMP: se agacha antes de saltar · LAND: recuperación al aterrizar tras un
+## ataque aéreo · BACKDASH: salto hacia atrás con invulnerabilidad.
+enum State { IDLE, WALK, JUMP, CROUCH, BLOCK, ATTACK, HIT, KO, VICTORY, THROW, THROWN, PREJUMP, LAND, BACKDASH }
 
 const GRAVITY := 1100.0
 const GROUND_FRICTION := 900.0
@@ -55,6 +57,25 @@ const COUNTER_HITSTUN := 4
 ## Rango de cada ranura para las cancelaciones (las que no están no se cancelan).
 const CANCEL_RANK := {&"punch_light": 1, &"kick_light": 1, &"punch_heavy": 2, &"kick_heavy": 2,
 	&"special_1": 3, &"special_2": 3}
+## Salto: solo salta al PULSAR la tecla (mantenerla no repite). PREJUMP_FRAMES de
+## preparación en los que no se puede actuar, un búfer de JUMP_BUFFER_FRAMES para
+## no perder la pulsación y AIR_LANDING_FRAMES de recuperación al aterrizar tras
+## un ataque aéreo (solo se puede dar uno por salto).
+const PREJUMP_FRAMES := 3
+const JUMP_BUFFER_FRAMES := 4
+const AIR_LANDING_FRAMES := 5
+## Antiaéreo (puño fuerte agachado): caja alta que lanza al rival y, durante los
+## primeros UPPERCUT_INVULN_FRAMES, no le alcanzan los ataques aéreos.
+const UPPERCUT_INVULN_FRAMES := 4
+const UPPERCUT_EXTRA_RECOVERY := 6
+const UPPERCUT_LAUNCH := -260.0
+## Backdash (doble toque hacia atrás): se desliza hacia atrás BACKDASH_MOVE_FRAMES
+## frames, no se le puede golpear los primeros BACKDASH_INVULN_FRAMES y hasta
+## BACKDASH_FRAMES no puede actuar.
+const BACKDASH_FRAMES := 20
+const BACKDASH_MOVE_FRAMES := 9
+const BACKDASH_SPEED := 200.0
+const BACKDASH_INVULN_FRAMES := 4
 ## Frames que se recuerda una pulsación de ataque hecha antes de tiempo.
 const INPUT_BUFFER_FRAMES := 6
 const ENERGY_ON_HIT_DEALT := 6.0
@@ -119,6 +140,13 @@ var hit_targets: Array[Fighter] = []
 var projectile_spawned: bool = false
 ## true cuando el ataque en curso ha golpeado o ha sido bloqueado (ya se puede cancelar).
 var attack_connected: bool = false
+## Pulsación de salto recordada (frames) y si la tecla estaba pulsada el frame anterior.
+var jump_buffer: int = 0
+var _prev_jump_held: bool = false
+## true cuando ya se ha usado el ataque aéreo de este salto.
+var air_attack_used: bool = false
+## Variantes de antiaéreo por ataque base (se crean al usarse).
+var _uppercut_cache: Dictionary = {}
 ## Ranuras ya usadas en la cadena de cancelaciones en curso.
 var chain_slots: Array[StringName] = []
 ## Combo con nombre que completa el ataque en curso (da su bono si conecta).
@@ -200,6 +228,9 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	guard_idle = 0
 	guard_is_broken = false
 	juggle_hits = 0
+	jump_buffer = 0
+	_prev_jump_held = false
+	air_attack_used = false
 	_end_attack()
 	stun_frames = 0
 	hitstop_frames = 0
@@ -231,6 +262,7 @@ func reset_for_round(x: float, p_facing: int) -> void:
 func tick(delta: float) -> void:
 	frame_counter += 1
 	_read_attack_buffer()
+	_read_jump_buffer()
 	_tick_status()
 	if hitstop_frames > 0:
 		hitstop_frames -= 1
@@ -264,6 +296,12 @@ func tick(delta: float) -> void:
 			_state_throw()
 		State.THROWN:
 			_state_thrown()
+		State.PREJUMP:
+			_state_prejump()
+		State.LAND:
+			_state_land()
+		State.BACKDASH:
+			_state_backdash()
 		State.KO, State.VICTORY:
 			_apply_friction(delta)
 
@@ -290,23 +328,26 @@ func _ground_control() -> void:
 	var h := input.horizontal() if controls_enabled else 0
 	if invert_frames > 0:
 		h = -h
-	_update_run(h)
+	var backdash := _update_run(h)
 	var want_block := controls_enabled and input.is_held(&"block")
 	var want_crouch := controls_enabled and input.is_held(&"crouch")
-	var want_jump := controls_enabled and input.is_held(&"jump")
 
-	# Prioridad: bloqueo > ataque > salto > agacharse > caminar > reposo
+	# Prioridad: bloqueo > backdash > ataque > salto > agacharse > caminar > reposo
 	if want_block:
 		crouch_blocking = want_crouch
 		velocity.x = 0.0
 		_set_state(State.BLOCK)
 		return
+	if backdash:
+		velocity.x = -facing * BACKDASH_SPEED
+		_set_state(State.BACKDASH)
+		return
 	if buffered_slot != &"" and _try_start_attack(buffered_slot):
 		return
-	if want_jump:
-		velocity.y = data.jump_velocity
-		velocity.x = h * data.jump_forward_speed
-		_set_state(State.JUMP)
+	if jump_buffer > 0:
+		jump_buffer = 0
+		velocity.x = 0.0
+		_set_state(State.PREJUMP)
 		return
 	if want_crouch:
 		velocity.x = 0.0
@@ -324,21 +365,39 @@ func _ground_control() -> void:
 	if state != State.IDLE:
 		_set_state(State.IDLE)
 
-## Detecta el doble toque en una dirección (adelante o atrás). Se corre mientras
-## se mantiene; soltar o cambiar de dirección lo corta. Usa solo el estado de las
-## teclas por frame, así funciona igual con teclado, IA, tests y repeticiones.
-func _update_run(h: int) -> void:
+## Recuerda la pulsación de salto unos frames. Solo cuenta el flanco (tecla que
+## pasa de suelta a pulsada), así mantener la tecla no encadena saltos. Se lee del
+## estado de las teclas por frame, igual que el resto: vale para teclado, IA y tests.
+func _read_jump_buffer() -> void:
+	var held := controls_enabled and input != null and input.is_held(&"jump")
+	if held and not _prev_jump_held:
+		jump_buffer = JUMP_BUFFER_FRAMES
+	elif jump_buffer > 0 and hitstop_frames == 0:
+		jump_buffer -= 1
+	_prev_jump_held = held
+
+## Detecta el doble toque en una dirección. Hacia delante: se corre mientras se
+## mantiene (soltar o cambiar de dirección lo corta). Hacia atrás: devuelve true
+## y hay que hacer un backdash. Usa solo el estado de las teclas por frame, así
+## funciona igual con teclado, IA, tests y repeticiones.
+func _update_run(h: int) -> bool:
+	var backdash := false
 	if h != _prev_h:
 		if h == 0:
 			running = false
 		elif h == _tap_dir and _tap_timer > 0:
-			running = true
 			_tap_timer = 0
+			if h == facing:
+				running = true
+			else:
+				running = false
+				backdash = true
 		else:
 			running = false
 			_tap_dir = h
 			_tap_timer = DOUBLE_TAP_FRAMES
 	_prev_h = h
+	return backdash
 
 func _state_block() -> void:
 	_apply_friction(1.0 / 60.0)
@@ -355,6 +414,35 @@ func _state_block() -> void:
 func _state_jump() -> void:
 	if controls_enabled and buffered_slot != &"":
 		_try_start_attack(buffered_slot)
+
+## Se agacha unos frames antes de despegar; no se puede actuar. Al despegar
+## lee la dirección que se mantiene en ese momento.
+func _state_prejump() -> void:
+	velocity.x = 0.0
+	if state_frames < PREJUMP_FRAMES:
+		return
+	var h := input.horizontal() if controls_enabled else 0
+	if invert_frames > 0:
+		h = -h
+	air_attack_used = false
+	velocity.y = data.jump_velocity
+	velocity.x = h * data.jump_forward_speed
+	_set_state(State.JUMP)
+
+## Recuperación al aterrizar tras un ataque aéreo.
+func _state_land() -> void:
+	_apply_friction(1.0 / 60.0)
+	if state_frames >= AIR_LANDING_FRAMES:
+		_set_state(State.IDLE)
+
+## Backdash: se desliza hacia atrás y luego frena; hasta BACKDASH_FRAMES no actúa.
+func _state_backdash() -> void:
+	if state_frames <= BACKDASH_MOVE_FRAMES:
+		velocity.x = -facing * BACKDASH_SPEED
+	else:
+		_apply_friction(1.0 / 60.0)
+	if state_frames >= BACKDASH_FRAMES:
+		_set_state(State.IDLE)
 
 func _state_attack() -> void:
 	# Segunda tecla del agarre pulsada un poco tarde: el golpe débil pasa a agarre.
@@ -382,7 +470,8 @@ func _state_attack() -> void:
 	# Un ataque aéreo termina al tocar el suelo.
 	if attack_airborne and is_on_ground() and attack_frame > 2:
 		_end_attack()
-		_set_state(State.IDLE)
+		_set_state(State.LAND if air_attack_used else State.IDLE)
+		air_attack_used = false
 		return
 	if attack_frame >= atk.total_frames():
 		var was_crouching := attack_crouching
@@ -476,7 +565,7 @@ func _try_start_attack(slot: StringName, chained: bool = false) -> bool:
 	if atk == null:
 		return false
 	var airborne := not is_on_ground()
-	if airborne and not atk.usable_in_air:
+	if airborne and (not atk.usable_in_air or air_attack_used):
 		return false
 	if cooldowns.get(slot, 0) > 0:
 		return false
@@ -489,6 +578,13 @@ func _try_start_attack(slot: StringName, chained: bool = false) -> bool:
 	add_energy(-atk.energy_cost)
 	if atk.cooldown > 0:
 		cooldowns[slot] = atk.cooldown
+	# Cuenta la tecla mantenida y no solo el estado: si ↓ y el ataque se pulsan
+	# a la vez, el ataque sale antes de que el luchador llegue a agacharse.
+	var crouch_held := not airborne and controls_enabled and input != null and input.is_held(&"crouch")
+	var crouching := (state == State.CROUCH or crouch_held) and atk.usable_crouching
+	# Puño fuerte agachado = antiaéreo.
+	if crouching and not airborne and slot == &"punch_heavy" and atk.kind == AttackData.Kind.PUNCH:
+		atk = _uppercut_for(atk)
 	current_attack = atk
 	current_slot = slot
 	attack_frame = 0
@@ -500,11 +596,10 @@ func _try_start_attack(slot: StringName, chained: bool = false) -> bool:
 	if not chained:
 		chain_slots.clear()
 	chain_slots.append(slot)
-	# Cuenta la tecla mantenida y no solo el estado: si ↓ y el ataque se pulsan
-	# a la vez, el ataque sale antes de que el luchador llegue a agacharse.
-	var crouch_held := not airborne and controls_enabled and input != null and input.is_held(&"crouch")
-	attack_crouching = (state == State.CROUCH or crouch_held) and atk.usable_crouching
+	attack_crouching = crouching
 	attack_airborne = airborne
+	if airborne:
+		air_attack_used = true
 	if not airborne and atk.dash_speed <= 0.0:
 		velocity.x = 0.0
 	_set_state(State.ATTACK)
@@ -540,6 +635,32 @@ func _record_history(slot: StringName, chained: bool = false) -> void:
 func on_attack_connected() -> void:
 	attack_connected = true
 
+## Variante antiaérea de un puño fuerte: caja alta y estrecha delante del luchador,
+## lanza al rival hacia arriba y deja más recuperación si falla. Mismos tiempos de
+## preparación y daño que el golpe base.
+func _uppercut_for(base: AttackData) -> AttackData:
+	var u: AttackData = _uppercut_cache.get(base)
+	if u == null:
+		u = base.duplicate() as AttackData
+		u.id = &"uppercut"
+		u.display_name = "Antiaéreo"
+		u.hit_level = AttackData.HitLevel.MID
+		u.hitbox_offset = Vector2(base.hitbox_offset.x * 0.6, -50.0)
+		u.hitbox_size = Vector2(base.hitbox_size.x, 44.0)
+		u.crouch_offset = Vector2.ZERO
+		u.launch = UPPERCUT_LAUNCH
+		u.knockback = minf(base.knockback, 70.0)
+		u.hitstun = base.hitstun + 8
+		u.recovery = base.recovery + UPPERCUT_EXTRA_RECOVERY
+		u.usable_in_air = false
+		_uppercut_cache[base] = u
+	return u
+
+## true mientras el antiaéreo esquiva los ataques aéreos (sus primeros frames).
+func is_anti_air_invulnerable() -> bool:
+	return state == State.ATTACK and current_attack != null and current_attack.id == &"uppercut" \
+		and attack_frame <= UPPERCUT_INVULN_FRAMES
+
 ## Nivel del ataque en curso: en el aire es alto (overhead), una patada
 ## agachada es baja y, si no, el que diga su AttackData.
 func current_hit_level() -> AttackData.HitLevel:
@@ -571,6 +692,7 @@ func get_hit_candidates() -> Array[Fighter]:
 		return result
 	var target := opponent
 	if target and not hit_targets.has(target) and target.can_be_hit() \
+			and not (attack_airborne and target.is_anti_air_invulnerable()) \
 			and get_hit_rect().intersects(target.get_hurt_rect()):
 		if current_attack.kind != AttackData.Kind.GRAB or target.can_be_grabbed():
 			result.append(target)
@@ -588,10 +710,13 @@ func get_hit_rect() -> Rect2:
 func register_hit(target: Fighter) -> void:
 	hit_targets.append(target)
 
-## Durante una llave ninguno de los dos puede recibir otros golpes. Un rival que
+## Durante una llave ninguno de los dos puede recibir otros golpes, ni durante los
+## primeros frames de un backdash. Un rival que
 ## ya ha recibido JUGGLE_LIMIT golpes en el aire no puede recibir más hasta aterrizar.
 func can_be_hit() -> bool:
 	if state in [State.KO, State.VICTORY, State.THROW, State.THROWN]:
+		return false
+	if state == State.BACKDASH and state_frames <= BACKDASH_INVULN_FRAMES:
 		return false
 	return juggle_hits < JUGGLE_LIMIT or is_on_ground()
 
@@ -688,6 +813,7 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		if not is_on_ground():
 			juggle_hits += 1
 		_end_attack()
+		air_attack_used = false
 		velocity.x = direction * atk.knockback
 		if atk.launch < 0.0:
 			velocity.y = atk.launch
@@ -783,13 +909,14 @@ func _apply_physics(delta: float) -> void:
 			landed.emit(self)
 			if state == State.JUMP:
 				velocity.x = 0.0
-				_set_state(State.IDLE)
+				_set_state(State.LAND if air_attack_used else State.IDLE)
+				air_attack_used = false
 	position.x = clampf(position.x, bounds.x, bounds.y)
 
 func _update_facing() -> void:
 	if opponent == null:
 		return
-	var can_turn := state in [State.IDLE, State.WALK, State.CROUCH, State.BLOCK] and is_on_ground()
+	var can_turn := state in [State.IDLE, State.WALK, State.CROUCH, State.BLOCK, State.PREJUMP, State.LAND] and is_on_ground()
 	var dx := opponent.position.x - position.x
 	if can_turn and absf(dx) > 2.0:
 		facing = 1 if dx > 0.0 else -1
@@ -848,6 +975,8 @@ func get_pose_name() -> StringName:
 		State.KO: return &"ko"
 		State.VICTORY: return &"victory"
 		State.THROW: return &"grab"
+		State.PREJUMP, State.LAND: return &"crouch"
+		State.BACKDASH: return &"run"
 		State.THROWN: return &"hit"
 		State.ATTACK:
 			var atk := current_attack
@@ -870,8 +999,8 @@ func _update_visual() -> void:
 		return
 	visual.scale.x = facing
 	visual.pose_name = pose
-	visual.moving_back = state == State.WALK and velocity.x * facing < 0.0
-	visual.crouched = is_crouching()
+	visual.moving_back = (state == State.WALK or state == State.BACKDASH) and velocity.x * facing < 0.0
+	visual.crouched = is_crouching() or state == State.PREJUMP or state == State.LAND
 	visual.airborne = not is_on_ground() and state != State.KO
 	visual.height_above_floor = floor_y - position.y
 	visual.phase = &""

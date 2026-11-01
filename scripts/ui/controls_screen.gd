@@ -1,8 +1,9 @@
-## Pantalla CONTROLES, con dos páginas:
+## Pantalla CONTROLES, con tres páginas (botón o TAB para cambiar):
 ##   TECLAS       qué hace cada tecla y, a la derecha, un luchador que ejecuta lo
 ##                que se pulsa (en cámara lenta) y explica cómo se bloquea.
-##   MOVIMIENTOS  tabla de todos los movimientos y cómo se hacen (correr,
-##                barrido, aéreo, agarre, zafarse, bloqueo alto/bajo...).
+##   MOVIMIENTOS  cómo se hacen los movimientos (correr, backdash, salto, barrido,
+##                ataque aéreo, antiaéreo, especiales).
+##   DEFENSA      bloqueo de pie y agachado, guardia, combos, counter-hit, agarre.
 ## Las teclas se leen del Input Map, así que siempre coinciden con el juego, y
 ## se pueden ver las del jugador 1 o las del 2.
 ## Se abre desde el menú principal (escena) o desde la pausa (overlay = true).
@@ -10,7 +11,7 @@ extends Control
 
 signal closed
 
-enum Page { KEYS, MOVES }
+enum Page { KEYS, MOVES, DEFENSE }
 
 const PANEL_Y := 24.0
 const PANEL_BOTTOM := 204.0
@@ -27,9 +28,9 @@ const FIGHTER_X := STAGE_X + STAGE_W * 0.5 - 10.0
 const KEY_LABEL_X := KEYS_X + 82.0
 const FIGHTER_SCALE := 1.25
 ## Altura de las teclas dibujadas y de cada fila de las listas.
-const CAP_H := 11.0
+const CAP_H := 12.0
 const KEY_ROW_H := 14.0
-const MOVE_ROW_H := 11.0
+const MOVE_ROW_H := 13.0
 
 ## Cámara lenta de la demo: multiplicador de los frames de cada fase del ataque.
 const SLOW_STARTUP := 4.0
@@ -39,6 +40,8 @@ const MIN_ACTIVE := 10.0
 const JUMP_TIME := 0.7
 const JUMP_HEIGHT := 46.0
 const DOUBLE_TAP_MSEC := 250
+const DASH_TIME := 0.45
+const DASH_DISTANCE := 26.0
 ## Puño débil y patada débil pulsados con menos de este margen = agarre.
 const GRAB_MSEC := 100
 
@@ -67,6 +70,8 @@ const KEY_ROWS := [
 	[[&"special_2"], "ESPECIAL 2", HKTheme.GOLD],
 ]
 
+const PAGE_NAMES: Array[String] = ["TECLAS", "MOVIMIENTOS", "DEFENSA"]
+
 ## Si es true, se muestra encima de otra pantalla y VOLVER emite `closed`.
 var overlay: bool = false
 
@@ -94,6 +99,8 @@ var _hint_color: Color = HKTheme.PAPER
 var _tap_dir: int = 0
 var _tap_msec: int = -10000
 var _run_dir: int = 0
+## Progreso (0..1) de la demo del backdash; -1 = sin backdash.
+var _dash_t: float = -1.0
 ## Cuándo se pulsó por última vez puño débil y patada débil (para el agarre).
 var _light_msec := {&"punch_light": -10000, &"kick_light": -10000}
 ## Partículas de la demo (polvo, chispas, estela...) y lo que recuerdan del frame anterior.
@@ -153,7 +160,7 @@ func _add_button(parent: Control, text: String, width: float) -> Button:
 	return b
 
 func _toggle_page() -> void:
-	_page = Page.MOVES if _page == Page.KEYS else Page.KEYS
+	_page = ((int(_page) + 1) % PAGE_NAMES.size()) as Page
 	_refresh()
 
 func _toggle_player() -> void:
@@ -173,9 +180,11 @@ func _reset_demo() -> void:
 	_hint = ""
 	_jump_t = -1.0
 	_run_dir = 0
+	_dash_t = -1.0
 
 func _refresh() -> void:
-	_btn_page.text = "MOVIMIENTOS" if _page == Page.KEYS else "TECLAS"
+	# El botón nombra la página a la que lleva.
+	_btn_page.text = PAGE_NAMES[(int(_page) + 1) % PAGE_NAMES.size()]
 	_btn_player.text = "JUGADOR %d" % _player
 	_btn_fighter.text = "< %s >" % _roster[_roster_idx].short_name.to_upper()
 	# El luchador de prueba y sus partículas solo están en la página de teclas.
@@ -221,10 +230,17 @@ func _input(event: InputEvent) -> void:
 		var dir := -1 if code == _key_for(&"left") else 1
 		var now := Time.get_ticks_msec()
 		if dir == _tap_dir and now - _tap_msec <= DOUBLE_TAP_MSEC:
-			_run_dir = dir
 			_attack = null
-			_caption = "CORRER ADELANTE" if dir > 0 else "CORRER ATRÁS"
-			_set_hint("DOBLE TOQUE+MANTENER", HKTheme.GOLD)
+			if dir > 0:
+				_run_dir = dir
+				_caption = "CORRER"
+				_set_hint("DOBLE TOQUE+MANTENER", HKTheme.GOLD)
+			else:
+				# Hacia atrás el doble toque es un backdash (no se corre hacia atrás).
+				_run_dir = 0
+				_dash_t = 0.0
+				_caption = "BACKDASH"
+				_set_hint("ESQUIVA UNOS FRAMES", HKTheme.GOLD)
 			_tap_dir = 0
 		else:
 			_run_dir = 0
@@ -270,6 +286,10 @@ func _start_attack(action: StringName) -> void:
 	_attack_pose = atk.anim
 	var airborne := _jump_t >= 0.0
 	var crouching := _held(&"crouch") and not airborne
+	if crouching and action == &"punch_heavy":
+		_caption = "ANTIAÉREO"
+		_set_hint("GANA A LOS SALTOS", RED.lightened(0.4))
+		return
 	if atk.kind == AttackData.Kind.KICK:
 		if airborne:
 			_attack_pose = &"air_kick"
@@ -355,6 +375,15 @@ func _update_fighter(delta: float) -> void:
 			height = JUMP_HEIGHT * 4.0 * _jump_t * (1.0 - _jump_t)
 	var airborne := _jump_t >= 0.0
 	f.airborne = airborne
+	var dash_x := 0.0
+	if _dash_t >= 0.0:
+		_dash_t += delta / DASH_TIME
+		if _dash_t >= 1.0:
+			_dash_t = -1.0
+		else:
+			# Se desliza hacia atrás y vuelve (solo es una demostración).
+			dash_x = -DASH_DISTANCE * sin(_dash_t * PI)
+	f.position.x = FIGHTER_X + dash_x
 	f.crouched = _held(&"crouch") and not airborne
 	f.height_above_floor = height
 	f.position.y = FLOOR_Y - height * FIGHTER_SCALE
@@ -379,7 +408,10 @@ func _update_fighter(delta: float) -> void:
 			_attack = null
 		if _attack:
 			return
-	if _held(&"block") and not airborne:
+	if _dash_t >= 0.0:
+		f.pose_name = &"run"
+		f.moving_back = true
+	elif _held(&"block") and not airborne:
 		f.pose_name = &"block"
 		if f.crouched:
 			_caption = "BLOQUEO AGACHADO"
@@ -436,12 +468,16 @@ func _label_for(code: int) -> String:
 # =========================================================================
 func _draw() -> void:
 	HKTheme.draw_text(self, Vector2(0, 16), "CONTROLES", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
-	if _page == Page.KEYS:
-		_draw_keys_page()
-		_footer("PRUEBA LAS TECLAS  ·  TAB: VER MOVIMIENTOS", HKTheme.MUTED.lightened(0.3))
-	else:
-		_draw_moves_page()
-		_footer("ALTO: CUBRE DE PIE · BAJO: AGACHADO · MEDIO: IGUAL", HKTheme.PAPER)
+	match _page:
+		Page.KEYS:
+			_draw_keys_page()
+			_footer("PRUEBA LAS TECLAS  ·  TAB: SIGUIENTE PÁGINA", HKTheme.MUTED.lightened(0.3))
+		Page.MOVES:
+			_draw_rows_page("MOVIMIENTOS", _move_rows())
+			_footer("SALTA AL PULSAR: MANTENER NO REPITE EL SALTO", HKTheme.PAPER)
+		Page.DEFENSE:
+			_draw_rows_page("DEFENSA Y COMBOS", _defense_rows())
+			_footer("ALTO: CUBRE DE PIE · BAJO: AGACHADO · MEDIO: IGUAL", HKTheme.PAPER)
 
 func _footer(text: String, color: Color) -> void:
 	HKTheme.draw_text(self, Vector2(0, 215), text, 8, color, HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
@@ -492,33 +528,42 @@ func _draw_stage() -> void:
 		_caption_at(Vector2(cx, FLOOR_Y + 28), _hint.left(20), _hint_color)
 
 # --- Página MOVIMIENTOS -------------------------------------------------------
-## Filas de la tabla: [movimiento, teclas (códigos y textos), nota, color].
+## Teclas del jugador mostrado, para armar las filas de las tablas.
+func _row_keys() -> Dictionary:
+	var keys := {}
+	for action in [&"jump", &"crouch", &"left", &"right", &"block", &"punch_light", &"punch_heavy",
+			&"kick_light", &"kick_heavy", &"special_1", &"special_2"]:
+		keys[action] = _key_for(action)
+	return keys
+
+## Filas de la página MOVIMIENTOS: [movimiento, teclas (códigos y textos), nota, color].
 func _move_rows() -> Array:
-	var up := _key_for(&"jump")
-	var down := _key_for(&"crouch")
-	var left := _key_for(&"left")
-	var right := _key_for(&"right")
-	var block := _key_for(&"block")
-	var lp := _key_for(&"punch_light")
-	var hp := _key_for(&"punch_heavy")
-	var lk := _key_for(&"kick_light")
-	var hk := _key_for(&"kick_heavy")
+	var k := _row_keys()
 	var data := _fighter.data
 	return [
-		["CAMINAR", [left, " ", right], "ATRÁS = MÁS LENTO", GREEN],
-		["CORRER", [right, right], "DOBLE TOQUE+MANTENER", GREEN],
-		["SALTAR", [up, " +", right, "/", left], "EN DIAGONAL", GREEN],
-		["AGACHARSE", [down], "", GREEN],
-		["BLOQUEAR DE PIE", [block], "PARA MEDIOS Y ALTOS", GRAY],
-		["BLOQUEAR AGACHADO", [down, "+", block], "PARA MEDIOS Y BAJOS", GRAY],
+		["CAMINAR", [k.left, " ", k.right], "ATRÁS = MÁS LENTO", GREEN],
+		["CORRER", [k.right, k.right], "DOBLE TOQUE ADELANTE", GREEN],
+		["BACKDASH", [k.left, k.left], "DOBLE TOQUE ATRÁS: ESQUIVA", GREEN],
+		["SALTAR", [k.jump, " +", k.right, "/", k.left], "PULSA, NO MANTENGAS", GREEN],
+		["AGACHARSE", [k.crouch], "", GREEN],
+		["BARRIDO (BAJO)", [k.crouch, "+", k.kick_light, "/", k.kick_heavy], "PATADA AGACHADO", BLUE],
+		["AÉREO (ALTO)", [k.jump, " LUEGO ", k.punch_light, k.punch_heavy, k.kick_light, k.kick_heavy], "UNO POR SALTO", RED],
+		["ANTIAÉREO", [k.crouch, "+", k.punch_heavy], "GANA A LOS SALTOS", RED],
+		["ESPECIAL 1", [k.special_1], _energy_note(data.special_1), HKTheme.GOLD],
+		["ESPECIAL 2", [k.special_2], _energy_note(data.special_2), HKTheme.GOLD],
+	]
+
+## Filas de la página DEFENSA Y COMBOS.
+func _defense_rows() -> Array:
+	var k := _row_keys()
+	return [
+		["BLOQUEAR DE PIE", [k.block], "PARA MEDIOS Y ALTOS", GRAY],
+		["BLOQUEAR AGACHADO", [k.crouch, "+", k.block], "PARA MEDIOS Y BAJOS", GRAY],
 		["GUARDIA", [], "SE ROMPE SI BLOQUEAS MUCHO", GRAY],
-		["BARRIDO (BAJO)", [down, "+", lk, "/", hk], "PATADA AGACHADO", BLUE],
-		["AÉREO (ALTO)", [up, " LUEGO ", lp, hp, lk, hk], "", RED],
-		["COMBO", [lp, ">", hp, ">", hk], "CANCELA AL CONECTAR", RED],
-		["AGARRE", [lp, "+", lk], "ROMPE EL BLOQUEO", PURPLE],
-		["ZAFARSE", [lp, "+", lk], "AL SER AGARRADO", PURPLE],
-		["ESPECIAL 1", [_key_for(&"special_1")], _energy_note(data.special_1), HKTheme.GOLD],
-		["ESPECIAL 2", [_key_for(&"special_2")], _energy_note(data.special_2), HKTheme.GOLD],
+		["COMBO", [k.punch_light, ">", k.punch_heavy, ">", k.kick_heavy], "CANCELA AL CONECTAR", RED],
+		["COUNTER", [], "GOLPEA ANTES DE QUE ATAQUE", RED],
+		["AGARRE", [k.punch_light, "+", k.kick_light], "ROMPE EL BLOQUEO", PURPLE],
+		["ZAFARSE", [k.punch_light, "+", k.kick_light], "AL SER AGARRADO", PURPLE],
 	]
 
 func _energy_note(atk: AttackData) -> String:
@@ -526,12 +571,12 @@ func _energy_note(atk: AttackData) -> String:
 		return ""
 	return "GASTA %d DE ENERGÍA" % int(atk.energy_cost)
 
-func _draw_moves_page() -> void:
-	_draw_panel(MOVES_X, MOVES_W, "MOVIMIENTOS · JUGADOR %d" % _player)
+func _draw_rows_page(title: String, rows: Array) -> void:
+	_draw_panel(MOVES_X, MOVES_W, "%s · JUGADOR %d" % [title, _player])
 	var name_x := MOVES_X + 8.0
 	var keys_x := MOVES_X + 152.0
 	var y := PANEL_Y + 19.0
-	for row in _move_rows():
+	for row in rows:
 		var color: Color = row[3]
 		HKTheme.draw_text(self, Vector2(name_x, y + 9), row[0], 8, color.lightened(0.45), HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
 		var end := _combo(Vector2(keys_x, y), row[1], color)

@@ -4,6 +4,7 @@
 ## Uso:  godot --headless --fixed-fps 60 --path . res://tests/MechanicsTest.tscn
 extends Node
 
+const BIT_LEFT := 0
 const BIT_JUMP := 2
 const BIT_CROUCH := 3
 const BIT_BLOCK := 4
@@ -57,6 +58,7 @@ func _run() -> void:
 	await _test_hit_levels()
 	await _test_guard()
 	await _test_combos()
+	await _test_movement()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -212,7 +214,9 @@ func _attack_vs_guard(dx: float, guard: int, mask: int, hold: int = 0) -> String
 func _air_attack_vs_guard(dx: float, guard: int) -> String:
 	await _place(dx, guard)
 	await _press(0, 1 << BIT_JUMP)
-	await _ticks(8)
+	await _until(func(): return combat.p1.state == Fighter.State.JUMP, 20)
+	# Se lanza en la bajada: en lo alto del salto la patada pasa por encima de un rival agachado.
+	await _ticks(15)
 	await _press(0, 1 << BIT_HK)
 	await _until(func(): return _first_hit_result() != "none", 40)
 	var r := _first_hit_result()
@@ -464,3 +468,130 @@ func _test_combos() -> void:
 	check(n == 3 and names.has("TRÍO") and _hits.size() >= 3 and _hits[2][3].combo_name == "TRÍO",
 		"débil-fuerte-fuerte es el combo TRÍO")
 	await _ticks(60)
+
+# --- Movimiento ------------------------------------------------------------------
+var _landings: int = 0
+
+func _wait_round() -> void:
+	await _until(func(): return combat.round_manager.phase == RoundManager.Phase.FIGHT, 900)
+
+func _test_movement() -> void:
+	print("\n# Movimiento")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	await _wait_round()
+	p1.landed.connect(func(_f): _landings += 1)
+
+	# Saltar: 3 frames de preparación y solo al pulsar (mantener no repite).
+	await _place(120.0)
+	await _press(0, 1 << BIT_JUMP)
+	await _ticks(1)
+	check(p1.state == Fighter.State.PREJUMP and is_equal_approx(p1.position.y, p1.floor_y), "saltar empieza con una preparación en el suelo")
+	await _ticks(Fighter.PREJUMP_FRAMES + 1)
+	check(p1.state == Fighter.State.JUMP and p1.position.y < p1.floor_y, "tras %d frames despega" % Fighter.PREJUMP_FRAMES)
+	await _ticks(60)
+	await _place(120.0)
+	_landings = 0
+	_masks = [1 << BIT_JUMP, 0]
+	await _ticks(110)
+	_masks = [0, 0]
+	check(_landings == 1, "mantener la tecla de salto da un solo salto (%d)" % _landings)
+
+	# El búfer de salto: una pulsación justo antes de acabar un ataque no se pierde.
+	await _place(120.0)
+	await _press(0, 1 << BIT_LP)
+	await _ticks(11)
+	await _press(0, 1 << BIT_JUMP)
+	var jumped := await _until(func(): return p1.state == Fighter.State.PREJUMP or p1.state == Fighter.State.JUMP, 12)
+	check(jumped, "saltar pulsado 2-3 frames antes de acabar un golpe sale al terminar")
+	await _ticks(70)
+
+	# Un ataque aéreo por salto, y recuperación al aterrizar si se usó.
+	await _place(120.0)
+	await _press(0, 1 << BIT_JUMP)
+	await _until(func(): return p1.state == Fighter.State.JUMP, 20)
+	await _ticks(1)
+	await _press(0, 1 << BIT_LP)
+	check(await _until(func(): return p1.state == Fighter.State.ATTACK and p1.attack_airborne, 6), "se puede atacar en el aire")
+	await _until(func(): return p1.state == Fighter.State.JUMP, 40)
+	check(p1.state == Fighter.State.JUMP and not p1.is_on_ground(), "el golpe aéreo acaba antes de aterrizar")
+	await _press(0, 1 << BIT_LK)
+	await _ticks(3)
+	check(p1.state == Fighter.State.JUMP, "no se puede dar un segundo ataque aéreo en el mismo salto")
+	var landed := await _until(func(): return p1.state == Fighter.State.LAND, 80)
+	check(landed, "aterrizar tras un ataque aéreo deja una recuperación")
+	var land_frames := 0
+	while p1.state == Fighter.State.LAND and land_frames < 40:
+		await combat.ticked
+		land_frames += 1
+	check(land_frames == Fighter.AIR_LANDING_FRAMES, "la recuperación dura %d frames (%d)" % [Fighter.AIR_LANDING_FRAMES, land_frames])
+	await _place(120.0)
+	await _press(0, 1 << BIT_JUMP)
+	var saw_land := false
+	for i in 70:
+		await combat.ticked
+		if p1.state == Fighter.State.LAND:
+			saw_land = true
+	check(not saw_land and p1.state == Fighter.State.IDLE, "un salto sin atacar aterriza sin recuperación")
+
+	# Antiaéreo: puño fuerte agachado.
+	await _place(24.0)
+	_masks = [1 << BIT_CROUCH, 0]
+	await _ticks(4)
+	await _press(0, (1 << BIT_CROUCH) | (1 << BIT_HP), 1 << BIT_CROUCH)
+	await _ticks(1)
+	check(p1.current_attack != null and p1.current_attack.id == &"uppercut", "puño fuerte agachado es el antiaéreo")
+	check(p1.is_anti_air_invulnerable(), "el antiaéreo esquiva ataques aéreos al empezar")
+	await _until(func(): return not _hits.is_empty(), 30)
+	check(_hits.size() >= 1 and _hits[0][2].id == &"uppercut" and p2.velocity.y < -200.0,
+		"el antiaéreo lanza al rival hacia arriba (%.0f)" % p2.velocity.y)
+	_masks = [0, 0]
+	await _ticks(80)
+
+	# El antiaéreo le gana a un salto con patada: en alguna sincronización lo para.
+	var wins := 0
+	for delay in range(0, 28, 2):
+		await _place(70.0)
+		# P2 salta hacia P1 (manteniendo la dirección) y lanza la patada en el aire.
+		await _press(1, (1 << BIT_JUMP) | (1 << BIT_LEFT), 1 << BIT_LEFT)
+		await _until(func(): return p2.state == Fighter.State.JUMP, 20)
+		await _ticks(6)
+		await _press(1, (1 << BIT_HK) | (1 << BIT_LEFT), 1 << BIT_LEFT)
+		_masks[0] = 1 << BIT_CROUCH
+		await _ticks(delay)
+		await _press(0, (1 << BIT_CROUCH) | (1 << BIT_HP), 1 << BIT_CROUCH)
+		await _until(func(): return not _hits.is_empty(), 50)
+		if not _hits.is_empty() and _hits[0][2].id == &"uppercut":
+			wins += 1
+		_masks = [0, 0]
+		await _ticks(10)
+	check(wins >= 1, "el antiaéreo para un salto con patada en %d sincronizaciones" % wins)
+	await _ticks(60)
+
+	# Backdash: doble toque hacia atrás.
+	await _place(150.0)
+	var x0 := p1.position.x
+	_masks = [1 << BIT_LEFT, 0]
+	await _ticks(3)
+	_masks = [0, 0]
+	await _ticks(3)
+	_masks = [1 << BIT_LEFT, 0]
+	await _ticks(2)
+	check(p1.state == Fighter.State.BACKDASH and not p1.running, "doble toque hacia atrás es un backdash")
+	var invulnerable_first := not p1.can_be_hit()
+	await _ticks(Fighter.BACKDASH_INVULN_FRAMES + 2)
+	check(invulnerable_first and p1.can_be_hit(), "no se le puede golpear los primeros %d frames del backdash" % Fighter.BACKDASH_INVULN_FRAMES)
+	_masks = [0, 0]
+	await _ticks(Fighter.BACKDASH_FRAMES)
+	check(p1.state == Fighter.State.IDLE and x0 - p1.position.x > 25.0, "el backdash retrocede (%.0f px)" % (x0 - p1.position.x))
+	# Hacia delante el doble toque sigue siendo correr.
+	await _place(150.0)
+	_masks = [1 << 1, 0]
+	await _ticks(3)
+	_masks = [0, 0]
+	await _ticks(3)
+	_masks = [1 << 1, 0]
+	await _ticks(4)
+	check(p1.running and p1.state == Fighter.State.WALK, "doble toque hacia delante sigue siendo correr")
+	_masks = [0, 0]
+	await _ticks(20)

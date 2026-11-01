@@ -157,7 +157,7 @@ func _test_fight() -> void:
 	x0 = p1.position.x
 	key(KEY_A, true); await frames(20); key(KEY_A, false); await frames(2)
 	check(p1.position.x < x0 - 10, "P1 camina a la izquierda con A")
-	key(KEY_W, true); await frames(8)
+	key(KEY_W, true); await frames(12)
 	check(p1.position.y < p1.floor_y - 20 and p1.state == Fighter.State.JUMP, "P1 salta con W")
 	key(KEY_W, false); await frames(60)
 	check(p1.is_on_ground() and p1.state == Fighter.State.IDLE, "P1 aterriza y vuelve a IDLE")
@@ -201,7 +201,8 @@ func _test_fight() -> void:
 	x0 = p1.position.x
 	key(KEY_A, true); await frames(3); key(KEY_A, false); await frames(3)
 	key(KEY_A, true); await frames(10)
-	check(p1.running and p1.position.x < x0 - 10, "doble toque atrás: P1 corre hacia atrás")
+	check(p1.state == Fighter.State.BACKDASH and not p1.running and p1.position.x < x0 - 15,
+		"doble toque atrás: P1 hace un backdash")
 	key(KEY_A, false); await frames(30)
 	key(KEY_D, true); await frames(3); key(KEY_D, false); await frames(25)
 	key(KEY_D, true); await frames(5)
@@ -216,7 +217,7 @@ func _test_fight() -> void:
 	x2 = p2.position.x
 	key(KEY_RIGHT, true); await frames(20); key(KEY_RIGHT, false); await frames(2)
 	check(p2.position.x > x2 + 10, "P2 camina a la derecha con →")
-	key(KEY_UP, true); await frames(8)
+	key(KEY_UP, true); await frames(12)
 	check(p2.state == Fighter.State.JUMP, "P2 salta con ↑")
 	key(KEY_UP, false); await frames(60)
 	key(KEY_DOWN, true); await frames(3)
