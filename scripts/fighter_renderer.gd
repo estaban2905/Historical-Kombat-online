@@ -126,6 +126,11 @@ const POSES := {
 		"strike": {"fa_u": 88.0, "fa_l": 90.0, "lean": 32.0, "hx": 6.0,
 			"fl_t": 45.0, "fl_s": 10.0, "bl_t": -45.0, "bl_s": -30.0},
 	},
+	# Agarre: los dos brazos se abren y se cierran sobre el rival.
+	"grab": {
+		"windup": {"fa_u": 60.0, "fa_l": 150.0, "ba_u": 55.0, "ba_l": 150.0, "lean": -4.0},
+		"strike": {"fa_u": 85.0, "fa_l": 100.0, "ba_u": 80.0, "ba_l": 105.0, "lean": 12.0, "hx": 3.0},
+	},
 }
 
 var data: FighterData

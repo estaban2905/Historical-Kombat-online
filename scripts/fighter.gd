@@ -20,7 +20,8 @@ signal not_enough_energy(fighter: Fighter)
 ## Al tocar el suelo tras una caída (solo aviso visual; no cambia el estado).
 signal landed(fighter: Fighter)
 
-enum State { IDLE, WALK, JUMP, CROUCH, BLOCK, ATTACK, HIT, KO, VICTORY }
+## THROW: está ejecutando una llave · THROWN: la está sufriendo.
+enum State { IDLE, WALK, JUMP, CROUCH, BLOCK, ATTACK, HIT, KO, VICTORY, THROW, THROWN }
 
 const GRAVITY := 1100.0
 const GROUND_FRICTION := 900.0
@@ -37,6 +38,17 @@ const HISTORY_SIZE := 8
 ## Correr: doble toque (pulsar, soltar, pulsar) en una dirección, hacia delante o atrás.
 const DOUBLE_TAP_FRAMES := 15
 const RUN_SPEED_MULT := 1.8
+## Agarre = puño débil + patada débil. Si la segunda tecla llega tarde, el golpe
+## débil se convierte en agarre durante sus primeros GRAB_INPUT_FRAMES frames.
+const GRAB_INPUT_FRAMES := 2
+## Frames que dura la llave antes de hacer daño, ventana de la víctima para
+## zafarse (pulsando también puño débil + patada débil) y recuperación final.
+const THROW_FRAMES := 24
+const THROW_TECH_FRAMES := 10
+const THROW_RECOVERY := 8
+## Aturdimiento y empuje de ambos al zafarse de una llave.
+const THROW_BREAK_STUN := 14
+const THROW_BREAK_PUSH := 150.0
 
 @export var player_id: int = 1
 
@@ -91,6 +103,16 @@ var invert_frames: int = 0
 var float_frames: int = 0
 ## true mientras corre (subestado de WALK). Se activa con doble toque en la dirección.
 var running: bool = false
+# Llave en curso (agarre que conectó).
+var throw_target: Fighter
+var throw_attack: AttackData
+var throw_timer: int = 0
+## true el tick en que la llave debe hacer daño (lo consume CombatManager).
+var throw_ready: bool = false
+## Víctima: teclas de zafarse pulsadas durante la ventana y si lo ha conseguido.
+var _tech_punch: bool = false
+var _tech_kick: bool = false
+var tech_requested: bool = false
 var _prev_h: int = 0
 var _tap_dir: int = 0
 var _tap_timer: int = 0
@@ -142,6 +164,7 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	invert_frames = 0
 	float_frames = 0
 	running = false
+	_clear_throw()
 	_prev_h = 0
 	_tap_dir = 0
 	_tap_timer = 0
@@ -192,6 +215,10 @@ func tick(delta: float) -> void:
 			_state_attack()
 		State.HIT:
 			_state_hit()
+		State.THROW:
+			_state_throw()
+		State.THROWN:
+			_state_thrown()
 		State.KO, State.VICTORY:
 			_apply_friction(delta)
 
@@ -278,6 +305,10 @@ func _state_jump() -> void:
 		_try_start_attack(buffered_slot)
 
 func _state_attack() -> void:
+	# Segunda tecla del agarre pulsada un poco tarde: el golpe débil pasa a agarre.
+	if attack_frame < GRAB_INPUT_FRAMES and _is_grab_pair(current_slot, buffered_slot) \
+			and _try_start_attack(&"grab"):
+		return
 	attack_frame += 1
 	var atk := current_attack
 	var in_motion := attack_frame <= atk.startup + atk.active
@@ -321,6 +352,32 @@ func _state_hit() -> void:
 		combo_hits_taken = 0
 		_set_state(State.IDLE)
 
+## Llave: sujeta a la víctima delante y, al acabar THROW_FRAMES, avisa a
+## CombatManager (throw_ready) para que aplique el golpe con sus efectos.
+func _state_throw() -> void:
+	throw_timer += 1
+	velocity = Vector2.ZERO
+	var target := throw_target
+	if target and target.state == State.THROWN:
+		var hold := (data.body_width + target.data.body_width) * 0.4 + 1.0
+		target.position.x = clampf(position.x + facing * hold, target.bounds.x, target.bounds.y)
+		if throw_timer == THROW_FRAMES:
+			throw_ready = true
+	if throw_timer >= THROW_FRAMES + THROW_RECOVERY:
+		_clear_throw()
+		_set_state(State.IDLE)
+
+## Víctima de una llave: durante THROW_TECH_FRAMES puede zafarse pulsando
+## puño débil y patada débil (a la vez o seguidas).
+func _state_thrown() -> void:
+	velocity = Vector2.ZERO
+	if not controls_enabled or state_frames > THROW_TECH_FRAMES:
+		return
+	_tech_punch = _tech_punch or input.just_pressed(&"punch_light")
+	_tech_kick = _tech_kick or input.just_pressed(&"kick_light")
+	if _tech_punch and _tech_kick:
+		tech_requested = true
+
 # =========================================================================
 #  Ataques
 # =========================================================================
@@ -333,8 +390,14 @@ func _read_attack_buffer() -> void:
 		return
 	var slot := input.pressed_attack()
 	if slot != &"":
+		if input.just_pressed(&"punch_light") and input.just_pressed(&"kick_light"):
+			slot = &"grab"
 		buffered_slot = slot
 		buffered_frames = INPUT_BUFFER_FRAMES
+
+## true si a y b son las dos teclas del agarre (en cualquier orden).
+static func _is_grab_pair(a: StringName, b: StringName) -> bool:
+	return (a == &"punch_light" and b == &"kick_light") or (a == &"kick_light" and b == &"punch_light")
 
 ## Intenta iniciar un ataque. Devuelve false si no es posible ahora.
 func _try_start_attack(slot: StringName) -> bool:
@@ -403,7 +466,8 @@ func get_hit_candidates() -> Array[Fighter]:
 	var target := opponent
 	if target and not hit_targets.has(target) and target.can_be_hit() \
 			and get_hit_rect().intersects(target.get_hurt_rect()):
-		result.append(target)
+		if current_attack.kind != AttackData.Kind.GRAB or target.can_be_grabbed():
+			result.append(target)
 	return result
 
 ## Caja del cuerpo en coordenadas globales, con la posición ACTUAL (tras el
@@ -418,8 +482,54 @@ func get_hit_rect() -> Rect2:
 func register_hit(target: Fighter) -> void:
 	hit_targets.append(target)
 
+## Durante una llave ninguno de los dos puede recibir otros golpes.
 func can_be_hit() -> bool:
-	return state != State.KO and state != State.VICTORY
+	return not (state in [State.KO, State.VICTORY, State.THROW, State.THROWN])
+
+## Un agarre solo atrapa a un rival en el suelo que no esté aturdido
+## (ni golpeado ni en bloqueo forzado).
+func can_be_grabbed() -> bool:
+	if not can_be_hit() or not is_on_ground() or state == State.HIT:
+		return false
+	return not (state == State.BLOCK and stun_frames > 0)
+
+## El agarre conectó: empieza la llave.
+func start_throw(target: Fighter) -> void:
+	throw_attack = current_attack
+	_end_attack()
+	throw_target = target
+	throw_timer = 0
+	throw_ready = false
+	velocity = Vector2.ZERO
+	_set_state(State.THROW)
+
+## Nos han agarrado: quedamos sujetos hasta el golpe o hasta zafarnos.
+func start_thrown() -> void:
+	_end_attack()
+	_clear_throw()
+	stun_frames = 0
+	buffered_slot = &""
+	buffered_frames = 0
+	velocity = Vector2.ZERO
+	_set_state(State.THROWN)
+
+## Los dos se separan tras zafarse de una llave.
+func break_throw() -> void:
+	_clear_throw()
+	_end_attack()
+	buffered_slot = &""
+	stun_frames = THROW_BREAK_STUN
+	velocity = Vector2(-facing * THROW_BREAK_PUSH, 0.0)
+	_set_state(State.HIT)
+
+func _clear_throw() -> void:
+	throw_target = null
+	throw_attack = null
+	throw_timer = 0
+	throw_ready = false
+	_tech_punch = false
+	_tech_kick = false
+	tech_requested = false
 
 # =========================================================================
 #  Recibir daño
@@ -587,6 +697,8 @@ func get_pose_name() -> StringName:
 		State.HIT: return &"hit"
 		State.KO: return &"ko"
 		State.VICTORY: return &"victory"
+		State.THROW: return &"grab"
+		State.THROWN: return &"hit"
 		State.ATTACK:
 			var atk := current_attack
 			if atk.kind == AttackData.Kind.KICK:
@@ -613,7 +725,10 @@ func _update_visual() -> void:
 	visual.airborne = not is_on_ground() and state != State.KO
 	visual.height_above_floor = floor_y - position.y
 	visual.phase = &""
-	if state == State.ATTACK and current_attack:
+	if state == State.THROW:
+		visual.phase = &"active"
+		visual.phase_t = 1.0
+	elif state == State.ATTACK and current_attack:
 		var atk := current_attack
 		if attack_frame <= atk.startup:
 			visual.phase = &"startup"

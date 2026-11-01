@@ -21,6 +21,8 @@ var _block_wait: int = 0
 var _block_left: int = 0
 var _block_hold: int = 0
 var _seen_instance: int = -1
+## Frame de la llave en que intentará zafarse (-1 = no lo intentará).
+var _break_at: int = -1
 
 func _init(p_me: Fighter, p_foe: Fighter, p_level: float) -> void:
 	me = p_me
@@ -35,6 +37,9 @@ func think() -> void:
 		_reset_plan()
 		return
 	_watch_foe_attack()
+	if me.state == Fighter.State.THROWN:
+		_try_throw_break()
+		return
 	if _block_wait > 0:
 		_block_wait -= 1
 		if _block_wait == 0:
@@ -73,6 +78,23 @@ func _aggression() -> float:
 func _block_chance() -> float:
 	return lerpf(0.10, 0.75, level)
 
+func _grab_chance() -> float:
+	return lerpf(0.15, 0.7, level)
+
+## Probabilidad de zafarse de una llave (se decide una vez por llave).
+func _break_chance() -> float:
+	return lerpf(0.05, 0.6, level)
+
+## Al ser agarrada, tira un dado y, si sale, pulsa las dos teclas de zafarse
+## con un retraso de reacción dentro de la ventana.
+func _try_throw_break() -> void:
+	me.input.release_all()
+	if me.state_frames == 0:
+		_break_at = int(lerpf(9.0, 3.0, level)) if _rng.randf() < _break_chance() else -1
+	if me.state_frames == _break_at:
+		me.input.press(&"punch_light")
+		me.input.press(&"kick_light")
+
 # --- Decisiones -----------------------------------------------------------
 func _decide() -> void:
 	var dx := foe.position.x - me.position.x
@@ -82,6 +104,13 @@ func _decide() -> void:
 	var can_act := me.hitstop_frames == 0 and me.state in [
 		Fighter.State.IDLE, Fighter.State.WALK, Fighter.State.CROUCH, Fighter.State.JUMP]
 	if not can_act:
+		return
+	# Rival que se queda bloqueando a tiro: agarre.
+	if foe.state == Fighter.State.BLOCK and me.is_on_ground() \
+			and dist <= _reach(me.data.get_attack(&"grab"), foe.data.body_width) \
+			and _rng.randf() < _grab_chance():
+		me.input.press(&"punch_light")
+		me.input.press(&"kick_light")
 		return
 	var slot := _pick_attack(dist)
 	if slot != &"" and _rng.randf() < _aggression():

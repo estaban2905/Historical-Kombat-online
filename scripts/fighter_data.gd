@@ -46,6 +46,8 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var special_2: AttackData
 ## Ataque definitivo: definido en los datos, se activará en versiones futuras.
 @export var ultimate: AttackData
+## Agarre (puño débil + patada débil a la vez). Vacío = agarre común (default_grab).
+@export var grab: AttackData
 ## Combos de comando (estructura preparada, ver combo_data.gd).
 @export var combos: Array[ComboData] = []
 
@@ -108,7 +110,37 @@ func get_attack(slot: StringName) -> AttackData:
 		&"special_1": return special_1
 		&"special_2": return special_2
 		&"ultimate": return ultimate
+		&"grab": return grab if grab else default_grab()
 	return null
+
+static var _default_grab: AttackData
+
+## Agarre común a todos los luchadores: rápido y de poco alcance, pero con
+## mucha recuperación si falla.
+static func default_grab() -> AttackData:
+	if _default_grab == null:
+		var g := AttackData.new()
+		g.id = &"grab"
+		g.display_name = "Agarre"
+		g.kind = AttackData.Kind.GRAB
+		g.anim = &"grab"
+		g.damage = 12.0
+		g.hitstun = 30
+		g.knockback = 170.0
+		g.launch = -220.0
+		g.hitstop = 8
+		g.effect_scale = 1.3
+		g.startup = 5
+		g.active = 2
+		g.recovery = 22
+		g.hitbox_offset = Vector2(22, -40)
+		g.hitbox_size = Vector2(14, 30)
+		g.crouch_offset = Vector2.ZERO
+		g.air_offset = Vector2.ZERO
+		g.usable_in_air = false
+		g.usable_crouching = false
+		_default_grab = g
+	return _default_grab
 
 ## Comprobación básica para detectar fichas incompletas al cargarlas.
 func validate() -> PackedStringArray:

@@ -60,6 +60,7 @@ No hay dependencias externas ni plugins.
 | Patada débil | J | Numpad 4 | Insert |
 | Patada fuerte | K | Numpad 5 | Inicio |
 | Especial 2 | L | Numpad 6 | Re Pág |
+| Agarre | U + J | Numpad 1 + Numpad 4 | Supr + Insert |
 | Pausa | Esc / P | Esc / P | |
 
 - **Menús:** flechas + Enter (o ratón). Esc vuelve atrás.
@@ -67,6 +68,8 @@ No hay dependencias externas ni plugins.
 - **Correr:** doble toque (pulsar, soltar y pulsar de nuevo en menos de 0,25 s) en ←/→ y mantener. Funciona hacia delante y hacia atrás, a 1,8 veces la velocidad de caminar. Se corta al soltar, cambiar de dirección, saltar, agacharse, bloquear, atacar o recibir un golpe. La pantalla CONTROLES (menú o pausa) permite probarlo.
 - Salto con dirección: mantener ←/→ al saltar. Ataque agachado: mantener abajo y atacar. Patada en el aire: atacar durante el salto.
 - Bloquear agachado: mantener abajo + bloqueo.
+- **Agarre:** puño débil + patada débil a la vez (la segunda tecla puede llegar hasta 2 frames tarde). Atraviesa el bloqueo, pero falla contra un rival en el aire, aturdido o en bloqueo forzado, y si falla deja mucho tiempo de recuperación. Si un golpe y un agarre llegan en el mismo frame, gana el golpe.
+- **Zafarse de un agarre:** pulsar puño débil + patada débil en los primeros 10 frames de la llave. Si los dos jugadores se agarran a la vez, también se zafan.
 - Las teclas del jugador 2 tienen una alternativa en el bloque de navegación para portátiles sin teclado numérico.
 - Algunos teclados baratos no registran muchas teclas a la vez ("ghosting"); si un jugador deja de responder al pulsar varias teclas, es una limitación del teclado.
 
@@ -240,6 +243,12 @@ Frame data de todos los ataques cuerpo a cuerpo (frame en que conectan, ventaja 
 
 ```bash
 godot --headless --fixed-fps 60 --path . res://tests/FrameDataTest.tscn -- [--only=napoleon,donald_trump] [--csv=user://frame_data.csv]
+```
+
+Mecánicas de combate (agarre y las que se vayan añadiendo), con entradas exactas por tick:
+
+```bash
+godot --headless --fixed-fps 60 --path . res://tests/MechanicsTest.tscn
 ```
 
 En combate, **F1** muestra la capa de depuración: las cajas reales de impacto (azul = cuerpo, rojo = golpe, naranja = proyectil), el estado de cada luchador, el frame del ataque (amarillo = preparación, rojo = activo, azul = recuperación) y el aturdimiento.

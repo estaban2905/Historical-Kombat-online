@@ -6,7 +6,8 @@
 class_name AttackData
 extends Resource
 
-enum Kind { PUNCH, KICK, SPECIAL, ULTIMATE }
+## GRAB: agarre. Ignora el bloqueo; ver Fighter.can_be_grabbed().
+enum Kind { PUNCH, KICK, SPECIAL, ULTIMATE, GRAB }
 
 @export_group("Identidad")
 ## Identificador interno (p. ej. "punch_light", "cannonball").

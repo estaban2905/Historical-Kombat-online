@@ -131,6 +131,7 @@ func _physics_process(delta: float) -> void:
 		(p as Projectile).tick(delta)
 	_resolve_bodies()
 	_resolve_melee_hits()
+	_resolve_throws()
 	_resolve_projectiles()
 	_update_shake(delta)
 	_update_fx()
@@ -159,7 +160,7 @@ func state_snapshot() -> Array:
 		parts.append([f.position, f.velocity, f.health, f.energy, f.state, f.state_frames,
 			f.facing, f.attack_frame, f.attack_instance, f.stun_frames, f.hitstop_frames,
 			f.combo_hits_taken, f.slow_frames, f.invert_frames, f.float_frames,
-			f.buffered_slot, f.buffered_frames, f.cooldowns])
+			f.buffered_slot, f.buffered_frames, f.cooldowns, f.throw_timer, f.tech_requested])
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
 		parts.append([pr.position, pr.life, pr.alive])
@@ -205,12 +206,50 @@ func _resolve_melee_hits() -> void:
 			hits.append([f, target, f.current_attack])
 	for h in hits:
 		(h[0] as Fighter).register_hit(h[1])
+	var grabs: Array = []
 	for h in hits:
 		var attacker: Fighter = h[0]
 		var target: Fighter = h[1]
 		var atk: AttackData = h[2]
+		if atk.kind == AttackData.Kind.GRAB:
+			grabs.append(h)
+			continue
 		var point := _contact_point(attacker.hitbox_shape.global_position, target)
 		_apply_hit(attacker, target, atk, attacker.facing, point, false)
+	# Los agarres se resuelven después: si en el mismo frame el agarrador recibe
+	# un golpe, gana el golpe. Si los dos se agarran a la vez, se zafan.
+	if grabs.size() == 2:
+		_break_throw(grabs[0][0], grabs[0][1])
+		return
+	for h in grabs:
+		var attacker: Fighter = h[0]
+		var target: Fighter = h[1]
+		if attacker.state == Fighter.State.ATTACK and target.can_be_grabbed():
+			attacker.start_throw(target)
+			target.start_thrown()
+			Sfx.play(&"whoosh")
+
+## Llaves en curso: la víctima se zafa o, al acabar la llave, recibe el golpe.
+func _resolve_throws() -> void:
+	for f in fighters:
+		if f.state != Fighter.State.THROW or f.throw_target == null:
+			continue
+		var target := f.throw_target
+		if target.state != Fighter.State.THROWN:
+			continue
+		if target.tech_requested:
+			_break_throw(f, target)
+		elif f.throw_ready:
+			f.throw_ready = false
+			var atk := f.throw_attack
+			# No se puede bloquear: la víctima está en THROWN, no en BLOCK.
+			_apply_hit(f, target, atk, f.facing, (f.position + target.position) * 0.5 + Vector2(0, -40), false)
+
+func _break_throw(a: Fighter, b: Fighter) -> void:
+	a.break_throw()
+	b.break_throw()
+	HitEffect.spawn(effects_root, (a.position + b.position) * 0.5 + Vector2(0, -40), HitEffect.Type.CLASH, 1.0)
+	Sfx.play(&"block")
 
 func _resolve_projectiles() -> void:
 	var nodes := projectiles_root.get_children()
