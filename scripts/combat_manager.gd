@@ -14,6 +14,10 @@ signal fighter_knocked_out(fighter: Fighter)
 signal ticked
 
 const FIGHTER_SCENE := preload("res://scenes/fighters/Fighter.tscn")
+## Cinemática del ultimate: todo se congela estos frames (zoom sobre quien lo lanza y
+## su nombre en pantalla) antes de que empiece el ataque.
+const ULT_CINEMATIC_FRAMES := 48
+const ULT_ZOOM := 1.45
 
 @onready var stage_holder: Node2D = $StageHolder
 @onready var fighters_root: Node2D = $Fighters
@@ -38,6 +42,13 @@ var fx: ParticleFX
 ## Ticks de combate transcurridos (un tick = un frame de física a 60 Hz).
 var tick_count: int = 0
 var _input_source: Callable
+## Frames que quedan de la cinemática de un ultimate (0 = no hay). Mientras dura no
+## avanza nada del combate ni del reloj de la ronda.
+var cinematic_frames: int = 0
+var cinematic_fighter: Fighter
+var cinematic_text: String = ""
+## Ataque (attack_instance) del que ya se lanzó el efecto de impacto, por luchador.
+var _ult_fx_done: Dictionary = {}
 
 func _ready() -> void:
 	_load_stage()
@@ -111,6 +122,8 @@ func _spawn_fighter(data: FighterData, player_id: int) -> Fighter:
 
 ## Coloca a los luchadores para una nueva ronda (vida al máximo).
 func reset_round() -> void:
+	cinematic_frames = 0
+	_update_cinematic()
 	for p in projectiles_root.get_children():
 		p.queue_free()
 	fx.clear()
@@ -129,6 +142,10 @@ func set_controls(enabled: bool) -> void:
 func _physics_process(delta: float) -> void:
 	# Pausa de frames del modo entrenamiento.
 	if training and training.should_skip_tick():
+		return
+	if cinematic_frames > 0:
+		cinematic_frames -= 1
+		_update_cinematic()
 		return
 	if _input_source.is_valid():
 		var masks: Array = _input_source.call(tick_count)
@@ -179,6 +196,7 @@ func state_snapshot() -> Array:
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
 		parts.append([pr.position, pr.life, pr.alive])
+	parts.append(cinematic_frames)
 	return parts
 
 ## Empuje entre cuerpos: impide que se superpongan y que alguien quede
@@ -373,9 +391,57 @@ func _on_power_requested(fighter: Fighter, atk: AttackData) -> void:
 	fx.flash(0.3)
 	PowerEffects.cast(self, fighter, atk)
 
-func _on_attack_started(_fighter: Fighter, atk: AttackData) -> void:
-	if not atk.is_projectile():
+func _on_attack_started(fighter: Fighter, atk: AttackData) -> void:
+	if atk.kind == AttackData.Kind.ULTIMATE:
+		_start_cinematic(fighter, atk)
+	elif not atk.is_projectile():
 		Sfx.play(&"whoosh", 0.15)
+
+# =========================================================================
+#  Cinemática del ultimate
+# =========================================================================
+func _start_cinematic(f: Fighter, atk: AttackData) -> void:
+	cinematic_frames = ULT_CINEMATIC_FRAMES
+	cinematic_fighter = f
+	cinematic_text = atk.display_name.to_upper()
+	Sfx.play(&"confirm")
+	Sfx.play(&"megaphone")
+	fx.flash(0.7)
+	shake(3.0)
+	_update_cinematic()
+
+## Cámara de la cinemática: se acerca a quien lanza el ultimate, aguanta y vuelve.
+## Es solo presentación: no entra en el estado del combate.
+func _update_cinematic() -> void:
+	if cinematic_frames <= 0 or cinematic_fighter == null:
+		camera.zoom = Vector2.ONE
+		camera.position = Vector2.ZERO
+		return
+	var elapsed := ULT_CINEMATIC_FRAMES - cinematic_frames
+	var t_in := clampf(float(elapsed) / 10.0, 0.0, 1.0)
+	var t_out := clampf(float(cinematic_frames) / 8.0, 0.0, 1.0)
+	var t := ease(minf(t_in, t_out), 0.4)
+	var zoom := lerpf(1.0, ULT_ZOOM, t)
+	camera.zoom = Vector2(zoom, zoom)
+	var view := Vector2(426, 240) / zoom
+	var target := cinematic_fighter.global_position + Vector2(0, -40)
+	var top_left := (target - view * 0.5).clamp(Vector2.ZERO, Vector2(426, 240) - view)
+	camera.position = Vector2.ZERO.lerp(top_left, t)
+
+## Efecto del golpe del ultimate: onda de choque y destello en el primer frame activo.
+func _ultimate_impact_fx(f: Fighter, atk: AttackData) -> void:
+	if _ult_fx_done.get(f.player_id, -1) == f.attack_instance:
+		return
+	_ult_fx_done[f.player_id] = f.attack_instance
+	var center := f.global_position + Vector2(atk.hitbox_offset.x * f.facing, atk.hitbox_offset.y)
+	PowerEffects._visual(self, f, center, {"art": &"ring", "color": f.data.accent_color,
+		"box": atk.hitbox_size, "life": 0.5})
+	PowerEffects._visual(self, f, center, {"art": &"lightburst", "color": f.data.coat_trim_color,
+		"box": atk.hitbox_size, "life": 0.4})
+	Sfx.play(&"hit_heavy")
+	shake(6.0)
+	fx.flash(0.5)
+	fx.hit_burst(center, f.facing, 2)
 
 # =========================================================================
 #  Partículas (solo decorado)
@@ -394,6 +460,9 @@ func _update_fx() -> void:
 			continue
 		var phase := tick_count + i * 3
 		var atk := f.current_attack
+		if atk != null and atk.kind == AttackData.Kind.ULTIMATE and f.state == Fighter.State.ATTACK \
+				and f.attack_frame == atk.startup + 1:
+			_ultimate_impact_fx(f, atk)
 		# Estela mientras la hitbox de patadas y especiales está activa.
 		if atk != null and f.is_hitbox_active() and atk.kind != AttackData.Kind.PUNCH and phase % 2 == 0:
 			fx.trail(f.hitbox_shape.global_position, Color("ffd040") if atk.kind == AttackData.Kind.KICK else Color("ff7020"))

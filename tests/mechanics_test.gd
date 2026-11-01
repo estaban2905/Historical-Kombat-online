@@ -60,6 +60,7 @@ func _run() -> void:
 	await _test_combos()
 	await _test_movement()
 	await _test_knockdown()
+	await _test_ultimate()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -691,3 +692,86 @@ func _test_knockdown() -> void:
 	_launch_p2()
 	check(p2.state == Fighter.State.KO, "si el lanzamiento remata, es K.O. y no derribo")
 	await _ticks(60)
+
+# --- Ultimate ---------------------------------------------------------------
+const BOTH_SPECIALS := (1 << BIT_S1) | (1 << BIT_S2)
+
+func _test_ultimate() -> void:
+	print("\n# Ultimate")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	var ult := p1.data.ultimate
+	await _wait_round()
+
+	# Sin la energía llena no sale; pulsar los dos especiales lanza el especial normal.
+	await _place(60.0)
+	p1.energy = Fighter.MAX_ENERGY - 1.0
+	await _press(0, BOTH_SPECIALS)
+	await _ticks(2)
+	check(p1.current_slot != &"ultimate" and combat.cinematic_frames == 0, "con menos de 100 de energía no sale el ultimate")
+	await _ticks(90)
+
+	# Especial 1 + Especial 2 con la energía llena.
+	await _place(60.0)
+	p1.energy = Fighter.MAX_ENERGY
+	await _press(0, BOTH_SPECIALS)
+	check(p1.state == Fighter.State.ATTACK and p1.current_slot == &"ultimate", "los dos especiales a la vez lanzan el ultimate")
+	check(p1.energy < 5.0, "gasta toda la energía (%.0f)" % p1.energy)
+	check(combat.cinematic_frames == CombatManager.ULT_CINEMATIC_FRAMES, "empieza la cinemática")
+	var time0 := combat.round_manager.time_left
+	var frame0 := p1.attack_frame
+	var tick0 := combat.tick_count
+	for i in 12:
+		await get_tree().physics_frame
+	check(p1.attack_frame == frame0 and combat.tick_count == tick0 and is_equal_approx(combat.round_manager.time_left, time0),
+		"durante la cinemática el combate y el reloj están parados")
+	check(combat.cinematic_frames < CombatManager.ULT_CINEMATIC_FRAMES and combat.camera.zoom.x > 1.0, "la cámara se acerca")
+	await _until(func(): return not _hits.is_empty(), 120)
+	check(combat.cinematic_frames == 0 and is_equal_approx(combat.camera.zoom.x, 1.0), "al acabar la cámara vuelve")
+	check(not _hits.is_empty() and is_equal_approx(_hits[0][3].damage, _full_damage(ult)),
+		"el ultimate hace su daño (%.1f)" % (0.0 if _hits.is_empty() else _hits[0][3].damage))
+	await _ticks(100)
+
+	# Bloqueado: daño de rozadura y la guardia se gasta.
+	await _place(60.0, STAND_BLOCK)
+	p1.energy = Fighter.MAX_ENERGY
+	await _press(0, BOTH_SPECIALS)
+	await _until(func(): return not _hits.is_empty(), 120)
+	check(not _hits.is_empty() and _hits[0][3].blocked, "se puede bloquear")
+	check(p2.guard < Fighter.MAX_GUARD or p2.guard_is_broken, "y gasta la guardia")
+	await _ticks(100)
+
+	# Segunda tecla un instante tarde: el especial recién empezado pasa a ultimate.
+	await _place(60.0)
+	p1.energy = Fighter.MAX_ENERGY
+	await _press(0, 1 << BIT_S1)
+	await _press(0, 1 << BIT_S2)
+	await _ticks(2)
+	check(p1.current_slot == &"ultimate" and p1.energy < 5.0, "la segunda tecla un frame tarde también vale")
+	await _until(func(): return not _hits.is_empty(), 120)
+	await _ticks(100)
+
+	# Con poca energía la segunda tecla tarde no le quita el especial.
+	await _place(60.0)
+	p1.energy = 60.0
+	await _press(0, 1 << BIT_S1)
+	await _press(0, 1 << BIT_S2)
+	await _ticks(2)
+	check(p1.current_slot == &"special_1" or p1.current_slot == &"special_2", "sin energía para el ultimate sigue el especial")
+	await _ticks(100)
+
+	# No se lanza en el aire.
+	await _place(60.0)
+	p1.energy = Fighter.MAX_ENERGY
+	p1.position.y = p1.floor_y - 60.0
+	p1.velocity.y = -100.0
+	p1._set_state(Fighter.State.JUMP)
+	await _press(0, BOTH_SPECIALS)
+	await _ticks(2)
+	check(p1.current_slot != &"ultimate", "no se puede lanzar en el aire")
+	await _ticks(60)
+
+	# La energía no pasa de una ronda a otra.
+	p1.energy = Fighter.MAX_ENERGY
+	p1.reset_for_round(p1.position.x, 1)
+	check(is_equal_approx(p1.energy, Fighter.ROUND_START_ENERGY), "cada ronda empieza con %d de energía" % int(Fighter.ROUND_START_ENERGY))

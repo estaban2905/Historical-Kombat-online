@@ -64,6 +64,9 @@ func start_round() -> void:
 func _physics_process(delta: float) -> void:
 	if phase != Phase.FIGHT or Game.mode == Game.Mode.TRAINING:
 		return
+	# El reloj se detiene durante la cinemática de un ultimate.
+	if combat.cinematic_frames > 0:
+		return
 	time_left = maxf(time_left - delta, 0.0)
 	if time_left <= 0.0:
 		_end_round("TIME")

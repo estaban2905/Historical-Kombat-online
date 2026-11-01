@@ -564,8 +564,8 @@ func _defense_rows() -> Array:
 		["COUNTER", [], "GOLPEA ANTES DE QUE ATAQUE", RED],
 		["AGARRE", [k.punch_light, "+", k.kick_light], "ROMPE EL BLOQUEO", PURPLE],
 		["ZAFARSE", [k.punch_light, "+", k.kick_light], "AL SER AGARRADO", PURPLE],
+		["ULTIMATE", [k.special_1, "+", k.special_2], "CON LA ENERGIA AL 100", HKTheme.GOLD],
 		["EVITAR DERRIBO", [k.block], "PULSA JUSTO AL CAER", BLUE],
-		["VOLTERETA", [k.left], "ATRÁS AL ESTAR TUMBADO", BLUE],
 	]
 
 func _energy_note(atk: AttackData) -> String:

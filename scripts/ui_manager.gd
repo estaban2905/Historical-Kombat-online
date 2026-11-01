@@ -108,6 +108,7 @@ func _draw() -> void:
 	_draw_timer()
 	_draw_message()
 	_draw_stage_name()
+	_draw_ultimate_cinematic()
 
 func _draw_stage_name() -> void:
 	if _stage_name.is_empty() or _stage_name_t >= 2.8:
@@ -160,6 +161,10 @@ func _draw_side(f: Fighter, i: int) -> void:
 	var ecol := Color("3a90ff")
 	if f.energy >= f.data.special_2.energy_cost:
 		ecol = Color("60d0ff") if int(_time * 4.0) % 2 == 0 else Color("3aa8ff")
+	var ult_ready := f.data.ultimate != null and f.energy >= f.data.ultimate.energy_cost
+	if ult_ready:
+		# Energía llena: el ultimate está listo (dorado parpadeante).
+		ecol = HKTheme.GOLD if int(_time * 6.0) % 2 == 0 else Color("fff4b0")
 	draw_rect(e_rect, ecol)
 	draw_rect(Rect2(e_rect.position, Vector2(e_rect.size.x, 1)), ecol.lightened(0.4))
 	# Marcas de coste de los especiales
@@ -169,6 +174,10 @@ func _draw_side(f: Fighter, i: int) -> void:
 			mx = ex + ENERGY_W - roundf(ENERGY_W * cost / Fighter.MAX_ENERGY)
 		draw_rect(Rect2(mx, ENERGY_Y - 1, 1, 6), HKTheme.PAPER)
 	_draw_guard(f, ex)
+	if ult_ready and not f.guard_is_broken:
+		var ua := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
+		var ux := ex if left else ex + ENERGY_W - 120.0
+		HKTheme.draw_text(self, Vector2(ux, 48), "¡ULTIMATE LISTO!", 8, HKTheme.GOLD, ua, 120)
 	if _no_energy_t[i] > 0.0:
 		var nx := 8.0 if left else 426.0 - 8.0 - 120.0
 		var na := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
@@ -223,6 +232,27 @@ func _draw_guard(f: Fighter, ex: float) -> void:
 		var gx := ex if left else ex + ENERGY_W - 120.0
 		var ga := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
 		HKTheme.draw_text(self, Vector2(gx, 60), "¡GUARDIA ROTA!", 8, HKTheme.BLOOD, ga, 120)
+
+## Cinemática del ultimate: bandas negras arriba y abajo y el nombre del ataque.
+func _draw_ultimate_cinematic() -> void:
+	var frames := combat.cinematic_frames
+	if frames <= 0 or combat.cinematic_fighter == null:
+		return
+	var elapsed := CombatManager.ULT_CINEMATIC_FRAMES - frames
+	var slide := ease(clampf(minf(float(elapsed) / 8.0, float(frames) / 8.0), 0.0, 1.0), 0.5)
+	var bar := 30.0 * slide
+	draw_rect(Rect2(0, 0, 426, bar), Color(0, 0, 0, 0.92))
+	draw_rect(Rect2(0, 240.0 - bar, 426, bar), Color(0, 0, 0, 0.92))
+	var f := combat.cinematic_fighter
+	var accent := f.data.coat_trim_color
+	# Nombre del luchador (arriba) y del ataque (abajo), con un pequeño temblor al entrar.
+	var pop := clampf(float(elapsed) / 6.0, 0.0, 1.0)
+	var shake_x := (1.0 - pop) * 8.0 * (1.0 if elapsed % 2 == 0 else -1.0)
+	if bar > 18.0:
+		HKTheme.draw_text(self, Vector2(shake_x, 19), f.data.display_name, 8, HKTheme.PAPER,
+			HORIZONTAL_ALIGNMENT_CENTER, 426)
+		HKTheme.draw_text(self, Vector2(shake_x, 240.0 - 11.0), combat.cinematic_text, 16, accent,
+			HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
 
 func _draw_timer() -> void:
 	var box := Rect2(213 - 17, 3, 34, 24)

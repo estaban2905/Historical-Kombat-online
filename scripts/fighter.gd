@@ -99,6 +99,11 @@ const TECH_FRAMES := 10
 const SWEEP_LAUNCH := -170.0
 ## Frames que se recuerda una pulsación de ataque hecha antes de tiempo.
 const INPUT_BUFFER_FRAMES := 6
+## Energía con la que empieza cada ronda (no se arrastra de la anterior).
+const ROUND_START_ENERGY := 30.0
+## Ultimate = Especial 1 + Especial 2 a la vez (la segunda tecla puede llegar hasta
+## ULT_INPUT_FRAMES frames tarde) con la energía llena. Solo en el suelo.
+const ULT_INPUT_FRAMES := 2
 const ENERGY_ON_HIT_DEALT := 6.0
 const ENERGY_ON_HIT_TAKEN := 4.0
 const ENERGY_ON_BLOCK := 3.0
@@ -246,7 +251,6 @@ func setup(p_data: FighterData, p_player_id: int, p_input: InputManager) -> void
 		visual.visible = true
 		visual.setup(data)
 	reset_for_round(position.x, 1)
-	energy = 30.0
 
 ## Restablece vida, estado y posición al empezar una ronda.
 func reset_for_round(x: float, p_facing: int) -> void:
@@ -254,6 +258,7 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	velocity = Vector2.ZERO
 	facing = p_facing
 	health = data.max_health
+	energy = ROUND_START_ENERGY
 	guard = MAX_GUARD
 	guard_idle = 0
 	guard_is_broken = false
@@ -490,6 +495,10 @@ func _state_attack() -> void:
 	if attack_frame < GRAB_INPUT_FRAMES and _is_grab_pair(current_slot, buffered_slot) \
 			and _try_start_attack(&"grab"):
 		return
+	# Lo mismo con el ultimate: el especial recién empezado se convierte en ultimate.
+	if attack_frame < ULT_INPUT_FRAMES and _is_ult_pair(current_slot, buffered_slot) \
+			and _upgrade_to_ultimate():
+		return
 	if _try_cancel():
 		return
 	attack_frame += 1
@@ -632,12 +641,43 @@ func _read_attack_buffer() -> void:
 	if slot != &"":
 		if input.just_pressed(&"punch_light") and input.just_pressed(&"kick_light"):
 			slot = &"grab"
+		elif input.just_pressed(&"special_1") and input.just_pressed(&"special_2") and can_use_ultimate():
+			slot = &"ultimate"
 		buffered_slot = slot
 		buffered_frames = INPUT_BUFFER_FRAMES
 
 ## true si a y b son las dos teclas del agarre (en cualquier orden).
 static func _is_grab_pair(a: StringName, b: StringName) -> bool:
 	return (a == &"punch_light" and b == &"kick_light") or (a == &"kick_light" and b == &"punch_light")
+
+## true si a y b son los dos especiales (en cualquier orden).
+static func _is_ult_pair(a: StringName, b: StringName) -> bool:
+	return (a == &"special_1" and b == &"special_2") or (a == &"special_2" and b == &"special_1")
+
+## ¿Se puede lanzar el ultimate ahora? Tiene que existir, estar en el suelo y haber
+## energía suficiente.
+func can_use_ultimate() -> bool:
+	return data != null and data.ultimate != null and is_on_ground() \
+		and energy >= data.ultimate.energy_cost
+
+## Segunda tecla del ultimate llegada un instante tarde: se devuelve la energía y el
+## enfriamiento del especial recién empezado y se lanza el ultimate en su lugar. Si
+## con ese reembolso no llega la energía, el especial sigue su curso.
+func _upgrade_to_ultimate() -> bool:
+	if data.ultimate == null or not is_on_ground() or current_attack == null:
+		return false
+	var spent := current_attack.energy_cost
+	if energy + spent < data.ultimate.energy_cost:
+		return false
+	var slot := current_slot
+	var old_cooldown: int = cooldowns.get(slot, 0)
+	add_energy(spent)
+	cooldowns[slot] = 0
+	if _try_start_attack(&"ultimate"):
+		return true
+	add_energy(-spent)
+	cooldowns[slot] = old_cooldown
+	return false
 
 ## Cancela el ataque en curso en el que hay en el búfer, si las reglas lo permiten:
 ## el golpe tiene que haber conectado (o ser bloqueado), la ranura nueva no puede
@@ -660,7 +700,7 @@ func _try_start_attack(slot: StringName, chained: bool = false) -> bool:
 	if atk == null:
 		return false
 	var airborne := not is_on_ground()
-	if airborne and (not atk.usable_in_air or air_attack_used):
+	if airborne and (not atk.usable_in_air or air_attack_used or slot == &"ultimate"):
 		return false
 	if cooldowns.get(slot, 0) > 0:
 		return false
