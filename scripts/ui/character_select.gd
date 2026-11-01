@@ -1,4 +1,4 @@
-## Selección de luchador para Versus local.
+## Selección de luchador para Versus local, Arcade y Duelo online.
 ## Rejilla de 42 casillas: las de los personajes disponibles y el resto
 ## bloqueadas ("?") como adelanto del roster completo.
 ##   J1: A/D/W/S mover · U confirmar · J cancelar
@@ -19,7 +19,8 @@ var confirmed: Array[bool] = [false, false, false]
 var _previews: Array = [null, null, null]
 var _t: float = 0.0
 var _starting: bool = false
-## Arcade (1 jugador vs CPU): solo elige J1; los rivales los sortea Game.
+## Arcade (1 jugador vs CPU) y online: solo elige J1; el rival lo sortea Game o lo
+## pone el servidor. Se llama _cpu porque oculta el panel de J2.
 var _cpu: bool = false
 var _inputs: Array = [null, InputManager.new(1), InputManager.new(2)]
 ## Capa superior para dibujar los cursores por encima de los retratos.
@@ -27,7 +28,7 @@ var _overlay: Control
 
 func _ready() -> void:
 	theme = HKTheme.theme()
-	_cpu = Game.is_vs_cpu()
+	_cpu = Game.is_vs_cpu() or Game.is_online()
 	confirmed[2] = _cpu
 	roster = FighterRegistry.all()
 	cursor[1] = FighterRegistry.index_of(Game.p1_fighter_id)
@@ -123,7 +124,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _check_start() -> void:
 	if confirmed[1] and confirmed[2] and not _starting:
 		_starting = true
-		if _cpu:
+		if Game.is_online():
+			Game.p1_fighter_id = roster[cursor[1]].id
+		elif _cpu:
 			Game.start_arcade(roster[cursor[1]].id)
 		else:
 			Game.p1_fighter_id = roster[cursor[1]].id
@@ -131,7 +134,7 @@ func _check_start() -> void:
 		Sfx.play(&"fight")
 		await get_tree().create_timer(1.0).timeout
 		if is_inside_tree():
-			Game.goto(Game.SCENE_FIGHT)
+			Game.goto(Game.SCENE_LOBBY if Game.is_online() else Game.SCENE_FIGHT)
 
 func _draw() -> void:
 	HKTheme.draw_text(self, Vector2(0, 20), "ELIGE TU LUCHADOR", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
@@ -151,6 +154,11 @@ func _draw() -> void:
 		var x0 := 4.0 if p == 1 else 300.0
 		var w := 122.0
 		var col: Color = P1_COLOR if p == 1 else P2_COLOR
+		if Game.is_online() and p == 2:
+			HKTheme.draw_text(self, Vector2(x0, 44), "RIVAL", 8, col, HORIZONTAL_ALIGNMENT_CENTER, w)
+			HKTheme.draw_text(self, Vector2(x0, 100), "OTRA PERSONA", 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w)
+			HKTheme.draw_text(self, Vector2(x0, 112), "POR INTERNET", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)
+			continue
 		if _cpu and p == 2:
 			HKTheme.draw_text(self, Vector2(x0, 44), "CPU", 8, col, HORIZONTAL_ALIGNMENT_CENTER, w)
 			HKTheme.draw_text(self, Vector2(x0, 100), "%d RIVALES" % Game.ARCADE_RIVALS, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w)

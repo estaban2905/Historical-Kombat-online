@@ -45,6 +45,11 @@ custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "VERSUS LOCAL"
 
+[node name="Online" type="Button" parent="Buttons" unique_id=1649249600]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+text = "DUELO ONLINE"
+
 [node name="Training" type="Button" parent="Buttons" unique_id=1649249511]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2

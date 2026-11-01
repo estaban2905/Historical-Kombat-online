@@ -69,6 +69,8 @@ func _ready() -> void:
 		ai = AIController.new(p2, p1, Game.ai_level())
 	add_child(DebugOverlay.new(self))
 	hud.bind(self)
+	if Game.is_online():
+		_start_online()
 	if Game.mode == Game.Mode.TRAINING:
 		training = TrainingMode.new(self)
 		hud.get_parent().add_child(training)
@@ -154,6 +156,10 @@ func _physics_process(delta: float) -> void:
 		return
 	if _input_source.is_valid():
 		var masks: Array = _input_source.call(tick_count)
+		# Vacío = aún faltan los botones del rival (online): el combate espera este tick.
+		_set_waiting(masks.is_empty())
+		if masks.is_empty():
+			return
 		p1.input.apply_mask(masks[0])
 		p2.input.apply_mask(masks[1])
 	if ai:
@@ -181,6 +187,56 @@ func set_input_source(source: Callable) -> void:
 	_input_source = source
 	for f in fighters:
 		f.input.use_keyboard = false
+
+# =========================================================================
+#  Duelo online
+# =========================================================================
+## Aviso mientras faltan los botones del rival (solo presentación).
+var _waiting_label: Label
+
+func _start_online() -> void:
+	set_input_source(Online.input_source)
+	Online.begin_fight()
+	Online.opponent_left.connect(_on_online_opponent_left, CONNECT_ONE_SHOT)
+	Online.failed.connect(_on_online_failed, CONNECT_ONE_SHOT)
+	var layer := CanvasLayer.new()
+	layer.layer = 40
+	add_child(layer)
+	_waiting_label = Label.new()
+	_waiting_label.theme = HKTheme.theme()
+	_waiting_label.text = "ESPERANDO AL RIVAL..."
+	_waiting_label.position = Vector2(0, 222)
+	_waiting_label.size = Vector2(426, 12)
+	_waiting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_waiting_label.visible = false
+	layer.add_child(_waiting_label)
+
+## Muestra el aviso solo si la espera ya se nota (más de ~6 frames seguidos).
+func _set_waiting(waiting: bool) -> void:
+	if _waiting_label != null:
+		_waiting_label.visible = waiting and Online.stalled_ticks > 6
+
+## El rival se desconectó en plena pelea: la partida se da por ganada.
+func _on_online_opponent_left() -> void:
+	if Online.failed.is_connected(_on_online_failed):
+		Online.failed.disconnect(_on_online_failed)
+	hud.show_message("RIVAL DESCONECTADO", 2.0, HKTheme.GOLD)
+	round_manager.abort()
+	await get_tree().create_timer(2.0).timeout
+	if not is_inside_tree():
+		return
+	Game.set_match_result(Online.side, round_manager.wins[1], round_manager.wins[2])
+	Game.goto(Game.SCENE_RESULTS)
+
+## Se perdió MI conexión: no hay ganador, se vuelve al menú.
+func _on_online_failed(message: String) -> void:
+	if Online.opponent_left.is_connected(_on_online_opponent_left):
+		Online.opponent_left.disconnect(_on_online_opponent_left)
+	hud.show_message(message, 2.0, HKTheme.BLOOD)
+	round_manager.abort()
+	await get_tree().create_timer(2.0).timeout
+	if is_inside_tree():
+		Game.goto(Game.SCENE_MENU)
 
 ## Resumen numérico del estado del combate. Dos máquinas que van sincronizadas
 ## devuelven el mismo valor en el mismo tick; si difiere, hay desincronización.

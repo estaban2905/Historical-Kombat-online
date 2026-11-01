@@ -16,6 +16,9 @@ func _ready() -> void:
 	get_tree().paused = false
 	if Game.is_vs_cpu():
 		_arcade = Game.arcade_outcome()
+	if Game.is_online():
+		# La partida terminó: se libera la conexión con el servidor.
+		Online.disconnect_from_server()
 	_setup_buttons()
 	for b in [btn_rematch, btn_select, btn_menu]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
@@ -36,6 +39,11 @@ func _ready() -> void:
 ## (gasta una revancha) o solo volver al menú si se acabó la partida.
 func _setup_buttons() -> void:
 	btn_menu.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
+	if Game.is_online():
+		# Sin revancha online todavía: hay que volver a buscar rival desde el menú.
+		btn_rematch.visible = false
+		btn_select.visible = false
+		return
 	if _arcade == &"":
 		btn_rematch.pressed.connect(func(): Game.goto(Game.SCENE_FIGHT))
 		btn_select.pressed.connect(func(): Game.goto(Game.SCENE_SELECT))
@@ -79,6 +87,8 @@ func _draw() -> void:
 		var title := "PLAYER %d WINS" % Game.last_winner
 		if _arcade != &"":
 			title = "YOU WIN" if Game.last_winner == 1 else "CPU WINS"
+		elif Game.is_online():
+			title = "YOU WIN" if Game.last_winner == Online.side else "YOU LOSE"
 		HKTheme.draw_text(self, Vector2(x0, 36), title, 16, pulse, HORIZONTAL_ALIGNMENT_CENTER, w, 4)
 		HKTheme.draw_text(self, Vector2(x0, 54), _winner_data.display_name, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w)
 		_draw_wrapped(Vector2(x0 + 8, 92), "\"%s\"" % _winner_data.victory_quote, w - 16, Color("e8d8b8"))

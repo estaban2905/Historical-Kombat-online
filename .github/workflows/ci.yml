@@ -86,6 +86,21 @@ jobs:
       # Imprescindible para el online: ambos PC deben simular exactamente igual.
       - name: Determinismo
         run: ~/godot/godot --headless --path . res://tests/DeterminismTest.tscn
+      # Dos PCs simulados con lag: las peleas deben quedar idénticas.
+      - name: Online (sincronización con lag)
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn
+      - name: Online (pantallas)
+        run: ~/godot/godot --headless --path . res://tests/OnlineUiTest.tscn
+      # Servidor real + dos clientes Godot conectados por WebSocket.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Online (extremo a extremo)
+        run: |
+          (cd server && npm ci && npm run build)
+          GODOT=$HOME/godot/godot bash tests/run_online_e2e.sh
 
   deploy-server:
     name: Deploy servidor (Railway)

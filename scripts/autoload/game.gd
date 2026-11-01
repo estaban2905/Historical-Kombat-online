@@ -10,6 +10,7 @@ const SCENE_SELECT := "res://scenes/CharacterSelect.tscn"
 const SCENE_FIGHT := "res://scenes/Fight.tscn"
 const SCENE_RESULTS := "res://scenes/Results.tscn"
 const SCENE_CONTROLS := "res://scenes/Controls.tscn"
+const SCENE_LOBBY := "res://scenes/OnlineLobby.tscn"
 
 const VERSION := "0.1.0"
 
@@ -29,7 +30,8 @@ var last_p2_rounds: int = 0
 
 # --- Modos de juego ---
 ## TRAINING: modo entrenamiento (muñeco, vida infinita y frame data; ver training_mode.gd).
-enum Mode { VERSUS, ARCADE, TRAINING }
+## ONLINE: duelo contra otra persona por internet (ver online.gd).
+enum Mode { VERSUS, ARCADE, TRAINING, ONLINE }
 enum Difficulty { EASY, NORMAL, HARD }
 
 const DIFFICULTY_NAMES: Array[String] = ["FÁCIL", "NORMAL", "DIFÍCIL"]
@@ -134,6 +136,10 @@ func set_match_result(winner: int, p1_rounds: int, p2_rounds: int) -> void:
 ## true si P2 lo maneja la CPU.
 func is_vs_cpu() -> bool:
 	return mode == Mode.ARCADE
+
+## true si P2 es una persona remota (duelo online).
+func is_online() -> bool:
+	return mode == Mode.ONLINE
 
 func cycle_difficulty() -> void:
 	difficulty = ((int(difficulty) + 1) % DIFFICULTY_NAMES.size()) as Difficulty

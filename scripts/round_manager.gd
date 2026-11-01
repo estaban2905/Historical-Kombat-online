@@ -25,6 +25,14 @@ var _ko_pending: bool = false
 
 func _ready() -> void:
 	combat = get_parent() as CombatManager
+	# El reloj cuenta ticks del combate, no tiempo del motor: si el combate espera
+	# (partida online) o se pausa, el reloj se detiene con él.
+	combat.ticked.connect(_on_tick)
+
+## Corta la partida sin resultado (se cayó la conexión): ya no hay rondas ni reloj.
+func abort() -> void:
+	phase = Phase.MATCH_END
+	combat.set_controls(false)
 
 func start_match() -> void:
 	wins = [0, 0, 0]
@@ -61,13 +69,15 @@ func start_round() -> void:
 	combat.set_controls(true)
 	phase = Phase.FIGHT
 
-func _physics_process(delta: float) -> void:
+const TICK_SECONDS := 1.0 / 60.0
+
+func _on_tick() -> void:
 	if phase != Phase.FIGHT or Game.mode == Game.Mode.TRAINING:
 		return
 	# El reloj se detiene durante la cinemática de un ultimate.
 	if combat.cinematic_frames > 0:
 		return
-	time_left = maxf(time_left - delta, 0.0)
+	time_left = maxf(time_left - TICK_SECONDS, 0.0)
 	if time_left <= 0.0:
 		_end_round("TIME")
 

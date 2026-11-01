@@ -28,6 +28,14 @@ func _ready() -> void:
 	title.add_theme_color_override("font_color", HKTheme.GOLD)
 	box.add_child(title)
 	_first_button = _add_button(box, "CONTINUAR", resume)
+	if Game.is_online():
+		# Online no se puede pausar (el rival seguiría esperando): solo salir.
+		title.text = "DUELO ONLINE"
+		_add_button(box, "ABANDONAR PARTIDA", func():
+			Online.disconnect_from_server()
+			Game.goto(Game.SCENE_MENU))
+		visible = false
+		return
 	_add_button(box, "CONTROLES", _open_controls)
 	var gore_btn := _add_button(box, "SANGRE: " + Game.gore_name(), func(): pass)
 	gore_btn.pressed.connect(func():
@@ -70,7 +78,8 @@ func _open_controls() -> void:
 
 func open() -> void:
 	visible = true
-	get_tree().paused = true
+	# Online el combate sigue corriendo: pausarlo solo congelaría a un jugador.
+	get_tree().paused = not Game.is_online()
 	_first_button.grab_focus()
 
 func resume() -> void:

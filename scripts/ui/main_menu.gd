@@ -1,12 +1,13 @@
-## Menú principal: ARCADE, VERSUS LOCAL, ENTRENAMIENTO, DIFICULTAD, PERSONAJES, OPCIONES, CRÉDITOS.
-## ARCADE (1 jugador contra la CPU) y VERSUS LOCAL (2 jugadores) llevan a la
-## selección de luchador. DIFICULTAD cambia el nivel de la CPU.
+## Menú principal: ARCADE, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO, DIFICULTAD, PERSONAJES, OPCIONES, CRÉDITOS.
+## ARCADE (1 jugador contra la CPU), VERSUS LOCAL (2 jugadores) y DUELO ONLINE
+## (contra otra persona por internet) llevan a la selección de luchador. DIFICULTAD cambia el nivel de la CPU.
 ## El resto abre pantallas informativas mientras no estén implementadas.
 extends Control
 
 @onready var buttons: VBoxContainer = $Buttons
 @onready var btn_play: Button = $Buttons/Play
 @onready var btn_versus: Button = $Buttons/Versus
+@onready var btn_online: Button = $Buttons/Online
 @onready var btn_training: Button = $Buttons/Training
 @onready var btn_difficulty: Button = $Buttons/Difficulty
 @onready var btn_roster: Button = $Buttons/Roster
@@ -31,6 +32,7 @@ func _ready() -> void:
 	footer.text = "v%s" % Game.VERSION
 	btn_play.pressed.connect(func(): _go_select(Game.Mode.ARCADE))
 	btn_versus.pressed.connect(func(): _go_select(Game.Mode.VERSUS))
+	btn_online.pressed.connect(func(): _go_select(Game.Mode.ONLINE))
 	btn_training.pressed.connect(func(): _go_select(Game.Mode.TRAINING))
 	btn_difficulty.pressed.connect(_cycle_difficulty)
 	btn_roster.pressed.connect(_show_roster)
@@ -39,7 +41,7 @@ func _ready() -> void:
 	btn_credits.pressed.connect(_show_credits)
 	info_back.pressed.connect(_close_info)
 	_refresh_difficulty()
-	for b in [btn_play, btn_versus, btn_training, btn_difficulty, btn_roster, btn_controls, btn_options, btn_credits, info_back]:
+	for b in [btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_options, btn_credits, info_back]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	info.visible = false
