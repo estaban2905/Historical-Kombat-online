@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Un push nuevo cancela la ejecución anterior de un PR, pero nunca un deploy
+# en curso: cortar `railway up` a medias podría dejar un release a medias.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GODOT_VERSION: "4.7-stable"
+
+jobs:
+  server:
+    name: Servidor (typecheck + tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Docker build (servidor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # El mismo Dockerfile que construye Railway: detecta un lockfile roto
+      # o un paso de build que falla antes de que lo haga el deploy.
+      - uses: docker/build-push-action@v6
+        with:
+          context: server
+          file: server/Dockerfile
+          push: false
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,scope=server,mode=max
+
+  godot-tests:
+    name: Godot (pruebas del juego)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache de Godot
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}
+      - name: Descargar Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+      # .godot/ no está en el repo: hay que importar los recursos antes de probar.
+      - name: Importar recursos
+        run: ~/godot/godot --headless --path . --import
+      - name: Escenas, menús y entrada
+        run: ~/godot/godot --headless --path . res://tests/TestRunner.tscn
+      - name: Frame data
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/FrameDataTest.tscn
+      - name: Mecánicas
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/MechanicsTest.tscn
+      - name: Entrenamiento
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/TrainingTest.tscn
+      # Imprescindible para el online: ambos PC deben simular exactamente igual.
+      - name: Determinismo
+        run: ~/godot/godot --headless --path . res://tests/DeterminismTest.tscn
+
+  deploy-server:
+    name: Deploy servidor (Railway)
+    needs: [server, docker, godot-tests]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'develop' }}
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      DEPLOY_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'develop' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Se sube solo la carpeta server/ (con su Dockerfile y railway.json).
+      - name: Deploy a Railway
+        working-directory: server
+        run: npx --yes @railway/cli@5.64.2 up --ci --service server --environment "$DEPLOY_ENV"
