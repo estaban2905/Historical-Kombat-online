@@ -83,6 +83,7 @@ No hay dependencias externas ni plugins.
 - **Evitar el derribo:** pulsar **bloqueo** (soltando y volviendo a pulsar) hasta 8 frames antes de tocar el suelo: se levanta al instante, con 10 frames de invulnerabilidad y sin quedar tumbado.
 - **Voltereta:** manteniendo **atrás** cuando termina el derribo se levanta rodando hacia atrás (unos 80 px, 26 frames, invulnerable los primeros 16).
 - **Ultimate:** **Especial 1 + Especial 2 a la vez** (la segunda tecla puede llegar hasta 2 frames tarde) con la energía al 100. Solo en el suelo. Congela el combate 48 frames con zoom sobre quien lo lanza y el nombre del ataque; después el golpe (área grande delante, 35 de daño base) es bloqueable y los bloqueos gastan mucha guardia. Cada ronda empieza con 30 de energía (ya no se arrastra). Prueba visual: `godot --path . res://tests/UltimateShots.tscn -- <carpeta>`.
+- **CPU (`scripts/ai_controller.gd`):** además de caminar, atacar y bloquear alto/bajo, encadena cancelaciones tras un golpe que conecta, castiga ataques con recuperación larga (solo si su golpe llega a tiempo), usa el antiaéreo contra saltos cercanos, mezcla golpes bajos contra quien bloquea de pie, agarra a quien se encierra, se escapa con backdash, lanza el ultimate con la energía llena, evita el derribo pulsando bloqueo al caer y a veces se levanta con voltereta. Todo escala con el nivel de dificultad.
 - **Zafarse de un agarre:** pulsar puño débil + patada débil en los primeros 10 frames de la llave. Si los dos jugadores se agarran a la vez, también se zafan.
 - Las teclas del jugador 2 tienen una alternativa en el bloque de navegación para portátiles sin teclado numérico.
 - Algunos teclados baratos no registran muchas teclas a la vez ("ghosting"); si un jugador deja de responder al pulsar varias teclas, es una limitación del teclado.
@@ -295,7 +296,7 @@ Capturas de pantalla (necesita pantalla o `xvfb-run`): `godot --path . res://tes
 - Equilibrar a los 30 luchadores con partidas reales (las estadísticas actuales son una primera propuesta por arquetipo).
 - Sprites definitivos dibujados a mano y retratos (el sistema ya los admite).
 - Ataque definitivo (los datos ya existen en cada ficha; falta asignarle entrada y animación).
-- Combos con nombre propios por personaje (hoy todos usan TRÍO y CUARTETO) y que la CPU enlace cancelaciones.
+- Combos con nombre propios por personaje (hoy todos usan TRÍO y CUARTETO).
 - Movimientos especiales con secuencias de joystick (↓↘→ + botón).
 - Agarres / llaves.
 - Más escenarios y selector de escenario.

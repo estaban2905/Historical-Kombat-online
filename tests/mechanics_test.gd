@@ -61,6 +61,7 @@ func _run() -> void:
 	await _test_movement()
 	await _test_knockdown()
 	await _test_ultimate()
+	await _test_ai()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -775,3 +776,131 @@ func _test_ultimate() -> void:
 	p1.energy = Fighter.MAX_ENERGY
 	p1.reset_for_round(p1.position.x, 1)
 	check(is_equal_approx(p1.energy, Fighter.ROUND_START_ENERGY), "cada ronda empieza con %d de energía" % int(Fighter.ROUND_START_ENERGY))
+
+# --- IA ---------------------------------------------------------------------
+## Pone una IA de nivel máximo (con semilla, para que el resultado sea repetible) en P2.
+func _ai_on(seed_value: int) -> AIController:
+	var ai := AIController.new(combat.p2, combat.p1, 1.0)
+	ai._rng.seed = seed_value
+	combat.ai = ai
+	return ai
+
+func _ai_off() -> void:
+	combat.ai = null
+	combat.p2.input.release_all()
+
+func _test_ai() -> void:
+	print("
+# IA")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	await _wait_round()
+
+	# Ultimate con la energía llena y el rival a tiro.
+	await _place(60.0)
+	var ai := _ai_on(11)
+	p2.energy = Fighter.MAX_ENERGY
+	check(await _until(func(): return p2.current_slot == &"ultimate", 200), "la CPU lanza el ultimate con la energía llena")
+	_ai_off()
+	await _ticks(160)
+
+	# Antiaéreo contra un salto cercano.
+	await _place(50.0)
+	ai = _ai_on(12)
+	var anti := false
+	for i in 90:
+		p1.position.y = p1.floor_y - 60.0
+		p1.velocity.y = -10.0
+		p1._set_state(Fighter.State.JUMP)
+		await combat.ticked
+		if p2.current_attack != null and p2.current_attack.id == &"uppercut":
+			anti = true
+			break
+	check(anti, "la CPU usa el antiaéreo contra un salto cercano")
+	_ai_off()
+	await _ticks(60)
+
+	# Castigo: elige un golpe que llega antes de que el rival se recupere.
+	await _place(30.0)
+	ai = _ai_on(13)
+	var heavy := p1.data.kick_heavy
+	p1._set_state(Fighter.State.ATTACK)
+	p1.current_attack = heavy
+	p1.current_slot = &"kick_heavy"
+	p1.attack_frame = heavy.startup + heavy.active + 1
+	var pick := ai._punish_slot(30.0)
+	check(pick != &"", "la CPU ve cómo castigar un ataque en recuperación (%s)" % pick)
+	p1.attack_frame = heavy.total_frames() - 1
+	check(ai._punish_slot(30.0) == &"", "pero no si ya no le da tiempo")
+	_ai_off()
+	await _ticks(60)
+
+	# Cancelaciones: tras conectar un golpe débil, encadena otro.
+	var chained := false
+	ai = _ai_on(14)
+	for t in 10:
+		await _place(34.0)
+		ai = _ai_on(14 + t)
+		p2.energy = 0.0
+		await _press(1, 1 << BIT_LP)
+		for i in 40:
+			await combat.ticked
+			if p2.chain_slots.size() >= 2:
+				chained = true
+				break
+		if chained:
+			break
+	check(chained, "la CPU cancela un golpe que conecta en otro")
+	_ai_off()
+	await _ticks(60)
+
+	# Backdash para escapar de la presión.
+	var dashed := false
+	for t in 40:
+		await _place(36.0)
+		await _press(0, 1 << BIT_LP)
+		ai = _ai_on(100 + t)
+		for i in 30:
+			await combat.ticked
+			if p2.state == Fighter.State.BACKDASH:
+				dashed = true
+				break
+		if dashed:
+			break
+	check(dashed, "la CPU se escapa con un backdash")
+	_ai_off()
+	await _ticks(60)
+
+	# Evitar el derribo pulsando bloqueo al caer.
+	var teched := false
+	for t in 12:
+		await _place(60.0)
+		ai = _ai_on(200 + t)
+		_launch_p2()
+		var down := false
+		for i in 60:
+			await combat.ticked
+			down = down or p2.state == Fighter.State.KNOCKDOWN
+		if not down:
+			teched = true
+			break
+	check(teched, "la CPU evita el derribo a veces")
+	_ai_off()
+	await _ticks(60)
+
+	# Tumbada, a veces se levanta rodando.
+	var rolled := false
+	for t in 12:
+		await _place(60.0)
+		ai = _ai_on(300 + t)
+		_launch_p2()
+		for i in 120:
+			await combat.ticked
+			if p2.state == Fighter.State.WAKEUP and p2.wake_rolling:
+				rolled = true
+				break
+		if rolled:
+			break
+	check(rolled, "la CPU se levanta con voltereta a veces")
+	_ai_off()
+	await _ticks(60)
