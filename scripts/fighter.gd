@@ -24,7 +24,9 @@ signal landed(fighter: Fighter)
 ## THROW: está ejecutando una llave · THROWN: la está sufriendo.
 ## PREJUMP: se agacha antes de saltar · LAND: recuperación al aterrizar tras un
 ## ataque aéreo · BACKDASH: salto hacia atrás con invulnerabilidad.
-enum State { IDLE, WALK, JUMP, CROUCH, BLOCK, ATTACK, HIT, KO, VICTORY, THROW, THROWN, PREJUMP, LAND, BACKDASH }
+## KNOCKDOWN: tumbado en el suelo tras un lanzamiento, barrido o agarre (no se le
+## puede golpear) · WAKEUP: levantándose, con unos frames de invulnerabilidad.
+enum State { IDLE, WALK, JUMP, CROUCH, BLOCK, ATTACK, HIT, KO, VICTORY, THROW, THROWN, PREJUMP, LAND, BACKDASH, KNOCKDOWN, WAKEUP }
 
 const GRAVITY := 1100.0
 const GROUND_FRICTION := 900.0
@@ -76,6 +78,25 @@ const BACKDASH_FRAMES := 20
 const BACKDASH_MOVE_FRAMES := 9
 const BACKDASH_SPEED := 200.0
 const BACKDASH_INVULN_FRAMES := 4
+## Derribo. Un lanzamiento (launch < 0), un barrido (patada agachada) o un agarre
+## tiran al rival: al aterrizar queda KNOCKDOWN_FRAMES frames tumbado sin poder ser
+## golpeado. Al levantarse hay tres opciones: quedarse (se levanta WAKEUP_FRAMES
+## frames, invulnerable los primeros WAKEUP_INVULN), rodar hacia atrás (manteniendo
+## atrás al final del derribo: ROLL_FRAMES frames, invulnerable ROLL_INVULN y se
+## desplaza a ROLL_SPEED durante ROLL_MOVE_FRAMES) o evitar el derribo pulsando
+## bloqueo justo antes de caer (ventana TECH_FALL_WINDOW): se levanta al instante,
+## TECH_FRAMES frames invulnerable.
+const KNOCKDOWN_FRAMES := 30
+const WAKEUP_FRAMES := 14
+const WAKEUP_INVULN := 8
+const ROLL_FRAMES := 26
+const ROLL_INVULN := 16
+const ROLL_MOVE_FRAMES := 14
+const ROLL_SPEED := 260.0
+const TECH_FALL_WINDOW := 8
+const TECH_FRAMES := 10
+## Un barrido que conecta levanta al rival del suelo con este impulso para derribarlo.
+const SWEEP_LAUNCH := -170.0
 ## Frames que se recuerda una pulsación de ataque hecha antes de tiempo.
 const INPUT_BUFFER_FRAMES := 6
 const ENERGY_ON_HIT_DEALT := 6.0
@@ -143,6 +164,7 @@ var attack_connected: bool = false
 ## Pulsación de salto recordada (frames) y si la tecla estaba pulsada el frame anterior.
 var jump_buffer: int = 0
 var _prev_jump_held: bool = false
+var _prev_block_held: bool = false
 ## true cuando ya se ha usado el ataque aéreo de este salto.
 var air_attack_used: bool = false
 ## Variantes de antiaéreo por ataque base (se crean al usarse).
@@ -153,6 +175,14 @@ var chain_slots: Array[StringName] = []
 var attack_combo: ComboData
 ## Golpes seguidos recibidos en el aire (límite JUGGLE_LIMIT).
 var juggle_hits: int = 0
+## true si, al aterrizar, el golpe recibido deja al luchador en KNOCKDOWN.
+var knockdown_pending: bool = false
+## Frames que quedan de la pulsación de bloqueo hecha al caer (para evitar el derribo).
+var tech_fall_buffer: int = 0
+## Levantarse: duración total, frames invulnerables y si es una voltereta.
+var wake_frames: int = 0
+var wake_invuln: int = 0
+var wake_rolling: bool = false
 
 var stun_frames: int = 0
 var hitstop_frames: int = 0
@@ -228,8 +258,14 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	guard_idle = 0
 	guard_is_broken = false
 	juggle_hits = 0
+	knockdown_pending = false
+	tech_fall_buffer = 0
+	wake_frames = 0
+	wake_invuln = 0
+	wake_rolling = false
 	jump_buffer = 0
 	_prev_jump_held = false
+	_prev_block_held = false
 	air_attack_used = false
 	_end_attack()
 	stun_frames = 0
@@ -263,6 +299,7 @@ func tick(delta: float) -> void:
 	frame_counter += 1
 	_read_attack_buffer()
 	_read_jump_buffer()
+	_read_tech_fall_buffer()
 	_tick_status()
 	if hitstop_frames > 0:
 		hitstop_frames -= 1
@@ -302,6 +339,10 @@ func tick(delta: float) -> void:
 			_state_land()
 		State.BACKDASH:
 			_state_backdash()
+		State.KNOCKDOWN:
+			_state_knockdown()
+		State.WAKEUP:
+			_state_wakeup()
 		State.KO, State.VICTORY:
 			_apply_friction(delta)
 
@@ -493,6 +534,60 @@ func _state_hit() -> void:
 		stun_frames -= 1
 	if stun_frames <= 0 and is_on_ground():
 		combo_hits_taken = 0
+		_set_state(State.IDLE)
+
+## Recuerda unos frames la pulsación de bloqueo hecha mientras se cae derribado.
+func _read_tech_fall_buffer() -> void:
+	var held := controls_enabled and input != null and input.is_held(&"block")
+	if held and not _prev_block_held:
+		# +1: el contador baja al principio del tick, antes de aterrizar.
+		tech_fall_buffer = TECH_FALL_WINDOW + 1
+	elif tech_fall_buffer > 0 and hitstop_frames == 0:
+		tech_fall_buffer -= 1
+	_prev_block_held = held
+
+## Aterriza derribado: o evita el derribo (bloqueo pulsado al caer) o queda tumbado.
+func _land_knockdown() -> void:
+	knockdown_pending = false
+	stun_frames = 0
+	if tech_fall_buffer > 0:
+		combo_hits_taken = 0
+		velocity.x = 0.0
+		_start_wakeup(TECH_FRAMES, TECH_FRAMES, false)
+	else:
+		_set_state(State.KNOCKDOWN)
+
+## Tumbado: no se le puede golpear. Al acabar elige cómo levantarse según lo que
+## mantenga: atrás = voltereta hacia atrás; cualquier otra cosa = levantarse en el sitio.
+func _state_knockdown() -> void:
+	_apply_friction(1.0 / 60.0)
+	if state_frames < KNOCKDOWN_FRAMES:
+		return
+	combo_hits_taken = 0
+	var h := input.horizontal() if controls_enabled else 0
+	if invert_frames > 0:
+		h = -h
+	if h != 0 and h != facing:
+		velocity.x = -facing * ROLL_SPEED
+		_start_wakeup(ROLL_FRAMES, ROLL_INVULN, true)
+	else:
+		_start_wakeup(WAKEUP_FRAMES, WAKEUP_INVULN, false)
+
+func _start_wakeup(total: int, invuln: int, rolling: bool) -> void:
+	wake_frames = total
+	wake_invuln = invuln
+	wake_rolling = rolling
+	_set_state(State.WAKEUP)
+
+## Levantándose: invulnerable los primeros wake_invuln frames; luego ya se puede golpear.
+func _state_wakeup() -> void:
+	if wake_rolling:
+		if state_frames > ROLL_MOVE_FRAMES:
+			_apply_friction(1.0 / 60.0)
+	else:
+		velocity.x = 0.0
+	if state_frames >= wake_frames:
+		wake_rolling = false
 		_set_state(State.IDLE)
 
 ## Llave: sujeta a la víctima delante y, al acabar THROW_FRAMES, avisa a
@@ -710,13 +805,15 @@ func get_hit_rect() -> Rect2:
 func register_hit(target: Fighter) -> void:
 	hit_targets.append(target)
 
-## Durante una llave ninguno de los dos puede recibir otros golpes, ni durante los
-## primeros frames de un backdash. Un rival que
+## Durante una llave ninguno de los dos puede recibir otros golpes, ni tumbado, ni
+## durante los primeros frames de un backdash o de levantarse. Un rival que
 ## ya ha recibido JUGGLE_LIMIT golpes en el aire no puede recibir más hasta aterrizar.
 func can_be_hit() -> bool:
-	if state in [State.KO, State.VICTORY, State.THROW, State.THROWN]:
+	if state in [State.KO, State.VICTORY, State.THROW, State.THROWN, State.KNOCKDOWN]:
 		return false
 	if state == State.BACKDASH and state_frames <= BACKDASH_INVULN_FRAMES:
+		return false
+	if state == State.WAKEUP and state_frames <= wake_invuln:
 		return false
 	return juggle_hits < JUGGLE_LIMIT or is_on_ground()
 
@@ -812,11 +909,18 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		combo_hits_taken = hits_before + 1
 		if not is_on_ground():
 			juggle_hits += 1
+		# ¿Este golpe derriba? Lanzamientos, agarres y barridos (patada agachada).
+		var sweep := attacker.attack_crouching and attacker.current_attack == atk \
+			and atk.kind == AttackData.Kind.KICK
+		if atk.launch < 0.0 or atk.kind == AttackData.Kind.GRAB or sweep:
+			knockdown_pending = true
 		_end_attack()
 		air_attack_used = false
 		velocity.x = direction * atk.knockback
 		if atk.launch < 0.0:
 			velocity.y = atk.launch
+		elif sweep and is_on_ground():
+			velocity.y = SWEEP_LAUNCH
 		elif not is_on_ground():
 			velocity.y = minf(velocity.y, -140.0)
 		var stun := atk.hitstun + (COUNTER_HITSTUN if counter else 0) - HITSTUN_DECAY * hits_before
@@ -907,7 +1011,9 @@ func _apply_physics(delta: float) -> void:
 			velocity.y = 0.0
 			juggle_hits = 0
 			landed.emit(self)
-			if state == State.JUMP:
+			if state == State.HIT and knockdown_pending and health > 0.0:
+				_land_knockdown()
+			elif state == State.JUMP:
 				velocity.x = 0.0
 				_set_state(State.LAND if air_attack_used else State.IDLE)
 				air_attack_used = false
@@ -933,6 +1039,8 @@ func is_crouching() -> bool:
 
 func _update_boxes() -> void:
 	var h := data.crouch_height if is_crouching() else data.stand_height
+	if state == State.KNOCKDOWN:
+		h = minf(data.crouch_height, 22.0)
 	var y_center := -h / 2.0
 	if state == State.JUMP or (state == State.ATTACK and attack_airborne):
 		h = data.stand_height * 0.8
@@ -960,6 +1068,7 @@ func _set_state(new_state: State) -> void:
 	if new_state != State.HIT:
 		guard_is_broken = false
 		juggle_hits = 0
+		knockdown_pending = false
 	state = new_state
 	state_frames = 0
 
@@ -978,6 +1087,8 @@ func get_pose_name() -> StringName:
 		State.PREJUMP, State.LAND: return &"crouch"
 		State.BACKDASH: return &"run"
 		State.THROWN: return &"hit"
+		State.KNOCKDOWN: return &"ko"
+		State.WAKEUP: return &"run" if wake_rolling else &"crouch"
 		State.ATTACK:
 			var atk := current_attack
 			if atk.kind == AttackData.Kind.KICK:
@@ -1000,7 +1111,8 @@ func _update_visual() -> void:
 	visual.scale.x = facing
 	visual.pose_name = pose
 	visual.moving_back = (state == State.WALK or state == State.BACKDASH) and velocity.x * facing < 0.0
-	visual.crouched = is_crouching() or state == State.PREJUMP or state == State.LAND
+	visual.crouched = is_crouching() or state == State.PREJUMP or state == State.LAND \
+		or (state == State.WAKEUP and not wake_rolling)
 	visual.airborne = not is_on_ground() and state != State.KO
 	visual.height_above_floor = floor_y - position.y
 	visual.phase = &""

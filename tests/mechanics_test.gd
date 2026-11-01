@@ -59,6 +59,7 @@ func _run() -> void:
 	await _test_guard()
 	await _test_combos()
 	await _test_movement()
+	await _test_knockdown()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -595,3 +596,98 @@ func _test_movement() -> void:
 	check(p1.running and p1.state == Fighter.State.WALK, "doble toque hacia delante sigue siendo correr")
 	_masks = [0, 0]
 	await _ticks(20)
+
+# --- Derribo ----------------------------------------------------------------
+func _launch_p2() -> void:
+	var p1 := combat.p1
+	var up := p1._uppercut_for(p1.data.get_attack(&"punch_heavy"))
+	combat.p2.receive_hit(p1, up, 1)
+
+func _test_knockdown() -> void:
+	print("\n# Derribo")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	await _wait_round()
+
+	# Un lanzamiento tumba al rival al aterrizar; tumbado no se le puede golpear.
+	await _place(60.0)
+	_launch_p2()
+	check(p2.knockdown_pending, "un golpe que lanza marca el derribo")
+	var down := await _until(func(): return p2.state == Fighter.State.KNOCKDOWN, 80)
+	check(down, "tras el lanzamiento queda derribado al aterrizar")
+	check(not p2.can_be_hit() and not p2.can_be_grabbed(), "tumbado no se le puede golpear ni agarrar")
+	var hp := p2.health
+	p2.input.release_all()
+	await _ticks(Fighter.KNOCKDOWN_FRAMES - 3)
+	check(p2.state == Fighter.State.KNOCKDOWN and is_equal_approx(p2.health, hp), "sigue tumbado %d frames sin perder vida" % Fighter.KNOCKDOWN_FRAMES)
+	await _ticks(6)
+	check(p2.state == Fighter.State.WAKEUP and not p2.wake_rolling, "después se levanta")
+	check(not p2.can_be_hit(), "al levantarse es invulnerable los primeros %d frames" % Fighter.WAKEUP_INVULN)
+	await _ticks(Fighter.WAKEUP_INVULN + 1)
+	check(p2.state == Fighter.State.WAKEUP and p2.can_be_hit(), "pasada la invulnerabilidad se le puede golpear")
+	await _ticks(Fighter.WAKEUP_FRAMES)
+	check(p2.state == Fighter.State.IDLE, "y vuelve a actuar")
+
+	# Evitar el derribo: bloqueo pulsado justo antes de caer.
+	await _place(60.0)
+	_launch_p2()
+	var seen_knockdown := false
+	await _until(func(): return p2.velocity.y > 0.0 and p2.position.y > p2.floor_y - 25.0, 80)
+	await _press(1, STAND_BLOCK)
+	for i in 40:
+		seen_knockdown = seen_knockdown or p2.state == Fighter.State.KNOCKDOWN
+		await combat.ticked
+	check(not seen_knockdown, "pulsar bloqueo al caer evita el derribo")
+	await _place(60.0)
+	_launch_p2()
+	await _press(1, STAND_BLOCK)
+	await _until(func(): return p2.state == Fighter.State.KNOCKDOWN, 80)
+	check(p2.state == Fighter.State.KNOCKDOWN, "pulsar el bloqueo demasiado pronto no sirve")
+
+	# Voltereta hacia atrás: manteniendo atrás al final del derribo.
+	await _place(60.0)
+	_launch_p2()
+	await _until(func(): return p2.state == Fighter.State.KNOCKDOWN, 80)
+	var x_down := p2.position.x
+	_masks = [0, 1 << 1]
+	await _until(func(): return p2.state == Fighter.State.WAKEUP, Fighter.KNOCKDOWN_FRAMES + 5)
+	_masks = [0, 0]
+	check(p2.wake_rolling, "manteniendo atrás se levanta rodando")
+	await _ticks(Fighter.ROLL_MOVE_FRAMES - 2)
+	check(p2.position.x - x_down > 35.0, "la voltereta se aleja (%.0f px)" % (p2.position.x - x_down))
+	check(p2.state == Fighter.State.WAKEUP and not p2.can_be_hit() , "sigue invulnerable rodando")
+	await _ticks(Fighter.ROLL_FRAMES)
+	check(p2.state == Fighter.State.IDLE and p2.can_be_hit(), "al terminar de rodar vuelve a actuar")
+
+	# Barrido (patada agachada): derriba.
+	var swept := false
+	for dx in [34.0, 40.0, 46.0, 52.0]:
+		await _place(dx)
+		await _press(0, (1 << BIT_CROUCH) | (1 << BIT_LK), 1 << BIT_CROUCH)
+		await _until(func(): return not _hits.is_empty(), 40)
+		if not _hits.is_empty():
+			swept = true
+			break
+	_masks = [0, 0]
+	check(swept, "el barrido conecta")
+	check(await _until(func(): return p2.state == Fighter.State.KNOCKDOWN, 60), "el barrido derriba")
+
+	# Agarre: la llave derriba.
+	await _place(30.0)
+	await _press(0, GRAB)
+	await _until(func(): return p2.state == Fighter.State.THROWN, 30)
+	check(await _until(func(): return p2.state == Fighter.State.KNOCKDOWN, 100), "el agarre derriba")
+
+	# Un golpe normal no derriba.
+	await _place(34.0)
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 30)
+	await _ticks(40)
+	check(p2.state != Fighter.State.KNOCKDOWN and not p2.knockdown_pending, "un golpe débil no derriba")
+
+	# El K.O. manda sobre el derribo.
+	await _place(60.0)
+	p2.health = 1.0
+	_launch_p2()
+	check(p2.state == Fighter.State.KO, "si el lanzamiento remata, es K.O. y no derribo")
+	await _ticks(60)

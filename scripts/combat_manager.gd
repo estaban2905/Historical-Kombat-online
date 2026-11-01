@@ -174,7 +174,8 @@ func state_snapshot() -> Array:
 			f.facing, f.attack_frame, f.attack_instance, f.stun_frames, f.hitstop_frames,
 			f.combo_hits_taken, f.slow_frames, f.invert_frames, f.float_frames,
 			f.buffered_slot, f.buffered_frames, f.cooldowns, f.throw_timer, f.tech_requested,
-			f.guard, f.guard_idle, f.attack_connected, f.chain_slots.size(), f.juggle_hits])
+			f.guard, f.guard_idle, f.attack_connected, f.chain_slots.size(), f.juggle_hits,
+				f.knockdown_pending, f.tech_fall_buffer, f.wake_frames, f.wake_rolling])
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
 		parts.append([pr.position, pr.life, pr.alive])

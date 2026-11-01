@@ -79,6 +79,9 @@ No hay dependencias externas ni plugins.
 - **Guardia:** la barra fina verde bajo la energía. Cada golpe bloqueado la gasta (2 × el daño del golpe), se recupera sola tras 1 s sin bloquear y, al llegar a 0, **se rompe**: 50 frames de aturdimiento sin poder bloquear, y vuelve al 50 %. Los golpes normales bloqueados nunca matan, pero los **especiales** (proyectiles y poderes) sí pueden rematar con su daño de rozadura. Constantes en `scripts/fighter.gd` (`GUARD_*`).
 - **Altos y bajos:** los ataques aéreos son **altos** (solo se bloquean de pie), las patadas agachadas son **bajas** (solo se bloquean agachado) y el resto son **medios** (se bloquean de las dos formas). Cada `AttackData` tiene `hit_level` para dar a un golpe de pie su propio nivel (p. ej. un overhead).
 - **Agarre:** puño débil + patada débil a la vez (la segunda tecla puede llegar hasta 2 frames tarde). Atraviesa el bloqueo, pero falla contra un rival en el aire, aturdido o en bloqueo forzado, y si falla deja mucho tiempo de recuperación. Si un golpe y un agarre llegan en el mismo frame, gana el golpe.
+- **Derribo:** un golpe que lanza al rival por los aires, un **barrido** (patada agachado) o un **agarre** lo tiran. Al aterrizar queda **30 frames tumbado sin poder ser golpeado ni agarrado** y después se levanta. Al levantarse es invulnerable los primeros 8 de 14 frames (`KNOCKDOWN_FRAMES`, `WAKEUP_*` en `scripts/fighter.gd`). Si no actúa, se levanta en el sitio.
+- **Evitar el derribo:** pulsar **bloqueo** (soltando y volviendo a pulsar) hasta 8 frames antes de tocar el suelo: se levanta al instante, con 10 frames de invulnerabilidad y sin quedar tumbado.
+- **Voltereta:** manteniendo **atrás** cuando termina el derribo se levanta rodando hacia atrás (unos 80 px, 26 frames, invulnerable los primeros 16).
 - **Zafarse de un agarre:** pulsar puño débil + patada débil en los primeros 10 frames de la llave. Si los dos jugadores se agarran a la vez, también se zafan.
 - Las teclas del jugador 2 tienen una alternativa en el bloque de navegación para portátiles sin teclado numérico.
 - Algunos teclados baratos no registran muchas teclas a la vez ("ghosting"); si un jugador deja de responder al pulsar varias teclas, es una limitación del teclado.
@@ -239,7 +242,7 @@ ui/HUD.tscn                Escena del HUD
 tests/                     Pruebas automáticas y capturas
 ```
 
-Estados del luchador: `IDLE`, `WALK`, `JUMP`, `CROUCH`, `BLOCK`, `ATTACK`, `HIT`, `KO` (+ `VICTORY`, `THROW`, `THROWN`, `PREJUMP`, `LAND`, `BACKDASH`). Prioridad de entrada en el suelo: bloqueo > backdash > ataque > salto > agacharse > caminar.
+Estados del luchador: `IDLE`, `WALK`, `JUMP`, `CROUCH`, `BLOCK`, `ATTACK`, `HIT`, `KO` (+ `VICTORY`, `THROW`, `THROWN`, `PREJUMP`, `LAND`, `BACKDASH`, `KNOCKDOWN`, `WAKEUP`). Prioridad de entrada en el suelo: bloqueo > backdash > ataque > salto > agacharse > caminar.
 
 ### Pruebas automáticas
 
