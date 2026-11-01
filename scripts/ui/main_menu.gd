@@ -1,6 +1,7 @@
 ## Menú principal: ARCADE, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO, DIFICULTAD, PERSONAJES, OPCIONES, CRÉDITOS.
 ## ARCADE (1 jugador contra la CPU), VERSUS LOCAL (2 jugadores) y DUELO ONLINE
 ## (contra otra persona por internet) llevan a la selección de luchador. DIFICULTAD cambia el nivel de la CPU.
+## VERSUS LOCAL y ENTRENAMIENTO solo aparecen en el editor (desarrollo), no en builds exportadas.
 ## El resto abre pantallas informativas mientras no estén implementadas.
 extends Control
 
@@ -41,6 +42,10 @@ func _ready() -> void:
 	btn_credits.pressed.connect(_show_credits)
 	info_back.pressed.connect(_close_info)
 	_refresh_difficulty()
+	# VERSUS LOCAL y ENTRENAMIENTO son herramientas de desarrollo: solo se ven al correr desde el editor.
+	var dev := OS.has_feature("editor")
+	btn_versus.visible = dev
+	btn_training.visible = dev
 	for b in [btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_options, btn_credits, info_back]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
