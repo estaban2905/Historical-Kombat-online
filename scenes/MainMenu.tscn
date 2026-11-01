@@ -25,12 +25,12 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_bg")
-title_y = 42.0
+title_y = -16.0
 
 [node name="Buttons" type="VBoxContainer" parent="." unique_id=195303599]
 layout_mode = 0
 offset_left = 138.0
-offset_top = 116.0
+offset_top = 92.0
 offset_right = 288.0
 offset_bottom = 232.0
 theme_override_constants/separation = 1

@@ -151,7 +151,7 @@ func _roster_text() -> String:
 		lines.append("   ESP 1: %s" % d.special_1.display_name.to_upper())
 		lines.append("   ESP 2: %s" % d.special_2.display_name.to_upper())
 	lines.append("")
-	lines.append("PÁG %d/%d · ← → CAMBIAR · %d DE 30 LUCHADORES" % [_roster_page + 1, pages, all.size()])
+	lines.append("PÁG %d/%d · ← → CAMBIAR · %d LUCHADORES" % [_roster_page + 1, pages, all.size()])
 	return "\n".join(lines)
 
 func _change_roster_page(step: int) -> void:
