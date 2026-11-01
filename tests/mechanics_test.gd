@@ -64,6 +64,7 @@ func _run() -> void:
 	await _test_ai()
 	await _test_perfect_block()
 	await _test_new_powers()
+	_test_profiles()
 	_test_balance()
 
 	await get_tree().physics_frame
@@ -189,8 +190,9 @@ func _test_grab() -> void:
 	# Golpe contra agarre en el mismo frame: gana el golpe.
 	# Agarre: activo en el frame 6; puño débil de P2 (startup 4) pulsado 1 tick después: también en el 6.
 	await _place(30.0)
-	await _press(0, GRAB)
-	await _press(1, 1 << BIT_LP)
+	_masks = [GRAB, 1 << BIT_LP]
+	await combat.ticked
+	_masks = [0, 0]
 	await _ticks(6)
 	check(p1.state == Fighter.State.HIT and p2.state != Fighter.State.THROWN,
 		"si el golpe y el agarre llegan a la vez, gana el golpe")
@@ -344,27 +346,28 @@ func _test_combos() -> void:
 	var pl := p1.data.get_attack(&"punch_light")
 	var ph := p1.data.get_attack(&"punch_heavy")
 	var kh := p1.data.get_attack(&"kick_heavy")
+	var lk := p1.data.get_attack(&"kick_light")
 
-	# Cancelar al conectar: débil → fuerte.
+	# Cancelar al conectar: débil → débil.
 	await _place(24.0)
 	await _press(0, 1 << BIT_LP)
 	await _until(func(): return _hits.size() >= 1, 30)
-	await _press(0, 1 << BIT_HP)
+	await _press(0, 1 << BIT_LK)
 	await _until(func(): return _hits.size() >= 2, 60)
-	check(_hits.size() >= 2 and _hits[1][2] == ph, "puño débil cancela en puño fuerte al conectar")
+	check(_hits.size() >= 2 and _hits[1][2] == lk, "puño débil cancela en patada débil al conectar")
 	check(p2.combo_hits_taken == 2, "los dos golpes cuentan como un combo (%d)" % p2.combo_hits_taken)
-	check(_hits.size() >= 2 and is_equal_approx(_hits[1][3].damage, _full_damage(ph) * (1.0 - Fighter.COMBO_SCALE_STEP)),
+	check(_hits.size() >= 2 and is_equal_approx(_hits[1][3].damage, _full_damage(lk) * (1.0 - Fighter.COMBO_SCALE_STEP)),
 		"el segundo golpe hace un %d %% menos de daño" % int(Fighter.COMBO_SCALE_STEP * 100))
-	check(p2.stun_frames == ph.hitstun - Fighter.HITSTUN_DECAY,
+	check(p2.stun_frames == lk.hitstun - Fighter.HITSTUN_DECAY,
 		"el segundo golpe acorta el aturdimiento (%d frames)" % p2.stun_frames)
 
 	# Cancelar bloqueado.
 	await _place(24.0, STAND_BLOCK)
 	await _press(0, 1 << BIT_LP)
 	await _until(func(): return _hits.size() >= 1, 30)
-	await _press(0, 1 << BIT_HP)
+	await _press(0, 1 << BIT_LK)
 	await _until(func(): return _hits.size() >= 2, 60)
-	check(_hits.size() >= 2 and _hits[0][3].blocked and _hits[1][2] == ph, "también se cancela cuando el golpe es bloqueado")
+	check(_hits.size() >= 2 and _hits[0][3].blocked and _hits[1][2] == lk, "también se cancela cuando el golpe es bloqueado")
 
 	# No se cancela si el golpe falla.
 	await _place(90.0)
@@ -458,22 +461,22 @@ func _test_combos() -> void:
 
 	var names: Array = []
 	p1.combo_performed.connect(func(_f, combo): names.append(combo.display_name))
-	await _place_in_corner(24.0)
-	var n := await _chain([BIT_LP, BIT_LK, BIT_HP, BIT_HK])
-	check(n == 4, "la cadena débil-débil-fuerte-fuerte conecta los 4 golpes (%d)" % n)
-	check(names.has("CUARTETO") and _hits.size() >= 4 and _hits[3][3].combo_name == "CUARTETO",
-		"completar la cadena de 4 es el combo CUARTETO")
-	var bonus := p1.data.get_combos()[1].bonus_damage * p1.data.strength / p2.data.resistance
-	var last_damage: float = _hits[3][3].damage if _hits.size() >= 4 else -1.0
-	check(is_equal_approx(last_damage, _full_damage(kh) * 0.7 + bonus),
-		"el último golpe suma el bono del combo (%.2f)" % last_damage)
-	await _ticks(60)
-	names.clear()
-	await _place_in_corner(24.0)
-	n = await _chain([BIT_LP, BIT_HP, BIT_HK])
-	check(n == 3 and names.has("TRÍO") and _hits.size() >= 3 and _hits[2][3].combo_name == "TRÍO",
-		"débil-fuerte-fuerte es el combo TRÍO")
-	await _ticks(60)
+	var bit_of := {&"punch_light": BIT_LP, &"punch_heavy": BIT_HP, &"kick_light": BIT_LK,
+		&"kick_heavy": BIT_HK, &"special_1": BIT_S1, &"special_2": BIT_S2}
+	var all_combos := p1.data.get_combos()
+	for ci in all_combos.size():
+		var cmb := all_combos[ci]
+		names.clear()
+		await _place_in_corner(24.0)
+		p1.energy = Fighter.MAX_ENERGY
+		var bits: Array = []
+		for slot in cmb.sequence:
+			bits.append(bit_of[slot])
+		var n := await _chain(bits)
+		check(n == bits.size(), "la cadena de %s conecta sus %d golpes (%d)" % [cmb.display_name, bits.size(), n])
+		check(names.has(cmb.display_name) and _hits.size() >= bits.size() and _hits[bits.size() - 1][3].combo_name == cmb.display_name,
+			"completar la cadena es el combo %s" % cmb.display_name)
+		await _ticks(80)
 
 # --- Movimiento ------------------------------------------------------------------
 var _landings: int = 0
@@ -1017,3 +1020,44 @@ func _test_new_powers() -> void:
 	await _ticks(120)
 
 	_set_fighters(&"napoleon", &"donald_trump")
+
+# --- Perfiles de los luchadores ---------------------------------------------
+## Cada luchador tiene su ritmo, un golpe alto o bajo propio y dos combos que se pueden enlazar.
+func _test_profiles() -> void:
+	print("
+# Perfiles de los luchadores")
+	var bad_links: Array[String] = []
+	var no_special_hit: Array[String] = []
+	var startups := {}
+	var unique := {}
+	var with_level := 0
+	for d in FighterRegistry.all():
+		var sig := ""
+		var has_level := false
+		for slot in [&"punch_light", &"punch_heavy", &"kick_light", &"kick_heavy"]:
+			var a := d.get_attack(slot)
+			sig += "%d/%d/%d/%.0f;" % [a.startup, a.recovery, a.hitbox_size.x, a.damage]
+			startups[a.startup] = true
+			if a.hit_level != AttackData.HitLevel.MID:
+				has_level = true
+		unique[sig] = true
+		if has_level:
+			with_level += 1
+		else:
+			no_special_hit.append(String(d.id))
+		var combos := d.get_combos()
+		if combos.size() != 2:
+			bad_links.append("%s tiene %d combos" % [d.id, combos.size()])
+		for cmb in combos:
+			for i in range(1, cmb.sequence.size()):
+				var prev := d.get_attack(cmb.sequence[i - 1])
+				var nxt := d.get_attack(cmb.sequence[i])
+				if nxt.hit_level == AttackData.HitLevel.OVERHEAD:
+					bad_links.append("%s: %s lleva un golpe alto" % [d.id, cmb.display_name])
+				# Para enlazar, el siguiente golpe debe llegar antes de que acabe el aturdimiento.
+				if nxt.startup + 2 > prev.hitstun - Fighter.HITSTUN_DECAY * (i - 1):
+					bad_links.append("%s: %s no enlaza %s → %s" % [d.id, cmb.display_name, cmb.sequence[i - 1], cmb.sequence[i]])
+	check(bad_links.is_empty(), "todos los combos son enlazables (%s)" % ", ".join(bad_links))
+	check(with_level == FighterRegistry.all().size(), "todos tienen un golpe alto o bajo propio (faltan: %s)" % ", ".join(no_special_hit))
+	check(unique.size() >= FighterRegistry.all().size() - 6, "los golpes normales son distintos entre luchadores (%d perfiles distintos de %d)" % [unique.size(), FighterRegistry.all().size()])
+	check(startups.size() >= 8, "hay %d startups distintos entre los golpes normales" % startups.size())

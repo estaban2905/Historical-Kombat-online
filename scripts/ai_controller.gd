@@ -167,6 +167,13 @@ func _decide() -> void:
 		if punish != &"" and _rng.randf() < 0.35 + 0.6 * level:
 			me.input.press(punish)
 			return
+		# Rival bloqueando agachado: su golpe alto propio (overhead) le sorprende.
+		if foe.state == Fighter.State.BLOCK and foe.crouch_blocking and _rng.randf() < 0.3 + 0.3 * level:
+			for slot in [&"punch_heavy", &"kick_heavy", &"punch_light", &"kick_light"]:
+				var oh := me.data.get_attack(slot)
+				if oh != null and oh.hit_level == AttackData.HitLevel.OVERHEAD and me.cooldowns.get(slot, 0) <= 0 						and dist <= _reach(oh, foe.data.body_width):
+					me.input.press(slot)
+					return
 		# Rival bloqueando de pie: mezcla golpes bajos (hay que agacharse para bloquearlos).
 		if foe.state == Fighter.State.BLOCK and not foe.crouch_blocking and me.data.kick_light != null \
 				and dist <= _reach(me.data.kick_light, foe.data.body_width) \

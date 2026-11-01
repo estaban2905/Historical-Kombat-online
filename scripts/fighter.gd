@@ -191,6 +191,8 @@ var _uppercut_cache: Dictionary = {}
 var chain_slots: Array[StringName] = []
 ## Combo con nombre que completa el ataque en curso (da su bono si conecta).
 var attack_combo: ComboData
+## attack_instance cuyo bono de combo ya cobró un proyectil (solo cobra el primer golpe).
+var combo_claimed: int = -1
 ## Golpes seguidos recibidos en el aire (límite JUGGLE_LIMIT).
 var juggle_hits: int = 0
 ## true si, al aterrizar, el golpe recibido deja al luchador en KNOCKDOWN.

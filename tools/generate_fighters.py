@@ -577,6 +577,204 @@ def attack(aid, name, kind, anim, dmg, hitstun, blockstun, knock, launch, hitsto
     return lines
 
 
+# --------------------------------------------------------------------------
+#  Golpes normales: cada personaje tiene su ritmo según su estilo y su arma.
+# --------------------------------------------------------------------------
+SLOT_OF = {"LP": "punch_light", "HP": "punch_heavy", "LK": "kick_light", "HK": "kick_heavy",
+           "S1": "special_1", "S2": "special_2"}
+RANK_OF = {"LP": 1, "LK": 1, "HP": 2, "HK": 2, "S1": 3, "S2": 3}
+
+# Estilos: (frames extra de startup, frames extra de recuperación, multiplicador de daño,
+# multiplicador de alcance) por golpe. Los que llevan arma o bastón alcanzan más pero
+# se recuperan más despacio; los pesados pegan fuerte y lento; los veloces al revés.
+STYLE_MODS = {
+    "sword":   {"LP": (0, 1, 1.00, 1.15), "HP": (1, 2, 1.15, 1.30), "LK": (0, 0, 1.00, 1.00), "HK": (2, 2, 1.10, 1.20)},
+    "spear":   {"LP": (0, 1, 1.00, 1.25), "HP": (1, 2, 1.15, 1.40), "LK": (0, 0, 1.00, 1.00), "HK": (2, 2, 1.10, 1.10)},
+    "axe":     {"LP": (1, 1, 1.10, 1.00), "HP": (3, 3, 1.35, 1.15), "LK": (1, 1, 1.00, 1.00), "HK": (3, 2, 1.20, 1.00)},
+    "heavy":   {"LP": (1, 1, 1.15, 1.00), "HP": (3, 3, 1.40, 1.10), "LK": (1, 2, 1.15, 1.00), "HK": (3, 3, 1.30, 1.00)},
+    "brawler": {"LP": (-1, -1, 1.00, 0.95), "HP": (0, 0, 1.15, 1.00), "LK": (0, 0, 1.00, 1.00), "HK": (1, 1, 1.10, 1.00)},
+    "speed":   {"LP": (-1, -1, 0.90, 0.95), "HP": (-1, -1, 1.00, 1.00), "LK": (-1, -1, 0.95, 1.00), "HK": (0, -1, 1.00, 1.00)},
+    "zoner":   {"LP": (0, 0, 0.95, 1.00), "HP": (0, 0, 1.00, 1.10), "LK": (0, 0, 0.95, 1.00), "HK": (1, 1, 1.00, 1.05)},
+    "mystic":  {"LP": (0, 0, 0.90, 1.00), "HP": (1, 1, 1.00, 1.20), "LK": (0, 0, 0.95, 1.00), "HK": (1, 1, 1.00, 1.00)},
+    "scholar": {"LP": (0, 1, 0.85, 1.00), "HP": (0, 2, 0.95, 1.05), "LK": (0, 1, 0.90, 1.00), "HK": (1, 2, 1.00, 1.00)},
+}
+# Aturdimiento extra de los golpes débiles: con los estilos de golpes lentos hace falta
+# más margen para poder enlazar un golpe fuerte (ver las pruebas de perfiles).
+STYLE_LIGHT_HITSTUN = {"sword": 2, "spear": 3, "heavy": 5, "axe": 4, "mystic": 3, "scholar": 2, "zoner": 3}
+
+# Animación (y objeto en la mano) de los golpes con arma.
+STYLE_ANIMS = {
+    "sword": {"HP": "charge"},
+    "spear": {"LP": "staff", "HP": "staff"},
+    "axe": {"HP": "axe"},
+    "mystic": {"HP": "staff"},
+    "scholar": {"HP": "book"},
+}
+
+# Perfil de cada luchador: estilo de golpes normales, un golpe propio (oh = alto/overhead,
+# solo se bloquea de pie; low = bajo, solo se bloquea agachado) y sus dos combos propios.
+# Un combo es una cadena de ranuras enlazadas con cancelaciones (rango igual o mayor,
+# sin repetir golpe): LP/LK = débiles, HP/HK = fuertes, S1/S2 = especiales.
+def _pf(style, kind, slot, name, c1, c2, anim=None):
+    return dict(style=style, kind=kind, slot=slot, name=name, combos=[c1, c2], anim=anim or {})
+
+PROFILES = {
+    "donald_trump": _pf("heavy", "oh", "HK", "Patada Presidencial", ("TUIT", "LP LK HP", 3.5), ("DECRETO", "LP LK HP HK", 6.0)),
+    "kim_jong_un": _pf("heavy", "oh", "HK", "Patada de Desfile", ("PARADA", "LP HP HK", 4.0), ("LANZAMIENTO", "LK LP HP S1", 7.0)),
+    "vladimir_putin": _pf("brawler", "low", "LK", "Barrido de Judo", ("LLAVE", "LK LP HP", 3.5), ("IPPON", "LP LK HP HK", 6.0)),
+    "xi_jinping": _pf("heavy", "oh", "HK", "Patada del Dragón", ("ARMONÍA", "LP HP HK", 4.0), ("GRAN MURALLA", "LK LP HP S1", 7.0)),
+    "nicolas_maduro": _pf("brawler", "low", "LK", "Patada de Salsa", ("SALSA", "LK LP HP", 3.0), ("CUMBIA", "LP LK HP HK", 6.0)),
+    "adolf_hitler": _pf("speed", "low", "LK", "Barrido Veloz", ("RÁFAGA", "LP LK HP", 3.0), ("RELÁMPAGO", "LK LP HK S1", 7.0)),
+    "joseph_stalin": _pf("heavy", "oh", "HP", "Mazazo de Acero", ("QUINQUENAL", "LP HP HK", 4.5), ("PURGA", "LK LP HP S2", 8.0)),
+    "benito_mussolini": _pf("brawler", "oh", "HK", "Patada de Balcón", ("DISCURSO", "LP HP HK", 3.5), ("MARCHA", "LK LP HP S1", 7.0)),
+    "saddam_hussein": _pf("brawler", "low", "LK", "Barrido del Desierto", ("DUNA", "LK LP HP", 3.0), ("TORMENTA", "LP LK HP S1", 6.5)),
+    "osama_bin_laden": _pf("speed", "low", "LK", "Patada Sombra", ("SOMBRA", "LP LK HK", 3.0), ("EMBOSCADA", "LK LP HP S2", 7.0)),
+    "napoleon": _pf("sword", "oh", "HP", "Sablazo Imperial", ("ESTRATEGIA", "LP HP S1", 4.0), ("CAMPAÑA", "LK LP HP HK", 6.0)),
+    "gengis_kan": _pf("sword", "oh", "HK", "Tajo de Jinete", ("HORDA", "LP HP HK", 4.0), ("GALOPE", "LK LP HP S1", 7.0)),
+    "fidel_castro": _pf("brawler", "low", "LK", "Patada Guerrillera", ("SIERRA", "LK LP HP", 3.0), ("REVOLUCIÓN", "LP LK HP HK", 6.0)),
+    "cleopatra": _pf("speed", "low", "LK", "Barrido de Sandalia", ("NILO", "LP LK HK", 3.0), ("ÁSPID", "LK LP HP S1", 7.0)),
+    "julio_cesar": _pf("sword", "oh", "HP", "Gladio Descendente", ("VENI VIDI", "LP HP HK", 4.0), ("VICI", "LK LP HP S1", 7.0)),
+    "alejandro_magno": _pf("sword", "oh", "HK", "Tajo Macedonio", ("FALANGE", "LP HP HK", 4.0), ("GAUGAMELA", "LK LP HP S2", 7.0)),
+    "isabel_ii": _pf("zoner", "oh", "HP", "Golpe de Cetro", ("PROTOCOLO", "LP HP HK", 3.5), ("CORONACIÓN", "LK LP HP S1", 6.5)),
+    "abraham_lincoln": _pf("axe", "oh", "HP", "Hachazo Presidencial", ("EMANCIPACIÓN", "LP HP HK", 4.0), ("GETTYSBURG", "LK LP HP S1", 7.0)),
+    "jesus_de_nazaret": _pf("mystic", "oh", "HP", "Vara del Pastor", ("PARÁBOLA", "LP HP HK", 3.0), ("MILAGRO", "LK LP HP S2", 7.0)),
+    "buda": _pf("mystic", "low", "LK", "Patada del Loto", ("LOTO", "LK LP HP", 3.0), ("NIRVANA", "LP LK HP S1", 7.0)),
+    "papa_francisco": _pf("zoner", "oh", "HP", "Golpe de Báculo", ("BENDICIÓN", "LP HP HK", 3.0), ("ÁNGELUS", "LK LP HP S1", 6.5)),
+    "rasputin": _pf("mystic", "oh", "HP", "Báculo Hipnótico", ("HIPNOSIS", "LP HP HK", 4.0), ("MALDICIÓN", "LK LP HP S2", 7.0)),
+    "pablo_escobar": _pf("brawler", "low", "LK", "Patada de Sicario", ("PLATA", "LK LP HP", 3.0), ("PLOMO", "LP LK HP S1", 6.5)),
+    "albert_einstein": _pf("scholar", "low", "LK", "Patada Relativa", ("ECUACIÓN", "LP HP HK", 3.0), ("RELATIVIDAD", "LK LP HP S1", 6.5)),
+    "nikola_tesla": _pf("scholar", "oh", "HP", "Descarga en Arco", ("ARCO", "LP HP HK", 3.5), ("CORRIENTE", "LK LP HP S1", 7.0)),
+    "leonardo_da_vinci": _pf("scholar", "oh", "HP", "Trazo Descendente", ("BOCETO", "LP HP HK", 3.0), ("OBRA MAESTRA", "LK LP HP S2", 7.0)),
+    "marie_curie": _pf("scholar", "low", "LK", "Barrido Radiante", ("ISÓTOPO", "LK LP HP", 3.0), ("RADIACIÓN", "LP LK HP S1", 6.5), anim={"HP": "flask"}),
+    "galileo_galilei": _pf("scholar", "oh", "HP", "Golpe de Telescopio", ("ÓRBITA", "LP HP HK", 3.0), ("EPPUR SI MUOVE", "LK LP HP S1", 7.0)),
+    "charles_darwin": _pf("scholar", "low", "LK", "Patada Primate", ("ADAPTACIÓN", "LK LP HP", 3.0), ("SELECCIÓN", "LP LK HP S1", 6.5)),
+    "cristobal_colon": _pf("sword", "oh", "HK", "Tajo de Capitán", ("RUMBO", "LP HP HK", 3.5), ("TIERRA A LA VISTA", "LK LP HP S1", 7.0)),
+    "janequeo": _pf("spear", "low", "LK", "Lanzada Baja", ("WEICHAN", "LP HP HK", 4.0), ("NEWEN", "LK LP HP S1", 7.0)),
+    "lautaro": _pf("spear", "low", "LK", "Lanzada Rasante", ("TOQUI", "LP HP HK", 4.0), ("MALÓN", "LK LP HP S2", 7.0)),
+    "pachacutec": _pf("heavy", "oh", "HP", "Cetro Solar", ("INTI", "LP HP HK", 4.0), ("TAHUANTINSUYO", "LK LP HP S1", 7.0), anim={"HP": "axe"}),
+    "ivan_el_terrible": _pf("heavy", "oh", "HP", "Bastón de Hierro", ("ZAR", "LP HP HK", 4.5), ("TERROR", "LK LP HP S2", 8.0), anim={"HP": "staff"}),
+    "boudica": _pf("spear", "oh", "HP", "Lanza Descendente", ("ICENOS", "LP HP HK", 4.0), ("REBELIÓN", "LK LP HP S1", 7.0)),
+    "juana_de_arco": _pf("sword", "oh", "HP", "Tajo Sagrado", ("FE", "LP HP HK", 3.5), ("ORLEANS", "LK LP HP S1", 7.0)),
+    "augusto_pinochet": _pf("brawler", "low", "LK", "Patada de Cuartel", ("MANDO", "LK LP HP", 3.5), ("TOQUE", "LP LK HP S1", 6.5)),
+    "salvador_allende": _pf("zoner", "oh", "HP", "Golpe de Tribuna", ("DISCURSO", "LP HP HK", 3.5), ("PUEBLO", "LK LP HP S1", 6.5)),
+    "arturo_prat": _pf("sword", "oh", "HP", "Sablazo de Abordaje", ("ABORDAJE", "LP HP HK", 4.0), ("ESMERALDA", "LK LP HP S1", 7.0)),
+}
+
+
+# Retoques personales sobre el estilo (frames extra de startup y recuperación, multiplicadores
+# de daño y de alcance): lo que hace distinto a un luchador de otro con el mismo estilo.
+TWEAKS = {
+    "vladimir_putin": {"LP": (0, -1, 1.05, 0.9), "HP": (0, -1, 1.0, 0.95)},       # judo: corto y rápido
+    "fidel_castro": {"LP": (0, 1, 1.0, 1.0), "HP": (1, 1, 1.1, 1.0)},             # discursos largos: más lento
+    "augusto_pinochet": {"LP": (0, 0, 1.0, 1.1), "HP": (1, 0, 1.05, 1.1)},        # mando: alcance controlado
+    "adolf_hitler": {"HP": (0, 0, 1.15, 1.0)},                                    # frágil pero castiga
+    "cleopatra": {"HK": (0, -1, 0.95, 1.1)},                                      # patada larga y ágil
+    "joseph_stalin": {"HP": (1, 1, 1.1, 1.0)},                                    # aún más lento y duro
+    "ivan_el_terrible": {"HP": (-1, 0, 1.0, 1.25)},                               # el bastón alcanza lejos
+    "julio_cesar": {"LP": (0, -1, 1.0, 0.9), "HP": (0, 0, 1.05, 0.95)},           # gladio corto y rápido
+    "arturo_prat": {"HP": (0, 1, 1.0, 1.1), "HK": (0, 1, 1.0, 1.05)},             # sable largo
+    "alejandro_magno": {"HK": (-1, 0, 1.0, 1.1)},                                 # ofensivo
+    "cristobal_colon": {"HP": (0, 1, 1.0, 1.0), "LK": (0, 1, 1.0, 1.0)},          # marinero tosco
+    "papa_francisco": {"LP": (0, 1, 0.95, 1.0)},                                  # gesto suave
+    "salvador_allende": {"HP": (0, -1, 1.0, 1.0)},                                # directo
+    "marie_curie": {"HK": (1, 1, 1.0, 1.0)},                                      # pausada
+}
+
+
+def fix_seq(keys, oh):
+    """Un golpe alto (overhead) es lento y no se puede enlazar: sale de los combos."""
+    if oh not in keys:
+        return keys
+    keys = [k for k in keys if k != oh]
+    other = "HK" if oh == "HP" else "HP"
+    if other not in keys:
+        keys.append(other)
+    for light in ("LK", "LP"):
+        if len(keys) >= 3:
+            break
+        if light not in keys:
+            keys.insert(0, light)
+    keys.sort(key=lambda k: RANK_OF[k])
+    return keys
+
+
+def profile_for(cid):
+    p = PROFILES.get(cid)
+    if p is None:
+        return {"mods": {}, "anim": {}, "combos": [], "light_hs": 0, "oh": None, "low": None, "names": {}}
+    anim = dict(STYLE_ANIMS.get(p["style"], {}))
+    anim.update(p["anim"])
+    oh = p["slot"] if p["kind"] == "oh" else None
+    combos = [(n, " ".join(fix_seq(s.split(), oh)), b) for n, s, b in p["combos"]]
+    mods = {}
+    for key, (a, b, c, d) in STYLE_MODS[p["style"]].items():
+        ta, tb, tc, td = TWEAKS.get(cid, {}).get(key, (0, 0, 1.0, 1.0))
+        mods[key] = (a + ta, b + tb, c * tc, d * td)
+    return {"mods": mods, "anim": anim, "combos": combos, "light_hs": STYLE_LIGHT_HITSTUN.get(p["style"], 0),
+            "oh": p["slot"] if p["kind"] == "oh" else None,
+            "low": p["slot"] if p["kind"] == "low" else None,
+            "names": {p["slot"]: p["name"]}}
+
+
+def build_normals(c, h, tempo):
+    """Los 4 golpes normales con el ritmo, alcance y niveles del perfil del luchador."""
+    ds = {"fast": -1, "normal": 0, "slow": 1}[tempo]
+    k = h / 70.0
+    r = 0.4 * h
+    prof = profile_for(c["id"])
+    # clave, ranura, nombre, tipo, anim, daño, hitstun, blockstun, empuje, hitstop, fx,
+    # startup, active, recuperación, alcance, y, ancho, alto, off agachado, off aire
+    specs = [
+        ("LP", "punch_light", 0, 0, "jab", 5, 14, 8, 90, 4, 1.0, 4, 3, 7, 1.0, -0.72, 21, 10, (0, 16), (-4, 16)),
+        ("HP", "punch_heavy", 1, 0, "straight", 10, 20, 12, 168, 7, 1.3, 8, 4, 14, 1.2, -0.71, 25, 12, (0, 16), (-8, 16)),
+        ("LK", "kick_light", 2, 1, "kick_low", 7, 15, 9, 110, 5, 1.0, 5, 3, 8, 0.95, -0.36, 23, 10, (2, 12), (-3, 22)),
+        ("HK", "kick_heavy", 3, 1, "kick_high", 12, 22, 13, 205, 8, 1.4, 10, 4, 16, 0.92, -0.6, 23, 14, (2, 27), (-4, 36)),
+    ]
+    out = {}
+    for key, slot, idx, kind, anim, dmg, hs, bs, kn, hstop, fx, st0, ac, rec0, ox, oy, w, hh, c_off, a_off in specs:
+        dst, drec, dm, xr = prof["mods"].get(key, (0, 0, 1.0, 1.0))
+        st = max(3, st0 + ds + dst)
+        rec = max(5, rec0 + ds + drec)
+        dmg *= dm
+        if key in ("LP", "LK"):
+            hs += prof["light_hs"]
+        extra = None
+        if prof["oh"] == key:
+            # Alto: solo se bloquea de pie. Más lento y algo más aturdidor.
+            st = max(st + 4, 12)
+            dmg *= 1.05
+            hs += 2
+            extra = ["hit_level = 2"]
+        elif prof["low"] == key:
+            # Bajo: solo se bloquea agachado. Un frame más lento.
+            st += 1
+            dmg *= 0.95
+            extra = ["hit_level = 1"]
+        name = prof["names"].get(key, c["moves"][idx])
+        out[slot] = attack(slot, name, kind, prof["anim"].get(key, anim), round(dmg, 1), hs, bs, kn, 0, hstop, fx,
+                           st, ac, rec, (round(r * ox * xr), round(oy * h)), (round(w * k * xr), hh),
+                           c_off, a_off, True, True, 0, 0, 0, 0, "ball", extra=extra)
+    return out
+
+
+def combo_resource_lines(cid, prof):
+    """Sub-recursos ComboData del luchador y la lista de referencias (para `combos = ...`)."""
+    lines, refs = [], []
+    for i, (cname, seq, bonus) in enumerate(prof["combos"]):
+        keys = seq.split()
+        ranks = [RANK_OF[x] for x in keys]
+        assert ranks == sorted(ranks) and len(set(keys)) == len(keys), f"combo imposible en {cid}: {seq}"
+        assert keys[-1] not in ("S1", "S2") or len(keys) >= 3
+        rid = f"C_{cid}_{i}"
+        slug = "".join(ch for ch in cname.lower() if ch.isalnum()) or f"combo{i}"
+        lines += [f'[sub_resource type="Resource" id="{rid}"]', 'script = ExtResource("{COMBO}")',
+                  f'id = &"{slug}"', f'display_name = "{esc(cname)}"',
+                  "sequence = Array[StringName]([" + ", ".join(f'&"{SLOT_OF[x]}"' for x in keys) + "])",
+                  "max_gap_frames = 24", f"bonus_damage = {f(bonus)}", ""]
+        refs.append(f'SubResource("{rid}")')
+    return lines, refs
+
+
 def build_attacks(c, h, tempo):
     """Devuelve {slot: líneas} para las 7 ranuras de ataque."""
     ds = {"fast": -1, "normal": 0, "slow": 1}[tempo]
@@ -586,23 +784,7 @@ def build_attacks(c, h, tempo):
     def t(st, rec):
         return max(3, st + ds), max(5, rec + ds)
 
-    out = {}
-    st, rec = t(4, 7)
-    out["punch_light"] = attack("punch_light", c["moves"][0], 0, "jab", 5, 14, 8, 90, 0, 4, 1.0,
-                                st, 3, rec, (round(r), round(-0.72 * h)), (round(21 * k), 10),
-                                (0, 16), (-4, 16), True, True, 0, 0, 0, 0, "ball")
-    st, rec = t(8, 14)
-    out["punch_heavy"] = attack("punch_heavy", c["moves"][1], 0, "straight", 10, 20, 12, 168, 0, 7, 1.3,
-                                st, 4, rec, (round(r * 1.2), round(-0.71 * h)), (round(25 * k), 12),
-                                (0, 16), (-8, 16), True, True, 0, 0, 0, 0, "ball")
-    st, rec = t(5, 8)
-    out["kick_light"] = attack("kick_light", c["moves"][2], 1, "kick_low", 7, 15, 9, 110, 0, 5, 1.0,
-                               st, 3, rec, (round(r * 0.95), round(-0.36 * h)), (round(23 * k), 10),
-                               (2, 12), (-3, 22), True, True, 0, 0, 0, 0, "ball")
-    st, rec = t(10, 16)
-    out["kick_heavy"] = attack("kick_heavy", c["moves"][3], 1, "kick_high", 12, 22, 13, 205, 0, 8, 1.4,
-                               st, 4, rec, (round(r * 0.92), round(-0.6 * h)), (round(23 * k), 14),
-                               (2, 27), (-4, 36), True, True, 0, 0, 0, 0, "ball")
+    out = build_normals(c, h, tempo)
     out["special_1"] = special(c["s1"], "special_1", h, k, r, 25, 45)
     out["special_2"] = special(c["s2"], "special_2", h, k, r, 40, 60)
     out["ultimate"] = attack("ultimate", c["ult"], 3, "charge", 35, 60, 8, 260, 0, 14, 1.0,
@@ -661,7 +843,7 @@ def build_tres(c):
              "special_1", "special_2", "ultimate"]
     ids = {s: f"R_{c['id']}_{s}" for s in slots}
     n_sub = len(slots)
-    out = [f'[gd_resource type="Resource" script_class="FighterData" load_steps={n_sub + 4} format=3]', "",
+    out = [f'[gd_resource type="Resource" script_class="FighterData" load_steps={n_sub + 6} format=3]', "",
            '[ext_resource type="Script" path="res://scripts/combo_data.gd" id="1_combo"]',
            '[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2_attack"]',
            '[ext_resource type="Script" path="res://scripts/fighter_data.gd" id="3_fighter"]', ""]
@@ -669,6 +851,8 @@ def build_tres(c):
         out += [f'[sub_resource type="Resource" id="{ids[s]}"]', 'script = ExtResource("2_attack")']
         out += atks[s]
         out.append("")
+    combo_lines, combo_refs = combo_resource_lines(c["id"], profile_for(c["id"]))
+    out += [ln.replace("{COMBO}", "1_combo") for ln in combo_lines]
     out += [
         "[resource]",
         'script = ExtResource("3_fighter")',
@@ -691,7 +875,7 @@ def build_tres(c):
     for s in ("punch_light", "punch_heavy", "kick_light", "kick_heavy", "special_1", "special_2", "ultimate"):
         out.append(f'{s} = SubResource("{ids[s]}")')
     out += [
-        'combos = Array[ExtResource("1_combo")]([])',
+        'combos = Array[ExtResource("1_combo")]([' + ", ".join(combo_refs) + '])',
         f"body_width = {f(bw)}",
         f"stand_height = {f(stand)}",
         f"crouch_height = {f(crouch)}",
@@ -846,6 +1030,27 @@ HAND_MADE = {"donald_trump": 1.0, "napoleon": 1.0}  # id -> altura relativa (ver
 HAND_STAND = {"donald_trump": 76.0, "napoleon": 66.0}
 
 
+def patch_hand_made_normals(fid, text):
+    """Pone a Trump / Napoleón los golpes normales y combos de su perfil (sin tocar el resto)."""
+    import re
+    h = HAND_STAND[fid]
+    slots = ["punch_light", "punch_heavy", "kick_light", "kick_heavy"]
+    moves = tuple(re.search(r'id = &"%s"\ndisplay_name = "([^"]*)"' % s, text).group(1) for s in slots)
+    atks = build_normals({"id": fid, "moves": moves}, h, "normal")
+    for s in slots:
+        pat = re.compile(r'(\[sub_resource type="Resource" id="[^"]+"\]\nscript = ExtResource\("[^"]+"\)\n)(id = &"%s"\n.*?)(\n\n)' % s, re.S)
+        text, n = pat.subn(lambda mm: mm.group(1) + "\n".join(atks[s]) + mm.group(3), text, count=1)
+        assert n == 1, f"no se encontró {s} de {fid}"
+    # Combos propios (se quitan los de una pasada anterior para poder repetir el script).
+    text = re.sub(r'\[sub_resource type="Resource" id="C_%s_\d+"\]\n.*?\n\n' % fid, "", text, flags=re.S)
+    cext = re.search(r'path="res://scripts/combo_data.gd" id="([^"]+)"', text).group(1)
+    lines, refs = combo_resource_lines(fid, profile_for(fid))
+    lines = [ln.replace("{COMBO}", cext) for ln in lines]
+    text = text.replace("[resource]\n", "\n".join(lines) + "\n[resource]\n", 1)
+    text = re.sub(r'^combos = .*$', lambda mm: 'combos = Array[ExtResource("%s")]([%s])' % (cext, ", ".join(refs)), text, flags=re.M)
+    return text
+
+
 def patch_hand_made(fid):
     """Cambia frases y special_2 de Trump / Napoleón sin tocar sus estadísticas."""
     import re
@@ -862,6 +1067,7 @@ def patch_hand_made(fid):
     intro, victory = QUOTES[fid]
     text = re.sub(r'^intro_quote = .*$', lambda mm: f'intro_quote = "{esc(intro)}"', text, flags=re.M)
     text = re.sub(r'^victory_quote = .*$', lambda mm: f'victory_quote = "{esc(victory)}"', text, flags=re.M)
+    text = patch_hand_made_normals(fid, text)
     path.write_text(text, encoding="utf-8", newline="\n")
     print("PARCHE", path)
 

@@ -314,8 +314,13 @@ func _resolve_projectiles() -> void:
 		for target in fighters:
 			if target != p.owner_fighter and target.can_be_hit() and p.can_hit(target) \
 					and rect.intersects(target.get_hurt_rect()):
-				_apply_hit(p.owner_fighter, target, p.attack, p.hit_direction(target),
-					_contact_point(p.global_position, target), true, p.attack.hit_level)
+				var owner_f := p.owner_fighter
+				var combo: ComboData = null
+				if p.combo != null and owner_f.combo_claimed != p.combo_instance:
+					combo = p.combo
+					owner_f.combo_claimed = p.combo_instance
+				_apply_hit(owner_f, target, p.attack, p.hit_direction(target),
+					_contact_point(p.global_position, target), true, p.attack.hit_level, combo)
 				p.register_hit(target)
 				if not p.alive:
 					break

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/combo_data.gd" id="1_combo"]
 [ext_resource type="Script" path="res://scripts/attack_data.gd" id="2_attack"]
@@ -10,16 +10,16 @@ id = &"kick_heavy"
 display_name = "Patada de Parada"
 kind = 1
 anim = &"kick_high"
-damage = 12.0
+damage = 13.2
 hitstun = 22
 blockstun = 13
 knockback = 205.0
 launch = 0.0
 hitstop = 8
 effect_scale = 1.4
-startup = 10
+startup = 11
 active = 4
-recovery = 16
+recovery = 17
 hitbox_offset = Vector2(26, -42)
 hitbox_size = Vector2(23, 14)
 crouch_offset = Vector2(2, 27)
@@ -39,14 +39,14 @@ id = &"kick_light"
 display_name = "Patada de Cuartel"
 kind = 1
 anim = &"kick_low"
-damage = 7.0
+damage = 6.6
 hitstun = 15
 blockstun = 9
 knockback = 110.0
 launch = 0.0
 hitstop = 5
 effect_scale = 1.0
-startup = 5
+startup = 6
 active = 3
 recovery = 8
 hitbox_offset = Vector2(27, -25)
@@ -61,6 +61,7 @@ dash_speed = 0.0
 projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
+hit_level = 1
 
 [sub_resource type="Resource" id="R_augusto_pinochet_punch_heavy"]
 script = ExtResource("2_attack")
@@ -68,18 +69,18 @@ id = &"punch_heavy"
 display_name = "Puño del General"
 kind = 0
 anim = &"straight"
-damage = 10.0
+damage = 12.1
 hitstun = 20
 blockstun = 12
 knockback = 168.0
 launch = 0.0
 hitstop = 7
 effect_scale = 1.3
-startup = 8
+startup = 9
 active = 4
 recovery = 14
-hitbox_offset = Vector2(34, -50)
-hitbox_size = Vector2(25, 12)
+hitbox_offset = Vector2(37, -50)
+hitbox_size = Vector2(28, 12)
 crouch_offset = Vector2(0, 16)
 air_offset = Vector2(-8, 16)
 usable_in_air = true
@@ -104,11 +105,11 @@ knockback = 90.0
 launch = 0.0
 hitstop = 4
 effect_scale = 1.0
-startup = 4
+startup = 3
 active = 3
-recovery = 7
-hitbox_offset = Vector2(28, -50)
-hitbox_size = Vector2(21, 10)
+recovery = 6
+hitbox_offset = Vector2(29, -50)
+hitbox_size = Vector2(22, 10)
 crouch_offset = Vector2(0, 16)
 air_offset = Vector2(-4, 16)
 usable_in_air = true
@@ -210,6 +211,22 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 
+[sub_resource type="Resource" id="C_augusto_pinochet_0"]
+script = ExtResource("1_combo")
+id = &"mando"
+display_name = "MANDO"
+sequence = Array[StringName]([&"kick_light", &"punch_light", &"punch_heavy"])
+max_gap_frames = 24
+bonus_damage = 3.5
+
+[sub_resource type="Resource" id="C_augusto_pinochet_1"]
+script = ExtResource("1_combo")
+id = &"toque"
+display_name = "TOQUE"
+sequence = Array[StringName]([&"punch_light", &"kick_light", &"punch_heavy", &"special_1"])
+max_gap_frames = 24
+bonus_damage = 6.5
+
 [resource]
 script = ExtResource("3_fighter")
 id = &"augusto_pinochet"
@@ -234,7 +251,7 @@ kick_heavy = SubResource("R_augusto_pinochet_kick_heavy")
 special_1 = SubResource("R_augusto_pinochet_special_1")
 special_2 = SubResource("R_augusto_pinochet_special_2")
 ultimate = SubResource("R_augusto_pinochet_ultimate")
-combos = Array[ExtResource("1_combo")]([])
+combos = Array[ExtResource("1_combo")]([SubResource("C_augusto_pinochet_0"), SubResource("C_augusto_pinochet_1")])
 body_width = 26.0
 stand_height = 70.0
 crouch_height = 45.0

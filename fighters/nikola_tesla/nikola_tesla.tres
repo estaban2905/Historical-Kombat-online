@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/combo_data.gd" id="1_combo"]
 [ext_resource type="Script" path="res://scripts/attack_data.gd" id="2_attack"]
@@ -17,9 +17,9 @@ knockback = 205.0
 launch = 0.0
 hitstop = 8
 effect_scale = 1.4
-startup = 10
+startup = 11
 active = 4
-recovery = 16
+recovery = 18
 hitbox_offset = Vector2(28, -46)
 hitbox_size = Vector2(25, 14)
 crouch_offset = Vector2(2, 27)
@@ -39,8 +39,8 @@ id = &"kick_light"
 display_name = "Patada de Bobina"
 kind = 1
 anim = &"kick_low"
-damage = 7.0
-hitstun = 15
+damage = 6.3
+hitstun = 17
 blockstun = 9
 knockback = 110.0
 launch = 0.0
@@ -48,7 +48,7 @@ hitstop = 5
 effect_scale = 1.0
 startup = 5
 active = 3
-recovery = 8
+recovery = 9
 hitbox_offset = Vector2(29, -27)
 hitbox_size = Vector2(25, 10)
 crouch_offset = Vector2(2, 12)
@@ -65,21 +65,21 @@ projectile_lifetime = 2.0
 [sub_resource type="Resource" id="R_nikola_tesla_punch_heavy"]
 script = ExtResource("2_attack")
 id = &"punch_heavy"
-display_name = "Puño Eléctrico"
+display_name = "Descarga en Arco"
 kind = 0
-anim = &"straight"
+anim = &"book"
 damage = 10.0
-hitstun = 20
+hitstun = 22
 blockstun = 12
 knockback = 168.0
 launch = 0.0
 hitstop = 7
 effect_scale = 1.3
-startup = 8
+startup = 12
 active = 4
-recovery = 14
-hitbox_offset = Vector2(36, -54)
-hitbox_size = Vector2(27, 12)
+recovery = 16
+hitbox_offset = Vector2(38, -54)
+hitbox_size = Vector2(28, 12)
 crouch_offset = Vector2(0, 16)
 air_offset = Vector2(-8, 16)
 usable_in_air = true
@@ -90,6 +90,7 @@ dash_speed = 0.0
 projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
+hit_level = 2
 
 [sub_resource type="Resource" id="R_nikola_tesla_punch_light"]
 script = ExtResource("2_attack")
@@ -97,8 +98,8 @@ id = &"punch_light"
 display_name = "Chispazo"
 kind = 0
 anim = &"jab"
-damage = 5.0
-hitstun = 14
+damage = 4.2
+hitstun = 16
 blockstun = 8
 knockback = 90.0
 launch = 0.0
@@ -106,7 +107,7 @@ hitstop = 4
 effect_scale = 1.0
 startup = 4
 active = 3
-recovery = 7
+recovery = 8
 hitbox_offset = Vector2(30, -55)
 hitbox_size = Vector2(23, 10)
 crouch_offset = Vector2(0, 16)
@@ -208,6 +209,22 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 
+[sub_resource type="Resource" id="C_nikola_tesla_0"]
+script = ExtResource("1_combo")
+id = &"arco"
+display_name = "ARCO"
+sequence = Array[StringName]([&"kick_light", &"punch_light", &"kick_heavy"])
+max_gap_frames = 24
+bonus_damage = 3.5
+
+[sub_resource type="Resource" id="C_nikola_tesla_1"]
+script = ExtResource("1_combo")
+id = &"corriente"
+display_name = "CORRIENTE"
+sequence = Array[StringName]([&"kick_light", &"punch_light", &"kick_heavy", &"special_1"])
+max_gap_frames = 24
+bonus_damage = 7.0
+
 [resource]
 script = ExtResource("3_fighter")
 id = &"nikola_tesla"
@@ -232,7 +249,7 @@ kick_heavy = SubResource("R_nikola_tesla_kick_heavy")
 special_1 = SubResource("R_nikola_tesla_special_1")
 special_2 = SubResource("R_nikola_tesla_special_2")
 ultimate = SubResource("R_nikola_tesla_ultimate")
-combos = Array[ExtResource("1_combo")]([])
+combos = Array[ExtResource("1_combo")]([SubResource("C_nikola_tesla_0"), SubResource("C_nikola_tesla_1")])
 body_width = 25.0
 stand_height = 76.0
 crouch_height = 49.0

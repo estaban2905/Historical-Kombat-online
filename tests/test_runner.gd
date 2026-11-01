@@ -252,7 +252,14 @@ func _test_fight() -> void:
 	await _setup_duel(40)
 	var h1 := p1.health
 	var h2 := p2.health
-	key(KEY_U, true); key(KEY_KP_1, true)
+	# Los puños débiles de cada luchador tienen su propio startup: se adelanta al más lento
+	# para que los dos golpes lleguen en el mismo frame.
+	var d1 := p1.data.punch_light.startup
+	var d2 := p2.data.punch_light.startup
+	if d2 > d1:
+		key(KEY_KP_1, true); await frames(d2 - d1); key(KEY_U, true)
+	else:
+		key(KEY_U, true); await frames(d1 - d2); key(KEY_KP_1, true)
 	await frames(2)
 	key(KEY_U, false); key(KEY_KP_1, false)
 	await frames(30)

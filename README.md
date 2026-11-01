@@ -86,6 +86,7 @@ No hay dependencias externas ni plugins.
 - **CPU (`scripts/ai_controller.gd`):** además de caminar, atacar y bloquear alto/bajo, encadena cancelaciones tras un golpe que conecta, castiga ataques con recuperación larga (solo si su golpe llega a tiempo), usa el antiaéreo contra saltos cercanos, mezcla golpes bajos contra quien bloquea de pie, agarra a quien se encierra, se escapa con backdash, lanza el ultimate con la energía llena, evita el derribo pulsando bloqueo al caer y a veces se levanta con voltereta. Todo escala con el nivel de dificultad.
 - **Balance de estadísticas:** la vida efectiva (vida × resistencia) va de ~84 (Hitler, *glass*) a ~114 (Xi, *tank*), como mucho 1,4 veces (antes más del doble); la fuerza compensa a los frágiles. Se define en `ARCHETYPES` de `tools/generate_fighters.py` (Trump y Napoleón se tocan a mano en su `.tres`). Los controles invertidos de Rasputín avisan 24 frames (el rival se tiñe) antes de invertirse, y los poderes de lentitud e inversión duran 2,5 s.
 - **Bloqueo perfecto:** pulsar bloqueo (soltando y volviendo a pulsar) como mucho 6 frames antes de que llegue el golpe: sin daño de rozadura ni gasto de guardia, +8 de energía y 4 frames menos de bloqueo forzado (ventaja). Mantener el bloqueo no cuenta. Muestra `¡PERFECTO!`. Constantes `PERFECT_BLOCK_*` en `scripts/fighter.gd`.
+- **Perfiles por personaje:** cada luchador tiene su ritmo de golpes normales según su arma y personalidad (espada/sable y lanza: más alcance y más recuperación; pesados: lentos y fuertes; veloces: cortos y rápidos; eruditos: golpes débiles y poderes fuertes), **un golpe propio alto** (overhead, solo se bloquea de pie) **o bajo** (solo se bloquea agachado) y **dos combos propios** con su nombre y bono. Los golpes altos quedan fuera de los combos (son lentos). Un combo que acaba en un especial cobra su bono aunque sea proyectil o poder. La tabla completa está en [docs/PERFILES.md](docs/PERFILES.md); se edita en `PROFILES`, `STYLE_MODS` y `TWEAKS` de `tools/generate_fighters.py`.
 - **Zafarse de un agarre:** pulsar puño débil + patada débil en los primeros 10 frames de la llave. Si los dos jugadores se agarran a la vez, también se zafan.
 - Las teclas del jugador 2 tienen una alternativa en el bloque de navegación para portátiles sin teclado numérico.
 - Algunos teclados baratos no registran muchas teclas a la vez ("ghosting"); si un jugador deja de responder al pulsar varias teclas, es una limitación del teclado.
@@ -300,7 +301,7 @@ Capturas de pantalla (necesita pantalla o `xvfb-run`): `godot --path . res://tes
 - Equilibrar a los 30 luchadores con partidas reales (las estadísticas actuales son una primera propuesta por arquetipo).
 - Sprites definitivos dibujados a mano y retratos (el sistema ya los admite).
 - Ataque definitivo (los datos ya existen en cada ficha; falta asignarle entrada y animación).
-- Combos con nombre propios por personaje (hoy todos usan TRÍO y CUARTETO).
+- Retocar con partidas reales los perfiles de cada luchador (ver `docs/PERFILES.md`).
 - Movimientos especiales con secuencias de joystick (↓↘→ + botón).
 - Agarres / llaves.
 - Más escenarios y selector de escenario.

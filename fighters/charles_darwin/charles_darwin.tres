@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/combo_data.gd" id="1_combo"]
 [ext_resource type="Script" path="res://scripts/attack_data.gd" id="2_attack"]
@@ -17,9 +17,9 @@ knockback = 205.0
 launch = 0.0
 hitstop = 8
 effect_scale = 1.4
-startup = 11
+startup = 12
 active = 4
-recovery = 17
+recovery = 19
 hitbox_offset = Vector2(24, -39)
 hitbox_size = Vector2(21, 14)
 crouch_offset = Vector2(2, 27)
@@ -36,19 +36,19 @@ projectile_lifetime = 2.0
 [sub_resource type="Resource" id="R_charles_darwin_kick_light"]
 script = ExtResource("2_attack")
 id = &"kick_light"
-display_name = "Patada de Galápagos"
+display_name = "Patada Primate"
 kind = 1
 anim = &"kick_low"
-damage = 7.0
-hitstun = 15
+damage = 6.0
+hitstun = 17
 blockstun = 9
 knockback = 110.0
 launch = 0.0
 hitstop = 5
 effect_scale = 1.0
-startup = 6
+startup = 7
 active = 3
-recovery = 9
+recovery = 10
 hitbox_offset = Vector2(25, -23)
 hitbox_size = Vector2(21, 10)
 crouch_offset = Vector2(2, 12)
@@ -61,14 +61,15 @@ dash_speed = 0.0
 projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
+hit_level = 1
 
 [sub_resource type="Resource" id="R_charles_darwin_punch_heavy"]
 script = ExtResource("2_attack")
 id = &"punch_heavy"
 display_name = "Puño del Beagle"
 kind = 0
-anim = &"straight"
-damage = 10.0
+anim = &"book"
+damage = 9.5
 hitstun = 20
 blockstun = 12
 knockback = 168.0
@@ -77,9 +78,9 @@ hitstop = 7
 effect_scale = 1.3
 startup = 9
 active = 4
-recovery = 15
-hitbox_offset = Vector2(31, -46)
-hitbox_size = Vector2(23, 12)
+recovery = 17
+hitbox_offset = Vector2(33, -46)
+hitbox_size = Vector2(24, 12)
 crouch_offset = Vector2(0, 16)
 air_offset = Vector2(-8, 16)
 usable_in_air = true
@@ -97,8 +98,8 @@ id = &"punch_light"
 display_name = "Manotazo Evolutivo"
 kind = 0
 anim = &"jab"
-damage = 5.0
-hitstun = 14
+damage = 4.2
+hitstun = 16
 blockstun = 8
 knockback = 90.0
 launch = 0.0
@@ -106,7 +107,7 @@ hitstop = 4
 effect_scale = 1.0
 startup = 5
 active = 3
-recovery = 8
+recovery = 9
 hitbox_offset = Vector2(26, -47)
 hitbox_size = Vector2(20, 10)
 crouch_offset = Vector2(0, 16)
@@ -209,6 +210,22 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 
+[sub_resource type="Resource" id="C_charles_darwin_0"]
+script = ExtResource("1_combo")
+id = &"adaptación"
+display_name = "ADAPTACIÓN"
+sequence = Array[StringName]([&"kick_light", &"punch_light", &"punch_heavy"])
+max_gap_frames = 24
+bonus_damage = 3.0
+
+[sub_resource type="Resource" id="C_charles_darwin_1"]
+script = ExtResource("1_combo")
+id = &"selección"
+display_name = "SELECCIÓN"
+sequence = Array[StringName]([&"punch_light", &"kick_light", &"punch_heavy", &"special_1"])
+max_gap_frames = 24
+bonus_damage = 6.5
+
 [resource]
 script = ExtResource("3_fighter")
 id = &"charles_darwin"
@@ -233,7 +250,7 @@ kick_heavy = SubResource("R_charles_darwin_kick_heavy")
 special_1 = SubResource("R_charles_darwin_special_1")
 special_2 = SubResource("R_charles_darwin_special_2")
 ultimate = SubResource("R_charles_darwin_ultimate")
-combos = Array[ExtResource("1_combo")]([])
+combos = Array[ExtResource("1_combo")]([SubResource("C_charles_darwin_0"), SubResource("C_charles_darwin_1")])
 body_width = 30.0
 stand_height = 65.0
 crouch_height = 42.0

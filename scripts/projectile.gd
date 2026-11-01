@@ -46,6 +46,9 @@ var floor_y: float = -1.0
 var boom: bool = false
 ## El golpe arrastra al objetivo hacia el lanzador.
 var pull: bool = false
+## Combo con nombre que completa este especial (su bono lo cobra el primer golpe que entre).
+var combo: ComboData
+var combo_instance: int = -1
 ## Visual que acompaña al lanzador mientras tiene el escudo activo.
 var follow: bool = false
 
@@ -59,6 +62,8 @@ var _hit_log: Dictionary = {}
 func setup(p_owner: Fighter, p_attack: AttackData, spawn_position: Vector2) -> void:
 	owner_fighter = p_owner
 	attack = p_attack
+	combo = p_owner.attack_combo
+	combo_instance = p_owner.attack_instance
 	direction = p_owner.facing
 	speed = p_attack.projectile_speed
 	life = p_attack.projectile_lifetime

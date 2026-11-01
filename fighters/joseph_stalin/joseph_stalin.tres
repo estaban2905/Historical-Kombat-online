@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/combo_data.gd" id="1_combo"]
 [ext_resource type="Script" path="res://scripts/attack_data.gd" id="2_attack"]
@@ -10,16 +10,16 @@ id = &"kick_heavy"
 display_name = "Patada del Plan Quinquenal"
 kind = 1
 anim = &"kick_high"
-damage = 12.0
+damage = 15.6
 hitstun = 22
 blockstun = 13
 knockback = 205.0
 launch = 0.0
 hitstop = 8
 effect_scale = 1.4
-startup = 11
+startup = 14
 active = 4
-recovery = 17
+recovery = 20
 hitbox_offset = Vector2(26, -43)
 hitbox_size = Vector2(24, 14)
 crouch_offset = Vector2(2, 27)
@@ -39,16 +39,16 @@ id = &"kick_light"
 display_name = "Patada Siberiana"
 kind = 1
 anim = &"kick_low"
-damage = 7.0
-hitstun = 15
+damage = 8.0
+hitstun = 20
 blockstun = 9
 knockback = 110.0
 launch = 0.0
 hitstop = 5
 effect_scale = 1.0
-startup = 6
+startup = 7
 active = 3
-recovery = 9
+recovery = 11
 hitbox_offset = Vector2(27, -26)
 hitbox_size = Vector2(24, 10)
 crouch_offset = Vector2(2, 12)
@@ -65,21 +65,21 @@ projectile_lifetime = 2.0
 [sub_resource type="Resource" id="R_joseph_stalin_punch_heavy"]
 script = ExtResource("2_attack")
 id = &"punch_heavy"
-display_name = "Puño de Acero"
+display_name = "Mazazo de Acero"
 kind = 0
 anim = &"straight"
-damage = 10.0
-hitstun = 20
+damage = 16.2
+hitstun = 22
 blockstun = 12
 knockback = 168.0
 launch = 0.0
 hitstop = 7
 effect_scale = 1.3
-startup = 9
+startup = 17
 active = 4
-recovery = 15
-hitbox_offset = Vector2(35, -51)
-hitbox_size = Vector2(26, 12)
+recovery = 19
+hitbox_offset = Vector2(38, -51)
+hitbox_size = Vector2(28, 12)
 crouch_offset = Vector2(0, 16)
 air_offset = Vector2(-8, 16)
 usable_in_air = true
@@ -90,6 +90,7 @@ dash_speed = 0.0
 projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
+hit_level = 2
 
 [sub_resource type="Resource" id="R_joseph_stalin_punch_light"]
 script = ExtResource("2_attack")
@@ -97,16 +98,16 @@ id = &"punch_light"
 display_name = "Martillazo"
 kind = 0
 anim = &"jab"
-damage = 5.0
-hitstun = 14
+damage = 5.8
+hitstun = 19
 blockstun = 8
 knockback = 90.0
 launch = 0.0
 hitstop = 4
 effect_scale = 1.0
-startup = 5
+startup = 6
 active = 3
-recovery = 8
+recovery = 9
 hitbox_offset = Vector2(29, -52)
 hitbox_size = Vector2(22, 10)
 crouch_offset = Vector2(0, 16)
@@ -209,6 +210,22 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 
+[sub_resource type="Resource" id="C_joseph_stalin_0"]
+script = ExtResource("1_combo")
+id = &"quinquenal"
+display_name = "QUINQUENAL"
+sequence = Array[StringName]([&"kick_light", &"punch_light", &"kick_heavy"])
+max_gap_frames = 24
+bonus_damage = 4.5
+
+[sub_resource type="Resource" id="C_joseph_stalin_1"]
+script = ExtResource("1_combo")
+id = &"purga"
+display_name = "PURGA"
+sequence = Array[StringName]([&"kick_light", &"punch_light", &"kick_heavy", &"special_2"])
+max_gap_frames = 24
+bonus_damage = 8.0
+
 [resource]
 script = ExtResource("3_fighter")
 id = &"joseph_stalin"
@@ -233,7 +250,7 @@ kick_heavy = SubResource("R_joseph_stalin_kick_heavy")
 special_1 = SubResource("R_joseph_stalin_special_1")
 special_2 = SubResource("R_joseph_stalin_special_2")
 ultimate = SubResource("R_joseph_stalin_ultimate")
-combos = Array[ExtResource("1_combo")]([])
+combos = Array[ExtResource("1_combo")]([SubResource("C_joseph_stalin_0"), SubResource("C_joseph_stalin_1")])
 body_width = 30.0
 stand_height = 72.0
 crouch_height = 46.0

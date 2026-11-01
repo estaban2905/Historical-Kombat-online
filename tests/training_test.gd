@@ -123,7 +123,8 @@ func _run() -> void:
 	await combat.ticked
 	_masks = [0, 0]
 	await _until(func(): return training.advantage(1, pl, "hit") != null, 80)
-	check(training.advantage(1, pl, "hit") == 6, "puño débil de Napoleón: ventaja al golpear %s (esperado +6)" % str(training.advantage(1, pl, "hit")))
+	var expect_hit := pl.hitstun - pl.recovery - 1
+	check(training.advantage(1, pl, "hit") == expect_hit, "puño débil de Napoleón: ventaja al golpear %s (esperado %+d)" % [str(training.advantage(1, pl, "hit")), expect_hit])
 	await _ticks(60)
 	training.set_dummy(TrainingMode.Dummy.BLOCK)
 	await _place(30.0)
@@ -131,7 +132,8 @@ func _run() -> void:
 	await combat.ticked
 	_masks = [0, 0]
 	await _until(func(): return training.advantage(1, pl, "block") != null, 80)
-	check(training.advantage(1, pl, "block") == 0, "puño débil de Napoleón: ventaja al bloquear %s (esperado +0)" % str(training.advantage(1, pl, "block")))
+	var expect_block := pl.blockstun - pl.recovery - 1
+	check(training.advantage(1, pl, "block") == expect_block, "puño débil de Napoleón: ventaja al bloquear %s (esperado %+d)" % [str(training.advantage(1, pl, "block")), expect_block])
 	check(training._last_atk == pl and training._last_player == 1, "el panel recuerda el último ataque")
 	await _ticks(60)
 	training.set_dummy(TrainingMode.Dummy.STAND)

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="FighterData" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="FighterData" load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/combo_data.gd" id="1_combo"]
 [ext_resource type="Script" path="res://scripts/attack_data.gd" id="2_attack"]
@@ -19,7 +19,7 @@ hitstop = 8
 effect_scale = 1.4
 startup = 9
 active = 4
-recovery = 15
+recovery = 14
 hitbox_offset = Vector2(28, -46)
 hitbox_size = Vector2(25, 14)
 crouch_offset = Vector2(2, 27)
@@ -36,10 +36,10 @@ projectile_lifetime = 2.0
 [sub_resource type="Resource" id="R_osama_bin_laden_kick_light"]
 script = ExtResource("2_attack")
 id = &"kick_light"
-display_name = "Patada de Arena"
+display_name = "Patada Sombra"
 kind = 1
 anim = &"kick_low"
-damage = 7.0
+damage = 6.3
 hitstun = 15
 blockstun = 9
 knockback = 110.0
@@ -48,7 +48,7 @@ hitstop = 5
 effect_scale = 1.0
 startup = 4
 active = 3
-recovery = 7
+recovery = 6
 hitbox_offset = Vector2(29, -27)
 hitbox_size = Vector2(25, 10)
 crouch_offset = Vector2(2, 12)
@@ -61,6 +61,7 @@ dash_speed = 0.0
 projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
+hit_level = 1
 
 [sub_resource type="Resource" id="R_osama_bin_laden_punch_heavy"]
 script = ExtResource("2_attack")
@@ -75,9 +76,9 @@ knockback = 168.0
 launch = 0.0
 hitstop = 7
 effect_scale = 1.3
-startup = 7
+startup = 6
 active = 4
-recovery = 13
+recovery = 12
 hitbox_offset = Vector2(36, -54)
 hitbox_size = Vector2(27, 12)
 crouch_offset = Vector2(0, 16)
@@ -97,7 +98,7 @@ id = &"punch_light"
 display_name = "Manotazo del Desierto"
 kind = 0
 anim = &"jab"
-damage = 5.0
+damage = 4.5
 hitstun = 14
 blockstun = 8
 knockback = 90.0
@@ -106,9 +107,9 @@ hitstop = 4
 effect_scale = 1.0
 startup = 3
 active = 3
-recovery = 6
-hitbox_offset = Vector2(30, -55)
-hitbox_size = Vector2(23, 10)
+recovery = 5
+hitbox_offset = Vector2(29, -55)
+hitbox_size = Vector2(22, 10)
 crouch_offset = Vector2(0, 16)
 air_offset = Vector2(-4, 16)
 usable_in_air = true
@@ -209,6 +210,22 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 
+[sub_resource type="Resource" id="C_osama_bin_laden_0"]
+script = ExtResource("1_combo")
+id = &"sombra"
+display_name = "SOMBRA"
+sequence = Array[StringName]([&"punch_light", &"kick_light", &"kick_heavy"])
+max_gap_frames = 24
+bonus_damage = 3.0
+
+[sub_resource type="Resource" id="C_osama_bin_laden_1"]
+script = ExtResource("1_combo")
+id = &"emboscada"
+display_name = "EMBOSCADA"
+sequence = Array[StringName]([&"kick_light", &"punch_light", &"punch_heavy", &"special_2"])
+max_gap_frames = 24
+bonus_damage = 7.0
+
 [resource]
 script = ExtResource("3_fighter")
 id = &"osama_bin_laden"
@@ -233,7 +250,7 @@ kick_heavy = SubResource("R_osama_bin_laden_kick_heavy")
 special_1 = SubResource("R_osama_bin_laden_special_1")
 special_2 = SubResource("R_osama_bin_laden_special_2")
 ultimate = SubResource("R_osama_bin_laden_ultimate")
-combos = Array[ExtResource("1_combo")]([])
+combos = Array[ExtResource("1_combo")]([SubResource("C_osama_bin_laden_0"), SubResource("C_osama_bin_laden_1")])
 body_width = 25.0
 stand_height = 76.0
 crouch_height = 49.0
