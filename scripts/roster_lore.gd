@@ -1,0 +1,266 @@
+## Textos de la pantalla PERSONAJES: quién fue, qué hizo y qué hace cada poder.
+##
+## LORE[id] = [quién fue, qué hizo, descripción del especial 1, descripción del especial 2].
+## La descripción del ultimate sale de su `ult_kind` (ULT_TEXT) para no repetirla 39 veces.
+## Textos cortos (la pantalla es de 426x240): ~150 caracteres la historia, ~90 cada poder.
+class_name RosterLore
+extends RefCounted
+
+const LORE := {
+	&"donald_trump": [
+		"Empresario inmobiliario y presidente número 45 de Estados Unidos. Famoso por la televisión, los rascacielos y su voz.",
+		"Levantó un imperio de torres con su apellido y llegó a la Casa Blanca en 2016. Volvió a ganar en 2024.",
+		"Un megáfono gigante lanza una onda sonora que empuja al rival.",
+		"Levanta un muro que avanza y bloquea el paso del rival.",
+	],
+	&"kim_jong_un": [
+		"Líder supremo de Corea del Norte desde 2011. Heredó el poder de su padre y su abuelo.",
+		"Impulsó el programa de misiles de su país y lo mantiene cerrado al mundo. Aquí lo da todo con cohetes.",
+		"Un desfile de soldados avanza y golpea a quien se cruce.",
+		"Lanza una andanada de cohetes que caen sobre el rival.",
+	],
+	&"vladimir_putin": [
+		"Presidente de Rusia desde el año 2000. Antes fue agente del KGB y cinturón negro de judo.",
+		"Gobierna Rusia hace más de dos décadas y ordenó la invasión de Ucrania en 2022.",
+		"Una mirada helada congela al rival y lo deja lento.",
+		"Un oso siberiano carga contra el rival y lo arrolla.",
+	],
+	&"xi_jinping": [
+		"Presidente de China desde 2013 y líder del Partido Comunista. Paciente y muy calculador.",
+		"Concentró el poder como pocos desde Mao y lanzó la Franja y la Ruta, una red de comercio mundial.",
+		"Una ruta de seda de luz recorre el escenario y golpea al rival.",
+		"Un dragón imperial se lanza a morder al rival.",
+	],
+	&"nicolas_maduro": [
+		"Fue conductor de autobús y sindicalista antes de llegar a presidente de Venezuela en 2013.",
+		"Heredó el cargo de Hugo Chávez y gobernó en medio de una crisis económica y política.",
+		"Lanza arepas que rebotan y golpean al rival.",
+		"Un baile sorpresa desconcierta al rival y le hace perder el control.",
+	],
+	&"adolf_hitler": [
+		"Dictador de Alemania entre 1933 y 1945. Aquí es una caricatura ridícula: nada de él se glorifica.",
+		"Su régimen nazi provocó la Segunda Guerra Mundial y el Holocausto. Perdió la guerra y se quitó la vida en 1945.",
+		"Un discurso a gritos lanza una onda de sonido contra el rival.",
+		"Una marcha caótica desordena al rival y lo empuja hacia atrás.",
+	],
+	&"joseph_stalin": [
+		"Líder de la Unión Soviética desde mediados de los años 20 hasta 1953. Su nombre significa \"hombre de acero\".",
+		"Industrializó el país a la fuerza, ganó la guerra contra Alemania y gobernó con terror y purgas.",
+		"Una hoz voladora cruza la pantalla y vuelve a su dueño.",
+		"Un puñetazo de acero que aplasta la defensa del rival.",
+	],
+	&"benito_mussolini": [
+		"Fundador del fascismo y dictador de Italia entre 1922 y 1943, conocido como \"Il Duce\".",
+		"Aliado de Hitler en la guerra, perdió el poder y fue capturado y ejecutado en 1945.",
+		"Un discurso desde el balcón lanza una onda sonora contra el rival.",
+		"Un discurso que estalla y empuja al rival varios pasos.",
+	],
+	&"saddam_hussein": [
+		"Presidente de Irak entre 1979 y 2003. Gobernó con mano dura y mucho dorado.",
+		"Invadió Irán y Kuwait, y fue derrocado en 2003 por la invasión de Estados Unidos. Murió en 2006.",
+		"Un disparo dorado cruza la pantalla en línea recta.",
+		"Levanta una tormenta de arena que golpea y desorienta al rival.",
+	],
+	&"osama_bin_laden": [
+		"Fundador de Al Qaeda. Aquí es un fugitivo que solo huye y golpea con la mirada.",
+		"Organizó los atentados del 11 de septiembre de 2001. Fue abatido en Pakistán en 2011.",
+		"Una mirada fulminante lanza un rayo recto al rival.",
+		"Se desvanece como un fantasma del desierto y reaparece cerca del rival.",
+	],
+	&"napoleon": [
+		"Emperador de los franceses. Bajito de estatura, gigante de ego y de sombrero.",
+		"Conquistó media Europa con su genio militar, ganó en Austerlitz y perdió en Waterloo. Murió exiliado en Santa Elena.",
+		"Un cañonazo de artillería que cruza el campo de batalla.",
+		"Una descarga de artillería imperial cae sobre el rival.",
+	],
+	&"gengis_kan": [
+		"Fundador del Imperio mongol, el mayor imperio continuo que ha existido.",
+		"Unió a las tribus de las estepas y conquistó desde China hasta Persia con jinetes veloces.",
+		"Una lluvia de flechas cae desde el cielo sobre el rival.",
+		"Una carga de caballería mongola arrolla todo a su paso.",
+	],
+	&"fidel_castro": [
+		"Líder de la Revolución cubana y gobernante de Cuba durante casi 50 años.",
+		"Derrocó a Batista en 1959, resistió el bloqueo de EE. UU. y daba discursos de horas.",
+		"Un puro explosivo que estalla al tocar al rival.",
+		"Un discurso interminable que ahoga al rival en palabras.",
+	],
+	&"cleopatra": [
+		"Última reina del antiguo Egipto. Hablaba nueve idiomas y era una política muy astuta.",
+		"Se alió con Julio César y con Marco Antonio para defender su trono. Murió en el 30 a.C. al caer Egipto.",
+		"Lanza un áspid venenoso que muerde al rival.",
+		"Invoca la maldición de Anubis, dios de los muertos, sobre el rival.",
+	],
+	&"julio_cesar": [
+		"General y dictador romano. Conquistó la Galia y cambió para siempre la historia de Roma.",
+		"Cruzó el Rubicón, ganó la guerra civil y fue asesinado en el Senado en el año 44 a.C.",
+		"Lanza un pilum, la jabalina de los legionarios.",
+		"Convoca una legión romana que marcha en formación.",
+	],
+	&"alejandro_magno": [
+		"Rey de Macedonia a los 20 años. Alumno de Aristóteles y jinete de Bucéfalo.",
+		"Creó un imperio hasta la India sin perder una sola batalla. Murió con 32 años en Babilonia.",
+		"Corta el nudo gordiano con su espada y desata un tajo.",
+		"Monta su caballo Bucéfalo y embiste al rival.",
+	],
+	&"isabel_ii": [
+		"Reina del Reino Unido durante 70 años, de 1952 a 2022. Pequeña, serena y con un bolso peligroso.",
+		"Vio pasar a quince primeros ministros y acompañó a su país desde la posguerra hasta el siglo XXI.",
+		"Lanza un corgi, su raza favorita, contra el rival.",
+		"Los guardias reales avanzan y protegen a la reina.",
+	],
+	&"abraham_lincoln": [
+		"Presidente número 16 de Estados Unidos. Muy alto, con sombrero de copa. Fue leñador antes de ser abogado.",
+		"Guió al país en la Guerra Civil, abolió la esclavitud y fue asesinado en 1865.",
+		"Un discurso de Gettysburg que lanza una onda sonora.",
+		"Lanza un hacha presidencial que gira por el aire.",
+	],
+	&"jesus_de_nazaret": [
+		"Maestro de Galilea cuyas enseñanzas dieron origen al cristianismo.",
+		"Predicó el amor al prójimo y el perdón. Aquí lucha con luz y bondad, poniendo la otra mejilla... al final.",
+		"Lanza un bastón de pastor que gira hacia el rival.",
+		"Una luz divina cae sobre el rival.",
+	],
+	&"buda": [
+		"Siddhartha Gautama, príncipe de la India que dejó el palacio para buscar la verdad.",
+		"Alcanzó la iluminación bajo un árbol y fundó el budismo. Predicó el camino del medio.",
+		"Un rayo de iluminación sale disparado de su frente.",
+		"La iluminación envuelve al rival y lo deja flotando.",
+	],
+	&"papa_francisco": [
+		"Jorge Bergoglio, el primer papa latinoamericano. Humilde, cercano y hincha de fútbol.",
+		"Fue elegido en 2013, defendió a los pobres y los migrantes, y viajó por todo el mundo.",
+		"Una bendición explosiva estalla sobre el rival.",
+		"Las campanas del Vaticano suenan y aturden al rival.",
+	],
+	&"rasputin": [
+		"Místico siberiano que se ganó la confianza del zar Nicolás II y su familia.",
+		"Según la leyenda, sobrevivió al veneno y a varios disparos. Murió asesinado en 1916.",
+		"Lanza un bastón místico que gira por el aire.",
+		"Hipnotiza al rival y le invierte los controles.",
+	],
+	&"pablo_escobar": [
+		"Narcotraficante colombiano y jefe del Cártel de Medellín. Llegó a ser uno de los hombres más ricos del mundo.",
+		"Sembró el terror en Colombia durante los años 80 y 90. Fue abatido en Medellín en 1993.",
+		"Un hipopótamo descontrolado embiste al rival.",
+		"Lanza una lluvia de billetes que golpea al rival.",
+	],
+	&"albert_einstein": [
+		"Físico alemán, autor de la teoría de la relatividad. Premio Nobel de Física en 1921.",
+		"Cambió nuestra idea del espacio, el tiempo y la energía con la famosa fórmula E=mc².",
+		"Un rayo de energía E=mc² cruza la pantalla.",
+		"La relatividad dobla el tiempo y deja lento al rival.",
+	],
+	&"nikola_tesla": [
+		"Inventor serbio-estadounidense, pionero de la electricidad moderna.",
+		"Creó la corriente alterna, el motor de inducción y experimentó con la energía sin cables.",
+		"Corre envuelto en electricidad y golpea al rival.",
+		"Una tormenta Tesla lanza rayos desde el cielo.",
+	],
+	&"leonardo_da_vinci": [
+		"Pintor, inventor e ingeniero del Renacimiento italiano. Un genio de todo.",
+		"Pintó la Mona Lisa y La Última Cena, y dibujó máquinas voladoras cuatro siglos antes del avión.",
+		"El Hombre de Vitruvio abre brazos y piernas y golpea alrededor.",
+		"Su máquina voladora pasa por encima y suelta golpes.",
+	],
+	&"marie_curie": [
+		"Física y química polaca nacionalizada francesa. Primera mujer en ganar un Nobel.",
+		"Descubrió el radio y el polonio, y ganó dos premios Nobel en dos ciencias diferentes.",
+		"Una explosión de radio brilla y sacude al rival.",
+		"Una radiación radiante que cubre un área alrededor.",
+	],
+	&"galileo_galilei": [
+		"Astrónomo y físico italiano. Apuntó un telescopio al cielo y miró lo que nadie había visto.",
+		"Descubrió las lunas de Júpiter y defendió que la Tierra gira alrededor del Sol, lo que le costó un juicio.",
+		"Un telescopio láser dispara un rayo directo al rival.",
+		"Invierte la gravedad y el rival flota hacia arriba.",
+	],
+	&"charles_darwin": [
+		"Naturalista inglés. Viajó por el mundo a bordo del Beagle y estudió animales y plantas.",
+		"Propuso la teoría de la evolución por selección natural en El origen de las especies (1859).",
+		"Lanza un pinzón de las Galápagos contra el rival.",
+		"Evoluciona en medio del combate y gana fuerza.",
+	],
+	&"cristobal_colon": [
+		"Navegante genovés al servicio de los Reyes Católicos. Buscaba la India por el oeste.",
+		"En 1492 llegó a América sin saberlo. Hizo cuatro viajes al Nuevo Mundo.",
+		"Un cañonazo de la nao Santa María cruza el mar.",
+		"Descubre tierra a la vista y ataca con ímpetu.",
+	],
+	&"janequeo": [
+		"Guerrera mapuche del siglo XVII. Su pueblo nunca se arrodilla.",
+		"Lideró la resistencia mapuche tras la muerte de su esposo y defendió el territorio con lanza y coraje.",
+		"Lanza boleadoras que giran y atrapan al rival.",
+		"Invoca el espíritu del Weichan, la guerra mapuche.",
+	],
+	&"lautaro": [
+		"Toqui mapuche que de joven sirvió a los españoles y aprendió su forma de combatir.",
+		"Volvió con su pueblo, ganó la batalla de Tucapel y puso en jaque a los conquistadores. Murió en 1557.",
+		"Una embestida mapuche que arrolla al rival.",
+		"Carga del Toqui: un avance rápido con la lanza al frente.",
+	],
+	&"pachacutec": [
+		"Noveno Sapa Inca y fundador del imperio inca, llamado Tahuantinsuyo.",
+		"Transformó el Cusco en una gran capital, ordenó la construcción de Machu Picchu y expandió sus fronteras.",
+		"Un cetro solar dispara un rayo de luz dorada.",
+		"Un terremoto andino sacude el suelo bajo el rival.",
+	],
+	&"ivan_el_terrible": [
+		"Primer zar de Rusia, coronado en 1547. Su carácter era tan helado como el invierno ruso.",
+		"Amplió el país hacia Siberia y creó la Oprichnina, una policía propia que sembró el miedo.",
+		"Lanza un cristal de hielo que congela al rival.",
+		"La furia del zar estalla y lo vuelve más fuerte.",
+	],
+	&"boudica": [
+		"Reina de los icenos, un pueblo celta de la antigua Britania.",
+		"Se levantó contra Roma en el año 60 y arrasó ciudades como Londinium antes de ser derrotada.",
+		"Lanza una lanza celta con puntería certera.",
+		"Su carro de guerra embiste al rival.",
+	],
+	&"juana_de_arco": [
+		"Joven campesina francesa que dijo oír voces de santos. Vestía armadura y llevaba un estandarte.",
+		"Lideró al ejército francés en la Guerra de los Cien Años y levantó el sitio de Orleans. Murió en la hoguera a los 19 años.",
+		"Un estandarte de luz sale volando y golpea al rival.",
+		"La espada de Orleans lanza un tajo ardiente.",
+	],
+	&"augusto_pinochet": [
+		"General chileno que dirigió el golpe de Estado de 1973 y gobernó Chile hasta 1990.",
+		"Su régimen estuvo marcado por graves violaciones a los derechos humanos. Aquí es una caricatura.",
+		"Una marcha militar avanza y golpea al rival.",
+		"Estado de sitio: encierra al rival y le impide moverse.",
+	],
+	&"salvador_allende": [
+		"Médico y político chileno. Fue presidente de Chile entre 1970 y 1973.",
+		"Quiso llegar al socialismo por la vía democrática. Murió durante el golpe de Estado, en La Moneda.",
+		"Lanza octavillas rojas que dañan al rival.",
+		"La vía chilena levanta un escudo que devuelve el golpe.",
+	],
+	&"arturo_prat": [
+		"Capitán de la Armada de Chile. Era abogado y marino.",
+		"En 1879, en Iquique, saltó al abordaje del monitor Huáscar para no rendirse. Murió, pero se volvió leyenda.",
+		"Un cañonazo naval cruza el mar.",
+		"Abordaje de la Esmeralda: un salto al ataque con la espada.",
+	],
+}
+
+## Descripción del ultimate según su `ult_kind` (AttackData.ult_kind).
+const ULT_TEXT := {
+	&"barrage": "Lluvia de bombas sobre toda la zona del rival.",
+	&"charge": "Estampida: tres oleadas cruzan la pantalla.",
+	&"quake": "Terremoto: el suelo se parte y suben rocas.",
+	&"storm": "Tormenta: rayos que caen sobre el rival.",
+	&"light": "Luz: tres pilares sagrados y una explosión final.",
+	&"wave": "Ondas de choque que recorren el suelo.",
+	&"summon": "Invoca aliados que aplastan al rival desde los dos lados.",
+	&"meteor": "Meteoritos que arrasan la pantalla.",
+	&"slash": "Lluvia de cortes y un tajo final que lanza al rival.",
+}
+
+## Textos del personaje, con valores por defecto si todavía no hay ficha.
+static func get_lore(id: StringName) -> Array:
+	return LORE.get(id, ["", "", "", ""])
+
+static func ult_text(atk: AttackData) -> String:
+	if atk == null:
+		return ""
+	return ULT_TEXT.get(atk.ult_kind, "Ataque definitivo.")

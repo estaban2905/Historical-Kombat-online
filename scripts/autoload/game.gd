@@ -13,6 +13,7 @@ const SCENE_CONTROLS := "res://scenes/Controls.tscn"
 const SCENE_LOBBY := "res://scenes/OnlineLobby.tscn"
 const SCENE_PROFILE := "res://scenes/Profile.tscn"
 const SCENE_RANKING := "res://scenes/Ranking.tscn"
+const SCENE_ROSTER := "res://scenes/Roster.tscn"
 
 const VERSION := "0.1.0"
 

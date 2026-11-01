@@ -21,11 +21,7 @@ extends Control
 @onready var info_back: Button = $Info/Box/Back
 @onready var footer: Label = $Footer
 
-const ROSTER_PER_PAGE := 3
-
 var _last_focus: Button
-var _roster_mode: bool = false
-var _roster_page: int = 0
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -127,7 +123,6 @@ func _open_info(title: String, body: String) -> void:
 	info_back.grab_focus()
 
 func _close_info() -> void:
-	_roster_mode = false
 	info.visible = false
 	buttons.visible = true
 	if _last_focus:
@@ -135,48 +130,13 @@ func _close_info() -> void:
 	else:
 		btn_play.grab_focus()
 
-## Se usa _input (y no _unhandled_input) para que la navegación de foco del
-## botón VOLVER no se coma las flechas al pasar de página.
-func _input(event: InputEvent) -> void:
-	if not (info.visible and _roster_mode):
-		return
-	if event.is_action_pressed(&"ui_left"):
-		_change_roster_page(-1)
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"ui_right"):
-		_change_roster_page(1)
-		get_viewport().set_input_as_handled()
-
 func _unhandled_input(event: InputEvent) -> void:
 	if info.visible and event.is_action_pressed(&"ui_cancel"):
 		_close_info()
 		get_viewport().set_input_as_handled()
 
 func _show_roster() -> void:
-	_roster_mode = true
-	_roster_page = 0
-	_open_info("PERSONAJES", _roster_text())
-
-## Una página de la lista de luchadores (ROSTER_PER_PAGE por página).
-func _roster_text() -> String:
-	var all := FighterRegistry.all()
-	var pages := ceili(all.size() / float(ROSTER_PER_PAGE))
-	var lines := PackedStringArray()
-	for i in range(_roster_page * ROSTER_PER_PAGE, mini((_roster_page + 1) * ROSTER_PER_PAGE, all.size())):
-		var d := all[i]
-		lines.append("%d. %s (%s)" % [i + 1, d.display_name, d.era])
-		lines.append("   %s · VIDA %d · FZA %.2f" % [d.country.to_upper(), d.max_health, d.strength])
-		lines.append("   ESP 1: %s" % d.special_1.display_name.to_upper())
-		lines.append("   ESP 2: %s" % d.special_2.display_name.to_upper())
-	lines.append("")
-	lines.append("PÁG %d/%d · ← → CAMBIAR · %d LUCHADORES" % [_roster_page + 1, pages, all.size()])
-	return "\n".join(lines)
-
-func _change_roster_page(step: int) -> void:
-	var pages := ceili(FighterRegistry.all().size() / float(ROSTER_PER_PAGE))
-	_roster_page = (_roster_page + step + pages) % pages
-	info_body.text = _roster_text()
-	Sfx.play(&"select")
+	Game.goto(Game.SCENE_ROSTER)
 
 func _show_options() -> void:
 	_open_info("OPCIONES", "NO DISPONIBLE EN LA VERSIÓN 0.1.\n\n" +
