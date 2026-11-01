@@ -178,6 +178,8 @@ func _draw() -> void:
 	if _starting:
 		HKTheme.draw_text(self, Vector2(0, 120), "VS", 32, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
 	var hint := "J1: WASD+U   ESC: VOLVER" if _cpu else "J1: WASD+U   J2: FLECHAS+NUM1   ESC: VOLVER"
+	if Game.mode == Game.Mode.TRAINING:
+		hint = "J1: WASD+U  MUÑECO: FLECHAS+NUM1  ESC: VOLVER"
 	HKTheme.draw_text(self, Vector2(0, 234), hint, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 
 ## Texto de 8 px partido en líneas de un ancho máximo.

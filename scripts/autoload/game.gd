@@ -28,7 +28,8 @@ var last_p1_rounds: int = 0
 var last_p2_rounds: int = 0
 
 # --- Modos de juego ---
-enum Mode { VERSUS, ARCADE }
+## TRAINING: modo entrenamiento (muñeco, vida infinita y frame data; ver training_mode.gd).
+enum Mode { VERSUS, ARCADE, TRAINING }
 enum Difficulty { EASY, NORMAL, HARD }
 
 const DIFFICULTY_NAMES: Array[String] = ["FÁCIL", "NORMAL", "DIFÍCIL"]

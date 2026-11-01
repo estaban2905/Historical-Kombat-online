@@ -32,6 +32,17 @@ func start_match() -> void:
 	combat.fighter_knocked_out.connect(_on_fighter_ko)
 	start_round()
 
+## Entrenamiento: sin cuenta atrás, reloj ni fin de ronda; se pelea desde el primer frame.
+func start_training() -> void:
+	wins = [0, 0, 0]
+	round_number = 1
+	_ko_pending = false
+	time_left = float(Game.round_time)
+	combat.reset_round()
+	combat.hud.set_round(1, wins)
+	combat.set_controls(true)
+	phase = Phase.FIGHT
+
 func start_round() -> void:
 	phase = Phase.INTRO
 	_ko_pending = false
@@ -51,7 +62,7 @@ func start_round() -> void:
 	phase = Phase.FIGHT
 
 func _physics_process(delta: float) -> void:
-	if phase != Phase.FIGHT:
+	if phase != Phase.FIGHT or Game.mode == Game.Mode.TRAINING:
 		return
 	time_left = maxf(time_left - delta, 0.0)
 	if time_left <= 0.0:

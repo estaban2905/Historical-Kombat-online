@@ -30,43 +30,48 @@ title_y = 42.0
 [node name="Buttons" type="VBoxContainer" parent="." unique_id=195303599]
 layout_mode = 0
 offset_left = 138.0
-offset_top = 102.0
+offset_top = 116.0
 offset_right = 288.0
 offset_bottom = 232.0
-theme_override_constants/separation = 3
+theme_override_constants/separation = 1
 
 [node name="Play" type="Button" parent="Buttons" unique_id=1081200093]
-custom_minimum_size = Vector2(0, 15)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "ARCADE (VS CPU)"
 
 [node name="Versus" type="Button" parent="Buttons" unique_id=1649249306]
-custom_minimum_size = Vector2(0, 15)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "VERSUS LOCAL"
 
+[node name="Training" type="Button" parent="Buttons" unique_id=1649249511]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+text = "ENTRENAMIENTO"
+
 [node name="Difficulty" type="Button" parent="Buttons" unique_id=1649249399]
-custom_minimum_size = Vector2(0, 15)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "DIFICULTAD: NORMAL"
 
 [node name="Roster" type="Button" parent="Buttons" unique_id=1032436232]
-custom_minimum_size = Vector2(0, 15)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "PERSONAJES"
 
 [node name="Controls" type="Button" parent="Buttons" unique_id=330819021]
-custom_minimum_size = Vector2(0, 15)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "CONTROLES"
 
 [node name="Options" type="Button" parent="Buttons" unique_id=330819020]
-custom_minimum_size = Vector2(0, 15)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "OPCIONES"
 
 [node name="Credits" type="Button" parent="Buttons" unique_id=597305843]
-custom_minimum_size = Vector2(0, 15)
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "CRÉDITOS"
 

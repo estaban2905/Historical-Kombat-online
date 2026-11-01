@@ -229,6 +229,11 @@ func _draw_timer() -> void:
 	draw_rect(box, HKTheme.INK)
 	draw_rect(box.grow(-1), Color("3a1418"))
 	draw_rect(Rect2(box.position + Vector2(1, 1), Vector2(box.size.x - 2, 1)), HKTheme.GOLD_DARK)
+	if Game.mode == Game.Mode.TRAINING:
+		# Sin reloj ni rondas.
+		HKTheme.draw_text(self, Vector2(box.position.x, 23), "--", 16, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, box.size.x)
+		HKTheme.draw_text(self, Vector2(0, 46), "ENTRENAMIENTO", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426)
+		return
 	var secs := combat.round_manager.seconds_left()
 	var col := HKTheme.PAPER if secs > 10 else (HKTheme.BLOOD if int(_time * 4.0) % 2 == 0 else HKTheme.PAPER)
 	HKTheme.draw_text(self, Vector2(box.position.x, 23), "%02d" % secs, 16, col, HORIZONTAL_ALIGNMENT_CENTER, box.size.x)

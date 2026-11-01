@@ -1,4 +1,4 @@
-## Capa de depuración del combate (F1 la muestra u oculta).
+## Capa de depuración del combate (F1 recorre: apagada, solo cajas, cajas y rótulos).
 ## Dibuja las MISMAS cajas que usa el motor para los impactos
 ## (Fighter.get_hurt_rect / get_hit_rect, Projectile.get_rect) y, sobre cada
 ## luchador, su estado, el frame del ataque en curso y el aturdimiento.
@@ -18,6 +18,8 @@ const SLOT_SHORT := {&"punch_light": "PD", &"punch_heavy": "PF", &"kick_light": 
 ## Nivel del golpe (indexado por AttackData.HitLevel): medio, bajo, alto.
 const LEVEL_SHORT: Array[String] = ["MED", "BAJO", "ALTO"]
 
+## 0 = apagada · 1 = solo cajas · 2 = cajas y rótulos de estado.
+var mode: int = 0
 var combat: CombatManager
 
 func _init(p_combat: CombatManager) -> void:
@@ -31,8 +33,12 @@ func _init(p_combat: CombatManager) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key and key.pressed and not key.echo and key.physical_keycode == KEY_F1:
-		visible = not visible
+		set_mode((mode + 1) % 3)
 		get_viewport().set_input_as_handled()
+
+func set_mode(m: int) -> void:
+	mode = m
+	visible = mode > 0
 
 func _process(_delta: float) -> void:
 	if visible:
@@ -50,7 +56,8 @@ func _draw() -> void:
 			_box(f.get_hurt_rect(), HURT_COLOR)
 		if f.is_hitbox_active():
 			_box(f.get_hit_rect(), HIT_COLOR)
-		_label(f)
+		if mode >= 2:
+			_label(f)
 
 func _box(r: Rect2, color: Color) -> void:
 	draw_rect(r, Color(color, 0.25))

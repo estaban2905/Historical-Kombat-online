@@ -12,7 +12,7 @@ Todo el contenido visual y sonoro de esta versión es original y se genera por c
 
 Incluye:
 
-- Menú principal (JUGAR, VERSUS LOCAL, PERSONAJES, OPCIONES, CRÉDITOS).
+- Menú principal (ARCADE, VERSUS LOCAL, **ENTRENAMIENTO**, DIFICULTAD, PERSONAJES, CONTROLES, OPCIONES, CRÉDITOS).
 - Selección de luchador para 2 jugadores (rejilla de 30 casillas, las 30 disponibles).
 - **30 luchadores** (ver lista en la sección 7), cada uno con silueta, colores, estadísticas, ataques y especiales propios. Trump y Napoleón se hicieron a mano; los otros 28 se generan con `tools/generate_fighters.py`.
 - Escenario: **El Coliseo Romano** (gradas con público animado, columnas, palco imperial, braseros, suelo de piedra).
@@ -28,6 +28,7 @@ Incluye:
 - Sistema de rondas: al mejor de 3 (2 victorias), K.O., tiempo, empates.
 - Pantalla de victoria con **REVANCHA**, cambiar luchador o volver al menú.
 - Pausa (Esc o P).
+- **Modo entrenamiento** (ver sección *Modo entrenamiento* más abajo).
 - Exportación Web configurada (sin hilos, compatible con cualquier hosting estático).
 - **Poder especial propio para cada luchador** (botón L / Numpad 6): muro que aplasta, oso, dragón, caballos, carabela, bombardeo, teletransporte, tiempo lento, controles invertidos, gravedad invertida... (ver sección 9).
 - 202 pruebas automáticas de extremo a extremo (incluye lanzar el poder de los 30 luchadores).
@@ -260,7 +261,28 @@ Mecánicas de combate (agarre y las que se vayan añadiendo), con entradas exact
 godot --headless --fixed-fps 60 --path . res://tests/MechanicsTest.tscn
 ```
 
-En combate, **F1** muestra la capa de depuración: las cajas reales de impacto (azul = cuerpo, rojo = golpe, naranja = proyectil), el estado de cada luchador, el frame del ataque (amarillo = preparación, rojo = activo, azul = recuperación) y el aturdimiento.
+En combate, **F1** recorre la capa de depuración (apagada → solo cajas → cajas y rótulos): las cajas reales de impacto (azul = cuerpo, rojo = golpe, naranja = proyectil) y, con rótulos, el estado de cada luchador, el frame del ataque (amarillo = preparación, rojo = activo, azul = recuperación) y el aturdimiento.
+
+Modo entrenamiento (muñeco, recursos infinitos, ventaja medida y pausa de frames):
+
+```bash
+godot --headless --fixed-fps 60 --path . res://tests/TrainingTest.tscn
+```
+
+### Modo entrenamiento
+
+Menú principal → **ENTRENAMIENTO**. Se eligen los dos luchadores como en Versus (J2 elige el muñeco). Se pelea desde el primer frame, sin reloj ni rondas; la vida (por debajo del 35 %) y la energía se rellenan solas.
+
+| Tecla | Qué hace |
+|---|---|
+| **F1** | Cajas de colisión: apagadas / solo cajas / cajas y rótulos de estado |
+| **F2** | Cambia la conducta del muñeco: quieto, agachado, salta, bloquea de pie, bloquea agachado, CPU o manejado por J2 |
+| **F3** | Reinicia posiciones y vida |
+| **F4** | Muestra u oculta el panel de frame data |
+| **F5** | Pausa de frames |
+| **F6** | Con la pausa de frames, avanza un solo frame |
+
+El panel de abajo muestra el último ataque de cualquiera de los dos: nombre y ranura, **INI** (preparación), **ACT** (frames activos), **REC** (recuperación), **TOT**, el daño real (o el reducido si lo bloquean), `COUNTER` si lo fue y la **ventaja medida** al golpear (`GOLPE`) y al bloquear (`BLOQ`): cuántos frames antes que el rival puede actuar el atacante (negativa = actúa después, es decir, se le puede castigar). La ventaja aparece como `?` hasta que se mide: haz el ataque contra el muñeco quieto y luego contra el que bloquea. Con dos o más golpes seguidos se ve también el daño total del combo.
 
 Capturas de pantalla (necesita pantalla o `xvfb-run`): `godot --path . res://tests/ScreenshotRunner.tscn -- <carpeta>`.
 

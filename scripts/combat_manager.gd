@@ -30,6 +30,8 @@ var p2: Fighter
 var fighters: Array[Fighter] = []
 ## Cerebro de P2 en el modo contra la CPU (null en versus local).
 var ai: AIController
+## Modo entrenamiento (null en el resto de modos).
+var training: TrainingMode
 var _shake: float = 0.0
 ## Partículas decorativas (polvo, chispas, sangre...). No forman parte del estado.
 var fx: ParticleFX
@@ -54,7 +56,13 @@ func _ready() -> void:
 		ai = AIController.new(p2, p1, Game.ai_level())
 	add_child(DebugOverlay.new(self))
 	hud.bind(self)
-	round_manager.start_match()
+	if Game.mode == Game.Mode.TRAINING:
+		training = TrainingMode.new(self)
+		hud.get_parent().add_child(training)
+		training.start()
+		round_manager.start_training()
+	else:
+		round_manager.start_match()
 
 func _load_stage(round_number: int = 1) -> void:
 	_stage_owner = Game.stage_owner(round_number)
@@ -119,12 +127,17 @@ func set_controls(enabled: bool) -> void:
 #  Bucle de combate
 # =========================================================================
 func _physics_process(delta: float) -> void:
+	# Pausa de frames del modo entrenamiento.
+	if training and training.should_skip_tick():
+		return
 	if _input_source.is_valid():
 		var masks: Array = _input_source.call(tick_count)
 		p1.input.apply_mask(masks[0])
 		p2.input.apply_mask(masks[1])
 	if ai:
 		ai.think()
+	if training:
+		training.pre_tick()
 	for f in fighters:
 		f.tick(delta)
 	for p in projectiles_root.get_children():
