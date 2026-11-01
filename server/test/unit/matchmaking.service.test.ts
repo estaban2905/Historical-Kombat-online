@@ -25,10 +25,10 @@ test("dos jugadores se emparejan: el primero es P1, misma semilla", () => {
   mm.handle(b, { t: "find", fighter: "cleopatra", name: "BETO" });
 
   assert.deepEqual(a.got.at(-1), {
-    t: "matched", side: 1, seed: 42, opponent: { fighter: "cleopatra", name: "BETO" },
+    t: "matched", side: 1, seed: 42, ranked: false, opponent: { fighter: "cleopatra", name: "BETO" },
   });
   assert.deepEqual(b.got.at(-1), {
-    t: "matched", side: 2, seed: 42, opponent: { fighter: "napoleon", name: "ANA" },
+    t: "matched", side: 2, seed: 42, ranked: false, opponent: { fighter: "napoleon", name: "ANA" },
   });
   assert.deepEqual(mm.stats(), { queued: 0, rooms: 1 });
 });

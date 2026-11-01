@@ -12,7 +12,8 @@ import { authRoutes } from "./routes/auth.routes.js";
 import { gameRoutes } from "./routes/game.routes.js";
 import { profileRoutes } from "./routes/profile.routes.js";
 import { systemRoutes } from "./routes/system.routes.js";
-import type { MatchmakingService } from "./services/matchmaking.service.js";
+import { MatchService } from "./services/match.service.js";
+import { MatchmakingService } from "./services/matchmaking.service.js";
 
 export interface BuildOptions {
   config?: Partial<AppConfig>;
@@ -28,7 +29,12 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   const app = Fastify({ logger: config.logger, trustProxy: true });
 
   registerErrorHandler(app);
-  registerServices(app, config, options.matchmaking, options.db !== undefined);
+  // Con base de datos, los duelos entre cuentas se guardan (puntos, ranking e historial).
+  const matches = options.db ? new MatchService(options.db) : undefined;
+  const matchmaking =
+    options.matchmaking ??
+    new MatchmakingService(undefined, { settler: matches?.settle, onError: (err) => app.log.error(err) });
+  registerServices(app, config, matchmaking, options.db !== undefined);
 
   await app.register(cors, { origin: config.allowedOrigins.length > 0 ? config.allowedOrigins : true });
 

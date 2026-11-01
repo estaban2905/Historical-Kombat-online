@@ -3,6 +3,7 @@ import type { Db } from "../db/db.js";
 import { AppError } from "../errors.js";
 import type { Account } from "../models/account.js";
 import { AccountRepository } from "../repositories/account.repository.js";
+import { MatchRepository } from "../repositories/match.repository.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 import { AuthService } from "../services/auth.service.js";
 
@@ -10,6 +11,7 @@ declare module "fastify" {
   interface FastifyInstance {
     auth: AuthService;
     accounts: AccountRepository;
+    matchHistory: MatchRepository;
     /** preHandler: exige `Authorization: Bearer <token>` válido y deja la cuenta en request.account. */
     requireAuth: (req: FastifyRequest) => Promise<void>;
   }
@@ -30,6 +32,7 @@ export function registerAuth(app: FastifyInstance, db: Db): void {
   const accounts = new AccountRepository(db);
   const auth = new AuthService(accounts, new SessionRepository(db));
   app.decorate("accounts", accounts);
+  app.decorate("matchHistory", new MatchRepository(db));
   app.decorate("auth", auth);
   app.decorateRequest("account", null);
   app.decorate("requireAuth", async (req: FastifyRequest) => {

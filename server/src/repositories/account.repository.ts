@@ -60,6 +60,26 @@ export class AccountRepository {
     return res.rows[0] ? toAccount(res.rows[0]) : null;
   }
 
+  /**
+   * Bloquea las dos cuentas hasta el final de la transacción (FOR UPDATE), siempre en el
+   * mismo orden para que dos duelos a la vez nunca se queden esperándose entre sí.
+   */
+  async lockPair(idA: string, idB: string): Promise<Map<string, Account>> {
+    const res = await this.db.query<AccountRow>(
+      `select ${COLUMNS} from players where id in ($1, $2) order by id for update`,
+      [idA, idB],
+    );
+    return new Map(res.rows.map((r) => [r.id, toAccount(r)]));
+  }
+
+  /** Aplica el resultado de un duelo: puntos nuevos y una victoria o derrota más. */
+  async applyResult(id: string, points: number, outcome: "win" | "loss" | "draw"): Promise<void> {
+    await this.db.query(
+      "update players set points = $2, wins = wins + $3, losses = losses + $4 where id = $1",
+      [id, points, outcome === "win" ? 1 : 0, outcome === "loss" ? 1 : 0],
+    );
+  }
+
   /** Los mejores jugadores: más puntos primero, y a igualdad más victorias. */
   async ranking(limit: number): Promise<RankingEntry[]> {
     const res = await this.db.query<RankingEntry>(

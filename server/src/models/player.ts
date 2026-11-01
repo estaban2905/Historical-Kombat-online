@@ -13,6 +13,8 @@ export interface Player {
   peer: Peer;
   fighter: string;
   name: string;
+  /** Cuenta con la que inició sesión; null si juega de invitado. */
+  accountId: string | null;
   /** Sala en la que está peleando; null si está en cola. */
   room: Room | null;
 }

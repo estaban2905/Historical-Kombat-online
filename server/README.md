@@ -23,7 +23,7 @@ npm run build && npm start
 | `GET /docs` | Swagger UI (`/docs/json` es el OpenAPI) |
 | `WS /ws` | Conexión de juego |
 | `POST /auth/register` · `/auth/login` · `/auth/refresh` · `/auth/logout` | Cuentas y sesiones (solo con base de datos) |
-| `GET /me` · `GET /leaderboard` | Mi perfil (con token) y ranking |
+| `GET /me` · `GET /me/matches` · `GET /leaderboard` | Mi perfil, mi historial de duelos (con token) y el ranking |
 
 ## Estructura
 
@@ -63,7 +63,16 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 | `ALLOWED_ORIGINS` | (vacía = cualquiera) | Dominios de la web del juego, separados por comas |
 | `AUTH_RATE_LIMIT_PER_MINUTE` | 10 | Intentos de registro/login por minuto y por IP |
 
+## Duelos con ranking
+
+- Un duelo cuenta solo si **los dos son cuentas distintas**: ambos mandan `find` con su `token`. Con un invitado se juega igual, pero sin puntos (y el invitado siempre se llama `INVITADO`).
+- El servidor no simula la pelea. Al terminar, **cada cliente reporta** `result {winner, p1Rounds, p2Rounds}` según su simulación (idéntica a la del rival). Si los dos coinciden se guarda; si no, se descarta (`mismatch`).
+- Se descarta también si el duelo fue demasiado corto (`too_short`, menos de 300 inputs por jugador) o si el segundo reporte no llega en 30 s (`timeout`).
+- **Abandono:** quien se desconecta en plena pelea sin haber reportado pierde; gana el que se quedó (`reason: forfeit`). Irse antes de que empiece la pelea, o después de reportar, no es abandono.
+- **Puntos:** Elo con K=32 (empiezan en 1000, nunca bajan de 0; una victoria da al menos +1). Los puntos de los dos jugadores y la fila de `matches` se guardan en una sola transacción.
+- Cada jugador recibe `settled` con su `delta` y sus totales.
+
 ## Protocolo (resumen)
 
-`find` → `queued` → `matched` → intercambio de `input` → `opponent_left` / `leave`.
+`find` → `queued` → `matched` → intercambio de `input` → `result` → `settled` (o `opponent_left`).
 Detalle completo en `GET /protocol` o en `/docs`.

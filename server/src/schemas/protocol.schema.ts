@@ -9,7 +9,12 @@ const find = {
   properties: {
     t: { const: "find" },
     fighter: { type: "string", pattern: "^[a-z0-9_]+$", maxLength: 40, examples: ["napoleon"] },
-    name: { type: "string", maxLength: 16, examples: ["ANA"] },
+    name: { type: "string", maxLength: 16, examples: ["ANA"], description: "Se ignora: el nombre es el de la cuenta, o INVITADO" },
+    token: {
+      type: "string",
+      maxLength: 200,
+      description: "access_token de la cuenta. Sin él se juega de invitado, sin puntos. Un token no válido responde error `invalid_token`.",
+    },
   },
   description: "Entrar a la cola de emparejamiento con el luchador elegido.",
 } as const;
@@ -39,6 +44,36 @@ const input = {
   description: "Botones apretados en un frame. Se reenvía tal cual al rival.",
 } as const;
 
+const result = {
+  type: "object",
+  required: ["t", "winner", "p1Rounds", "p2Rounds"],
+  properties: {
+    t: { const: "result" },
+    winner: { type: "integer", enum: [0, 1, 2], description: "1 = gana P1, 2 = gana P2, 0 = empate" },
+    p1Rounds: { type: "integer", minimum: 0, maximum: 20 },
+    p2Rounds: { type: "integer", minimum: 0, maximum: 20 },
+  },
+  description:
+    "Resultado de la pelea según la simulación de este cliente. En un duelo entre cuentas, el servidor solo lo guarda si " +
+    "el rival reporta exactamente lo mismo.",
+} as const;
+
+const settled = {
+  type: "object",
+  required: ["t", "ranked", "ok", "delta", "points", "wins", "losses"],
+  properties: {
+    t: { const: "settled" },
+    ranked: { type: "boolean", description: "El duelo contaba para el ranking" },
+    ok: { type: "boolean", description: "false = no se guardó" },
+    delta: { type: "integer", description: "Puntos ganados (+) o perdidos (-)" },
+    points: { type: "integer", description: "Mis puntos totales" },
+    wins: { type: "integer" },
+    losses: { type: "integer" },
+    reason: { type: "string", description: "mismatch, timeout, too_short, error, o forfeit (ganó por abandono)" },
+  },
+  description: "El duelo terminó: así quedaron los puntos.",
+} as const;
+
 const queued = {
   type: "object",
   required: ["t"],
@@ -48,11 +83,12 @@ const queued = {
 
 const matched = {
   type: "object",
-  required: ["t", "side", "seed", "opponent"],
+  required: ["t", "side", "seed", "ranked", "opponent"],
   properties: {
     t: { const: "matched" },
     side: { type: "integer", enum: [1, 2], description: "1 = controlas a P1, 2 = a P2" },
     seed: { type: "integer", description: "Semilla común del azar para ambas simulaciones" },
+    ranked: { type: "boolean", description: "Los dos son cuentas: el resultado cuenta para el ranking" },
     opponent: {
       type: "object",
       required: ["fighter", "name"],
@@ -76,15 +112,16 @@ const error = {
   description: "El mensaje enviado no era válido o no corresponde en este estado.",
 } as const;
 
-export const clientMessages = { find, cancel, leave, input } as const;
-export const serverMessages = { queued, matched, input, opponent_left: opponentLeft, error } as const;
+export const clientMessages = { find, cancel, leave, input, result } as const;
+export const serverMessages = { queued, matched, input, settled, opponent_left: opponentLeft, error } as const;
 
 export const protocolSchema = {
   tags: ["protocol"],
   summary: "Catálogo de mensajes del WebSocket",
   description:
     "Conéctate a `ws(s)://<host>/ws` y envía/recibe mensajes JSON de una línea. " +
-    "Flujo: `find` → `queued` → `matched` → intercambio de `input` → `opponent_left` o `leave`.",
+    "Flujo: `find` → `queued` → `matched` → intercambio de `input` → `result` → `settled`. " +
+    "Si el rival se va: `opponent_left`.",
   response: {
     200: {
       type: "object",

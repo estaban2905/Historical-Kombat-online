@@ -8,17 +8,34 @@ import { parseClientMessage } from "../validators/client-message.validator.js";
 
 type GameConfig = Pick<AppConfig, "maxMessagesPerSecond" | "heartbeatMs">;
 
+/** Resuelve un access token a su cuenta (undefined si el servidor no tiene base de datos). */
+export type Authenticator = (token: string) => Promise<{ id: string; username: string } | null>;
+
 /**
  * Controlador de una conexión WebSocket: traduce lo que llega por el socket
  * a llamadas al servicio de emparejamiento. No contiene reglas del juego.
  */
-export function handleGameSocket(socket: WebSocket, matchmaking: MatchmakingService, config: GameConfig): void {
+export function handleGameSocket(
+  socket: WebSocket,
+  matchmaking: MatchmakingService,
+  config: GameConfig,
+  authenticate?: Authenticator,
+  onError: (err: unknown) => void = () => undefined,
+): void {
   const peer: Peer = {
     send(msg: ServerMessage) {
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(msg));
     },
   };
   const limiter = new RateLimiter(config.maxMessagesPerSecond);
+
+  // Los mensajes de un socket se procesan de uno en uno y en orden, aunque alguno tenga
+  // que esperar a la base de datos (verificar el token): un `cancel` o un `input` no
+  // puede adelantarse a un `find` que aún se está comprobando.
+  let chain: Promise<void> = Promise.resolve();
+  const enqueue = (task: () => Promise<void> | void): void => {
+    chain = chain.then(task).catch(onError);
+  };
 
   // Ping periódico: detecta conexiones muertas (cerraron la pestaña sin avisar).
   let alive = true;
@@ -45,12 +62,24 @@ export function handleGameSocket(socket: WebSocket, matchmaking: MatchmakingServ
       peer.send({ t: "error", msg: "mensaje no válido" });
       return;
     }
-    matchmaking.handle(peer, msg);
+    enqueue(async () => {
+      if (msg.t !== "find" || msg.token === undefined || !authenticate) {
+        // Invitado: nunca se acepta el nombre que mande, para que nadie se haga pasar por una cuenta.
+        matchmaking.handle(peer, msg.t === "find" ? { t: "find", fighter: msg.fighter, name: "INVITADO" } : msg);
+        return;
+      }
+      const account = await authenticate(msg.token);
+      if (!account) {
+        peer.send({ t: "error", msg: "invalid_token" });
+        return;
+      }
+      matchmaking.handle(peer, { t: "find", fighter: msg.fighter, name: account.username }, account.id);
+    });
   });
 
   socket.on("close", () => {
     clearInterval(heartbeat);
-    matchmaking.disconnect(peer);
+    enqueue(() => matchmaking.disconnect(peer));
   });
   socket.on("error", () => socket.terminate());
 }
