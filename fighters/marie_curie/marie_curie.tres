@@ -280,3 +280,6 @@ arm_width = 4.0
 head_width = 11.0
 head_height = 13.0
 idle_style = &"normal"
+female = true
+outfit = &"dress"
+outfit_color = Color(0.203922, 0.203922, 0.235294, 1)

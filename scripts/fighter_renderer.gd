@@ -169,6 +169,7 @@ func approx_height() -> float:
 		&"halo": extra = 13.0
 		&"helmet": extra = 10.0
 		&"turban", &"fur_hat", &"nemes", &"crown", &"cap", &"beret": extra = 7.0
+		&"tiara", &"headband": extra = 6.0
 	return data.thigh_len + data.shin_len + data.torso_len + 2.0 + data.head_height + extra
 
 func flash_hit() -> void:
@@ -330,6 +331,8 @@ func _draw() -> void:
 
 	draw_set_transform_matrix(root)
 	var dark := 0.72
+	if data.cape_color.a > 0.0:
+		_cape(shoulder, hip)
 	# Brazo trasero
 	_limb(bsh, belb, bhand, data.coat_color.darkened(0.3), data.arm_width)
 	_fist(bhand, data.skin_color.darkened(0.2))
@@ -337,6 +340,9 @@ func _draw() -> void:
 	_leg(hip, bknee, bfoot, p["bl_s"], dark)
 	# Pierna delantera
 	_leg(hip, fknee, ffoot, p["fl_s"], 1.0)
+	if data.outfit != &"none":
+		draw_set_transform_matrix(root * Transform2D(-deg_to_rad((float(p["fl_t"]) + float(p["bl_t"])) * 0.5), hip))
+		_skirt()
 	# Torso
 	draw_set_transform_matrix(root * Transform2D(lean_rad, hip))
 	_torso(torso_len)
@@ -384,11 +390,15 @@ func _torso(length: float) -> void:
 	var tail := 7.0 if data.chest_style == &"lapels" else 5.0
 	var body := Rect2(-w / 2.0, -length, w, length + tail).abs()
 	body.position = body.position.round()
-	draw_rect(body.grow(1), _c(OUTLINE))
-	draw_rect(body, _c(data.coat_color))
-	# Sombreado lateral trasero
-	draw_rect(Rect2(body.position, Vector2(3, body.size.y)), _c(data.coat_color.darkened(0.25)))
 	var top := -length
+	var sw := w * 0.66 if data.female else w
+	if data.female:
+		_female_body(w, length, tail)
+	else:
+		draw_rect(body.grow(1), _c(OUTLINE))
+		draw_rect(body, _c(data.coat_color))
+		# Sombreado lateral trasero
+		draw_rect(Rect2(body.position, Vector2(3, body.size.y)), _c(data.coat_color.darkened(0.25)))
 	if data.chest_style == &"tie":
 		# Barriga de caricatura
 		var belly := Rect2(roundf(w / 2.0) - 1, roundf(top + length * 0.45), 3, roundf(length * 0.42))
@@ -418,7 +428,7 @@ func _torso(length: float) -> void:
 		# Túnica: cuello y franja central dorados, cinto de color.
 		draw_rect(Rect2(-w / 2.0, top, w, 2).abs(), _c(data.coat_trim_color))
 		draw_rect(Rect2(1, top + 2, 2, length - 1), _c(data.coat_trim_color))
-		draw_rect(Rect2(-w / 2.0, -6, w, 2).abs(), _c(data.accent_color))
+		draw_rect(Rect2(-sw / 2.0, -6, sw, 2).abs(), _c(data.accent_color))
 	elif data.chest_style == &"uniform":
 		# Guerrera militar: cuello, botonadura, bolsillo y cinturón.
 		draw_rect(Rect2(-w / 2.0, top - 1, w, 3).abs(), _c(data.accent_color))
@@ -430,6 +440,18 @@ func _torso(length: float) -> void:
 		# Camisa o jersey sencillo con cuello.
 		draw_rect(Rect2(-1, top, 7, 4), _c(data.shirt_color))
 		draw_rect(Rect2(-w / 2.0, -3, w, 1).abs(), _c(data.coat_color.darkened(0.25)))
+	match data.jewelry:
+		&"necklace":
+			var xs: Array[float] = [-3.0, -1.0, 1.0, 3.0, 5.0]
+			var ys: Array[float] = [1.0, 2.0, 3.0, 2.0, 1.0]
+			for i in 5:
+				draw_rect(Rect2(xs[i], top + ys[i], 2, 2), _c(OUTLINE))
+				draw_rect(Rect2(xs[i], top + ys[i], 1, 1), _c(data.jewelry_color))
+		&"cross":
+			draw_rect(Rect2(3, top + 2, 3, 9), _c(OUTLINE))
+			draw_rect(Rect2(1, top + 4, 7, 3), _c(OUTLINE))
+			draw_rect(Rect2(4, top + 3, 1, 7), _c(data.jewelry_color))
+			draw_rect(Rect2(2, top + 5, 5, 1), _c(data.jewelry_color))
 	if data.has_epaulettes:
 		var ep := Rect2(roundf(w / 2.0) - 6, top - 3, 8, 3)
 		draw_rect(ep.grow(1), _c(OUTLINE))
@@ -457,10 +479,35 @@ func _head() -> void:
 	draw_rect(Rect2(fx - 3, roundf(-hh * 0.62), 1, 2), _c(OUTLINE))
 	draw_rect(Rect2(fx - 5, roundf(-hh * 0.62) - 2, 4, 1), _c(data.hair_color.darkened(0.2)))
 	draw_rect(Rect2(fx, roundf(-hh * 0.55), 2, 3), _c(data.skin_color.darkened(0.1)))
+	var eye_y := roundf(-hh * 0.62)
 	if data.chest_style == &"tie":
 		draw_rect(Rect2(fx - 3, roundf(-hh * 0.27), 2, 2), _c(Color("a04040")))
+	elif data.female:
+		# Labios pintados, pestañas y rubor.
+		draw_rect(Rect2(fx - 4, roundf(-hh * 0.27), 3, 2), _c(Color("c82850")))
+		draw_rect(Rect2(fx - 4, roundf(-hh * 0.27), 3, 1), _c(Color("e8587a")))
+		draw_rect(Rect2(fx - 5, eye_y - 1, 4, 1), _c(OUTLINE))
+		draw_rect(Rect2(fx - 1, eye_y - 2, 1, 1), _c(OUTLINE))
+		draw_rect(Rect2(fx - 6, roundf(-hh * 0.4), 3, 1), _c(Color("f08090").lerp(data.skin_color, 0.4)))
 	else:
 		draw_rect(Rect2(fx - 4, roundf(-hh * 0.27), 3, 1), _c(OUTLINE))
+	match data.glasses:
+		&"round":
+			draw_rect(Rect2(fx - 6, eye_y - 2, 6, 5), _c(OUTLINE), false, 1.0)
+			draw_line(Vector2(head.position.x + 3, eye_y), Vector2(fx - 6, eye_y), _c(OUTLINE), 1.0)
+		&"dark":
+			draw_rect(Rect2(fx - 6, eye_y - 1, 7, 4), _c(OUTLINE))
+			draw_rect(Rect2(fx - 5, eye_y, 2, 1), _c(Color("7090c0")))
+			draw_line(Vector2(head.position.x + 3, eye_y), Vector2(fx - 6, eye_y), _c(OUTLINE), 1.0)
+	match data.jewelry:
+		&"earplug":
+			draw_circle(Vector2(head.position.x + 3, -hh * 0.45 + 2), 3.6, _c(OUTLINE))
+			draw_circle(Vector2(head.position.x + 3, -hh * 0.45 + 2), 2.7, _c(data.jewelry_color))
+			draw_circle(Vector2(head.position.x + 3, -hh * 0.45 + 2), 1.0, _c(data.jewelry_color.darkened(0.35)))
+		&"necklace":
+			if data.female:
+				draw_rect(Rect2(head.position.x + 1, -hh * 0.5 + 3, 3, 3), _c(OUTLINE))
+				draw_rect(Rect2(head.position.x + 2, -hh * 0.5 + 3, 2, 2), _c(data.jewelry_color))
 	# Vello facial (se dibuja sobre la cara y bajo el pelo y el sombrero).
 	var beard := _c(data.hair_color)
 	var mouth_y := roundf(-hh * 0.4)
@@ -507,6 +554,34 @@ func _head() -> void:
 			draw_rect(Rect2(head.position.x - 1, -hh - 2, hw + 1, 4), _c(data.hair_color))
 			draw_rect(Rect2(head.position.x - 1, -hh, 3, roundf(hh * 0.4)), _c(data.hair_color))
 			draw_circle(Vector2(head.position.x + 1, -hh - 4), 3.0, _c(data.hair_color))
+		&"bob":
+			# Media melena a la altura de la barbilla con flequillo.
+			draw_rect(Rect2(head.position.x - 2, -hh - 2, hw + 3, 4), _c(data.hair_color))
+			draw_rect(Rect2(head.position.x - 3, -hh, 6, hh + 1), _c(data.hair_color.darkened(0.1)))
+			draw_rect(Rect2(fx - 4, -hh + 1, 4, 3), _c(data.hair_color))
+			draw_rect(Rect2(head.position.x - 1, -hh - 2, hw, 1), _c(data.hair_color.lightened(0.3)))
+		&"braids":
+			# Trenzas largas que cuelgan por la espalda.
+			draw_rect(Rect2(head.position.x - 2, -hh - 2, hw + 1, 4), _c(data.hair_color))
+			draw_rect(Rect2(head.position.x - 3, -hh, 5, hh), _c(data.hair_color))
+			for i in 5:
+				var bx := head.position.x - 5.0 + (i % 2) * 2.0
+				draw_rect(Rect2(bx, 1.0 + i * 3.0, 4, 3), _c(OUTLINE))
+				draw_rect(Rect2(bx + 1, 1.0 + i * 3.0, 3, 2), _c(data.hair_color.lightened(0.15) if i % 2 == 0 else data.hair_color))
+			draw_rect(Rect2(head.position.x - 5, 16, 4, 2), _c(data.coat_trim_color))
+		&"updo":
+			# Recogido alto con rizos sobre la frente.
+			draw_rect(Rect2(head.position.x - 1, -hh - 2, hw + 1, 4), _c(data.hair_color))
+			draw_rect(Rect2(head.position.x - 1, -hh, 3, roundf(hh * 0.4)), _c(data.hair_color))
+			draw_circle(Vector2(head.position.x + hw * 0.4, -hh - 5), 5.0, _c(OUTLINE))
+			draw_circle(Vector2(head.position.x + hw * 0.4, -hh - 5), 4.0, _c(data.hair_color))
+			draw_rect(Rect2(fx - 4, -hh, 2, 3), _c(data.hair_color.lightened(0.2)))
+			draw_rect(Rect2(fx - 2, -hh + 1, 2, 3), _c(data.hair_color))
+		&"ponytail":
+			draw_rect(Rect2(head.position.x - 1, -hh - 2, hw + 1, 4), _c(data.hair_color))
+			draw_rect(Rect2(head.position.x - 1, -hh, 3, roundf(hh * 0.4)), _c(data.hair_color))
+			for i in 4:
+				draw_rect(Rect2(head.position.x - 6.0 - i * 0.5, -hh + 2.0 + i * 3.0, 5, 4), _c(data.hair_color))
 		&"curls":
 			draw_rect(Rect2(head.position.x - 2, -hh - 3, hw + 4, 5), _c(data.hair_color))
 			draw_rect(Rect2(head.position.x - 2, -hh, 4, 8), _c(data.hair_color))
@@ -530,6 +605,18 @@ func _head() -> void:
 			draw_rect(Rect2(-hw / 2.0 - 3, -hh - 1, hw + 6, 1), trim)
 			draw_rect(Rect2(-hw / 2.0 - 2, -hh + 4, 3, 1), trim)
 			draw_rect(Rect2(fx - 1, -hh - 5, 3, 4), trim)
+		&"tiara":
+			_orect(Rect2(-hw / 2.0, -hh - 2, hw, 3), hat)
+			for i in 3:
+				_orect(Rect2(-hw / 2.0 + 1 + i * 4, -hh - 4 - (1 if i == 1 else 0), 2, 3), hat)
+			draw_rect(Rect2(-1, -hh - 2, 2, 2), _c(Color("d02030")))
+		&"headband":
+			# Cinta en la frente (trarilonko).
+			draw_rect(Rect2(-hw / 2.0 - 2, -hh + 1, hw + 3, 4), _c(OUTLINE))
+			draw_rect(Rect2(-hw / 2.0 - 1, -hh + 2, hw + 2, 2), hat)
+			draw_rect(Rect2(-hw / 2.0 - 1, -hh + 2, hw + 2, 1), hat.lightened(0.3))
+			for i in 4:
+				draw_rect(Rect2(-hw / 2.0 + i * 3, -hh + 3, 1, 1), trim)
 		&"cap":
 			_orect(Rect2(-hw / 2.0 - 1, -hh - 5, hw + 3, 6), hat)
 			draw_rect(Rect2(fx - 1, -hh, 7, 2), _c(OUTLINE))
@@ -624,3 +711,79 @@ func _draw_prop(hand: Vector2, along: Vector2) -> void:
 func _orect(r: Rect2, col: Color) -> void:
 	draw_rect(r.grow(1), _c(OUTLINE))
 	draw_rect(r, col)
+
+# --- Rasgos: silueta femenina, falda o vestido y capa ---------------------------
+func _outfit_color() -> Color:
+	return data.outfit_color if data.outfit_color.a > 0.0 else data.coat_color
+
+## Torso con hombros estrechos, pecho, cintura marcada y caderas.
+func _female_body(w: float, length: float, tail: float) -> void:
+	var top := -length
+	var pts := PackedVector2Array([
+		Vector2(-w * 0.42, top), Vector2(w * 0.42, top),
+		Vector2(w * 0.52, top + length * 0.3), Vector2(w * 0.34, top + length * 0.68),
+		Vector2(w * 0.48, tail), Vector2(-w * 0.48, tail),
+		Vector2(-w * 0.34, top + length * 0.68), Vector2(-w * 0.52, top + length * 0.3)])
+	var closed := pts.duplicate()
+	closed.append(pts[0])
+	draw_polyline(closed, _c(OUTLINE), 2.0)
+	draw_colored_polygon(pts, _c(data.coat_color))
+	# Sombreado de la espalda y brillo del pecho.
+	draw_line(pts[0], pts[7], _c(data.coat_color.darkened(0.25)), 2.0)
+	draw_line(pts[7], pts[6], _c(data.coat_color.darkened(0.25)), 2.0)
+	draw_rect(Rect2(w * 0.2, top + length * 0.22, 3, 2), _c(data.coat_color.lightened(0.28)))
+	draw_rect(Rect2(w * 0.2, top + length * 0.22 + 3, 3, 1), _c(data.coat_color.darkened(0.18)))
+
+## Falda, vestido o traje largo: se dibuja desde la cadera y gira con las piernas.
+func _skirt() -> void:
+	var col := _outfit_color()
+	var thigh := data.thigh_len
+	var shin := data.shin_len
+	var length := thigh * 0.95
+	var flare := 1.5
+	match data.outfit:
+		&"dress":
+			length = thigh + shin * 0.55
+			flare = 1.4
+		&"gown":
+			length = thigh + shin - 1.0
+			flare = 1.75
+	var sway := sin(anim_time * 3.0) * 0.8
+	if pose_name == &"run":
+		sway = -3.0
+	elif pose_name == &"walk":
+		sway = -1.0
+	var top_w := data.torso_width * 0.66
+	var bot_w := data.torso_width * flare
+	var pts := PackedVector2Array([
+		Vector2(-top_w * 0.5, -3), Vector2(top_w * 0.5, -3),
+		Vector2(bot_w * 0.5 + sway * 0.4, length), Vector2(-bot_w * 0.5 + sway, length)])
+	var closed := pts.duplicate()
+	closed.append(pts[0])
+	draw_polyline(closed, _c(OUTLINE), 2.0)
+	draw_colored_polygon(pts, _c(col))
+	# Pliegues y dobladillo.
+	draw_line(Vector2(-top_w * 0.1, -2), Vector2(-bot_w * 0.12 + sway * 0.6, length - 1), _c(col.darkened(0.22)), 1.0)
+	draw_line(Vector2(top_w * 0.25, -2), Vector2(bot_w * 0.25 + sway * 0.5, length - 1), _c(col.darkened(0.15)), 1.0)
+	draw_line(Vector2(-top_w * 0.5, -2), Vector2(-bot_w * 0.5 + sway, length - 1), _c(col.darkened(0.3)), 2.0)
+	draw_line(pts[3] + Vector2(0, -1), pts[2] + Vector2(0, -1), _c(data.coat_trim_color), 2.0)
+
+## Capa a la espalda: ondea al correr.
+func _cape(shoulder: Vector2, hip: Vector2) -> void:
+	var col := data.cape_color
+	var fly := 0.0
+	if pose_name == &"run":
+		fly = 9.0 if not moving_back else -3.0
+	elif pose_name == &"walk":
+		fly = 3.0
+	fly += sin(anim_time * 7.0) * 1.2
+	var pts := PackedVector2Array([
+		shoulder + Vector2(-3, -1), shoulder + Vector2(2, 0),
+		hip + Vector2(-2.0 - fly * 0.3, data.thigh_len * 0.9),
+		hip + Vector2(-data.torso_width * 0.5 - 6.0 - fly, data.thigh_len * 1.05)])
+	var closed := pts.duplicate()
+	closed.append(pts[0])
+	draw_polyline(closed, _c(OUTLINE), 2.0)
+	draw_colored_polygon(pts, _c(col))
+	draw_line(pts[0], pts[3], _c(col.darkened(0.3)), 2.0)
+	draw_line(pts[3], pts[2], _c(data.coat_trim_color), 2.0)

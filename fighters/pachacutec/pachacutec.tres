@@ -280,3 +280,6 @@ arm_width = 6.0
 head_width = 14.0
 head_height = 13.0
 idle_style = &"normal"
+cape_color = Color(0.164706, 0.541176, 0.603922, 1)
+jewelry = &"earplug"
+jewelry_color = Color(0.909804, 0.752941, 0.25098, 1)

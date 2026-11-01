@@ -77,10 +77,10 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var pants_color: Color = Color("2a2a3a")
 @export var boots_color: Color = Color("1a1a1a")
 @export var hat_color: Color = Color("111111")
-## Peinado: swoop | short | bald | long | wild | bun | curls
+## Peinado: swoop | short | bald | long | wild | bun | curls | bob | braids | updo | ponytail
 @export var hair_style: StringName = &"short"
 ## Sombrero: none | bicorne | top_hat | crown | nemes | cap | beret | turban |
-## fur_hat | laurel | helmet | zucchetto | halo
+## fur_hat | laurel | helmet | zucchetto | halo | tiara | headband
 @export var hat_style: StringName = &"none"
 ## Vello facial: none | mustache | toothbrush | goatee | chin | full | long
 @export var beard_style: StringName = &"none"
@@ -101,6 +101,21 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var head_height: float = 13.0
 ## Pose de reposo especial: normal | hand_in_coat
 @export var idle_style: StringName = &"normal"
+
+@export_group("Rasgos (aspecto provisional)")
+## Silueta femenina: hombros estrechos, cintura marcada, pestañas, labios y rubor.
+@export var female: bool = false
+## Falda o vestido: none | skirt (hasta la rodilla) | dress (hasta la pantorrilla) | gown (hasta el suelo).
+@export var outfit: StringName = &"none"
+## Color de la falda o el vestido (transparente = el del abrigo).
+@export var outfit_color: Color = Color(0, 0, 0, 0)
+## Gafas: none | round | dark
+@export var glasses: StringName = &"none"
+## Capa que cuelga a la espalda (transparente = sin capa).
+@export var cape_color: Color = Color(0, 0, 0, 0)
+## Joyas: none | necklace (collar y pendiente) | cross (cruz al cuello) | earplug (disco en la oreja)
+@export var jewelry: StringName = &"none"
+@export var jewelry_color: Color = Color("e8c040")
 
 ## Devuelve el AttackData de una ranura (&"punch_light", ...).
 func get_attack(slot: StringName) -> AttackData:

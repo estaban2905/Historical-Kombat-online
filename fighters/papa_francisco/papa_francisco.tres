@@ -281,3 +281,6 @@ arm_width = 5.0
 head_width = 12.0
 head_height = 13.0
 idle_style = &"normal"
+glasses = &"round"
+jewelry = &"cross"
+jewelry_color = Color(0.784314, 0.784314, 0.815686, 1)

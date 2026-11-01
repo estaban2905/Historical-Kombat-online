@@ -757,6 +757,25 @@ def build_normals(c, h, tempo):
     return out
 
 
+def look_lines(c):
+    """Rasgos de aspecto (silueta, falda, gafas, capa, joyas) de la ficha."""
+    out = []
+    if c.get("female"):
+        out.append("female = true")
+    if c.get("outfit"):
+        out.append(f'outfit = &"{c["outfit"]}"')
+        if c.get("outfit_color"):
+            out.append(f"outfit_color = {col(c['outfit_color'])}")
+    if c.get("glasses"):
+        out.append(f'glasses = &"{c["glasses"]}"')
+    if c.get("cape"):
+        out.append(f"cape_color = {col(c['cape'])}")
+    if c.get("jewelry"):
+        out.append(f'jewelry = &"{c["jewelry"]}"')
+        out.append(f"jewelry_color = {col(c.get('jewelry_color', 'e8c040'))}")
+    return out
+
+
 def combo_resource_lines(cid, prof):
     """Sub-recursos ComboData del luchador y la lista de referencias (para `combos = ...`)."""
     lines, refs = [], []
@@ -906,9 +925,42 @@ def build_tres(c):
         f"head_width = {f(hw)}",
         f"head_height = {f(hh)}",
         'idle_style = &"normal"',
+    ] + look_lines(c) + [
         "",
     ]
     return "\n".join(out)
+
+
+# Rasgos que definen el aspecto de cada luchador más allá de los colores: silueta femenina,
+# falda o vestido, peinado, gafas, capa y joyas. Se mezclan sobre la tabla CHARACTERS.
+#   female, outfit (skirt|dress|gown), outfit_color, glasses (round|dark), cape (color),
+#   jewelry (necklace|cross|earplug), jewelry_color, y cualquier campo de CHARACTERS.
+LOOKS = {
+    # --- Mujeres ---
+    "cleopatra": dict(female=True, outfit="gown", outfit_color="f6f2e4", jewelry="necklace", jewelry_color="e8c040"),
+    "isabel_ii": dict(female=True, outfit="dress", hair_style="updo", hat_style="tiara", hat="e8d060",
+                      chest="plain", jewelry="necklace", jewelry_color="f4f4f4"),
+    "marie_curie": dict(female=True, outfit="dress", outfit_color="34343c", hair_style="bun"),
+    "janequeo": dict(female=True, outfit="dress", outfit_color="8a2020", hair_style="braids",
+                     hat_style="headband", hat="c0c4cc", jewelry="necklace", jewelry_color="c0c4cc"),
+    "boudica": dict(female=True, outfit="skirt", outfit_color="6a3a2a", cape="8a2a2a",
+                    jewelry="necklace", jewelry_color="e8c040"),
+    "juana_de_arco": dict(female=True, outfit="skirt", outfit_color="2a4ab0", hair_style="bob",
+                          hat_style="none", jewelry="cross", jewelry_color="e8c040"),
+    # --- Hombres con rasgos propios ---
+    "augusto_pinochet": dict(glasses="dark", cape="4a5a4a"),
+    "salvador_allende": dict(glasses="round"),
+    "papa_francisco": dict(glasses="round", jewelry="cross", jewelry_color="c8c8d0"),
+    "rasputin": dict(jewelry="cross", jewelry_color="c8a040"),
+    "ivan_el_terrible": dict(cape="5a1020", jewelry="cross", jewelry_color="e8c040"),
+    "pachacutec": dict(cape="2a8a9a", jewelry="earplug", jewelry_color="e8c040"),
+    "lautaro": dict(hat_style="headband", hat="c02828"),
+    "gengis_kan": dict(cape="4a3a8a"),
+    "julio_cesar": dict(cape="b02020"),
+    "alejandro_magno": dict(cape="7a2a8a"),
+    "cristobal_colon": dict(cape="8a2a2a"),
+    "leonardo_da_vinci": dict(cape="6a2a2a"),
+}
 
 
 # --------------------------------------------------------------------------
@@ -1109,6 +1161,7 @@ def main():
         c["intro"], c["victory"] = QUOTES[c["id"]]
         c["s2"] = POWERS[c["id"]]
         c["power_quote"] = POWER_QUOTES.get(c["id"], "")
+        c.update(LOOKS.get(c["id"], {}))
         if c["id"] in S1_OVERRIDE:
             c["s1"] = S1_OVERRIDE[c["id"]]
         errs = validate(c)

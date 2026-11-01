@@ -281,3 +281,6 @@ arm_width = 6.0
 head_width = 14.0
 head_height = 14.0
 idle_style = &"normal"
+cape_color = Color(0.352941, 0.0627451, 0.12549, 1)
+jewelry = &"cross"
+jewelry_color = Color(0.909804, 0.752941, 0.25098, 1)
