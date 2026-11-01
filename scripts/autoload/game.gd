@@ -44,6 +44,18 @@ var arcade_ladder: Array[StringName] = []
 var arcade_stage: int = 0
 var arcade_continues: int = ARCADE_CONTINUES
 
+# --- Efectos ---
+## Sangre de los golpes fuertes: estrellitas y sudor (por defecto), roja o ninguna.
+enum Gore { SOFT, RED, OFF }
+const GORE_NAMES: Array[String] = ["SUAVE", "ROJA", "NO"]
+var gore: Gore = Gore.SOFT
+
+func cycle_gore() -> void:
+	gore = ((int(gore) + 1) % GORE_NAMES.size()) as Gore
+
+func gore_name() -> String:
+	return GORE_NAMES[gore]
+
 var _fade_layer: CanvasLayer
 var _fade_rect: ColorRect
 var _changing: bool = false

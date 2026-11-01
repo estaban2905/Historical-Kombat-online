@@ -29,6 +29,10 @@ func _ready() -> void:
 	box.add_child(title)
 	_first_button = _add_button(box, "CONTINUAR", resume)
 	_add_button(box, "CONTROLES", _open_controls)
+	var gore_btn := _add_button(box, "SANGRE: " + Game.gore_name(), func(): pass)
+	gore_btn.pressed.connect(func():
+		Game.cycle_gore()
+		gore_btn.text = "SANGRE: " + Game.gore_name())
 	_add_button(box, "REINICIAR COMBATE", func(): Game.goto(Game.SCENE_FIGHT))
 	_add_button(box, "SELECCIÓN DE LUCHADOR", func(): Game.goto(Game.SCENE_SELECT))
 	_add_button(box, "MENÚ PRINCIPAL", func(): Game.goto(Game.SCENE_MENU))

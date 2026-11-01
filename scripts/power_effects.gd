@@ -33,6 +33,7 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 			_spawn(cm, f, atk, {"art": &"wall", "at_opp": true, "off": Vector2(0, -42), "box": Vector2(26, 84),
 				"delay": 22, "show": true, "life": 0.45, "pierce": true, "knock": 140.0, "launch": -170.0,
 				"stun": 32, "shake": 5.0, "sound": &"hit_heavy"})
+			_stones_later(cm, f.opponent.position.x, 22)
 		&"rockets":
 			# Kim: ráfaga de cohetes caricaturescos.
 			var ys: Array[float] = [-52.0, -38.0, -60.0, -44.0]
@@ -64,6 +65,7 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 			_spawn(cm, f, atk, {"art": &"ice_burst", "off": Vector2(54, -26), "box": Vector2(40, 52),
 				"delay": 14, "show": true, "life": 0.4, "pierce": true, "knock": 220.0, "launch": -230.0,
 				"stun": 34, "shake": 5.0, "sound": &"hit_heavy"})
+			_stones_later(cm, f.position.x + 54.0 * f.facing, 14)
 		&"big_speech":
 			# Mussolini: un grito enorme crea una onda sonora gigante.
 			_spawn(cm, f, atk, {"art": &"bigwave", "off": Vector2(30, -50), "box": Vector2(26, 38),
@@ -204,6 +206,12 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 				"sound": &"whoosh"})
 		_:
 			push_warning("PowerEffects: poder desconocido «%s»" % atk.power)
+
+## Fragmentos de piedra en el suelo tras `frames` (cuando el poder golpea).
+static func _stones_later(cm: CombatManager, x: float, frames: int) -> void:
+	await cm.get_tree().create_timer(frames / 60.0).timeout
+	if is_instance_valid(cm):
+		cm.fx.stones(Vector2(x, cm.stage.floor_y))
 
 ## Crea una entidad que golpea (ver claves en la cabecera).
 static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary) -> Projectile:

@@ -63,6 +63,12 @@ var _caption: String = ""
 var _tap_dir: int = 0
 var _tap_msec: int = -10000
 var _run_dir: int = 0
+## Partículas de la demo (polvo, chispas, estela...) y lo que recuerdan del frame anterior.
+var _fx: ParticleFX
+var _fx_t: float = 0.0
+var _was_airborne: bool = false
+var _was_active: bool = false
+var _was_block: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -83,6 +89,9 @@ func _ready() -> void:
 	_fighter.scale = Vector2(FIGHTER_SCALE, FIGHTER_SCALE)
 	add_child(_fighter)
 	_fighter.setup(_roster[_roster_idx])
+	_fx = ParticleFX.new()
+	_fx.floor_y = FLOOR_Y
+	add_child(_fx)
 
 	var row := HBoxContainer.new()
 	row.position = Vector2(76, 222)
@@ -184,7 +193,44 @@ func _start_attack(action: StringName) -> void:
 
 func _process(delta: float) -> void:
 	_update_fighter(delta)
+	_update_fx(delta)
 	queue_redraw()
+
+## Efectos de la demo: los mismos que en combate, disparados por la pose del luchador.
+func _update_fx(delta: float) -> void:
+	var f := _fighter
+	var feet := Vector2(f.position.x, FLOOR_Y)
+	var airborne := f.airborne
+	if _was_airborne and not airborne:
+		_fx.dust_land(feet)
+	_was_airborne = airborne
+	_fx_t += delta
+	var pose := f.pose_name
+	if not airborne and (pose == &"walk" or pose == &"run"):
+		var every := 0.09 if pose == &"run" else 0.22
+		if _fx_t >= every:
+			_fx_t = 0.0
+			_fx.dust_step(feet, 1 if f.moving_back else -1, pose == &"run")
+			if pose == &"run":
+				_fx.speed_lines(feet, -1 if f.moving_back else 1)
+	var block := pose == &"block"
+	if block and not _was_block:
+		_fx.sparks(feet + Vector2(26, -60), 1)
+	_was_block = block
+	var active := _attack != null and f.phase == &"active"
+	if active:
+		var at := f.position + _attack.hitbox_offset * FIGHTER_SCALE
+		if not _was_active:
+			HitEffect.spawn(self, at + Vector2(10, 0), HitEffect.Type.HIT, _attack.effect_scale)
+			if _attack.damage >= 10.0:
+				_fx.hit_burst(at + Vector2(10, 0), 1, 1)
+		if _attack.kind != AttackData.Kind.PUNCH and _fx_t >= 0.04:
+			_fx_t = 0.0
+			_fx.trail(at, Color("ffd040") if _attack.kind == AttackData.Kind.KICK else Color("ff7020"))
+		if _attack_pose == &"sweep" and _fx_t >= 0.1:
+			_fx_t = 0.0
+			_fx.dust_sweep(feet, 1)
+	_was_active = active
 
 func _update_fighter(delta: float) -> void:
 	var f := _fighter

@@ -17,6 +17,8 @@ signal projectile_requested(fighter: Fighter, attack: AttackData, spawn_position
 signal power_requested(fighter: Fighter, attack: AttackData)
 signal combo_performed(fighter: Fighter, combo: ComboData)
 signal not_enough_energy(fighter: Fighter)
+## Al tocar el suelo tras una caída (solo aviso visual; no cambia el estado).
+signal landed(fighter: Fighter)
 
 enum State { IDLE, WALK, JUMP, CROUCH, BLOCK, ATTACK, HIT, KO, VICTORY }
 
@@ -507,6 +509,7 @@ func _apply_physics(delta: float) -> void:
 		position.y = floor_y
 		if velocity.y > 0.0:
 			velocity.y = 0.0
+			landed.emit(self)
 			if state == State.JUMP:
 				velocity.x = 0.0
 				_set_state(State.IDLE)

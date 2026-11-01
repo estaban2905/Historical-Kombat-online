@@ -31,12 +31,19 @@ var fighters: Array[Fighter] = []
 ## Cerebro de P2 en el modo contra la CPU (null en versus local).
 var ai: AIController
 var _shake: float = 0.0
+## Partículas decorativas (polvo, chispas, sangre...). No forman parte del estado.
+var fx: ParticleFX
 ## Ticks de combate transcurridos (un tick = un frame de física a 60 Hz).
 var tick_count: int = 0
 var _input_source: Callable
 
 func _ready() -> void:
 	_load_stage()
+	fx = ParticleFX.new()
+	fx.use_flash = true
+	fx.floor_y = stage.floor_y
+	fx.z_index = 19
+	effects_root.add_child(fx)
 	p1 = _spawn_fighter(Game.p1_data(), 1)
 	p2 = _spawn_fighter(Game.p2_data(), 2)
 	p1.opponent = p2
@@ -70,6 +77,7 @@ func swap_stage(round_number: int) -> void:
 	stage_holder.remove_child(old)
 	old.queue_free()
 	_load_stage(round_number)
+	fx.floor_y = stage.floor_y
 	for f in fighters:
 		f.floor_y = stage.floor_y
 		f.bounds = Vector2(stage.left_bound, stage.right_bound)
@@ -88,6 +96,7 @@ func _spawn_fighter(data: FighterData, player_id: int) -> Fighter:
 	f.power_requested.connect(_on_power_requested)
 	f.knocked_out.connect(func(who: Fighter): fighter_knocked_out.emit(who))
 	f.attack_started.connect(_on_attack_started)
+	f.landed.connect(_on_fighter_landed)
 	f.not_enough_energy.connect(func(_who: Fighter): Sfx.play(&"denied"))
 	return f
 
@@ -95,6 +104,7 @@ func _spawn_fighter(data: FighterData, player_id: int) -> Fighter:
 func reset_round() -> void:
 	for p in projectiles_root.get_children():
 		p.queue_free()
+	fx.clear()
 	p1.reset_for_round(stage.p1_spawn_x, 1)
 	p2.reset_for_round(stage.p2_spawn_x, -1)
 
@@ -122,6 +132,7 @@ func _physics_process(delta: float) -> void:
 	_resolve_melee_hits()
 	_resolve_projectiles()
 	_update_shake(delta)
+	_update_fx()
 	tick_count += 1
 	ticked.emit()
 
@@ -253,14 +264,22 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 	HitEffect.spawn(effects_root, point, fx_type, atk.effect_scale)
 	if result.blocked:
 		Sfx.play(&"block", 0.08)
+		fx.sparks(point, -direction)
 	elif result.ko:
 		Sfx.play(&"ko")
 		shake(5.0)
+		fx.hit_burst(point, direction, 2)
+		fx.ko_stain(target.position.x)
+		fx.flash(0.6)
 	else:
 		var heavy := atk.damage >= 10.0
 		Sfx.play(&"hit_heavy" if heavy else &"hit_light", 0.1)
 		shake(3.0 if heavy else 1.0)
 		stage.excite(0.25 if heavy else 0.1)
+		if heavy:
+			fx.hit_burst(point, direction, 2 if atk.launch < 0.0 else 1)
+		if atk.damage >= 15.0:
+			fx.flash(0.35)
 	if result.ko:
 		stage.excite(1.0)
 	hit_landed.emit(attacker, target, atk, result)
@@ -272,11 +291,56 @@ func _on_projectile_requested(fighter: Fighter, atk: AttackData, spawn_position:
 	Sfx.play(&"cannon" if atk.projectile_style == &"ball" else &"megaphone")
 
 func _on_power_requested(fighter: Fighter, atk: AttackData) -> void:
+	fx.flash(0.3)
 	PowerEffects.cast(self, fighter, atk)
 
 func _on_attack_started(_fighter: Fighter, atk: AttackData) -> void:
 	if not atk.is_projectile():
 		Sfx.play(&"whoosh", 0.15)
+
+# =========================================================================
+#  Partículas (solo decorado)
+# =========================================================================
+func _on_fighter_landed(f: Fighter) -> void:
+	var feet := Vector2(f.position.x, f.floor_y)
+	if f.state == Fighter.State.HIT or f.state == Fighter.State.KO:
+		fx.dust_wave(feet)
+	elif f.state == Fighter.State.JUMP or f.state == Fighter.State.ATTACK:
+		fx.dust_land(feet)
+
+func _update_fx() -> void:
+	for i in fighters.size():
+		var f := fighters[i]
+		if f.hitstop_frames > 0:
+			continue
+		var phase := tick_count + i * 3
+		var atk := f.current_attack
+		# Estela mientras la hitbox de patadas y especiales está activa.
+		if atk != null and f.is_hitbox_active() and atk.kind != AttackData.Kind.PUNCH and phase % 2 == 0:
+			fx.trail(f.hitbox_shape.global_position, Color("ffd040") if atk.kind == AttackData.Kind.KICK else Color("ff7020"))
+		if not f.is_on_ground():
+			continue
+		var feet := Vector2(f.position.x, f.floor_y)
+		var moving := int(signf(f.velocity.x))
+		match f.state:
+			Fighter.State.WALK:
+				if phase % (5 if f.running else 13) == 0:
+					fx.dust_step(feet, -moving if moving != 0 else -f.facing, f.running)
+				if f.running and phase % 6 == 0 and moving != 0:
+					fx.speed_lines(feet, moving)
+			Fighter.State.HIT:
+				if absf(f.velocity.x) > 110.0 and phase % 4 == 0:
+					fx.dust_slide(feet, moving)
+			Fighter.State.ATTACK:
+				if atk == null:
+					continue
+				if f.attack_crouching and f.is_hitbox_active() and phase % 3 == 0:
+					fx.dust_sweep(feet, f.facing)
+				if atk.dash_speed > 0.0 and f.attack_frame <= atk.startup + atk.active:
+					if phase % 4 == 0:
+						fx.dust_step(feet, -f.facing, true)
+					if phase % 6 == 0:
+						fx.speed_lines(feet, f.facing)
 
 # =========================================================================
 #  Cámara fija con vibración
