@@ -84,8 +84,10 @@ jobs:
       # .godot/ no está en el repo: hay que importar los recursos antes de probar.
       - name: Importar recursos
         run: ~/godot/godot --headless --path . --import
+      # --fixed-fps 60: sin él las pruebas esperan los ticks en tiempo real
+      # (TestRunner ~10 min, Determinismo ~8 min); con él corren a toda velocidad.
       - name: Escenas, menús y entrada
-        run: ~/godot/godot --headless --path . res://tests/TestRunner.tscn
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/TestRunner.tscn
       - name: Frame data
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/FrameDataTest.tscn
       - name: Mecánicas
@@ -94,7 +96,7 @@ jobs:
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/TrainingTest.tscn
       # Imprescindible para el online: ambos PC deben simular exactamente igual.
       - name: Determinismo
-        run: ~/godot/godot --headless --path . res://tests/DeterminismTest.tscn
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/DeterminismTest.tscn
       # Dos PCs simulados con lag: las peleas deben quedar idénticas.
       - name: Online (sincronización con lag)
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn
