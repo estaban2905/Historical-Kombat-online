@@ -456,6 +456,20 @@ func _torso(length: float) -> void:
 		draw_rect(Rect2(-w / 2.0, top, w, 2).abs(), _c(data.coat_trim_color))
 		draw_rect(Rect2(1, top + 2, 2, length - 1), _c(data.coat_trim_color))
 		draw_rect(Rect2(-sw / 2.0, -6, sw, 2).abs(), _c(data.accent_color))
+	elif data.chest_style == &"polo":
+		# Polo de rayas por fuera del pantalón, cuello abierto y barriga.
+		var belly := Rect2(roundf(w / 2.0) - 1, roundf(top + length * 0.4), 4, roundf(length * 0.55))
+		draw_rect(belly.grow(1), _c(OUTLINE))
+		draw_rect(belly, _c(data.coat_color))
+		var y := top + 4.0
+		while y < tail - 1.0:
+			draw_rect(Rect2(body.position.x + 3, y, body.size.x - 3, 1), _c(data.accent_color))
+			draw_rect(Rect2(belly.position.x, y, belly.size.x, 1), _c(data.accent_color))
+			y += 4.0
+		draw_rect(Rect2(-w / 2.0, top - 1, w, 2).abs(), _c(data.shirt_color))
+		draw_rect(Rect2(2, top - 1, 5, 2), _c(data.shirt_color.darkened(0.15)))
+		draw_rect(Rect2(3, top + 1, 3, 4), _c(data.skin_color.darkened(0.1)))
+		draw_rect(Rect2(4, top + 5, 1, 1), _c(OUTLINE))
 	elif data.chest_style == &"uniform":
 		# Guerrera militar: cuello, botonadura, bolsillo y cinturón.
 		draw_rect(Rect2(-w / 2.0, top - 1, w, 3).abs(), _c(data.accent_color))
@@ -541,6 +555,13 @@ func _head() -> void:
 	match data.beard_style:
 		&"mustache":
 			draw_rect(Rect2(fx - 5, mouth_y, 6, 2), beard)
+		&"stubble":
+			# Barba de pocos días en mandíbula y mentón, y bigote grueso que baja por las comisuras.
+			var shadow := _c(data.skin_color.lerp(data.hair_color, 0.22))
+			draw_rect(Rect2(head.position.x + 3, mouth_y + 1, hw - 4, roundf(hh * 0.4) - 1), shadow)
+			draw_rect(Rect2(fx - 7, mouth_y - 1, 8, 3), beard)
+			draw_rect(Rect2(fx - 7, mouth_y + 2, 2, 2), beard)
+			draw_rect(Rect2(fx - 6, mouth_y - 1, 6, 1), _c(data.hair_color.lightened(0.15)))
 		&"toothbrush":
 			draw_rect(Rect2(fx - 4, mouth_y, 3, 2), beard)
 		&"goatee":
@@ -619,6 +640,31 @@ func _head() -> void:
 				draw_rect(Rect2(lx + 1, -hh + 1 + i * 4.0, 5, 3), _c(data.hair_color if i % 2 == 0 else data.hair_color.darkened(0.12)))
 			draw_rect(Rect2(fx - 3, -hh + 1, 3, 5), _c(data.hair_color))
 			draw_rect(Rect2(fx - 3, -hh + 6, 2, 3), _c(data.hair_color.darkened(0.12)))
+		&"mop":
+			# Melena de rizos abultada: bucles por arriba, la nuca y el flequillo.
+			var hc := _c(data.hair_color)
+			var hl := _c(data.hair_color.lightened(0.35))
+			var top_curls: Array[Vector2] = []
+			for i in 5:
+				top_curls.append(Vector2(head.position.x - 1.0 + i * (hw + 2.0) / 4.0, -hh - 3.0 - (i % 2)))
+			var back_curls: Array[Vector2] = []
+			for i in 3:
+				back_curls.append(Vector2(head.position.x - 2.0, -hh + 2.0 + i * 3.5))
+			# Contorno de toda la masa de pelo y después el relleno, para que se lea como una melena.
+			for c in top_curls:
+				draw_circle(c, 3.6, _c(OUTLINE))
+			for c in back_curls:
+				draw_circle(c, 3.1, _c(OUTLINE))
+			draw_rect(Rect2(head.position.x - 3, -hh - 3, hw + 5, 5), hc)
+			draw_rect(Rect2(head.position.x - 4, -hh, 6, roundf(hh * 0.7)), hc)
+			for c in top_curls:
+				draw_circle(c, 2.8, hc)
+				draw_arc(c, 1.6, PI, PI * 1.6, 4, hl, 1.0)
+			for c in back_curls:
+				draw_circle(c, 2.3, hc)
+				draw_rect(Rect2(c.x - 1, c.y - 1, 1, 1), hl)
+			draw_rect(Rect2(fx - 5, -hh, 4, 3), hc)
+			draw_rect(Rect2(fx - 3, -hh + 2, 2, 2), hc)
 		&"curls":
 			draw_rect(Rect2(head.position.x - 2, -hh - 3, hw + 4, 5), _c(data.hair_color))
 			draw_rect(Rect2(head.position.x - 2, -hh, 4, 8), _c(data.hair_color))

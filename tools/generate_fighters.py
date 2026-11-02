@@ -327,9 +327,9 @@ CHARACTERS = [
          victory="Con esta plata, hasta los jueces aplauden.",
          bio="Narcotraficante colombiano. Aquí paga sus golpes con billetes y hasta hipopótamos.",
          arch="balanced", build="stocky",
-         skin="d8a878", hair="1c1410", coat="e8e8e0", trim="a0a0a0", shirt="e8e8e0", accent="3a6a3a",
-         pants="3a4a6a", boots="3a2a1a", hat="141414",
-         hair_style="curls", hat_style="none", beard="mustache", chest="plain",
+         skin="d8a878", hair="1c1410", coat="3a5aa0", trim="a0a0a0", shirt="e8e8e0", accent="e8e8e0",
+         pants="4a6a9a", boots="f0f0ec", hat="141414",
+         hair_style="mop", hat_style="none", beard="stubble", chest="polo",
          moves=("Cachetada Paisa", "Puño Millonario", "Patada de Hacienda", "Patada de Medellín"),
          s1=P(name="Lluvia de Billetes", anim="cannon", style="spin", color="50c060", speed=205, dmg=15),
          s2=D(name="Hipopótamo Descontrolado", anim="rush", dmg=18, dash=290),
@@ -1210,6 +1210,7 @@ LOOKS = {
     "cristobal_colon": dict(cape="8a2a2a"),
     "arturo_prat": dict(hair_style="bald", hat_style="none"),   # calvo y sin gorra, con barba
     "leonardo_da_vinci": dict(cape="6a2a2a"),
+    "pablo_escobar": dict(jewelry="necklace", jewelry_color="e8c040"),   # cadena de oro
 }
 
 
