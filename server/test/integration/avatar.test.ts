@@ -60,3 +60,13 @@ test("rechaza ids con forma inválida y ignora campos de más (no se pueden toca
   assert.equal((await patch(t, { avatar: "tesla", points: 9999 })).json().points, 1000);
   assert.equal((await patch(t, {})).statusCode, 400);
 });
+
+test("CORS permite PATCH desde el navegador (el preflight lo declara)", async () => {
+  const res = await app.inject({
+    method: "OPTIONS",
+    url: "/me",
+    headers: { origin: "https://juego.example", "access-control-request-method": "PATCH", "access-control-request-headers": "authorization,content-type" },
+  });
+  assert.equal(res.statusCode, 204);
+  assert.match(String(res.headers["access-control-allow-methods"]), /PATCH/);
+});

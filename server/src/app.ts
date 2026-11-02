@@ -43,7 +43,11 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     new MatchmakingService(undefined, { settler: matches?.settle, onError: (err) => app.log.error(err) });
   registerServices(app, config, matchmaking, options.db !== undefined);
 
-  await app.register(cors, { origin: config.allowedOrigins.length > 0 ? config.allowedOrigins : true });
+  // Por defecto solo deja pasar GET, HEAD y POST: sin esto el navegador bloquea PATCH /me y PUT/DELETE /me/story.
+  await app.register(cors, {
+    origin: config.allowedOrigins.length > 0 ? config.allowedOrigins : true,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+  });
 
   // Swagger va antes de las rutas para que las registre en la documentación.
   if (config.docsEnabled) await registerSwagger(app);
