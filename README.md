@@ -317,7 +317,15 @@ Menú principal → **DUELO ONLINE** → eliges luchador → *buscando rival* �
 - **Cliente:** `scripts/autoload/online.gd` (conexión y cola), `scripts/lockstep_session.gd` (sincronización) y `scripts/ui/online_lobby.gd` (pantalla de espera).
 - **Sincronización (lockstep):** cada PC simula la pelea entera y solo se envían los botones de cada tick. Un botón se aplica 4 ticks (66 ms) después de pulsarlo, en los dos PC; si el rival aún no llegó, el combate espera ("ESPERANDO AL RIVAL..."). Funciona porque la simulación es determinista (`tests/determinism_test.gd`): **no uses azar (`randf`) en la lógica del combate**, solo en efectos visuales.
 - **Servicios en Railway** (se despliegan desde GitHub Actions, cada uno con su Dockerfile): `server/` (partidas, WebSocket), `web/` (entrega el juego exportado a Web) y Postgres. El servicio `web` tiene la variable `SERVER_URL` (`wss://<dominio-del-server>/ws`) y la publica en `/config.js`, que el juego lee en el navegador; así el mismo build sirve en `develop` y en producción.
-- **Dirección del servidor (Godot/.exe):** `scripts/autoload/online_config.gd` (`wss://...` en producción) o `user://online.cfg` con `[server] url="ws://localhost:8787/ws"`.
+- **Dirección del servidor (Godot/.exe):** `scripts/autoload/online_config.gd` (debug → `ws://localhost:8787/ws`; release → producción) o `user://online.cfg` con `[server] url="..."` para forzar otra (p. ej. la de develop).
+- **Entornos:**
+  | Entorno | Rama | Dónde | Dominio |
+  |---|---|---|---|
+  | local | cualquiera | `npm run dev:local` en `server/` (PGlite) + Godot F5 | `localhost:8787` |
+  | develop | `develop` | Railway, entorno `develop` (Postgres propio y vacío) | solo los `*.up.railway.app` por defecto |
+  | producción | `main` | Railway, entorno `production` | `historycombat.cl` (solo producción) |
+
+  Flujo: rama de feature → PR a `develop` → PR de `develop` a `main`. Un push a `develop` o `main` despliega a su entorno (CI).
 - **Probar en local:** `cd server && npm install && npm run dev`, y abrir el juego dos veces (dos instancias de Godot o dos pestañas).
 - **Pruebas:** `godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn` (dos PC simulados con lag), `GODOT=godot bash tests/run_online_e2e.sh` (servidor real + dos clientes), `tests/run_account_e2e.sh` (cuentas) y `tests/run_ranked_e2e.sh` (duelo con puntos entre dos cuentas). Los dos últimos usan el servidor de desarrollo con base de datos embebida, sin Postgres.
 - **Probar con cuentas en tu PC:** `cd server && npm install && npm run dev:local` (Postgres embebido en `server/.dev-data/`), y abrir el juego. Sin esto, o con el servidor apagado, el juego salta el login y funciona offline.

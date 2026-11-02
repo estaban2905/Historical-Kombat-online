@@ -4,3 +4,4 @@
 
 [node name="StoryFlowPreview" type="Node"]
 script = ExtResource("1_flow")
+1s

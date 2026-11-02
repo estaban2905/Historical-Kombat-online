@@ -9,4 +9,10 @@
 ##   url="ws://localhost:8787/ws"
 extends RefCounted
 
-const SERVER_URL := "ws://localhost:8787/ws"
+## Desde Godot (F5) y en builds de depuración se usa el servidor local (npm run dev:local).
+const SERVER_URL_DEV := "ws://localhost:8787/ws"
+## Builds de exportación (release): el servidor de producción en Railway.
+const SERVER_URL_PROD := "wss://server-production-f7f1.up.railway.app/ws"
+
+static func server_url() -> String:
+	return SERVER_URL_DEV if OS.is_debug_build() else SERVER_URL_PROD
