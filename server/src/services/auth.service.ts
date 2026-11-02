@@ -75,7 +75,8 @@ export class AuthService {
   /**
    * Entra con un ID token de Google. Si la cuenta no existe se crea, y para eso hace falta
    * `username` (si falta, 409 username_required y el juego lo pide). Si ya hay una cuenta con
-   * ese email (verificado por Google), se enlaza en vez de duplicarla.
+   * ese email (verificado por Google), pasa a ser de Google: se borra su contraseña y se
+   * cierran sus sesiones (ver AccountRepository.claimForGoogle).
    */
   async loginWithGoogle(idToken: string, username?: string): Promise<AuthResult> {
     if (!this.googleVerifier) throw GOOGLE_OFF;
@@ -94,10 +95,12 @@ export class AuthService {
     }
     const sameEmail = await this.accounts.findByEmail(who.email);
     if (sameEmail) {
-      if (sameEmail.googleSub !== null) throw INVALID_GOOGLE; // ese email ya está enlazado a otra cuenta de Google
-      await this.accounts.linkGoogle(sameEmail.id, who.sub);
-      await this.sessions.deleteExpired(sameEmail.id);
-      return this.issue(sameEmail);
+      // "Google gana": el registro con email no lo verifica, así que quien lo registró pudo
+      // no ser su dueño. Pierde la contraseña y las sesiones; la cuenta queda solo para Google.
+      if (sameEmail.googleSub !== null || !(await this.accounts.claimForGoogle(sameEmail.id, who.sub))) {
+        throw INVALID_GOOGLE; // ese email ya está enlazado a otra cuenta de Google
+      }
+      return this.issue({ ...sameEmail, googleSub: who.sub, passwordHash: null });
     }
     if (!username) throw USERNAME_REQUIRED;
     try {

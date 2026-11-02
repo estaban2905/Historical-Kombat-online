@@ -86,7 +86,8 @@ export const googleSchema = {
   summary: "Entrar con Google",
   description:
     "Recibe el ID token de Google Identity Services. Si el jugador es nuevo hace falta `username`; " +
-    "sin él responde 409 `username_required`. Si ya había una cuenta con ese email, se enlaza.",
+    "sin él responde 409 `username_required`. Si ya había una cuenta con ese email, pasa a ser de Google: " +
+    "se borra su contraseña y se cierran sus sesiones.",
   body: {
     type: "object",
     required: ["id_token"],

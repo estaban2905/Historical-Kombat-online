@@ -67,9 +67,25 @@ export class AccountRepository {
     return res.rows[0] ? toAccount(res.rows[0]) : null;
   }
 
-  /** Enlaza una cuenta que ya existía (por email) con la cuenta de Google. */
-  async linkGoogle(id: string, sub: string): Promise<void> {
-    await this.db.query("update players set google_sub = $2 where id = $1", [id, sub]);
+  /**
+   * Google demostró que el email es suyo: la cuenta que ya existía con ese email pasa a ser
+   * de Google. Se borra la contraseña y se cierran todas sus sesiones, porque el email nunca
+   * se verificó y quien la registró pudo no ser su dueño. Una sola sentencia: todo o nada.
+   * false si la cuenta ya estaba enlazada a otra cuenta de Google.
+   */
+  async claimForGoogle(id: string, sub: string): Promise<boolean> {
+    const res = await this.db.query<{ id: string }>(
+      `with claimed as (
+         update players set google_sub = $2, password_hash = null
+          where id = $1 and google_sub is null
+          returning id
+       ), closed as (
+         delete from sessions where player_id in (select id from claimed)
+       )
+       select id from claimed`,
+      [id, sub],
+    );
+    return res.rows.length > 0;
   }
 
   async findById(id: string): Promise<Account | null> {

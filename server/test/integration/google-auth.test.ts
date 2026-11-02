@@ -52,15 +52,49 @@ test("jugador que vuelve: entra sin nombre y es la misma cuenta", async () => {
   assert.equal(b.json().player.id, a.json().player.id);
 });
 
-test("una cuenta con contraseña y el mismo email se enlaza, no se duplica", async () => {
+test("una cuenta con contraseña y el mismo email pasa a Google: no se duplica, pierde contraseña y sesiones", async () => {
+  // Alguien registró el email (sin verificarlo) y tiene sesión abierta.
   const reg = await app.inject({
     method: "POST",
     url: "/auth/register",
     payload: { email: "mixta@gmail.com", password: "secreto1", username: "Mixta_1" },
   });
+  assert.equal(reg.statusCode, 201, reg.body);
+  const { access_token: oldAccess, refresh_token: oldRefresh } = reg.json();
+
+  // El dueño real del email entra con Google: misma cuenta, sin pedir nombre.
   const g = await google(token("sub-mixta", "mixta@gmail.com"));
   assert.equal(g.statusCode, 200, g.body);
   assert.equal(g.json().player.id, reg.json().player.id);
+
+  // Quien la registró ya no puede entrar: ni con la contraseña ni con su sesión.
+  const login = await app.inject({
+    method: "POST",
+    url: "/auth/login",
+    payload: { email: "mixta@gmail.com", password: "secreto1" },
+  });
+  assert.equal(login.statusCode, 401);
+  const me = await app.inject({ method: "GET", url: "/me", headers: { authorization: `Bearer ${oldAccess}` } });
+  assert.equal(me.statusCode, 401);
+  const refresh = await app.inject({ method: "POST", url: "/auth/refresh", payload: { refresh_token: oldRefresh } });
+  assert.equal(refresh.statusCode, 401);
+
+  // La sesión nueva de Google sí funciona, y volver a entrar con Google da la misma cuenta.
+  const meGoogle = await app.inject({
+    method: "GET",
+    url: "/me",
+    headers: { authorization: `Bearer ${g.json().access_token}` },
+  });
+  assert.equal(meGoogle.statusCode, 200);
+  const again = await google(token("sub-mixta", "mixta@gmail.com"));
+  assert.equal(again.json().player.id, reg.json().player.id);
+});
+
+test("un email ya enlazado a otra cuenta de Google no se puede reclamar", async () => {
+  await google(token("sub-duena", "duena@gmail.com"), "Duena_1");
+  const otro = await google(token("sub-intruso", "duena@gmail.com"), "Intruso_1");
+  assert.equal(otro.statusCode, 401);
+  assert.equal(otro.json().error, "invalid_google_token");
 });
 
 test("una cuenta de Google no puede entrar con contraseña", async () => {
