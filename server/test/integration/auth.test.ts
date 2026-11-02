@@ -185,6 +185,44 @@ test("el límite de intentos frena la fuerza bruta (429)", async (t) => {
   assert.deepEqual(codes, [401, 401, 401, 429, 429]);
 });
 
+test("inventarse la IP en X-Forwarded-For no esquiva el límite", async (t) => {
+  const limited = await buildApp({ db, config: { logger: false, authRateLimitPerMinute: 3 } });
+  t.after(() => limited.close());
+  const codes: number[] = [];
+  for (let i = 0; i < 5; i++) {
+    const res = await limited.inject({
+      method: "POST",
+      url: "/auth/login",
+      // El cliente escribe una IP falsa distinta cada vez; el proxy añade la real al final.
+      headers: { "x-forwarded-for": `10.0.0.${i}, 203.0.113.7` },
+      payload: { email: `ip${i}@test.com`, password: "secreto1" },
+    });
+    codes.push(res.statusCode);
+  }
+  assert.deepEqual(codes, [401, 401, 401, 429, 429]);
+});
+
+test("el límite por email frena la fuerza bruta desde muchas IPs", async (t) => {
+  const limited = await buildApp({
+    db,
+    config: { logger: false, authRateLimitPerMinute: 1000, loginRateLimitPerEmail: 3 },
+  });
+  t.after(() => limited.close());
+  const login = (email: string, i: number) =>
+    limited.inject({
+      method: "POST",
+      url: "/auth/login",
+      remoteAddress: `198.51.100.${i}`,
+      payload: { email, password: "secreto1" },
+    });
+  const codes: number[] = [];
+  // Mismo email con distintas mayúsculas: cuenta como el mismo.
+  for (let i = 0; i < 5; i++) codes.push((await login(i % 2 ? "Victima@Test.com" : "victima@test.com", i)).statusCode);
+  assert.deepEqual(codes, [401, 401, 401, 429, 429]);
+  // Otro email no se ve afectado.
+  assert.equal((await login("otra@test.com", 9)).statusCode, 401);
+});
+
 test("la documentación Swagger incluye las rutas de cuentas", async () => {
   const spec = (await get("/docs/json")).json();
   for (const path of ["/auth/register", "/auth/login", "/auth/refresh", "/auth/logout", "/me", "/leaderboard"]) {

@@ -63,6 +63,8 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 | `DATABASE_URL` | (vacía) | Postgres. En Railway: `${{Postgres.DATABASE_URL}}`. Sin ella no hay cuentas, solo emparejamiento |
 | `ALLOWED_ORIGINS` | (vacía = cualquiera) | Dominios de la web del juego, separados por comas |
 | `AUTH_RATE_LIMIT_PER_MINUTE` | 10 | Intentos de registro/login por minuto y por IP |
+| `LOGIN_RATE_LIMIT_PER_EMAIL` | 10 | Intentos de login cada 15 minutos para un mismo email, desde cualquier IP |
+| `TRUST_PROXY_HOPS` | 1 | Proxies delante del servidor (Railway: 1). La IP del cliente se lee de `X-Forwarded-For` saltando solo esos; lo que el cliente añada no cuenta |
 | `GOOGLE_CLIENT_ID` | (vacía) | Client ID de Google (OAuth tipo web). Con él, `POST /auth/google` acepta ID tokens de Google; sin él responde 503. Debe ser el mismo que usa el servicio web |
 
 ## Duelos con ranking
