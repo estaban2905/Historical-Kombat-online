@@ -1,7 +1,7 @@
 ## Pantalla del MODO HISTORIA que se ve antes de cada combate.
 ##   Arriba   la línea del tiempo: un punto por rival, de hoy (izquierda) al origen (derecha),
 ##            agrupados en capítulos (I, II, III...). Dorado = vencido, parpadeo = combate actual,
-##            rombo = jefe del capítulo, "?" = el secreto del final.
+##            rombo = jefe de la época, "?" = el Nexo, el combate final.
 ##   Centro   tu luchador y el rival sobre el escenario del rival, con su nombre y época.
 ##   Al empezar un capítulo nuevo se muestra primero su tarjeta de título.
 ## COMBATIR (o ENTER) empieza el combate; ESC vuelve al menú.
@@ -27,6 +27,10 @@ var _card: bool = false
 var _btn: Button
 ## Capa superior para la tarjeta de capítulo (debe tapar también a los luchadores).
 var _overlay: Control
+## Animación en curso (mini-intro del Nexo y/o arranque de la época); mientras existe, la tarjeta
+## y el botón esperan. Cualquier tecla las salta todas.
+var _intro: Node
+var _skip_intros: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -53,6 +57,26 @@ func _ready() -> void:
 	_btn.visible = not _card
 	if not _card:
 		_btn.grab_focus()
+	if _card:
+		# En el primer combate, la mini-intro del Nexo; después, la animación de la época.
+		# Al acabar (o saltarlas) sigue la tarjeta del capítulo.
+		if Game.arcade_stage == 0:
+			_play_intro(StoryPrologue.new(), true)
+		else:
+			_play_era_intro()
+
+func _play_intro(intro: Node, then_era: bool) -> void:
+	_intro = intro
+	add_child(intro)
+	intro.finished.connect(func():
+		_intro = null
+		if then_era and not _skip_intros:
+			_play_era_intro())
+
+func _play_era_intro() -> void:
+	var era := StoryEraIntro.new()
+	era.chapter = Game.story_chapter_of(Game.arcade_ladder[Game.arcade_stage])
+	_play_intro(era, false)
 
 func _load_stage(fighter_id: StringName) -> void:
 	var packed := load(StageRegistry.scene_for(fighter_id)) as PackedScene
@@ -78,13 +102,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	if Game.is_changing_scene():
 		return
 	if _card and event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
-		_t = maxf(_t, CARD_TIME - CARD_FADE)   # saltar la tarjeta
+		_t = maxf(_t, CARD_TIME - CARD_FADE)   # saltar la tarjeta y las animaciones, si las hay
+		_skip_intros = true
+		if _intro:
+			_intro.skip()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"ui_cancel"):
 		Game.goto(Game.SCENE_MENU)
 		get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
+	if _intro:
+		return
 	_t += delta
 	if _card and _t >= CARD_TIME:
 		_card = false
@@ -106,8 +135,7 @@ func _draw() -> void:
 ## Línea del tiempo con todos los rivales.
 func _draw_timeline() -> void:
 	var ladder := Game.arcade_ladder
-	var hidden := not Game.story_secret and Game.p1_fighter_id != Game.STORY_SECRET_ID
-	var total := ladder.size() + (1 if hidden else 0)
+	var total := ladder.size()   # el último punto, "?", es el Nexo
 	var step := (BAR_X1 - BAR_X0) / maxf(total - 1.0, 1.0)
 	var cur := Game.arcade_stage
 	var cur_chapter := Game.story_chapter_of(ladder[cur])
@@ -132,8 +160,9 @@ func _draw_timeline() -> void:
 	# Puntos
 	for i in total:
 		var x := BAR_X0 + step * i
-		if i >= ladder.size():
-			HKTheme.draw_text(self, Vector2(x - 3, BAR_Y + 4), "?", 8, HKTheme.MUTED.lightened(0.2), HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		if ladder[i] == Game.STORY_NEXO_ID:
+			var lit := Color("fff0a0").lerp(Color.WHITE, 0.5 + 0.5 * sin(_t * 8.0)) if i == cur else HKTheme.MUTED.lightened(0.2)
+			HKTheme.draw_text(self, Vector2(x - 3, BAR_Y + 4), "?", 8, lit, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 			continue
 		var boss := Game.story_is_chapter_boss(i)
 		var r := 3.0 if boss else 2.0
@@ -160,6 +189,8 @@ func _dot(x: float, r: float, color: Color, diamond: bool) -> void:
 		draw_rect(Rect2(x - r, BAR_Y - r, r * 2.0, r * 2.0), color)
 
 func _year_text(d: FighterData) -> String:
+	if d.id == Game.STORY_NEXO_ID:
+		return "????"
 	return "%d A.C." % -d.year if d.year < 0 else str(d.year)
 
 ## Placa central con el capítulo, el número de combate y los datos del rival.
@@ -167,19 +198,20 @@ func _draw_plate() -> void:
 	var d := Game.p2_data()
 	var stage := Game.arcade_stage
 	var boss := Game.story_is_chapter_boss(stage)
-	var secret := Game.is_story_secret_fight()
-	var r := Rect2(150, 72, 126, 126)
+	var r := Rect2(150, 72, 126, 112)
 	draw_rect(r, SHADE)
 	draw_rect(r, HKTheme.GOLD_DARK, false, 1.0)
 	var cx := 213.0
 	_centered(cx, 84, "COMBATE %d/%d" % [stage + 1, Game.arcade_ladder.size()], HKTheme.MUTED.lightened(0.25))
 	var tag := ""
-	if secret:
-		tag = "JEFE SECRETO"
+	if Game.is_story_nexo_fight():
+		tag = "JEFE FINAL"
 	elif boss:
-		tag = "JEFE DEL CAPÍTULO"
+		tag = "JEFE DE LA ÉPOCA"
+	elif Game.story_is_creator(stage):
+		tag = "CREADOR DEL RELOJ"
 	if tag != "":
-		_centered(cx, 96, tag, Color("ff7050") if secret else HKTheme.GOLD)
+		_centered(cx, 96, tag, HKTheme.GOLD)
 	HKTheme.draw_text(self, Vector2(cx - 54, 116), "VS", 16, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 108, 3)
 	var y := 138.0
 	for line in _wrap(d.display_name.to_upper(), 114.0):
@@ -187,6 +219,12 @@ func _draw_plate() -> void:
 		y += 10.0
 	_centered(cx, y + 2.0, d.country.to_upper(), HKTheme.GOLD)
 	_centered(cx, y + 12.0, d.era, HKTheme.MUTED.lightened(0.25))
+	# La frase del rival va en una franja a todo lo ancho: no cabe en la placa.
+	var lines := Game.story_vs_lines(d.id)
+	if not lines.is_empty():
+		draw_rect(Rect2(0, 187, 426, 22), SHADE)
+		for i in lines.size():
+			_centered(213.0, 196.0 + i * 9.0, lines[i], Color("ff9070") if boss else HKTheme.PAPER.darkened(0.15))
 
 ## Tarjeta de título del capítulo, a pantalla completa, que se desvanece.
 func _draw_card() -> void:
@@ -196,7 +234,7 @@ func _draw_card() -> void:
 	var chapter := Game.story_chapter_of(Game.arcade_ladder[Game.arcade_stage])
 	_overlay.draw_rect(Rect2(0, 0, 426, 240), Color(0.03, 0.02, 0.05, a))
 	var fade := Color(1, 1, 1, a)
-	var title := "CAPÍTULO %s" % ROMAN[mini(chapter, ROMAN.size() - 1)] if chapter < Game.STORY_CHAPTERS.size() else "FINAL SECRETO"
+	var title := "FRAGMENTO %s" % ROMAN[mini(chapter, ROMAN.size() - 1)] if chapter < Game.STORY_CHAPTERS.size() else "EL NEXO"
 	HKTheme.draw_text(_overlay, Vector2(0, 104), title, 16, HKTheme.GOLD * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 3 if a > 0.5 else 0)
 	HKTheme.draw_text(_overlay, Vector2(0, 126), Game.story_chapter_name(chapter), 8, HKTheme.PAPER * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 2 if a > 0.5 else 0)
 	var first := Game.arcade_stage
@@ -205,9 +243,19 @@ func _draw_card() -> void:
 		last += 1
 	var span := "%s  ›  %s" % [_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[first])),
 		_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[last]))]
+	var final := chapter >= Game.STORY_CHAPTERS.size()
+	if final:
+		span = "FUERA DEL TIEMPO"
 	HKTheme.draw_text(_overlay, Vector2(0, 142), span, 8, HKTheme.MUTED.lightened(0.2) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
-	HKTheme.draw_text(_overlay, Vector2(0, 158), "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues],
-		8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	var nexo: Array = Game.STORY_NEXO_LINES[mini(chapter, Game.STORY_NEXO_LINES.size() - 1)]
+	for i in nexo.size():
+		HKTheme.draw_text(_overlay, Vector2(0, 176 + i * 11), nexo[i], 8, Color("9a4dff").lightened(0.4) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	var react := Game.story_nexo_reaction()
+	for i in react.size():
+		HKTheme.draw_text(_overlay, Vector2(0, 208 + i * 11), react[i], 8, HKTheme.GOLD.darkened(0.1) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	var count := "EL COMBATE FINAL · %d REVANCHAS" % Game.arcade_continues if final \
+		else "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues]
+	HKTheme.draw_text(_overlay, Vector2(0, 158), count, 8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 
 func _centered(cx: float, y: float, text: String, color: Color) -> void:
 	HKTheme.draw_text(self, Vector2(cx - HKTheme.text_width(text, 8) * 0.5, y), text, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)

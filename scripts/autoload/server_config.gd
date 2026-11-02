@@ -24,8 +24,8 @@ static func ws_url() -> String:
 			return web_url
 	var cfg := ConfigFile.new()
 	if cfg.load(CONFIG_PATH) == OK:
-		return str(cfg.get_value("server", "url", Config.SERVER_URL))
-	return Config.SERVER_URL
+		return str(cfg.get_value("server", "url", Config.server_url()))
+	return Config.server_url()
 
 ## Dirección base de la API HTTP: la misma del WebSocket, sin /ws y con http(s).
 static func http_url() -> String:

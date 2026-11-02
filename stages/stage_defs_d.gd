@@ -16,7 +16,29 @@ static func get_def(id: StringName) -> Dictionary:
 		&"nicolas_maquiavelo": return _maquiavelo()
 		&"mariya_oktyabrskaya": return _mariya()
 		&"liudmila_pavlichenko": return _liudmila()
+		&"el_nexo": return _nexo()
 	return {}
+
+static func _nexo() -> Dictionary:
+	return {
+		"name": "LA GRIETA DEL NEXO",
+		"back": [
+			["sky", ["05020a", "0a0415", "12081f", "1c0c2c", "2a1238"], 176],
+			["stars", 60, 3, 120, "ffe8a0"],
+			["glow", 213, 90, 120, "ffd24a", 0.22],
+			["disc", 213, 70, 26, "ffd24a", "fff4c0"],
+			["poly", [196, 0, 206, 60, 200, 110, 213, 176, 226, 110, 220, 60, 230, 0], "2a1238"],
+			["poly", [206, 0, 211, 60, 208, 110, 213, 150, 218, 110, 215, 60, 220, 0], "ffd24a"],
+			["rect", 30, 120, 18, 56, "160c1c"], ["rect", 370, 108, 22, 68, "160c1c"],
+			["ground", 176, "noise", "0c060f", "1a0c22", "2a1238", 97],
+		],
+		"mid": [
+			["glow", 213, 176, 70, "9a4dff", 0.2],
+		],
+		"fx": [
+			["embers", 26, "ffd24a", 14],
+		],
+	}
 
 static func _socrates() -> Dictionary:
 	return {

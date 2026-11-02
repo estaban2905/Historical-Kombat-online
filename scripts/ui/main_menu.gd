@@ -8,6 +8,7 @@
 ## entre dos luchadores al azar que cambia cada pocos segundos (MenuDuel).
 extends Control
 
+@onready var btn_continue: Button = $Buttons/Continue
 @onready var btn_play: Button = $Buttons/Play
 @onready var btn_versus: Button = $Buttons/Versus
 @onready var btn_online: Button = $Buttons/Online
@@ -29,6 +30,7 @@ func _ready() -> void:
 	theme = HKTheme.theme()
 	get_tree().paused = false
 	footer.text = "v%s" % Game.VERSION
+	btn_continue.pressed.connect(_continue_story)
 	btn_play.pressed.connect(func(): _go_select(Game.Mode.ARCADE))
 	btn_versus.pressed.connect(func(): _go_select(Game.Mode.VERSUS))
 	btn_online.pressed.connect(func(): _go_select(Game.Mode.ONLINE))
@@ -42,7 +44,7 @@ func _ready() -> void:
 	var dev := OS.has_feature("editor")
 	btn_versus.visible = dev
 	btn_training.visible = dev
-	for b in [btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_credits]:
+	for b in [btn_continue, btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_credits]:
 		_single_highlight(b)
 	btn_difficulty.gui_input.connect(_on_difficulty_input)
 	_spawn_duel()
@@ -53,6 +55,10 @@ func _ready() -> void:
 	_cursor_layer.draw.connect(_draw_cursor)
 	add_child(_cursor_layer)
 	btn_play.grab_focus()
+	_show_saved_story(Backend.story_local())
+	if Backend.is_logged_in():
+		# La partida de la cuenta puede ser más nueva que la de este equipo (otro PC).
+		_show_saved_story(await Backend.load_story())
 
 ## Un solo botón resaltado: pasar el ratón por encima le da el foco, y el estilo "hover"
 ## es el normal, así nunca hay dos botones con marco dorado a la vez.
@@ -145,6 +151,37 @@ func _spawn_duel() -> void:
 	var duel := MenuDuel.new()
 	add_child(duel)
 	move_child(duel, 1)
+
+## Muestra CONTINUAR HISTORIA si hay una partida guardada válida ({} = no hay).
+func _show_saved_story(save: Dictionary) -> void:
+	if not is_inside_tree():
+		return
+	var valid := _story_is_valid(save)
+	btn_continue.visible = valid
+	btn_play.text = "NUEVA HISTORIA" if valid else "MODO HISTORIA"
+	if not valid:
+		return
+	btn_continue.text = "CONTINUAR · COMBATE %d/%d" % [int(save["stage"]) + 1, FighterRegistry.all().size()]
+	if not btn_continue.has_focus() and get_viewport().gui_get_focus_owner() == btn_play:
+		btn_continue.grab_focus()
+
+func _story_is_valid(save: Dictionary) -> bool:
+	if save.is_empty():
+		return false
+	for d in FighterRegistry.all():
+		if str(d.id) == str(save.get("fighter", "")):
+			# Un combate por rival y el Nexo al final.
+			return int(save.get("stage", -1)) >= 0 and int(save["stage"]) < FighterRegistry.all().size()
+	return false
+
+func _continue_story() -> void:
+	var save := Backend.story_local() if not Backend.is_logged_in() else await Backend.load_story()
+	if Game.story_resume(save):
+		Game.goto(Game.SCENE_STORY)
+	else:
+		# La partida ya no sirve (versión distinta del juego): se descarta y se vuelve a empezar.
+		Backend.clear_story()
+		_show_saved_story({})
 
 func _go_select(mode: Game.Mode) -> void:
 	Game.mode = mode

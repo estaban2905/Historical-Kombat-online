@@ -66,23 +66,43 @@ FILTER = (
     "aecho=0.8:0.88:110|230|470:0.40|0.28|0.16,alimiter=limit=0.95,volume=1.5"
 )
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
+def count_clipped(path: Path) -> int:
+    """Muestras al límite del rango: un audio limpio casi no tiene."""
+    import struct
+    import wave
+    with wave.open(str(path)) as w:
+        n = w.getnframes()
+        samples = struct.unpack("<%dh" % n, w.readframes(n))
+    return sum(1 for x in samples if abs(x) >= 32700)
+
+
+def render(lines: list, out_dir: Path, prefix: str) -> None:
+    """Sintetiza cada frase y la deja procesada en out_dir/<prefix>_N.wav (imprime su duración)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         script = Path(tmp) / "tts.ps1"
         script.write_text(PS, encoding="utf-8-sig")
-        for i, text in enumerate(LINES, start=1):
+        for i, text in enumerate(lines, start=1):
             txt = Path(tmp) / f"l{i}.txt"
             raw = Path(tmp) / f"l{i}.wav"
             txt.write_text(text, encoding="utf-8")
-            subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
-                            str(txt), str(raw)], check=True)
-            dest = OUT / f"voice_{i}.wav"
-            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-filter_complex", FILTER,
-                            "-ac", "1", "-ar", "22050", str(dest)], check=True)
+            dest = out_dir / f"{prefix}_{i}.wav"
+            # El sintetizador falla a veces y deja el audio saturado (ruido): se repite hasta que salga limpio.
+            for attempt in range(1, 6):
+                subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
+                                str(txt), str(raw)], check=True)
+                subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-filter_complex", FILTER,
+                                "-ac", "1", "-ar", "22050", str(dest)], check=True)
+                clipped = count_clipped(dest)
+                if clipped < 200:
+                    break
+                print(f"  {dest.name}: saturado ({clipped} muestras), reintento {attempt}")
             print(dest.name, subprocess.run(
                 ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(dest)],
                 capture_output=True, text=True).stdout.strip(), "s")
+
+def main() -> None:
+    render(LINES, OUT, "voice")
 
 if __name__ == "__main__":
     sys.exit(main())

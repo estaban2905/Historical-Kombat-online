@@ -574,14 +574,39 @@ func _test_arcade() -> void:
 	await tap(KEY_U)
 	check(await wait_scene("Story", 240), "con J1 confirmado se muestra la línea del tiempo")
 	var ladder := Game.arcade_ladder
-	var expected := FighterRegistry.all().size() - 2   # sin el jugador y sin el jefe secreto
+	var expected := FighterRegistry.all().size()   # todos menos el jugador, más el Nexo al final
 	check(ladder.size() == expected, "la escalera tiene %d rivales (%d)" % [expected, ladder.size()])
 	var ordered := true
 	for i in range(1, ladder.size()):
-		if FighterRegistry.get_by_id(ladder[i]).year > FighterRegistry.get_by_id(ladder[i - 1]).year:
+		if Game.story_chapter_of(ladder[i]) < Game.story_chapter_of(ladder[i - 1]):
 			ordered = false
-	check(ordered, "los rivales van del más reciente al más antiguo")
-	check(not ladder.has(Game.STORY_SECRET_ID), "el jefe secreto no está en la escalera")
+	check(ordered, "los capítulos van del más reciente al más antiguo")
+	var assigned := {}
+	for chap in Game.STORY_CHAPTERS:
+		for fid in chap[1]:
+			assigned[fid] = assigned.get(fid, 0) + 1
+	var missing := 0
+	for d in FighterRegistry.all():
+		if assigned.get(d.id, 0) != 1:
+			missing += 1
+	check(missing == 0, "cada luchador está en un solo capítulo (%d mal asignados)" % missing)
+	check(ladder[ladder.size() - 1] == Game.STORY_NEXO_ID, "el Nexo cierra la escalera")
+	check(FighterRegistry.get_by_id(Game.STORY_NEXO_ID).id == Game.STORY_NEXO_ID, "la ficha del Nexo carga")
+	var nexo_in_roster := false
+	for d in FighterRegistry.all():
+		nexo_in_roster = nexo_in_roster or d.id == Game.STORY_NEXO_ID
+	check(not nexo_in_roster, "el Nexo no se puede elegir (no está en el roster)")
+	for ch in Game.STORY_BOSSES:
+		var boss: StringName = Game.STORY_BOSSES[ch]
+		var at := ladder.find(boss)
+		check(at == -1 or Game.story_is_chapter_boss(at), "%s cierra su capítulo" % boss)
+	var sin_frase := 0
+	for id in ladder:
+		if Game.story_vs_lines(id).size() != 2:
+			sin_frase += 1
+	check(Game.story_nexo_reaction().is_empty(), "el primer capítulo no tiene reacción del Nexo")
+	check(sin_frase == 0, "todos los rivales tienen su frase de presentación (%d sin ella)" % sin_frase)
+	check(ladder.has(&"jesus_de_nazaret") != (Game.p1_fighter_id == &"jesus_de_nazaret"), "Jesús es un rival normal de la escalera")
 	check(Game.story_chapter_start(0), "el primer combate abre el capítulo I")
 	await tap(KEY_ENTER)   # salta la tarjeta del capítulo
 	await frames(60)
@@ -706,20 +731,18 @@ func _test_arcade() -> void:
 	check(Game.arcade_outcome() == &"complete", "ganar al último rival completa el arcade")
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
 	check(await wait_scene("Results"), "resultados del arcade completado")
-	check(rematch_text_is("VER CRÉDITOS"), "historia completada: se ofrece VER CRÉDITOS")
+	check(rematch_text_is("EL DESTINO"), "historia completada: se ofrece EL DESTINO (final con elección)")
 
-	# --- Sin gastar revanchas aparece el jefe secreto, reforzado ---
-	Game.story_continues_used = 0
-	Game.story_secret = false
+	# --- El jefe de cada época sale reforzado; el Nexo, más aún y con la IA al máximo ---
+	var boss_at := ladder.size() - 2   # el último rival antes del Nexo
+	Game.arcade_stage = boss_at
+	Game.p2_fighter_id = ladder[boss_at]
+	var boss_base := FighterRegistry.get_by_id(ladder[boss_at]).max_health
+	check(Game.story_is_chapter_boss(boss_at) and Game.p2_data().max_health > boss_base, "el jefe de la época tiene más vida")
 	Game.arcade_stage = ladder.size() - 1
-	Game.set_match_result(1, 2, 0)
-	check(Game.arcade_outcome() == &"secret", "sin revanchas gastadas toca el jefe secreto")
-	var base_hp := FighterRegistry.get_by_id(Game.STORY_SECRET_ID).max_health
-	Game.arcade_advance()
-	check(Game.is_story_secret_fight() and Game.p2_fighter_id == Game.STORY_SECRET_ID, "el último rival es el jefe secreto")
-	check(Game.p2_data().max_health > base_hp * 1.5, "el jefe secreto tiene más vida (%.0f > %.0f)" % [Game.p2_data().max_health, base_hp])
-	check(Game.ai_level() == 1.0, "el jefe secreto usa la IA al máximo")
-	Game.set_match_result(1, 2, 0)
-	check(Game.arcade_outcome() == &"complete", "vencer al jefe secreto completa la historia")
-	check(Game.story_chapter_of(Game.STORY_SECRET_ID) == Game.STORY_CHAPTERS.size(), "el jefe secreto tiene su propio capítulo")
+	Game.p2_fighter_id = ladder[ladder.size() - 1]
+	var nexo_base := FighterRegistry.get_by_id(Game.STORY_NEXO_ID).max_health
+	check(Game.is_story_nexo_fight() and Game.p2_data().max_health > nexo_base * 1.4, "el Nexo tiene mucha más vida")
+	check(Game.ai_level() == 1.0, "el Nexo usa la IA al máximo")
+	check(Game.story_chapter_of(Game.STORY_NEXO_ID) == Game.STORY_CHAPTERS.size(), "el Nexo tiene su propio capítulo")
 	Game.mode = Game.Mode.VERSUS

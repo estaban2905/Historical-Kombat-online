@@ -2,7 +2,8 @@
 """Genera las fichas FighterData (.tres) de los luchadores del roster.
 
 Uso (desde la carpeta del proyecto):
-    python tools/generate_fighters.py
+    python tools/generate_fighters.py            # todos
+    python tools/generate_fighters.py el_nexo    # solo los ids indicados (no toca a los demás)
 
 Cada personaje se describe con un diccionario en CHARACTERS (identidad,
 arquetipo de estadísticas, aspecto y nombres/estilo de sus ataques). El
@@ -12,6 +13,7 @@ regeneran (ver SKIP). Para retocar un personaje a mano basta con editar su
 .tres en Godot; vuelve a ejecutar el script solo si cambias esta tabla.
 """
 import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -286,6 +288,18 @@ CHARACTERS = [
          s1=P(name="Rayo de Luz", anim="cast", style="orb", color="fff0a0", speed=215, dmg=14),
          s2=L(name="Bastón del Pastor", anim="staff", dmg=18, launch=-330),
          ult="Luz del Mundo"),
+    # Jefe final del modo Historia: NO está en FighterRegistry.ROSTER (no se puede elegir).
+    dict(id="el_nexo", name="EL NEXO", short="NEXO", country="Más allá", era="Todas las eras",
+         intro="", victory="",
+         bio="El poder que sostiene todas las épocas. Nació de una grieta y decide quién merece el tiempo.",
+         arch="armored", build="tall",
+         skin="ffe9a0", hair="9a4dff", coat="2a1248", trim="ffd24a", shirt="5a2a9a", accent="35e6ff",
+         pants="2a1248", boots="ffd24a", hat="ffd24a",
+         hair_style="wild", hat_style="halo", beard="none", chest="robe",
+         moves=("Palma del Origen", "Puño Cósmico", "Paso Temporal", "Patada de Eras"),
+         s1=P(name="Esfera del Nexo", anim="cast", style="orb", color="ffd24a", speed=230, dmg=15),
+         s2=None,
+         ult="Todas las Épocas"),
     dict(id="buda", name="BUDA", short="BUDA", country="India", era="563 – 483 a.C.",
          intro="Respira. Y recibe.",
          victory="El camino del medio pasa por tu cara.",
@@ -663,7 +677,7 @@ def vec(x, y):
 def year_of(era):
     """Año de referencia para ordenar la línea de tiempo del modo Historia: el de
     nacimiento (negativo si es a.C.). Ej.: "1769 – 1821" -> 1769, "69 – 30 a.C." -> -69."""
-    special = {"Siglo XXI": 1946, "m. 61 d.C.": 61, "c. 1600": 1600}
+    special = {"Todas las eras": 0, "Siglo XXI": 1946, "m. 61 d.C.": 61, "c. 1600": 1600}
     if era in special:
         return special[era]
     n = int(re.match(r"\s*(\d+)", era).group(1))
@@ -773,6 +787,7 @@ PROFILES = {
     "alejandro_magno": _pf("sword", "oh", "HK", "Tajo Macedonio", ("FALANGE", "LP HP HK", 4.0), ("GAUGAMELA", "LK LP HP S2", 7.0)),
     "isabel_ii": _pf("zoner", "oh", "HP", "Golpe de Cetro", ("PROTOCOLO", "LP HP HK", 3.5), ("CORONACIÓN", "LK LP HP S1", 6.5)),
     "abraham_lincoln": _pf("axe", "oh", "HP", "Hachazo Presidencial", ("EMANCIPACIÓN", "LP HP HK", 4.0), ("GETTYSBURG", "LK LP HP S1", 7.0)),
+    "el_nexo": _pf("mystic", "oh", "HP", "Puño del Origen", ("ERAS", "LK LP HP", 4.0), ("ECLIPSE", "LK LP HP S2", 8.0)),
     "jesus_de_nazaret": _pf("mystic", "oh", "HP", "Vara del Pastor", ("PARÁBOLA", "LP HP HK", 3.0), ("MILAGRO", "LK LP HP S2", 7.0)),
     "buda": _pf("mystic", "low", "LK", "Patada del Loto", ("LOTO", "LK LP HP", 3.0), ("NIRVANA", "LP LK HP S1", 7.0)),
     "papa_francisco": _pf("zoner", "oh", "HP", "Golpe de Báculo", ("BENDICIÓN", "LP HP HK", 3.0), ("ÁNGELUS", "LK LP HP S1", 6.5)),
@@ -942,6 +957,7 @@ ULTS = {
     "isabel_ii": ("summon", "corgis", "6a9ad0", "0a1428", "cast"),
     "abraham_lincoln": ("storm", "", "ffe880", "0e1018", "axe"),
     "jesus_de_nazaret": ("light", "", "fff0b0", "1a1408", "cast"),
+    "el_nexo": ("summon", "ghost_army", "ffd24a", "07040c", "cast"),
     "buda": ("wave", "ring", "ffd040", "1a1200", "cast"),
     "papa_francisco": ("light", "", "fff4d0", "1a1408", "cast"),
     "rasputin": ("slash", "", "a050e0", "060210", "cast"),
@@ -1177,6 +1193,7 @@ def build_tres(c):
 #   female, outfit (skirt|dress|gown), outfit_color, glasses (round|dark), cape (color),
 #   jewelry (necklace|cross|earplug|pin|sash), jewelry_color, eyes (almond), y cualquier campo de CHARACTERS.
 LOOKS = {
+    "el_nexo": dict(cape="9a4dff"),
     # --- Mujeres ---
     "cleopatra": dict(female=True, outfit="gown", outfit_color="f6f2e4", jewelry="necklace", jewelry_color="e8c040"),
     "isabel_ii": dict(female=True, outfit="dress", hair_style="updo", hat_style="tiara", hat="e8d060",
@@ -1241,6 +1258,8 @@ QUOTES = {
     "alejandro_magno": ("¡El mundo entero será mío!", "¡Una conquista más para la historia!"),
     "isabel_ii": ("La corona no se inclina ante nadie.", "God save the Queen."),
     "abraham_lincoln": ("¡La libertad también se defiende en combate!", "¡La libertad ha prevalecido!"),
+    "el_nexo": ("Todas las eras me sostienen. Demuestra que mereces el tiempo.",
+                "Aún no puedes sostener todas las épocas."),
     "jesus_de_nazaret": ("Que comience el combate; que prevalezca la paz.", "La luz siempre encuentra su camino."),
     "buda": ("La mente tranquila es mi mayor poder.", "La verdadera victoria comienza dentro de uno mismo."),
     "papa_francisco": ("¡Que Dios nos acompañe en este combate!", "¡La paz sea contigo!"),
@@ -1319,6 +1338,7 @@ POWERS = {
     "alejandro_magno": W(name="Carga de Bucéfalo", anim="rush", power="bucephalus", dmg=22, startup=8, active=14, dash=400),
     "isabel_ii": W(name="Protocolo Real", anim="cast", power="royal_guards", dmg=18),
     "abraham_lincoln": S(name="Hacha Presidencial", anim="axe", dmg=24),
+    "el_nexo": W(name="Grieta Temporal", anim="cast", power="relativity", dmg=14, status="slow", status_frames=120),
     "jesus_de_nazaret": W(name="Luz Divina", anim="cast", power="divine_light", dmg=16, energy=30),
     "buda": W(name="Iluminación", anim="cast", power="enlightenment", dmg=20),
     "papa_francisco": W(name="Campanas del Vaticano", anim="cast", power="vatican_bells", dmg=18),
@@ -1442,6 +1462,7 @@ def validate(c):
 
 
 def main():
+    only = set(sys.argv[1:])
     ids = [c["id"] for c in CHARACTERS]
     assert len(ids) == len(set(ids)), "ids duplicados"
     bad = False
@@ -1457,13 +1478,13 @@ def main():
         if errs:
             bad = True
             print(f"[AVISO] {c['id']}: {', '.join(errs)}")
-        if c["id"] in SKIP:
+        if c["id"] in SKIP or (only and c["id"] not in only):
             continue
         folder = ROOT / "fighters" / c["id"]
         folder.mkdir(parents=True, exist_ok=True)
         (folder / f"{c['id']}.tres").write_text(build_tres(c), encoding="utf-8", newline="\n")
         print("OK ", folder / f"{c['id']}.tres")
-    for fid in HAND_MADE:
+    for fid in (() if only else HAND_MADE):
         intro, _ = QUOTES[fid]
         if wrap_lines('"%s"' % intro) > 4:
             bad = True

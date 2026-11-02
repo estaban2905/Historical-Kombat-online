@@ -111,9 +111,10 @@ El daño real se multiplica por la `strength` del atacante y se divide por la `r
 ### Modo Historia (1 jugador contra la CPU)
 
 Viaje hacia atrás en el tiempo: eliges un luchador y te enfrentas a todos los demás **del más reciente al más antiguo** (por `year` de cada ficha, nacimiento; negativo = a.C.).
-- **Capítulos** (`Game.STORY_CHAPTERS`): El mundo actual (desde 1940), El siglo XX (desde 1880), Ciencia e industria (desde 1800), Imperios y descubrimientos (desde 1400) y La antigüedad. Cada uno abre con una tarjeta de título y las 3 revanchas se recuperan al empezar.
-- **Línea del tiempo** (`scenes/Story.tscn`): se muestra antes de cada combate. Punto dorado = vencido, rombo = jefe del capítulo (el rival más antiguo del capítulo, con +12% de vida).
-- **Jefe secreto:** si llegas al final sin gastar ninguna revancha, aparece **Jesús de Nazaret** tras el último rival, con +60% de vida, +25% de fuerza y la IA al máximo (`Game.SECRET_BOOST`). Si eliges a Jesús como luchador, no hay jefe secreto.
+- **Épocas** (`Game.STORY_CHAPTERS`): cinco *fragmentos* del tiempo roto, del más reciente al más antiguo: El mundo actual, El siglo XX, Revoluciones y progreso, Imperios y descubrimientos y La antigüedad. Cada luchador está asignado a una época; dentro de ella van por año y el jefe (`Game.STORY_BOSSES`, el más controvertido de su tiempo) va al final con +12% de vida y +5% de fuerza. Al abrir una época suena una animación propia con la voz del Nexo (`scripts/ui/story_era_intro.gd`) y después sale su tarjeta; las 3 revanchas se recuperan al empezar cada una. La partida empieza con una mini-intro del Nexo (`scripts/ui/story_prologue.gd`).
+- **Línea del tiempo** (`scenes/Story.tscn`): se muestra antes de cada combate. Punto dorado = vencido, rombo = jefe de la época, "?" = el Nexo. Cada rival trae una frase de presentación (`Game.STORY_VS`, con duelos especiales en `STORY_VS_PAIR`), y el Nexo reacciona al abrir cada época según las revanchas gastadas.
+- **Jefe final, el Nexo** (`fighters/el_nexo/`): no está en el roster, cierra la escalera con +50% de vida y +10% de fuerza, la IA al máximo y **tres fases** (a menos del 66% y del 33% de vida gana fuerza y velocidad; ver `CombatManager.NEXO_PHASES`). Se genera con `python tools/generate_fighters.py el_nexo`.
+- **Final:** al vencer al Nexo habla (con voz) y se elige entre **reparar el tiempo** o **reescribirlo**; si se llegó sin gastar ninguna revancha aparece un tercer final oculto, **liberar el tiempo**. Cada decisión tiene su animación con la voz del Nexo y después se muestra el epílogo del luchador del jugador (`scripts/ui/story_ending.gd`, voces en `assets/sounds/story/end_N.wav`). Para verlo sin combatir: `godot --path . res://tests/EndingPreview.tscn -- [--ending=repair|rewrite|free] [--continues=N]`. Para ver el combate final directo: `godot --path . res://tests/NexoPreview.tscn -- [--player=id] [--stage=N]`; las animaciones de época: `res://tests/EraPreview.tscn`.
 - La IA sube de nivel de forma pareja hasta +0.5 sobre la dificultad elegida.
 - Al crear un luchador nuevo hay que darle `year` (el generador lo calcula de `era`).
 
@@ -316,14 +317,22 @@ Menú principal → **DUELO ONLINE** → eliges luchador → *buscando rival* �
 - **Cliente:** `scripts/autoload/online.gd` (conexión y cola), `scripts/lockstep_session.gd` (sincronización) y `scripts/ui/online_lobby.gd` (pantalla de espera).
 - **Sincronización (lockstep):** cada PC simula la pelea entera y solo se envían los botones de cada tick. Un botón se aplica 4 ticks (66 ms) después de pulsarlo, en los dos PC; si el rival aún no llegó, el combate espera ("ESPERANDO AL RIVAL..."). Funciona porque la simulación es determinista (`tests/determinism_test.gd`): **no uses azar (`randf`) en la lógica del combate**, solo en efectos visuales.
 - **Servicios en Railway** (se despliegan desde GitHub Actions, cada uno con su Dockerfile): `server/` (partidas, WebSocket), `web/` (entrega el juego exportado a Web) y Postgres. El servicio `web` tiene la variable `SERVER_URL` (`wss://<dominio-del-server>/ws`) y la publica en `/config.js`, que el juego lee en el navegador; así el mismo build sirve en `develop` y en producción.
-- **Dirección del servidor (Godot/.exe):** `scripts/autoload/online_config.gd` (`wss://...` en producción) o `user://online.cfg` con `[server] url="ws://localhost:8787/ws"`.
+- **Dirección del servidor (Godot/.exe):** `scripts/autoload/online_config.gd` (debug → `ws://localhost:8787/ws`; release → producción) o `user://online.cfg` con `[server] url="..."` para forzar otra (p. ej. la de develop).
+- **Entornos:**
+  | Entorno | Rama | Dónde | Dominio |
+  |---|---|---|---|
+  | local | cualquiera | `npm run dev:local` en `server/` (PGlite) + Godot F5 | `localhost:8787` |
+  | develop | `develop` | Railway, entorno `develop` (Postgres propio y vacío) | solo los `*.up.railway.app` por defecto |
+  | producción | `main` | Railway, entorno `production` | `historycombat.cl` (solo producción) |
+
+  Flujo: rama de feature → PR a `develop` → PR de `develop` a `main`. Un push a `develop` o `main` despliega a su entorno (CI).
 - **Probar en local:** `cd server && npm install && npm run dev`, y abrir el juego dos veces (dos instancias de Godot o dos pestañas).
 - **Pruebas:** `godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn` (dos PC simulados con lag), `GODOT=godot bash tests/run_online_e2e.sh` (servidor real + dos clientes), `tests/run_account_e2e.sh` (cuentas) y `tests/run_ranked_e2e.sh` (duelo con puntos entre dos cuentas). Los dos últimos usan el servidor de desarrollo con base de datos embebida, sin Postgres.
 - **Probar con cuentas en tu PC:** `cd server && npm install && npm run dev:local` (Postgres embebido en `server/.dev-data/`), y abrir el juego. Sin esto, o con el servidor apagado, el juego salta el login y funciona offline.
 
 ### Cuentas, perfil y ranking
 
-- **Cuentas en tu servidor con Postgres** (no hay Supabase): `scripts/autoload/backend.gd` habla con `/auth/*`, `/me`, `/me/matches` y `/leaderboard`. La sesión se recuerda (refresh token en `user://`) y se renueva sola.
+- **Cuentas en tu servidor con Postgres** (no hay Supabase): `scripts/autoload/backend.gd` habla con `/auth/*`, `/me`, `/me/matches` y `/leaderboard`. La sesión se recuerda (refresh token en `user://`) y se renueva sola. **Partida del modo Historia:** se guarda sola al empezar, al ganar cada combate y al perder (descuenta la revancha), en la tabla `story_saves` de la cuenta (`/me/story`) y como copia local (`user://story_save.cfg`); el menú muestra **CONTINUAR HISTORIA** y se queda con la más reciente, así que se puede seguir tras recargar la página o desde otro PC. Se borra al elegir el final o al quedarse sin revanchas. Sin sesión solo existe la copia local.
 - **Pantallas:** `login.gd` (entrar / crear cuenta / jugar sin cuenta), `profile.gd` (puntos, victorias, derrotas y últimos duelos), `ranking.gd` y los botones RANKING / PERFIL del menú.
 - **Duelo con ranking:** si los dos jugadores tienen cuenta, el resultado cuenta. Al terminar, `results.gd` reporta el resultado y espera a que el servidor confirme los puntos (`+16 PUNTOS`, `TOTAL 1016`). Contra un invitado el duelo es amistoso. Reglas completas en `server/README.md`.
 - **Limitaciones actuales:** sin revancha online (se vuelve al menú), sin detección de desincronización en vivo, sin pausa online (ESC solo permite abandonar). Si un jugador abandona, el otro gana la partida.

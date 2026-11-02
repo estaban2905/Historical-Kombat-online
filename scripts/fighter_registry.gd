@@ -60,7 +60,12 @@ const ROSTER: Array[String] = [
 	"res://fighters/liudmila_pavlichenko/liudmila_pavlichenko.tres",
 ]
 
+## El jefe final del modo Historia no está en ROSTER: no se puede elegir ni sale en los menús.
+const NEXO_ID := &"el_nexo"
+const NEXO_PATH := "res://fighters/el_nexo/el_nexo.tres"
+
 static var _cache: Array[FighterData] = []
+static var _nexo: FighterData
 
 ## Devuelve todas las fichas, cargadas y validadas una sola vez.
 static func all() -> Array[FighterData]:
@@ -78,6 +83,10 @@ static func all() -> Array[FighterData]:
 	return _cache
 
 static func get_by_id(fighter_id: StringName) -> FighterData:
+	if fighter_id == NEXO_ID:
+		if _nexo == null:
+			_nexo = load(NEXO_PATH) as FighterData
+		return _nexo
 	for data in all():
 		if data.id == fighter_id:
 			return data
@@ -93,3 +102,4 @@ static func index_of(fighter_id: StringName) -> int:
 ## Libera la caché (al cerrar el juego).
 static func clear_cache() -> void:
 	_cache.clear()
+	_nexo = null
