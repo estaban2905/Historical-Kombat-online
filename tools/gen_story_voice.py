@@ -27,7 +27,7 @@ LINES = [
 ERA_LINES = [
     "Hoy gobiernan los que gritan más fuerte. El tiempo los escucha... y se ríe.",
     "Un siglo de guerras. El tiempo aún sangra.",
-    "Aquí nació la grieta: mentes que quisieron ver todo el tiempo.",
+    "Aquí nació la grieta. Mentes que quisieron ver todo el tiempo.",
     "Reinos, flotas y coronas. Demasiado poder, poca memoria.",
     "El origen. Aquí empezó todo, y aquí decidirás cómo termina.",
     "Has llegado hasta mí. Demuestra que mereces el tiempo.",

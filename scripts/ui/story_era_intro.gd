@@ -31,8 +31,8 @@ const ERAS: Array = [
 		"subs": ["HOY GOBIERNAN LOS QUE GRITAN MÁS FUERTE.", "EL TIEMPO LOS ESCUCHA... Y SE RÍE."]},
 	{"title": "II · EL SIGLO XX", "len": 5.60,
 		"subs": ["UN SIGLO DE GUERRAS.", "EL TIEMPO AÚN SANGRA."]},
-	{"title": "III · REVOLUCIONES Y PROGRESO", "len": 5.96,
-		"subs": ["AQUÍ NACIÓ LA GRIETA:", "MENTES QUE QUISIERON VER TODO EL TIEMPO."]},
+	{"title": "III · REVOLUCIONES Y PROGRESO", "len": 6.70,
+		"subs": ["AQUÍ NACIÓ LA GRIETA.", "MENTES QUE QUISIERON VER TODO EL TIEMPO."]},
 	{"title": "IV · IMPERIOS Y DESCUBRIMIENTOS", "len": 7.85,
 		"subs": ["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."]},
 	{"title": "V · LA ANTIGÜEDAD", "len": 7.17,
@@ -129,7 +129,7 @@ func _draw() -> void:
 	if a > 0.0:
 		draw_rect(Rect2(0, 0, W, H), Color(0.03, 0.02, 0.05, clampf(a, 0.0, 1.0)))
 	if _t < 3.0:
-		HKTheme.draw_text(self, Vector2(0, 232), "CUALQUIER TECLA: SALTAR", 8,
+		HKTheme.draw_text(self, Vector2(0, 9), "CUALQUIER TECLA: SALTAR", 8,
 			Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)), HORIZONTAL_ALIGNMENT_RIGHT, W - 6, 1)
 
 func _draw_title() -> void:
@@ -203,51 +203,101 @@ func _vignette(strength: float) -> void:
 		draw_rect(Rect2(0, 0, d, H), Color(0, 0, 0, a))
 		draw_rect(Rect2(W - d, 0, d, H), Color(0, 0, 0, a))
 
-# --- I · El mundo actual: ciudad de neón y señal que se corta --------------
+# --- I · El mundo actual: ciudad de neón, gritos y señal que se corta ------
+const SHOUTS: Array[String] = ["¡EN VIVO!", "¡VIRAL!", "¡EXCLUSIVA!", "¡TENDENCIA!", "¡YO!", "¡NO!"]
+const NEON: Array[Color] = [Color("ff3a9a"), Color("35e6ff"), Color("ffd24a"), Color("9a4dff")]
+
 func _draw_modern() -> void:
-	_bands(["0a0618", "120a2a", "1c0f3a", "2a1450", "3a1a60"], 0, 190)
-	# Pantallas flotantes con barras de señal.
+	var zoom := 1.0 + 0.07 * _ph(0.0, _end)   # la cámara avanza despacio hacia la ciudad
+	draw_set_transform(Vector2(W * 0.5, 150.0) * (1.0 - zoom), 0.0, Vector2(zoom, zoom))
+	_bands(["0a0618", "100a28", "1a0f38", "2a1450", "3e1a64", "5a2470"], 0, 190)
+	# Un reloj gigante y agrietado en el cielo: el tiempo se rompe sobre la ciudad.
+	var ck := Vector2(318, 70)
+	draw_arc(ck, 52.0, 0, TAU, 56, Color(CYAN, 0.22), 3.0)
+	for k in 12:
+		var a := TAU * k / 12.0
+		draw_line(ck + Vector2.from_angle(a) * 44.0, ck + Vector2.from_angle(a) * 50.0, Color(CYAN, 0.25), 2.0)
+	draw_line(ck, ck + Vector2.from_angle(_t * 0.9 - 1.0) * 30.0, Color(CYAN, 0.3), 2.0)
+	draw_line(ck, ck + Vector2.from_angle(_t * 5.0) * 42.0, Color(NEON[0], 0.3), 1.0)
+	draw_polyline(PackedVector2Array([ck + Vector2(-10, -52), ck + Vector2(4, -22), ck + Vector2(-6, 0), ck + Vector2(12, 30), ck + Vector2(2, 52)]),
+		Color(NEXO_GOLD, 0.45), 2.0)
+	# Focos que barren el cielo.
+	for k in 2:
+		var bx := 90.0 + k * 250.0
+		var tip := bx + sin(_t * 0.9 + k * 2.0) * 90.0
+		draw_colored_polygon(PackedVector2Array([Vector2(bx - 3, 190), Vector2(bx + 3, 190), Vector2(tip + 22.0, 20), Vector2(tip - 22.0, 20)]),
+			Color(1, 1, 1, 0.045))
+	# Drones con luces que cruzan.
 	for k in 4:
-		var x := 40.0 + k * 92.0
-		var y := 48.0 + (k % 2) * 26.0
-		if _h(floorf(_t * 4.0) + k * 3.0) > 0.18:
-			draw_rect(Rect2(x, y, 64, 36), Color(CYAN, 0.12))
-			draw_rect(Rect2(x, y, 64, 36), Color(CYAN, 0.7), false, 1.0)
-			for r in 4:
-				draw_rect(Rect2(x + 4, y + 5 + r * 7, 10.0 + _h(k * 7.0 + r + floorf(_t * 3.0)) * 44.0, 3), Color(CYAN, 0.6))
-	# Tres capas de edificios; las lejanas más oscuras y con menos ventanas encendidas.
-	for layer in 3:
-		var base := 190.0
-		var col := Color(0.05, 0.02, 0.1).lerp(Color(0.12, 0.05, 0.22), layer / 2.0)
-		var x := -10.0 + layer * 7.0
-		var i := 0
-		while x < W + 10.0:
-			var bw := 18.0 + _h(layer * 31.0 + i) * 22.0
-			var bh := 40.0 + _h(layer * 17.0 + i * 1.7) * (70.0 + layer * 24.0)
-			draw_rect(Rect2(x, base - bh, bw, bh), col)
-			var rows := int(bh / 8.0)
-			for wy in rows:
-				for wx in int(bw / 6.0):
-					var on := _h(layer * 97.0 + i * 13.0 + wy * 5.0 + wx * 3.0 + floorf(_t * (1.0 + layer))) > 0.62
-					if on:
-						draw_rect(Rect2(x + 2 + wx * 6, base - bh + 3 + wy * 8, 3, 4), Color("ffd24a") if (wx + wy) % 3 else CYAN)
-			x += bw + 2.0
-			i += 1
-	# Rótulos de neón que parpadean.
-	for k in 5:
-		var on := _h(floorf(_t * 6.0) + k) > 0.25
+		var dx := fposmod(_t * (14.0 + k * 6.0) + k * 97.0, W + 40.0) - 20.0
+		var dy := 34.0 + k * 17.0 + sin(_t * 2.0 + k) * 3.0
+		draw_rect(Rect2(dx, dy, 5, 2), Color("1a1224"))
+		draw_rect(Rect2(dx - 1, dy - 1, 1, 1), Color("ff3030") if int(_t * 3.0 + k) % 2 == 0 else Color("ffffff"))
+	# Tres capas de edificios con parallax: cuanto más cerca, más rápido pasan.
+	_city_layer(0, _t * 3.0, Color("0d0618"), 0.3, 150.0)
+	_city_layer(1, _t * 7.0, Color("140a26"), 0.5, 120.0)
+	_city_layer(2, _t * 13.0, Color("1c0e34"), 0.7, 96.0)
+	# Rótulos de neón con gritos de la ciudad.
+	for k in 4:
+		var x := 36.0 + k * 100.0
+		var y := 108.0 + (k % 2) * 30.0
+		var col := NEON[k]
+		var on := _h(floorf(_t * 5.0) + k * 7.0) > 0.2
+		var word := SHOUTS[(k + int(_t * 0.7)) % SHOUTS.size()]
+		var w := HKTheme.text_width(word, 8) + 10.0
+		draw_rect(Rect2(x - 3, y - 11, w, 15), Color(0.04, 0.02, 0.08, 0.8))
+		draw_rect(Rect2(x - 3, y - 11, w, 15), Color(col, 0.8 if on else 0.2), false, 1.0)
 		if on:
-			var y := 120.0 + k * 11.0
-			var col := [Color("ff3a9a"), CYAN, NEXO_GOLD, Color("ff3a9a"), CYAN][k] as Color
-			draw_rect(Rect2(20.0 + _h(k * 9.0) * 300.0, y, 40.0 + _h(k) * 60.0, 2), Color(col, 0.85))
-			draw_rect(Rect2(20.0 + _h(k * 9.0) * 300.0, y - 1, 40.0 + _h(k) * 60.0, 4), Color(col, 0.18))
-	draw_rect(Rect2(0, 190, W, 50), Color("08040f"))
-	draw_rect(Rect2(0, 190, W, 1), Color(CYAN, 0.5))
-	# Glitch: el tiempo se corta como una señal.
-	var q := floorf(_t * 9.0)
+			HKTheme.draw_text(self, Vector2(x + 2, y), word, 8, col, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	# Ondas de grito que salen de las azoteas y se expanden.
 	for k in 3:
-		if _h(q + k * 3.0) > 0.5:
-			draw_rect(Rect2(0, _h(q + k) * H, W, 2.0 + _h(q) * 6.0), Color(CYAN if k % 2 == 0 else Color("ff3a9a"), 0.26))
+		var origin := Vector2(70.0 + k * 140.0, 112.0 - (k % 2) * 14.0)
+		for r in 3:
+			var p := fposmod(_t * 0.55 + r * 0.33 + k * 0.21, 1.0)
+			draw_arc(origin, 6.0 + p * 52.0, -0.9, 0.9, 14, Color(NEON[k % 4], 0.65 * (1.0 - p)), 2.0)
+	# Calle mojada: reflejos de neón y lluvia.
+	draw_rect(Rect2(0, 190, W, 50), Color("08040f"))
+	for k in 14:
+		var rx := _h(k * 5.0) * W
+		draw_rect(Rect2(rx, 193.0 + _h(k) * 30.0, 14.0 + _h(k + 2.0) * 30.0, 1), Color(NEON[k % 4], 0.35))
+	draw_rect(Rect2(0, 190, W, 1), Color(CYAN, 0.6))
+	for i in 70:
+		var px := fposmod(_h(i) * W - _t * 60.0, W)
+		var py := fposmod(_h(i + 3.0) * H + _t * 260.0 * (0.6 + _h(i + 1.0) * 0.6), H)
+		draw_line(Vector2(px, py), Vector2(px - 2.0, py + 7.0), Color(0.7, 0.85, 1.0, 0.22), 1.0)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# Glitch: la señal se corta, con las franjas desplazadas en cian y magenta.
+	var q := floorf(_t * 9.0)
+	for k in 4:
+		if _h(q + k * 3.0) > 0.55:
+			var gy := _h(q + k) * H
+			var gh := 2.0 + _h(q) * 8.0
+			draw_rect(Rect2(0, gy, W, gh), Color(CYAN, 0.2))
+			draw_rect(Rect2(4.0 + _h(q + 2.0) * 8.0, gy + 1.0, W, gh), Color(NEON[0], 0.2))
+	if _h(floorf(_t * 3.0)) > 0.9:
+		draw_rect(Rect2(0, 0, W, H), Color(1, 1, 1, 0.07))
+
+## Una capa de la ciudad que se desplaza en bucle; `top` es la altura máxima de sus edificios.
+func _city_layer(layer: int, offset: float, col: Color, lit: float, top: float) -> void:
+	var count := 22
+	var total := 0.0
+	for i in count:
+		total += 20.0 + _h(layer * 31.0 + i) * 24.0 + 2.0
+	var shift := fposmod(offset, total)
+	var twinkle := floorf(_t * (0.8 + layer * 0.5))
+	for copy in 2:
+		var x := -shift + copy * total - 10.0
+		for i in count:
+			var bw := 20.0 + _h(layer * 31.0 + i) * 24.0
+			var bh := 36.0 + _h(layer * 17.0 + i * 1.7) * top
+			if x + bw > 0.0 and x < W:
+				draw_rect(Rect2(x, 190.0 - bh, bw, bh), col)
+				draw_rect(Rect2(x, 190.0 - bh, bw, 1), Color(CYAN, 0.12 + 0.08 * layer))
+				for wy in int(bh / 8.0):
+					for wx in int(bw / 6.0):
+						if _h(layer * 97.0 + i * 13.0 + wy * 5.0 + wx * 3.0 + twinkle) < lit * 0.55:
+							draw_rect(Rect2(x + 2 + wx * 6, 190.0 - bh + 3 + wy * 8, 3, 4), NEXO_GOLD if (wx + wy) % 3 else CYAN)
+			x += bw + 2.0
 
 # --- II · El siglo XX: película vieja, relojes al revés y sirenas ----------
 func _draw_century() -> void:
