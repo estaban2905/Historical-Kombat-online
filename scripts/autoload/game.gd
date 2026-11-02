@@ -48,7 +48,7 @@ const ARCADE_CONTINUES := 3
 ## Jefe final: el Nexo cierra la escalera tras la última época.
 const STORY_NEXO_ID := FighterRegistry.NEXO_ID
 const STORY_NEXO_NAME := "EL JUICIO DEL NEXO"
-## Épocas del más reciente al más antiguo: [nombre, [luchadores]]. Cada una cierra con
+## Épocas (fragmentos del tiempo roto) del más reciente al más antiguo: [nombre, [luchadores]]. Cada una cierra con
 ## su jefe (STORY_BOSSES) y dentro de la época se ordenan por año.
 const STORY_CHAPTERS := [
 	["EL MUNDO ACTUAL", [&"kim_jong_un", &"nicolas_maduro", &"osama_bin_laden", &"xi_jinping", &"vladimir_putin",
@@ -69,14 +69,14 @@ const STORY_BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"napoleon", 3
 	4: &"julio_cesar"}
 ## Los cuatro creadores del Reloj del Origen, repartidos por las épocas.
 const STORY_CREATORS: Array[StringName] = [&"nikola_tesla", &"albert_einstein", &"marie_curie", &"leonardo_da_vinci"]
-## Palabras del Nexo al abrir cada época.
+## Lo que está en juego en cada fragmento del tiempo (la animación de la época ya trae la voz del Nexo).
 const STORY_NEXO_LINES := [
-	["LOS LÍDERES DE HOY CREEN", "QUE EL TIEMPO LES PERTENECE."],
-	["UN SIGLO DE GUERRAS Y GRITOS.", "EL TIEMPO AÚN SANGRA."],
-	["REVOLUCIONES Y DESCUBRIMIENTOS:", "LA CHISPA DE LOS NUEVOS TIEMPOS."],
-	["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."],
-	["EL ORIGEN. AQUÍ EMPEZÓ TODO", "Y AQUÍ DECIDIRÁS CÓMO TERMINA."],
-	["HAS LLEGADO HASTA MÍ.", "DEMUESTRA QUE MERECES EL TIEMPO."],
+	["EL FRAGMENTO MÁS JOVEN DEL TIEMPO.", "CIÉRRALO O SE ROMPERÁ TODO."],
+	["LA GRIETA SIGUE ABIERTA.", "NO DEJES QUE SE LLEVE OTRO SIGLO."],
+	["LAS IDEAS QUE ROMPIERON EL TIEMPO", "SIGUEN GIRANDO EN ESTE FRAGMENTO."],
+	["CORONAS Y FLOTAS TIRAN DEL TIEMPO", "HACIA DIRECCIONES OPUESTAS."],
+	["EL FRAGMENTO MÁS ANTIGUO.", "SI CAE, TODO LO DEMÁS SE DERRUMBA."],
+	["SOLO YO SOSTENGO TODAS LAS ÉPOCAS.", "ESTA ES LA PRUEBA FINAL."],
 ]
 ## Reacción del Nexo al empezar un capítulo, según las revanchas gastadas hasta ahora.
 const STORY_NEXO_REACT_FLAWLESS := ["SIN UNA SOLA REVANCHA.", "EL TIEMPO TE RESPETA."]
@@ -134,14 +134,14 @@ const STORY_VS := {
 	&"isaac_newton": ["LA GRAVEDAD TIENE", "UN NOMBRE: ÉL."],
 	&"nicolas_maquiavelo": ["EL FIN JUSTIFICA", "LOS MEDIOS. TODOS."],
 	&"mariya_oktyabrskaya": ["VENDIÓ TODO PARA COMPRAR", "UN TANQUE: EL SUYO."],
-	&"liudmila_pavlichenko": ["LADY DEATH: MÁS DE 300", "BAJAS EN SEVASTÓPOL."],
+	&"liudmila_pavlichenko": ["LADY DEATH: 309 BAJAS", "CONFIRMADAS EN LA GUERRA."],
 }
 ## Frases cuando se enfrentan dos luchadores concretos, en cualquier orden: "id|id" -> líneas.
 const STORY_VS_PAIR := {
 	"salvador_allende|augusto_pinochet": ["LA MONEDA, 1973.", "AHORA SE DECIDE DE OTRO MODO."],
 	"hernan_cortes|moctezuma_ii": ["DOS MUNDOS SE ENCUENTRAN", "EN TENOCHTITLAN."],
 	"cristobal_colon|lautaro": ["EL DESCUBRIDOR Y EL TOQUI", "SE VEN LAS CARAS."],
-	"napoleon|juana_de_arco": ["UN EMPERADOR Y UNA SANTA.", "DOS SIGLOS DE DISTANCIA."],
+	"napoleon|juana_de_arco": ["UN EMPERADOR Y UNA SANTA.", "TRES SIGLOS Y MEDIO ENTRE ELLOS."],
 	"abraham_lincoln|charles_darwin": ["NACIERON EL MISMO DÍA.", "SOLO UNO SE QUEDA EN PIE."],
 	"socrates|platon": ["MAESTRO Y DISCÍPULO.", "LA LECCIÓN SE DA A GOLPES."],
 	"platon|aristoteles": ["EL DISCÍPULO CONTRA", "SU MAYOR RIVAL DE IDEAS."],

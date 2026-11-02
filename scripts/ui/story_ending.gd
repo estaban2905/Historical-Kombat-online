@@ -7,7 +7,7 @@ extends Control
 
 const W := 426.0
 const NEXO_LINES: Array = [
-	["HAS RECORRIDO TODAS LAS ÉPOCAS", "Y NADIE QUEDÓ EN PIE ANTE TI."],
+	["ME HAS VENCIDO. TODAS LAS ÉPOCAS", "CAYERON ANTE TI Y AHORA ESPERAN."],
 	["EL PODER DEL NEXO ES TUYO.", "¿QUÉ HARÁS CON EL TIEMPO?"],
 ]
 ## Epílogos propios: id -> [reparar, reescribir]. El resto usa una plantilla.

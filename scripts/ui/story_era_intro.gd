@@ -1,5 +1,5 @@
 ## Animación de arranque de cada época del MODO HISTORIA (~8 s), con la voz del Nexo:
-##   0 El mundo actual      ciudad de neón y pantallas que se cortan
+##   0 El mundo actual      ciudad de neón, gritos y señal que se corta
 ##   1 El siglo XX          película vieja, relojes al revés y sirenas
 ##   2 Revoluciones         engranajes, chispas y bobinas de Tesla
 ##   3 Imperios             un mapa antiguo, una ruta y un barco
@@ -27,16 +27,16 @@ const VIOLET := Color("9a4dff")
 
 ## Por época: título, subtítulos (mismo texto que la voz) y duración de la voz (s).
 const ERAS: Array = [
-	{"title": "I · EL MUNDO ACTUAL", "len": 7.73,
-		"subs": ["HOY GOBIERNAN LOS QUE GRITAN MÁS FUERTE.", "EL TIEMPO LOS ESCUCHA... Y SE RÍE."]},
-	{"title": "II · EL SIGLO XX", "len": 5.60,
+	{"title": "FRAGMENTO I · EL MUNDO ACTUAL", "len": 8.41,
+		"subs": ["CADA ÉPOCA ES AHORA UN FRAGMENTO ROTO.", "ESTE LO GOBIERNAN LOS QUE GRITAN MÁS FUERTE."]},
+	{"title": "FRAGMENTO II · EL SIGLO XX", "len": 5.60,
 		"subs": ["UN SIGLO DE GUERRAS.", "EL TIEMPO AÚN SANGRA."]},
-	{"title": "III · REVOLUCIONES Y PROGRESO", "len": 6.70,
-		"subs": ["AQUÍ NACIÓ LA GRIETA.", "MENTES QUE QUISIERON VER TODO EL TIEMPO."]},
-	{"title": "IV · IMPERIOS Y DESCUBRIMIENTOS", "len": 7.85,
+	{"title": "FRAGMENTO III · REVOLUCIONES Y PROGRESO", "len": 6.78,
+		"subs": ["AQUÍ BROTARON LAS IDEAS QUE,", "SIGLOS DESPUÉS, ROMPIERON EL TIEMPO."]},
+	{"title": "FRAGMENTO IV · IMPERIOS Y DESCUBRIMIENTOS", "len": 7.85,
 		"subs": ["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."]},
-	{"title": "V · LA ANTIGÜEDAD", "len": 7.17,
-		"subs": ["EL ORIGEN. AQUÍ EMPEZÓ TODO,", "Y AQUÍ DECIDIRÁS CÓMO TERMINA."]},
+	{"title": "FRAGMENTO V · LA ANTIGÜEDAD", "len": 7.82,
+		"subs": ["LA CUNA DE LA HISTORIA.", "AQUÍ NACIÓ EL PODER, Y AQUÍ DECIDES CÓMO TERMINA."]},
 	{"title": "EL JUICIO DEL NEXO", "len": 6.10,
 		"subs": ["HAS LLEGADO HASTA MÍ.", "DEMUESTRA QUE MERECES EL TIEMPO."]},
 ]

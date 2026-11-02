@@ -25,11 +25,11 @@ LINES = [
 
 # Una por época, en el orden de Game.STORY_CHAPTERS, y la última para el combate final.
 ERA_LINES = [
-    "Hoy gobiernan los que gritan más fuerte. El tiempo los escucha... y se ríe.",
+    "Cada época es ahora un fragmento roto. Este lo gobiernan los que gritan más fuerte.",
     "Un siglo de guerras. El tiempo aún sangra.",
-    "Aquí nació la grieta. Mentes que quisieron ver todo el tiempo.",
+    "Aquí brotaron las ideas que, siglos después, rompieron el tiempo.",
     "Reinos, flotas y coronas. Demasiado poder, poca memoria.",
-    "El origen. Aquí empezó todo, y aquí decidirás cómo termina.",
+    "La cuna de la historia. Aquí nació el poder, y aquí decides cómo termina.",
     "Has llegado hasta mí. Demuestra que mereces el tiempo.",
 ]
 
