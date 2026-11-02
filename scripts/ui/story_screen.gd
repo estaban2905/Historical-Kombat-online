@@ -168,7 +168,7 @@ func _draw_plate() -> void:
 	var stage := Game.arcade_stage
 	var boss := Game.story_is_chapter_boss(stage)
 	var secret := Game.is_story_secret_fight()
-	var r := Rect2(150, 72, 126, 126)
+	var r := Rect2(150, 72, 126, 112)
 	draw_rect(r, SHADE)
 	draw_rect(r, HKTheme.GOLD_DARK, false, 1.0)
 	var cx := 213.0
@@ -187,9 +187,12 @@ func _draw_plate() -> void:
 		y += 10.0
 	_centered(cx, y + 2.0, d.country.to_upper(), HKTheme.GOLD)
 	_centered(cx, y + 12.0, d.era, HKTheme.MUTED.lightened(0.25))
+	# La frase del rival va en una franja a todo lo ancho: no cabe en la placa.
 	var lines := Game.story_vs_lines(d.id)
-	for i in lines.size():
-		_centered(cx, 183.0 + i * 9.0, lines[i], Color("ff9070") if Game.story_is_chapter_boss(stage) else HKTheme.MUTED.lightened(0.4))
+	if not lines.is_empty():
+		draw_rect(Rect2(0, 187, 426, 22), SHADE)
+		for i in lines.size():
+			_centered(213.0, 196.0 + i * 9.0, lines[i], Color("ff9070") if boss else HKTheme.PAPER.darkened(0.15))
 
 ## Tarjeta de título del capítulo, a pantalla completa, que se desvanece.
 func _draw_card() -> void:
