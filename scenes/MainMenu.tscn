@@ -29,48 +29,63 @@ title_y = -16.0
 
 [node name="Buttons" type="VBoxContainer" parent="." unique_id=195303599]
 layout_mode = 0
-offset_left = 138.0
-offset_top = 92.0
-offset_right = 288.0
-offset_bottom = 232.0
-theme_override_constants/separation = 1
+offset_left = 93.0
+offset_top = 90.0
+offset_right = 333.0
+offset_bottom = 214.0
+theme_override_constants/separation = 2
 
 [node name="Play" type="Button" parent="Buttons" unique_id=1081200093]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(186, 15)
 layout_mode = 2
+size_flags_horizontal = 4
 text = "MODO HISTORIA"
 
 [node name="Versus" type="Button" parent="Buttons" unique_id=1649249306]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(186, 15)
 layout_mode = 2
+size_flags_horizontal = 4
 text = "VERSUS LOCAL"
 
 [node name="Online" type="Button" parent="Buttons" unique_id=1649249600]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(186, 15)
 layout_mode = 2
+size_flags_horizontal = 4
 text = "DUELO ONLINE"
 
 [node name="Training" type="Button" parent="Buttons" unique_id=1649249511]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(186, 15)
 layout_mode = 2
+size_flags_horizontal = 4
 text = "ENTRENAMIENTO"
 
 [node name="Difficulty" type="Button" parent="Buttons" unique_id=1649249399]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(186, 13)
 layout_mode = 2
-text = "DIFICULTAD: NORMAL"
+size_flags_horizontal = 4
+text = "DIFICULTAD  < NORMAL >"
 
-[node name="Roster" type="Button" parent="Buttons" unique_id=1032436232]
+[node name="Gap" type="Control" parent="Buttons" unique_id=1649249777]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Extras" type="HBoxContainer" parent="Buttons" unique_id=1649249778]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 3
+
+[node name="Roster" type="Button" parent="Buttons/Extras" unique_id=1032436232]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "PERSONAJES"
 
-[node name="Controls" type="Button" parent="Buttons" unique_id=330819021]
+[node name="Controls" type="Button" parent="Buttons/Extras" unique_id=330819021]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "CONTROLES"
 
-[node name="Credits" type="Button" parent="Buttons" unique_id=597305843]
+[node name="Credits" type="Button" parent="Buttons/Extras" unique_id=597305843]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "CRÉDITOS"

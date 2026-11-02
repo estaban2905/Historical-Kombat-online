@@ -188,8 +188,9 @@ func is_vs_cpu() -> bool:
 func is_online() -> bool:
 	return mode == Mode.ONLINE
 
-func cycle_difficulty() -> void:
-	difficulty = ((int(difficulty) + 1) % DIFFICULTY_NAMES.size()) as Difficulty
+## step = 1 sube de nivel y -1 baja (dando la vuelta).
+func cycle_difficulty(step: int = 1) -> void:
+	difficulty = posmod(int(difficulty) + step, DIFFICULTY_NAMES.size()) as Difficulty
 
 func difficulty_name() -> String:
 	return DIFFICULTY_NAMES[difficulty]
