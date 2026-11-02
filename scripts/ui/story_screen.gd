@@ -187,6 +187,9 @@ func _draw_plate() -> void:
 		y += 10.0
 	_centered(cx, y + 2.0, d.country.to_upper(), HKTheme.GOLD)
 	_centered(cx, y + 12.0, d.era, HKTheme.MUTED.lightened(0.25))
+	var lines := Game.story_vs_lines(d.id)
+	for i in lines.size():
+		_centered(cx, 183.0 + i * 9.0, lines[i], Color("ff9070") if Game.story_is_chapter_boss(stage) else HKTheme.MUTED.lightened(0.4))
 
 ## Tarjeta de título del capítulo, a pantalla completa, que se desvanece.
 func _draw_card() -> void:
@@ -206,6 +209,9 @@ func _draw_card() -> void:
 	var span := "%s  ›  %s" % [_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[first])),
 		_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[last]))]
 	HKTheme.draw_text(_overlay, Vector2(0, 142), span, 8, HKTheme.MUTED.lightened(0.2) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	var nexo: Array = Game.STORY_NEXO_LINES[mini(chapter, Game.STORY_NEXO_LINES.size() - 1)]
+	for i in nexo.size():
+		HKTheme.draw_text(_overlay, Vector2(0, 176 + i * 11), nexo[i], 8, Color("9a4dff").lightened(0.4) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 	HKTheme.draw_text(_overlay, Vector2(0, 158), "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues],
 		8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 

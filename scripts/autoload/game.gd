@@ -55,6 +55,42 @@ const STORY_CHAPTERS := [
 	["LA ANTIGÜEDAD", -100000],
 ]
 const STORY_SECRET_NAME := "EL ÚLTIMO SECRETO"
+## Los creadores del Reloj del Origen cierran su capítulo: capítulo (índice) -> luchador.
+## Tesla y Curie, del mismo capítulo que Einstein, lo preceden como guardianes.
+const STORY_BOSSES := {2: &"albert_einstein", 3: &"leonardo_da_vinci"}
+## Palabras del Nexo al abrir cada capítulo (la última, para el jefe secreto).
+const STORY_NEXO_LINES := [
+	["LOS LÍDERES DE HOY CREEN", "QUE EL TIEMPO LES PERTENECE."],
+	["UN SIGLO DE GUERRAS Y GRITOS.", "EL TIEMPO AÚN SANGRA."],
+	["AQUÍ NACIÓ LA GRIETA: LAS MENTES", "QUE ARMARON EL RELOJ DEL ORIGEN."],
+	["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."],
+	["EL ORIGEN. AQUÍ EMPEZÓ TODO", "Y AQUÍ DECIDIRÁS CÓMO TERMINA."],
+	["NO TODO LO QUE BRILLA ESTÁ VENCIDO.", "ÉL ESPERA DONDE EL TIEMPO NACE."],
+]
+## Frases antes del combate: rival -> [línea 1, línea 2].
+const STORY_VS := {
+	&"albert_einstein": ["JEFE: CREÓ EL RELOJ", "Y TEME SU PRECIO."],
+	&"leonardo_da_vinci": ["JEFE: DISEÑÓ EL MECANISMO", "DEL RELOJ DEL ORIGEN."],
+	&"nikola_tesla": ["GUARDIÁN: SU CORRIENTE", "ALIMENTÓ LA MÁQUINA."],
+	&"marie_curie": ["GUARDIANA: SU LUZ", "ENCENDIÓ EL NÚCLEO."],
+	&"salvador_allende": ["CAYÓ EN LA MONEDA.", "AQUÍ PELEA DE PIE."],
+	&"augusto_pinochet": ["SE LLEVÓ EL PODER A LA FUERZA.", "AQUÍ NO HAY CUARTEL."],
+	&"moctezuma_ii": ["SU IMPERIO CAYÓ ANTE", "UN PUÑADO DE ESPADAS."],
+	&"hernan_cortes": ["CONQUISTÓ UN IMPERIO", "CON AUDACIA Y ACERO."],
+	&"cristobal_colon": ["CRUZÓ EL OCÉANO", "Y CAMBIÓ EL MAPA."],
+	&"lautaro": ["EL TOQUI QUE ENSEÑÓ", "A VENCER A CABALLO."],
+	&"juana_de_arco": ["OYÓ VOCES Y LIDERÓ", "UN EJÉRCITO."],
+	&"napoleon": ["CORONÓ SU PROPIO IMPERIO", "CON SUS MANOS."],
+	&"gengis_kan": ["SU HORDA CRUZÓ", "MEDIO MUNDO."],
+	&"cleopatra": ["LA ÚLTIMA FARAONA.", "SU ASTUCIA AFILA SU DAGA."],
+	&"julio_cesar": ["LLEGÓ, VIO...", "Y VENCERÁ."],
+	&"alejandro_magno": ["NUNCA PERDIÓ UNA BATALLA.", "NO EMPEZARÁ AHORA."],
+	&"sun_tzu": ["GANA SIN LUCHAR.", "TÚ LO ESTÁS HACIENDO MAL."],
+	&"buda": ["LA PAZ INTERIOR", "TAMBIÉN GOLPEA."],
+	&"adolf_hitler": ["SU IMPERIO DEBÍA DURAR MIL AÑOS.", "DURÓ DOCE."],
+	&"joseph_stalin": ["ACERO EN EL NOMBRE.", "ACERO EN LOS PUÑOS."],
+	&"donald_trump": ["EL ÚLTIMO EN LLEGAR", "SIEMPRE QUIERE LA CABECERA."],
+}
 ## Refuerzo [vida, fuerza, resistencia] del jefe de cada capítulo y del jefe secreto.
 const BOSS_BOOST := [1.12, 1.05, 1.0]
 const SECRET_BOOST := [1.6, 1.25, 1.1]
@@ -227,7 +263,7 @@ func start_story(player_id: StringName) -> void:
 	for d in FighterRegistry.all():
 		if d.id != player_id and d.id != STORY_SECRET_ID:
 			rivals.append(d)
-	rivals.sort_custom(func(a: FighterData, b: FighterData) -> bool: return a.year > b.year)
+	rivals.sort_custom(_story_before)
 	arcade_ladder.clear()
 	for d in rivals:
 		arcade_ladder.append(d.id)
@@ -238,6 +274,29 @@ func start_story(player_id: StringName) -> void:
 	_boss_cache.clear()
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
+
+## Orden de la escalera: por capítulo del más reciente al más antiguo y, dentro de uno,
+## por año, salvo el jefe designado del capítulo, que va al final.
+func _story_before(a: FighterData, b: FighterData) -> bool:
+	var ca := _year_chapter(a.year)
+	var cb := _year_chapter(b.year)
+	if ca != cb:
+		return ca < cb
+	var boss_a: bool = STORY_BOSSES.get(ca, &"") == a.id
+	var boss_b: bool = STORY_BOSSES.get(cb, &"") == b.id
+	if boss_a != boss_b:
+		return boss_b
+	return a.year > b.year
+
+func _year_chapter(year: int) -> int:
+	for i in STORY_CHAPTERS.size():
+		if year >= STORY_CHAPTERS[i][1]:
+			return i
+	return STORY_CHAPTERS.size() - 1
+
+## Frase de presentación del rival actual (vacía si no tiene).
+func story_vs_lines(fighter_id: StringName) -> Array:
+	return STORY_VS.get(fighter_id, [])
 
 ## true si al ganar el último combate toca enfrentarse al jefe secreto.
 func _secret_unlocked() -> bool:
@@ -252,11 +311,7 @@ func is_story_secret_fight() -> bool:
 func story_chapter_of(fighter_id: StringName) -> int:
 	if fighter_id == STORY_SECRET_ID and p1_fighter_id != STORY_SECRET_ID:
 		return STORY_CHAPTERS.size()
-	var year := FighterRegistry.get_by_id(fighter_id).year
-	for i in STORY_CHAPTERS.size():
-		if year >= STORY_CHAPTERS[i][1]:
-			return i
-	return STORY_CHAPTERS.size() - 1
+	return _year_chapter(FighterRegistry.get_by_id(fighter_id).year)
 
 func story_chapter_name(chapter: int) -> String:
 	return STORY_CHAPTERS[chapter][0] if chapter < STORY_CHAPTERS.size() else STORY_SECRET_NAME

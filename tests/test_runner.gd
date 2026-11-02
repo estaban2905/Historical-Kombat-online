@@ -578,9 +578,13 @@ func _test_arcade() -> void:
 	check(ladder.size() == expected, "la escalera tiene %d rivales (%d)" % [expected, ladder.size()])
 	var ordered := true
 	for i in range(1, ladder.size()):
-		if FighterRegistry.get_by_id(ladder[i]).year > FighterRegistry.get_by_id(ladder[i - 1]).year:
+		if Game.story_chapter_of(ladder[i]) < Game.story_chapter_of(ladder[i - 1]):
 			ordered = false
-	check(ordered, "los rivales van del más reciente al más antiguo")
+	check(ordered, "los capítulos van del más reciente al más antiguo")
+	for ch in Game.STORY_BOSSES:
+		var boss: StringName = Game.STORY_BOSSES[ch]
+		var at := ladder.find(boss)
+		check(at == -1 or Game.story_is_chapter_boss(at), "%s cierra su capítulo" % boss)
 	check(not ladder.has(Game.STORY_SECRET_ID), "el jefe secreto no está en la escalera")
 	check(Game.story_chapter_start(0), "el primer combate abre el capítulo I")
 	await tap(KEY_ENTER)   # salta la tarjeta del capítulo
