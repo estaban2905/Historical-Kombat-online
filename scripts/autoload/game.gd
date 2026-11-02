@@ -88,6 +88,9 @@ func gore_name() -> String:
 var _fade_layer: CanvasLayer
 var _fade_rect: ColorRect
 var _changing: bool = false
+## true solo mientras se funde a negro: otro goto() en ese tramo se ignora.
+var _fading_out: bool = false
+var _fade_in: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -142,10 +145,16 @@ func stage_owner(round_number: int) -> StringName:
 	return p1_fighter_id if round_number % 2 == 1 else p2_fighter_id
 
 ## Cambia de escena con un fundido a negro.
+## Una escena que redirige en cuanto carga (p. ej. el login sin cuentas, con el servidor
+## local respondiendo en milisegundos) llama aquí durante el fundido de entrada: ese
+## fundido se corta y se encadena el nuevo cambio en vez de ignorarlo.
 func goto(scene_path: String) -> void:
-	if _changing:
+	if _fading_out:
 		return
 	_changing = true
+	_fading_out = true
+	if _fade_in:
+		_fade_in.kill()
 	get_tree().paused = false
 	var tw := create_tween()
 	tw.tween_property(_fade_rect, "color:a", 1.0, 0.18)
@@ -153,10 +162,14 @@ func goto(scene_path: String) -> void:
 	var err := get_tree().change_scene_to_file(scene_path)
 	if err != OK:
 		push_error("No se pudo cargar la escena %s (error %d)" % [scene_path, err])
+	_fading_out = false
 	var tw2 := create_tween()
+	_fade_in = tw2
 	tw2.tween_property(_fade_rect, "color:a", 0.0, 0.22)
 	await tw2.finished
-	_changing = false
+	if _fade_in == tw2:
+		_fade_in = null
+		_changing = false
 
 ## Fundido a negro / desde negro (cambio de escenario entre rondas).
 func fade_to_black(duration: float) -> void:
