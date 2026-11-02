@@ -117,6 +117,9 @@ func begin_fight() -> void:
 ## Fuente de entradas del combate (ver CombatManager.set_input_source).
 ## [] = faltan los botones del rival: el combate espera ese tick.
 func input_source(tick: int) -> Array:
+	# El combate va en _physics_process: si un frame tarda, corren varios ticks seguidos
+	# sin pasar por _process. Leer aquí la red evita esperar botones que ya llegaron.
+	_drain()
 	if _session == null:
 		return []
 	var masks := _session.masks_for(tick)
@@ -152,6 +155,15 @@ func _process(delta: float) -> void:
 				_on_message(_ws.get_packet().get_string_from_utf8())
 		WebSocketPeer.STATE_CLOSED:
 			_on_closed()
+
+## Lee los mensajes que ya llegaron. Del cierre del socket se encarga _process.
+func _drain() -> void:
+	if _ws == null:
+		return
+	_ws.poll()
+	while _ws != null and _ws.get_ready_state() == WebSocketPeer.STATE_OPEN \
+			and _ws.get_available_packet_count() > 0:
+		_on_message(_ws.get_packet().get_string_from_utf8())
 
 func _send(msg: Dictionary) -> void:
 	if _ws != null and _ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
