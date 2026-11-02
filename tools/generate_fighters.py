@@ -31,6 +31,8 @@ ARCHETYPES = {
     "glass":    (88, 92, -380, 130, 1.10, 0.96, "fast"),
     "tank":     (108, 56, -330, 90, 0.97, 1.06, "slow"),
     "agile":    (94, 84, -385, 128, 0.99, 0.97, "fast"),
+    "sage":     (100, 64, -345, 102, 0.98, 1.03, "slow"),   # defensa sólida, golpes lentos
+    "armored":  (106, 54, -325, 88, 1.04, 1.06, "slow"),    # mucho daño y aguante, poca movilidad
 }
 
 # Cuerpos: muslo, espinilla, ancho pierna, torso, ancho torso, brazo, antebrazo,
@@ -516,6 +518,128 @@ CHARACTERS = [
          s1=P(name="Cañonazo Naval", anim="cannon", style="ball", speed=230, dmg=15),
          s2=W(name="x", anim="charge", power="x", dmg=1),
          ult="Abordaje Final"),
+    # --- Filósofos, estrategas, científicos y soldados ---
+    dict(id="socrates", name="SÓCRATES", short="SÓCRATES", country="Grecia", era="470 – 399 a.C.",
+         intro="x", victory="x",
+         bio="Filósofo ateniense que no escribió nada y lo preguntó todo. Su ironía desarma a cualquiera.",
+         arch="sage", build="stocky",
+         skin="e8c09a", hair="c8c4b8", coat="e8e2d0", trim="8a6a40", shirt="e8e2d0", accent="8a6a40",
+         pants="e8c09a", boots="8a5a30", hat="8a6a40",
+         hair_style="bald", hat_style="none", beard="full", chest="robe",
+         moves=("Golpe Irónico", "Bastonazo", "Patada Descalza", "Patada del Ágora"),
+         s1=P(name="Pregunta Incómoda", anim="cast", style="soundwave", speed=210, dmg=13),
+         s2=W(name="x", anim="staff", power="x", dmg=1),
+         ult="La Copa de Cicuta"),
+    dict(id="platon", name="PLATÓN", short="PLATÓN", country="Grecia", era="427 – 347 a.C.",
+         intro="x", victory="x",
+         bio="Discípulo de Sócrates y fundador de la Academia. Pelea con ideas, ilusiones y pergaminos.",
+         arch="zoner", build="big",
+         skin="e8c8a0", hair="3a2a1a", coat="ece6d4", trim="3a5a9a", shirt="ece6d4", accent="3a5a9a",
+         pants="e8c8a0", boots="8a5a30", hat="3a5a9a",
+         hair_style="short", hat_style="none", beard="full", chest="robe",
+         moves=("Golpe Ideal", "Pergaminazo", "Patada Dialéctica", "Patada de la Academia"),
+         s1=P(name="Rayo de la Idea", anim="scroll", style="orb", color="fff0b0", speed=225, dmg=14),
+         s2=W(name="x", anim="scroll", power="x", dmg=1),
+         ult="La Caverna de las Sombras"),
+    dict(id="aristoteles", name="ARISTÓTELES", short="ARISTÓTELES", country="Grecia", era="384 – 322 a.C.",
+         intro="x", victory="x",
+         bio="Discípulo de Platón y maestro de Alejandro Magno. Todo lo observa, todo lo mide y todo lo calcula.",
+         arch="sage", build="slim",
+         skin="e0b890", hair="6a5a48", coat="e0d4b4", trim="6a3a6a", shirt="e0d4b4", accent="6a3a6a",
+         pants="e0b890", boots="8a5a30", hat="6a3a6a",
+         hair_style="short", hat_style="none", beard="full", chest="robe",
+         moves=("Golpe Lógico", "Bastón del Liceo", "Patada Empírica", "Patada Peripatética"),
+         s1=S(name="Silogismo Contundente", anim="staff", dmg=21),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="La Pizarra Definitiva"),
+    dict(id="sun_tzu", name="SUN TZU", short="SUN TZU", country="China", era="544 – 496 a.C.",
+         intro="x", victory="x",
+         bio="General chino autor de El arte de la guerra. Gana el combate antes de que empiece.",
+         arch="agile", build="normal",
+         skin="e8c8a0", hair="1c1410", coat="7a2a1a", trim="c0a040", shirt="2a2a30", accent="c02828",
+         pants="3a2a20", boots="2a1a10", hat="4a3a2a",
+         hair_style="long", hat_style="helmet", beard="long", chest="uniform", tall_boots=True, epaulettes=True,
+         moves=("Golpe de Mando", "Tajo de Jian", "Patada del Viento", "Patada del Tigre"),
+         s1=D(name="Avance Relámpago", anim="charge", dmg=17, dash=330),
+         s2=W(name="x", anim="charge", power="x", dmg=1),
+         ult="Ejército Ilusorio"),
+    dict(id="confucio", name="CONFUCIO", short="CONFUCIO", country="China", era="551 – 479 a.C.",
+         intro="x", victory="x",
+         bio="Maestro chino de la virtud, el orden y la disciplina. Su guardia es tan firme como sus principios.",
+         arch="tank", build="normal",
+         skin="e8c8a0", hair="c8c8c0", coat="2a5a5a", trim="c0a040", shirt="e8e0c8", accent="c0a040",
+         pants="2a5a5a", boots="1a1a1a", hat="1a1a1a",
+         hair_style="long", hat_style="guan", beard="long", chest="robe",
+         moves=("Palmada Virtuosa", "Bastón Ceremonial", "Patada del Equilibrio", "Patada Celestial"),
+         s1=L(name="Bastón del Maestro", anim="staff", dmg=17, launch=-320),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Estatua del Maestro"),
+    dict(id="isaac_newton", name="ISAAC NEWTON", short="NEWTON", country="Inglaterra", era="1643 – 1727",
+         intro="x", victory="x",
+         bio="Físico inglés que formuló la gravitación universal. Una manzana le cambió la vida.",
+         arch="zoner", build="slim",
+         skin="f0d0b0", hair="e8e4dc", coat="3a2a3a", trim="c0c0c8", shirt="f0f0f0", accent="c02020",
+         pants="3a2a3a", boots="1a1a1a", hat="1a1a1a",
+         hair_style="wig", hat_style="none", beard="none", chest="lapels",
+         moves=("Golpe Inercial", "Bastón Científico", "Patada de Acción", "Patada de Reacción"),
+         s1=P(name="Manzanazo", anim="cannon", style="spin", color="d83030", speed=220, dmg=14),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="La Manzana Gigante"),
+    dict(id="hernan_cortes", name="HERNÁN CORTÉS", short="CORTÉS", country="España", era="1485 – 1547",
+         intro="x", victory="x",
+         bio="Conquistador español que derribó al Imperio mexica. Ambicioso, astuto y con mucho acero encima.",
+         arch="bruiser", build="normal",
+         skin="e8c8a0", hair="2a1a10", coat="9a9aa4", trim="e8c040", shirt="b02020", accent="b02020",
+         pants="6a2a2a", boots="3a2a1a", hat="b0b0b8",
+         hair_style="short", hat_style="morion", beard="full", chest="uniform", tall_boots=True,
+         moves=("Guantelete", "Estocada", "Patada de Conquistador", "Patada de Armadura"),
+         s1=P(name="Arcabuzazo", anim="cannon", style="ball", speed=240, dmg=15),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Flota de Veracruz"),
+    dict(id="moctezuma_ii", name="MOCTEZUMA II", short="MOCTEZUMA", country="Imperio mexica", era="1466 – 1520",
+         intro="x", victory="x",
+         bio="Huey tlatoani de Tenochtitlán, la gran ciudad sobre el lago. Combate con el poder del Sol.",
+         arch="bruiser", build="tall",
+         skin="a86a40", hair="141010", coat="2a8a7a", trim="e8c040", shirt="e8c040", accent="e04030",
+         pants="e8e0c8", boots="a07040", hat="2a9a5a",
+         hair_style="long", hat_style="plumes", beard="none", chest="robe",
+         moves=("Puño Imperial", "Golpe de Macuahuitl", "Patada del Jaguar", "Patada del Águila"),
+         s1=P(name="Rayo de Tonatiuh", anim="cast", style="orb", color="ffc040", speed=215, dmg=15),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Disco Solar"),
+    dict(id="nicolas_maquiavelo", name="NICOLÁS MAQUIAVELO", short="MAQUIAVELO", country="Florencia", era="1469 – 1527",
+         intro="x", victory="x",
+         bio="Diplomático florentino autor de El príncipe. Para él, una buena estrategia lo justifica todo.",
+         arch="agile", build="slim",
+         skin="f0d0b0", hair="2a2018", coat="1c1c24", trim="8a1a1a", shirt="8a1a1a", accent="8a1a1a",
+         pants="1c1c24", boots="1a1a1a", hat="7a1a1a",
+         hair_style="short", hat_style="beret", beard="none", chest="robe",
+         moves=("Puñal Rápido", "Puñalada", "Patada Florentina", "Patada del Príncipe"),
+         s1=D(name="Puñalada Traicionera", anim="dagger", dmg=16, dash=320),
+         s2=W(name="x", anim="dagger", power="x", dmg=1),
+         ult="Atrapado en El Príncipe"),
+    dict(id="mariya_oktyabrskaya", name="MARIYA OKTYABRSKAYA", short="MARIYA", country="Unión Soviética", era="1905 – 1944",
+         intro="x", victory="x",
+         bio="Vendió todo lo que tenía para comprar un tanque T-34 y lo condujo ella misma al frente.",
+         arch="armored", build="stocky",
+         skin="f0d0b0", hair="6a4a2a", coat="6a7040", trim="c0a040", shirt="6a7040", accent="c02020",
+         pants="4a5030", boots="2a2018", hat="3a3a30",
+         hair_style="bob", hat_style="cap", beard="none", chest="uniform", tall_boots=True,
+         moves=("Puño de Mecánica", "Culatazo", "Patada de Oruga", "Patada Blindada"),
+         s1=P(name="Disparo de Pistola", anim="pistol", style="bolt", color="ffe080", speed=300, dmg=13),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Cañonazo del T-34"),
+    dict(id="liudmila_pavlichenko", name="LIUDMILA PAVLICHENKO", short="LIUDMILA", country="URSS (Ucrania)", era="1916 – 1974",
+         intro="x", victory="x",
+         bio="Francotiradora soviética nacida en Ucrania, una de las más certeras de la historia.",
+         arch="zoner", build="slim",
+         skin="f0d0b0", hair="4a2a1a", coat="7a7a50", trim="c0a040", shirt="7a7a50", accent="c02020",
+         pants="5a5a3a", boots="2a2018", hat="6a6a48",
+         hair_style="bob", hat_style="cap", beard="none", chest="uniform", tall_boots=True,
+         moves=("Golpe de Culata", "Culatazo de Rifle", "Patada de Trinchera", "Patada de Asalto"),
+         s1=P(name="Disparo Certero", anim="rifle", style="bolt", color="fff0a0", speed=330, dmg=14),
+         s2=W(name="x", anim="rifle", power="x", dmg=1),
+         ult="Mira Telescópica"),
 ]
 
 
@@ -670,6 +794,17 @@ PROFILES = {
     "augusto_pinochet": _pf("brawler", "low", "LK", "Patada de Cuartel", ("MANDO", "LK LP HP", 3.5), ("TOQUE", "LP LK HP S1", 6.5)),
     "salvador_allende": _pf("zoner", "oh", "HP", "Golpe de Tribuna", ("DISCURSO", "LP HP HK", 3.5), ("PUEBLO", "LK LP HP S1", 6.5)),
     "arturo_prat": _pf("sword", "oh", "HP", "Sablazo de Abordaje", ("ABORDAJE", "LP HP HK", 4.0), ("ESMERALDA", "LK LP HP S1", 7.0)),
+    "socrates": _pf("mystic", "oh", "HP", "Bastonazo Mayéutico", ("IRONÍA", "LP HP HK", 3.5), ("MAYÉUTICA", "LK LP HP S2", 7.0)),
+    "platon": _pf("scholar", "low", "LK", "Barrido Dialéctico", ("DIÁLOGO", "LK LP HP", 3.0), ("REPÚBLICA", "LP LK HP S1", 6.5), anim={"HP": "scroll"}),
+    "aristoteles": _pf("mystic", "low", "LK", "Patada Silogística", ("PREMISA", "LK LP HP", 3.0), ("SILOGISMO", "LP LK HP S2", 7.0)),
+    "sun_tzu": _pf("sword", "oh", "HK", "Tajo del Estratega", ("ENGAÑO", "LP HP HK", 4.0), ("ARTE DE LA GUERRA", "LK LP HP S2", 7.5)),
+    "confucio": _pf("mystic", "oh", "HP", "Bastón del Orden", ("VIRTUD", "LP HP HK", 3.5), ("ANALECTAS", "LK LP HP S1", 7.0)),
+    "isaac_newton": _pf("scholar", "oh", "HP", "Bastonazo Gravitatorio", ("INERCIA", "LP HP HK", 3.0), ("PRINCIPIA", "LK LP HP S1", 7.0), anim={"HP": "staff"}),
+    "hernan_cortes": _pf("sword", "oh", "HP", "Estocada Ropera", ("VERACRUZ", "LP HP HK", 4.0), ("CONQUISTA", "LK LP HP S1", 7.0)),
+    "moctezuma_ii": _pf("axe", "oh", "HP", "Golpe de Macuahuitl", ("TENOCHTITLAN", "LP HP HK", 4.0), ("QUINTO SOL", "LK LP HP S1", 7.5), anim={"HP": "macana"}),
+    "nicolas_maquiavelo": _pf("speed", "low", "LK", "Zancadilla Florentina", ("INTRIGA", "LP LK HK", 3.0), ("EL FIN", "LK LP HP S2", 7.0), anim={"LP": "dagger", "HP": "dagger"}),
+    "mariya_oktyabrskaya": _pf("heavy", "oh", "HP", "Culatazo Blindado", ("ORUGA", "LP HP HK", 4.5), ("FRENTE ORIENTAL", "LK LP HP S1", 8.0), anim={"HP": "pistol"}),
+    "liudmila_pavlichenko": _pf("zoner", "low", "LK", "Barrido de Trinchera", ("TRINCHERA", "LK LP HP", 3.0), ("SEVASTOPOL", "LP LK HP S1", 6.5), anim={"HP": "rifle"}),
 }
 
 
@@ -690,6 +825,17 @@ TWEAKS = {
     "papa_francisco": {"LP": (0, 1, 0.95, 1.0)},                                  # gesto suave
     "salvador_allende": {"HP": (0, -1, 1.0, 1.0)},                                # directo
     "marie_curie": {"HK": (1, 1, 1.0, 1.0)},                                      # pausada
+    "socrates": {"LP": (1, 1, 1.0, 0.9), "HP": (1, 1, 1.0, 0.95)},                # lento y de poco alcance
+    "platon": {"HP": (0, 0, 0.95, 1.2)},                                          # el pergamino llega lejos
+    "aristoteles": {"LP": (0, 0, 1.05, 1.0), "HP": (0, -1, 1.0, 1.0)},            # golpes técnicos y precisos
+    "sun_tzu": {"LP": (-1, -1, 1.0, 1.0), "HP": (-1, 0, 1.0, 1.05)},              # el más rápido de los estrategas
+    "confucio": {"LP": (1, 1, 1.0, 1.0), "HP": (1, 1, 1.0, 1.1)},                 # ataques lentos
+    "isaac_newton": {"LP": (0, 1, 0.9, 0.9), "HK": (1, 1, 0.95, 1.0)},            # cuerpo a cuerpo limitado
+    "hernan_cortes": {"LP": (0, -1, 1.0, 1.0), "HP": (0, 1, 1.0, 1.1), "HK": (-1, 0, 1.0, 1.0)},  # ropera larga, guantelete rápido
+    "moctezuma_ii": {"HP": (1, 0, 1.05, 1.1)},                                    # macuahuitl pesado y largo
+    "nicolas_maquiavelo": {"HP": (0, 0, 0.9, 1.0)},                               # poca fuerza física
+    "mariya_oktyabrskaya": {"HP": (1, 1, 1.1, 1.0)},                              # golpes de tanquista
+    "liudmila_pavlichenko": {"HP": (0, 1, 1.0, 1.15)},                            # culatazo largo, recuperación lenta
 }
 
 
@@ -816,6 +962,18 @@ ULTS = {
     "augusto_pinochet": ("slash", "", "9aaa9a", "000000", "cast"),
     "salvador_allende": ("wave", "ring", "e03030", "260606", "cast"),
     "arturo_prat": ("charge", "shipfull", "5090e0", "081828", "charge"),
+    # Fatalities caricaturescas: trap (un objeto gigante atrapa al rival) · snipe (un solo disparo).
+    "socrates": ("trap", "hemlock", "60d070", "0a1a10", "cast"),
+    "platon": ("trap", "cave", "fff0b0", "05030a", "scroll"),
+    "aristoteles": ("trap", "blackboard", "80f0c0", "0a1414", "cast"),
+    "sun_tzu": ("summon", "ghost_army", "90b8ff", "080c1a", "cast"),
+    "confucio": ("trap", "statue", "ffd860", "1a1408", "staff"),
+    "isaac_newton": ("trap", "apple", "ff5040", "0a0a1a", "cast"),
+    "hernan_cortes": ("charge", "galleon", "60b0ff", "06182a", "charge"),
+    "moctezuma_ii": ("trap", "sundisc", "ffc040", "2a1404", "cast"),
+    "nicolas_maquiavelo": ("trap", "prince_book", "e8c040", "140608", "dagger"),
+    "mariya_oktyabrskaya": ("snipe", "tank", "ff9040", "1a1408", "pistol"),
+    "liudmila_pavlichenko": ("snipe", "scope", "ff4040", "000000", "rifle"),
 }
 
 
@@ -1028,6 +1186,16 @@ LOOKS = {
                     jewelry="necklace", jewelry_color="e8c040"),
     "juana_de_arco": dict(female=True, outfit="skirt", outfit_color="2a4ab0", hair_style="bob",
                           hat_style="none", jewelry="cross", jewelry_color="e8c040"),
+    "mariya_oktyabrskaya": dict(female=True),
+    "liudmila_pavlichenko": dict(female=True, outfit="skirt", outfit_color="5a5a3a"),
+    # --- Túnicas, capas y joyas de los nuevos ---
+    "socrates": dict(outfit="skirt", outfit_color="e8e2d0"),
+    "platon": dict(outfit="skirt", outfit_color="ece6d4", cape="3a5a9a"),
+    "aristoteles": dict(outfit="skirt", outfit_color="e0d4b4", cape="6a3a6a"),
+    "confucio": dict(outfit="gown", outfit_color="2a5a5a"),
+    "hernan_cortes": dict(cape="8a1a1a"),
+    "moctezuma_ii": dict(outfit="skirt", outfit_color="e8e0c8", cape="2a8a7a", jewelry="earplug", jewelry_color="e8c040"),
+    "nicolas_maquiavelo": dict(outfit="dress", outfit_color="1c1c24"),
     # --- Hombres con rasgos propios ---
     "augusto_pinochet": dict(glasses="dark", cape="4a5a4a"),
     "salvador_allende": dict(glasses="round"),
@@ -1089,6 +1257,17 @@ QUOTES = {
     "augusto_pinochet": ("¡Aquí se hace lo que yo ordeno!", "¡Se acabó el combate!"),
     "salvador_allende": ("¡La historia la escriben los pueblos!", "¡La historia es nuestra y la hacen los pueblos!"),
     "arturo_prat": ("¡Al abordaje, muchachos!", "¡Mientras exista valor, nunca habrá derrota!"),
+    "socrates": ("¡Demuestra que puedes vencerme, si es que sabes cómo!", "¡Solo sé que hoy tú has perdido!"),
+    "platon": ("¡La verdadera batalla ocurre en el mundo de las ideas!", "¡La razón siempre prevalece!"),
+    "aristoteles": ("¡Todo combate tiene una explicación lógica!", "¡La observación confirma mi victoria!"),
+    "sun_tzu": ("¡La mejor victoria es la que se consigue sin luchar!", "¡La estrategia ha decidido el resultado!"),
+    "confucio": ("¡La disciplina es el camino hacia la victoria!", "¡El orden ha triunfado!"),
+    "isaac_newton": ("¡Todo lo que sube tiene que bajar!", "¡La gravedad nunca se equivoca!"),
+    "hernan_cortes": ("¡Una nueva conquista comienza aquí!", "¡La batalla ha terminado!"),
+    "moctezuma_ii": ("¡El poder de Tenochtitlán no será olvidado!", "¡Mi imperio seguirá vivo en la historia!"),
+    "nicolas_maquiavelo": ("¡En este combate, la estrategia lo es todo!", "¡El fin justifica la estrategia!"),
+    "mariya_oktyabrskaya": ("¡Mi tanque abrirá el camino hacia la victoria!", "¡Misión cumplida! ¡El enemigo ha sido aplastado!"),
+    "liudmila_pavlichenko": ("Un solo disparo es suficiente.", "Objetivo eliminado. Siguiente."),
 }
 
 # Frase que se grita al lanzar el poder especial (special_2). Vacía = no dice nada.
@@ -1102,6 +1281,17 @@ POWER_QUOTES = {
     "augusto_pinochet": "¡Se declara el Estado de Sitio!",
     "salvador_allende": "¡Que avance la vía chilena!",
     "arturo_prat": "¡A toda máquina, Esmeralda!",
+    "socrates": "¡Responde esta pregunta!",
+    "platon": "¡Contempla el mundo de las ideas!",
+    "aristoteles": "¡Que comience el experimento!",
+    "sun_tzu": "¡Cae en mi estrategia!",
+    "confucio": "¡Restableceré el equilibrio!",
+    "isaac_newton": "¡Que actúe la gravedad!",
+    "hernan_cortes": "¡Avancen los conquistadores!",
+    "moctezuma_ii": "¡Despierta, dios del Sol!",
+    "nicolas_maquiavelo": "¡Que caigan en mi trampa!",
+    "mariya_oktyabrskaya": "¡Enciende los motores!",
+    "liudmila_pavlichenko": "¡No fallaré!",
 }
 
 # Poder especial (botón L / Numpad 6). El daño es el TOTAL si todo conecta.
@@ -1145,6 +1335,17 @@ POWERS = {
     "augusto_pinochet": W(name="Estado de Sitio", anim="cast", power="state_siege", dmg=20, status="root", status_frames=100),
     "salvador_allende": W(name="Vía Chilena", anim="cast", power="chilean_way", dmg=18),
     "arturo_prat": W(name="Abordaje de la Esmeralda", anim="charge", power="esmeralda", dmg=20),
+    "socrates": W(name="Método Socrático", anim="staff", power="socratic", dmg=20, status="invert", status_frames=90),
+    "platon": W(name="Mundo de las Ideas", anim="scroll", power="ideas", dmg=21),
+    "aristoteles": W(name="Lógica Implacable", anim="cast", power="logic", dmg=20),
+    "sun_tzu": W(name="El Arte de la Guerra", anim="charge", power="art_of_war", dmg=21),
+    "confucio": W(name="Orden Celestial", anim="cast", power="celestial_order", dmg=20),
+    "isaac_newton": W(name="Gravedad Absoluta", anim="cast", power="gravity_absolute", dmg=22, status="float", status_frames=45),
+    "hernan_cortes": W(name="Conquista de Tenochtitlán", anim="cast", power="conquest", dmg=22),
+    "moctezuma_ii": W(name="Cólera de Huitzilopochtli", anim="cast", power="huitzilopochtli", dmg=22),
+    "nicolas_maquiavelo": W(name="El Príncipe", anim="dagger", power="the_prince", dmg=20, status="root", status_frames=70),
+    "mariya_oktyabrskaya": W(name="Tanque Fighting Girlfriend", anim="cast", power="t34", dmg=22),
+    "liudmila_pavlichenko": W(name="Disparo de la Muerte", anim="rifle", power="death_shot", dmg=21, status="slow", status_frames=120),
 }
 
 # Especiales 1 que se cambian para no repetir el estilo del poder nuevo.
@@ -1224,7 +1425,7 @@ def wrap_lines(text, width=21):
 
 def validate(c):
     errs = []
-    if len(c["short"]) > 10:
+    if len(c["short"]) > 11:   # ARISTÓTELES; la placa de selección admite ~13
         errs.append(f"short_name largo ({len(c['short'])})")
     if len(c["era"]) > 15:
         errs.append(f"era larga ({len(c['era'])})")

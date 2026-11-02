@@ -117,6 +117,31 @@ const POSES := {
 		"windup": {"fa_u": 150.0, "fa_l": 170.0, "lean": -6.0},
 		"strike": {"fa_u": 92.0, "fa_l": 88.0, "lean": 12.0, "hx": 2.0},
 	},
+	"scroll": {
+		"prop": "scroll",
+		"windup": {"fa_u": 15.0, "fa_l": 160.0, "ba_u": 10.0, "ba_l": 150.0, "lean": -8.0},
+		"strike": {"fa_u": 85.0, "fa_l": 92.0, "ba_u": 75.0, "ba_l": 100.0, "lean": 14.0, "hx": 3.0},
+	},
+	"dagger": {
+		"prop": "dagger",
+		"windup": {"fa_u": 25.0, "fa_l": 120.0, "lean": -4.0},
+		"strike": {"fa_u": 92.0, "fa_l": 90.0, "lean": 16.0, "hx": 4.0},
+	},
+	"rifle": {
+		"prop": "rifle",
+		"windup": {"fa_u": 70.0, "fa_l": 95.0, "ba_u": 60.0, "ba_l": 100.0, "lean": -4.0},
+		"strike": {"fa_u": 90.0, "fa_l": 90.0, "ba_u": 80.0, "ba_l": 95.0, "lean": 8.0, "hx": 2.0},
+	},
+	"pistol": {
+		"prop": "pistol",
+		"windup": {"fa_u": 60.0, "fa_l": 110.0, "lean": -4.0},
+		"strike": {"fa_u": 90.0, "fa_l": 90.0, "lean": 6.0, "hx": 1.0},
+	},
+	"macana": {
+		"prop": "macana",
+		"windup": {"fa_u": -55.0, "fa_l": -80.0, "ba_u": -45.0, "ba_l": -70.0, "lean": 14.0},
+		"strike": {"fa_u": 150.0, "fa_l": 168.0, "ba_u": 140.0, "ba_l": 160.0, "lean": -12.0, "head": -10.0},
+	},
 	"cast": {
 		"windup": {"fa_u": 15.0, "fa_l": 160.0, "ba_u": 10.0, "ba_l": 150.0, "lean": -8.0},
 		"strike": {"fa_u": 85.0, "fa_l": 92.0, "ba_u": 75.0, "ba_l": 100.0, "lean": 14.0, "hx": 3.0},
@@ -167,7 +192,9 @@ func approx_height() -> float:
 		&"bicorne": extra = 11.0
 		&"top_hat": extra = 15.0
 		&"halo": extra = 13.0
-		&"helmet": extra = 10.0
+		&"plumes": extra = 18.0
+		&"helmet", &"morion": extra = 10.0
+		&"guan": extra = 8.0
 		&"turban", &"fur_hat", &"nemes", &"crown", &"cap", &"beret": extra = 7.0
 		&"tiara", &"headband": extra = 6.0
 	return data.thigh_len + data.shin_len + data.torso_len + 2.0 + data.head_height + extra
@@ -582,6 +609,16 @@ func _head() -> void:
 			draw_rect(Rect2(head.position.x - 1, -hh, 3, roundf(hh * 0.4)), _c(data.hair_color))
 			for i in 4:
 				draw_rect(Rect2(head.position.x - 6.0 - i * 0.5, -hh + 2.0 + i * 3.0, 5, 4), _c(data.hair_color))
+		&"wig":
+			# Peluca del siglo XVII: raya al medio y bucles que caen hasta los hombros.
+			draw_rect(Rect2(head.position.x - 2, -hh - 3, hw + 3, 5), _c(data.hair_color))
+			draw_rect(Rect2(head.position.x - 1, -hh - 3, hw + 1, 1), _c(data.hair_color.lightened(0.25)))
+			for i in 4:
+				var lx := head.position.x - 4.0 + (i % 2) * 2.0
+				draw_rect(Rect2(lx, -hh + i * 4.0, 7, 5), _c(OUTLINE))
+				draw_rect(Rect2(lx + 1, -hh + 1 + i * 4.0, 5, 3), _c(data.hair_color if i % 2 == 0 else data.hair_color.darkened(0.12)))
+			draw_rect(Rect2(fx - 3, -hh + 1, 3, 5), _c(data.hair_color))
+			draw_rect(Rect2(fx - 3, -hh + 6, 2, 3), _c(data.hair_color.darkened(0.12)))
 		&"curls":
 			draw_rect(Rect2(head.position.x - 2, -hh - 3, hw + 4, 5), _c(data.hair_color))
 			draw_rect(Rect2(head.position.x - 2, -hh, 4, 8), _c(data.hair_color))
@@ -643,6 +680,36 @@ func _head() -> void:
 			_orect(Rect2(-hw / 2.0 - 1, -hh, 4, hh * 0.7), hat)
 			_orect(Rect2(-hw / 2.0, -hh - 10, hw + 1, 5), _c(data.accent_color))
 			draw_rect(Rect2(-hw / 2.0 - 1, -hh - 2, hw + 3, 1), trim)
+		&"plumes":
+			# Penacho mexica: abanico de plumas de quetzal sobre una diadema de oro.
+			for i in 7:
+				var ang := deg_to_rad(-150.0 + i * 20.0)
+				var root := Vector2(0, -hh - 1)
+				var tip := root + Vector2(cos(ang), sin(ang)) * (15.0 if i % 2 == 0 else 12.0)
+				draw_line(root, tip, _c(OUTLINE), 5.0)
+				draw_line(root, tip, hat if i % 2 == 0 else hat.lightened(0.2), 3.0)
+				draw_rect(Rect2(tip - Vector2(1, 1), Vector2(2, 2)), _c(data.accent_color))
+			_orect(Rect2(-hw / 2.0 - 1, -hh - 3, hw + 2, 4), trim)
+			for i in 3:
+				draw_rect(Rect2(-hw / 2.0 + 1 + i * 4, -hh - 2, 2, 2), _c(data.accent_color))
+		&"guan":
+			# Gorro de letrado chino: copa alta y estrecha sujeta con una aguja.
+			_orect(Rect2(-hw / 2.0, -hh - 2, hw, 3), hat)
+			_orect(Rect2(-3, -hh - 9, 7, 8), hat)
+			draw_rect(Rect2(-hw / 2.0 - 3, -hh - 6, hw + 6, 1), _c(OUTLINE))
+			draw_rect(Rect2(-hw / 2.0 - 2, -hh - 6, hw + 4, 1), trim)
+		&"morion":
+			# Morrión español: casco con cresta alta y ala curvada en punta.
+			var crest := PackedVector2Array([Vector2(-5, -hh - 4), Vector2(0, -hh - 12), Vector2(5, -hh - 4)])
+			draw_colored_polygon(PackedVector2Array([Vector2(-6, -hh - 3), Vector2(0, -hh - 13), Vector2(6, -hh - 3)]), _c(OUTLINE))
+			draw_colored_polygon(crest, hat)
+			_orect(Rect2(-hw / 2.0, -hh - 5, hw, 5), hat)
+			var brim := PackedVector2Array([Vector2(-hw / 2.0 - 6, -hh - 4), Vector2(hw / 2.0 + 6, -hh - 4),
+				Vector2(hw / 2.0 + 2, -hh), Vector2(-hw / 2.0 - 2, -hh)])
+			draw_colored_polygon(brim, hat.darkened(0.15))
+			draw_line(brim[0], brim[1], _c(OUTLINE), 1.0)
+			draw_rect(Rect2(-1, -hh - 9, 2, 5), hat.lightened(0.3))
+			draw_rect(Rect2(-hw / 2.0 - 4, -hh - 5, 3, 2), _c(data.accent_color))
 		&"zucchetto":
 			_orect(Rect2(-hw / 2.0 + 1, -hh - 2, hw - 1, 4), hat)
 		&"halo":
@@ -707,6 +774,50 @@ func _draw_prop(hand: Vector2, along: Vector2) -> void:
 			draw_circle(c.round(), 4.0, _c(OUTLINE))
 			draw_circle(c.round(), 3.0, _c(Color("60e070")))
 			draw_rect(Rect2((c + Vector2(-1, -7)).round(), Vector2(3, 4)), _c(Color("d0e0e8")))
+		"scroll":
+			# Pergamino desenrollado con sus dos rodillos.
+			var perp := Vector2(-along.y, along.x)
+			var a := hand + along * 2.0
+			var b := hand + along * 12.0
+			draw_colored_polygon(PackedVector2Array([a + perp * 5, b + perp * 5, b - perp * 5, a - perp * 5]), _c(Color("efe2b8")))
+			draw_line((a + perp * 3).round(), (b + perp * 3).round(), _c(Color("8a7a50")), 1.0)
+			draw_line((a - perp * 1).round(), (b - perp * 1).round(), _c(Color("8a7a50")), 1.0)
+			for e in [a, b]:
+				draw_line((e + perp * 6).round(), (e - perp * 6).round(), _c(OUTLINE), 4.0)
+				draw_line((e + perp * 6).round(), (e - perp * 6).round(), _c(Color("8a5a2a")), 2.0)
+		"dagger":
+			var tip := hand + along * 13.0
+			draw_line(hand.round(), tip.round(), _c(OUTLINE), 3.0)
+			draw_line(hand.round(), tip.round(), _c(Color("e0e8f0")), 1.0)
+			var perp := Vector2(-along.y, along.x)
+			draw_line((hand + perp * 2.5).round(), (hand - perp * 2.5).round(), _c(Color("c09030")), 2.0)
+		"rifle":
+			# Fusil de francotirador con mira telescópica.
+			var perp := Vector2(-along.y, along.x)
+			var tip := hand + along * 26.0
+			var butt := hand - along * 9.0
+			draw_line(butt.round(), tip.round(), _c(OUTLINE), 4.0)
+			draw_line(butt.round(), (hand + along * 8.0).round(), _c(Color("7a4a24")), 2.0)
+			draw_line((hand + along * 8.0).round(), tip.round(), _c(Color("3a3a40")), 2.0)
+			var s0 := hand + along * 2.0 - perp * 3.0
+			draw_line(s0.round(), (s0 + along * 9.0).round(), _c(OUTLINE), 3.0)
+			draw_line(s0.round(), (s0 + along * 9.0).round(), _c(Color("2a2a30")), 1.0)
+		"pistol":
+			var perp := Vector2(-along.y, along.x)
+			var tip := hand + along * 8.0
+			draw_line(hand.round(), tip.round(), _c(OUTLINE), 4.0)
+			draw_line(hand.round(), tip.round(), _c(Color("4a4a54")), 2.0)
+			draw_line(hand.round(), (hand + perp * 4.0).round(), _c(Color("5a3a22")), 2.0)
+		"macana":
+			# Macuahuitl: maza de madera con filos de obsidiana a los dos lados.
+			var perp := Vector2(-along.y, along.x)
+			var tip := hand + along * 22.0
+			draw_line((hand - along * 3.0).round(), tip.round(), _c(OUTLINE), 6.0)
+			draw_line((hand - along * 3.0).round(), tip.round(), _c(Color("8a5a2a")), 4.0)
+			for i in 4:
+				var p := hand + along * (8.0 + i * 4.0)
+				for s in [-1.0, 1.0]:
+					draw_rect(Rect2((p + perp * 3.0 * s - Vector2(1, 1)).round(), Vector2(2, 2)), _c(Color("2a2a3a")))
 
 func _orect(r: Rect2, col: Color) -> void:
 	draw_rect(r.grow(1), _c(OUTLINE))

@@ -217,7 +217,7 @@ func _draw_powers() -> void:
 	var y := PANEL_Y + 22.0
 	y = _skill(y, "ESPECIAL 1", d.special_1, lore[2], HKTheme.GOLD)
 	y = _skill(y + 2.0, "ESPECIAL 2", d.special_2, lore[3], HKTheme.GOLD)
-	_skill(y + 2.0, "ULTIMATE", d.ultimate, RosterLore.ult_text(d.ultimate), Color("ff7050"))
+	_skill(y + 2.0, "ULTIMATE", d.ultimate, RosterLore.ult_text(d.ultimate, d.id), Color("ff7050"))
 	var combos := PackedStringArray()
 	for c in d.get_combos():
 		combos.append(c.display_name)

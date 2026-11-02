@@ -72,7 +72,7 @@ func _test_resources() -> void:
 		var ps := load(path) as PackedScene
 		check(ps != null and ps.can_instantiate(), "escena carga: " + path)
 	var roster := FighterRegistry.all()
-	check(roster.size() == 39, "roster con 39 luchadores (%d)" % roster.size())
+	check(roster.size() == 50, "roster con 50 luchadores (%d)" % roster.size())
 	var seen := {}
 	for d in roster:
 		check(not seen.has(d.id), "id único: %s" % d.id)
@@ -330,11 +330,11 @@ func _attack_test(attacker: Fighter, defender: Fighter, slot: StringName, k: Key
 	check(hits == 1 and absf(dealt - expected) < 0.05,
 		"P%d %s (%s): %d impacto, daño %.2f (esperado %.2f)" % [attacker.player_id, slot, atk.display_name, hits, dealt, expected])
 
-## Lanza el poder especial (special_2) de los 39 luchadores contra un rival
+## Lanza el poder especial (special_2) de los 50 luchadores contra un rival
 ## parado y comprueba que conecta, que su efecto especial ocurre y que las
 ## entidades desaparecen solas.
 func _test_powers() -> void:
-	print("\n# Poderes especiales de los 39 luchadores")
+	print("\n# Poderes especiales de los 50 luchadores")
 	var c := _fight()
 	Engine.time_scale = 3.0
 	for d in FighterRegistry.all():
@@ -385,6 +385,11 @@ func _test_powers() -> void:
 			&"enlightenment": check(min_y1 < -5.0, "%s: se eleva (%.1f px)" % [d.id, min_y1])
 			&"desert_ghost": check(swapped, "%s: reaparece detrás del rival" % d.id)
 			&"divine_light": check(c.p1.energy > energy_before - atk.energy_cost + 20.0, "%s: recupera energía (%.0f)" % [d.id, c.p1.energy])
+			&"socratic": check(max_invert > 0, "%s: las preguntas confunden al rival" % d.id)
+			&"gravity_absolute": check(min_y2 < -5.0, "%s: el rival queda suspendido (%.1f px)" % [d.id, min_y2])
+			&"art_of_war": check(swapped, "%s: reaparece detrás del rival" % d.id)
+			&"the_prince": check(swapped and max_root > 0, "%s: reaparece detrás y atrapa al rival" % d.id)
+			&"death_shot": check(max_slow > 0, "%s: la mira ralentiza al rival" % d.id)
 		# Todas las entidades deben desaparecer solas.
 		for i in 200:
 			if c.projectiles_root.get_child_count() == 0:
@@ -397,12 +402,12 @@ func _test_powers() -> void:
 	await wait_scene("Fight", 240)
 	await _wait_fight_phase()
 
-## Lanza el ultimate de los 39 luchadores contra un rival parado: tiene que ser una escena
+## Lanza el ultimate de los 50 luchadores contra un rival parado: tiene que ser una escena
 ## de varios golpes que no pase de su daño base, con su ambiente de pantalla, y todo debe
 ## desaparecer solo.
 func _test_ultimates() -> void:
 	print("
-# Ultimates de los 39 luchadores")
+# Ultimates de los 50 luchadores")
 	var c := _fight()
 	Engine.time_scale = 3.0
 	var kinds := {}

@@ -1001,12 +1001,15 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		# ¿Este golpe derriba? Lanzamientos, agarres y barridos (patada agachada).
 		var sweep := attacker.attack_crouching and attacker.current_attack == atk \
 			and atk.kind == AttackData.Kind.KICK
-		if atk.launch < 0.0 or atk.kind == AttackData.Kind.GRAB or sweep:
+		if atk.launch != 0.0 or atk.kind == AttackData.Kind.GRAB or sweep:
 			knockdown_pending = true
 		_end_attack()
 		air_attack_used = false
 		velocity.x = direction * atk.knockback
 		if atk.launch < 0.0:
+			velocity.y = atk.launch
+		elif atk.launch > 0.0 and not is_on_ground():
+			# Lo estrella contra el suelo.
 			velocity.y = atk.launch
 		elif sweep and is_on_ground():
 			velocity.y = SWEEP_LAUNCH

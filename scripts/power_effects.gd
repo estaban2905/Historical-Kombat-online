@@ -25,6 +25,7 @@
 ##   nostatus no aplica el estado alterado del ataque
 ##   pull     el golpe arrastra al rival hacia quien lo lanza (en vez de empujarlo)
 ##   follow   (solo visuales) acompaña a quien lo lanza hasta que acaba su escudo
+##   dir      dirección de avance (1 = derecha, -1 = izquierda); por defecto, la de quien lo lanza
 class_name PowerEffects
 extends RefCounted
 
@@ -267,6 +268,125 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 				"show": true})
 			_spawn(cm, f, atk, {"art": &"anchor", "off": Vector2(28, -44), "box": Vector2(24, 26), "speed": 330.0,
 				"life": 0.9, "pull": true, "knock": 300.0, "stun": 30, "sound": &"cannon"})
+		&"socratic":
+			# Sócrates: le llueven preguntas al rival, que queda confundido (controles invertidos)
+			# y recibe una combinación de bastonazos.
+			_spawn(cm, f, atk, {"art": &"questions", "at_opp": true, "off": Vector2(0, -44), "box": Vector2(54, 70),
+				"delay": 12, "show": true, "life": 0.9, "pierce": true, "share": 0.25, "knock": 0.0, "stun": 46,
+				"sound": &"confirm"})
+			for i in 3:
+				_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(-6.0 + i * 6.0, -36.0 + (i % 2) * 8.0),
+					"box": Vector2(40, 52), "delay": 34 + i * 10, "life": 0.18, "pierce": true, "share": 0.25,
+					"knock": 200.0 if i == 2 else 50.0, "stun": 22, "nostatus": true, "sound": &"hit_light"})
+		&"ideas":
+			# Platón: tres copias ilusorias atacan desde delante, desde detrás y desde arriba.
+			var tint := Color("b0d0ff")
+			_spawn(cm, f, atk, {"art": &"clone", "color": tint, "at_opp": true, "off": Vector2(_opp_dx(f, -110.0), -26),
+				"box": Vector2(22, 44), "dir": f.facing, "speed": 260.0, "delay": 8, "show": true, "life": 1.0,
+				"share": 1.0 / 3.0, "knock": 110.0, "stun": 24, "sound": &"whoosh"})
+			_spawn(cm, f, atk, {"art": &"clone", "color": tint, "at_opp": true, "off": Vector2(_opp_dx(f, 110.0), -26),
+				"box": Vector2(22, 44), "dir": -f.facing, "speed": 260.0, "delay": 18, "show": true, "life": 1.0,
+				"share": 1.0 / 3.0, "knock": 110.0, "stun": 24, "sound": &"whoosh"})
+			_spawn(cm, f, atk, {"art": &"clone", "color": tint, "at_opp": true, "off": Vector2(0, -150), "box": Vector2(22, 44),
+				"vy": 300.0, "floor_y": f.floor_y - 4.0, "delay": 28, "show": true, "life": 1.0, "share": 1.0 / 3.0,
+				"knock": 160.0, "stun": 26, "shake": 2.0, "sound": &"whoosh"})
+		&"logic":
+			# Aristóteles: analiza al rival y descarga tres golpes calculados al milímetro.
+			_spawn(cm, f, atk, {"art": &"logic", "at_opp": true, "off": Vector2(0, -36), "box": Vector2(44, 66),
+				"delay": 10, "show": true, "life": 0.8, "pierce": true, "share": 0.1, "knock": 0.0, "stun": 40,
+				"sound": &"confirm"})
+			var shares: Array[float] = [0.25, 0.25, 0.4]
+			for i in 3:
+				_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -50.0 + i * 14.0), "box": Vector2(42, 40),
+					"delay": 30 + i * 10, "life": 0.18, "pierce": true, "share": shares[i], "knock": 260.0 if i == 2 else 40.0,
+					"launch": -200.0 if i == 2 else 0.0, "stun": 24, "shake": 3.0 if i == 2 else 0.0,
+					"sound": &"hit_heavy" if i == 2 else &"hit_light"})
+		&"art_of_war":
+			# Sun Tzu: deja una ilusión que carga de frente y reaparece detrás del rival.
+			var o := f.opponent
+			var sgn := signf(o.position.x - f.position.x)
+			if sgn == 0.0:
+				sgn = float(f.facing)
+			_visual(cm, f, f.position + Vector2(0, -26), {"art": &"clone", "color": Color("ffd890"), "box": Vector2(22, 44),
+				"speed": 170.0, "life": 0.5})
+			_visual(cm, f, f.position + Vector2(0, -30), {"art": &"smoke", "color": Color("c8c0b0"), "box": Vector2(30, 50),
+				"life": 0.5})
+			f.position.x = clampf(o.position.x + sgn * 30.0, f.bounds.x, f.bounds.y)
+			f.facing = -int(sgn)
+			f.velocity.x = 0.0
+			_visual(cm, f, f.position + Vector2(0, -30), {"art": &"smoke", "color": Color("c8c0b0"), "box": Vector2(30, 50),
+				"life": 0.5})
+			_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -40), "box": Vector2(36, 52),
+				"delay": 6, "life": 0.2, "pierce": true, "share": 0.4, "knock": 40.0, "stun": 22, "sound": &"hit_light"})
+			_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -30), "box": Vector2(40, 52),
+				"delay": 18, "life": 0.2, "pierce": true, "share": 0.6, "knock": 230.0, "stun": 26, "shake": 3.0,
+				"sound": &"hit_heavy"})
+		&"celestial_order":
+			# Confucio: símbolos luminosos que golpean y empujan al rival.
+			for i in 3:
+				_spawn(cm, f, atk, {"art": &"glyph", "color": Color("ffd860"), "off": Vector2(22, -60.0 + i * 16.0),
+					"box": Vector2(18, 18), "speed": 215.0, "delay": i * 8, "life": 1.4, "share": 1.0 / 3.0,
+					"knock": 170.0, "stun": 20, "clash": true, "sound": &"confirm"})
+		&"gravity_absolute":
+			# Newton: levanta al rival, lo deja suspendido y lo estrella contra el suelo.
+			_spawn(cm, f, atk, {"art": &"gravity", "at_opp": true, "off": Vector2(0, -36), "box": Vector2(46, 72),
+				"delay": 14, "show": true, "life": 0.6, "pierce": true, "share": 0.35, "knock": 0.0, "stun": 75,
+				"sound": &"confirm"})
+			_spawn(cm, f, atk, {"art": &"gravslam", "at_opp": true, "off": Vector2(0, -50), "box": Vector2(46, 100),
+				"delay": 60, "life": 0.3, "pierce": true, "share": 0.65, "knock": 140.0, "launch": 320.0, "stun": 34,
+				"nostatus": true, "shake": 6.0, "sound": &"hit_heavy"})
+			_stones_later(cm, f.opponent.position.x, 62)
+		&"conquest":
+			# Cortés: jinetes y soldados con pica atraviesan la pantalla.
+			_spawn(cm, f, atk, {"art": &"conquistadors", "off": Vector2(-20, -18), "box": Vector2(58, 40), "speed": 250.0,
+				"life": 1.9, "pierce": true, "share": 0.55, "knock": 120.0, "stun": 30, "sound": &"whoosh"})
+			_spawn(cm, f, atk, {"art": &"tercio", "off": Vector2(-30, -15), "box": Vector2(58, 34), "speed": 200.0,
+				"delay": 16, "life": 2.0, "pierce": true, "share": 0.45, "knock": 280.0, "launch": -130.0, "stun": 28,
+				"sound": &"whoosh"})
+		&"huitzilopochtli":
+			# Moctezuma: aparece la figura del sol y suelta una explosión de energía.
+			_visual(cm, f, f.position + Vector2(-10.0 * f.facing, -96.0), {"art": &"sungod", "box": Vector2(100, 100),
+				"life": 1.1, "show": true})
+			_spawn(cm, f, atk, {"art": &"sphere", "color": Color("ffc040"), "off": Vector2(30, -50), "box": Vector2(30, 30),
+				"speed": 240.0, "delay": 24, "life": 1.5, "boom": true, "knock": 290.0, "launch": -120.0, "stun": 30,
+				"shake": 3.0, "sound": &"megaphone"})
+		&"the_prince":
+			# Maquiavelo: deja una ilusión, reaparece tras el rival, lo atrapa en un cepo y lo apuñala.
+			var o := f.opponent
+			var sgn := signf(o.position.x - f.position.x)
+			if sgn == 0.0:
+				sgn = float(f.facing)
+			_visual(cm, f, f.position + Vector2(0, -26), {"art": &"clone", "color": Color("d0a0a0"), "box": Vector2(22, 44),
+				"life": 0.7})
+			f.position.x = clampf(o.position.x + sgn * 30.0, f.bounds.x, f.bounds.y)
+			f.facing = -int(sgn)
+			f.velocity.x = 0.0
+			_visual(cm, f, f.position + Vector2(0, -30), {"art": &"smoke", "color": Color("8a7a8a"), "box": Vector2(30, 50),
+				"life": 0.5})
+			_spawn(cm, f, atk, {"art": &"jaws", "at_opp": true, "off": Vector2(0, -10), "box": Vector2(44, 20),
+				"delay": 8, "show": true, "life": 0.6, "pierce": true, "share": 0.3, "knock": 0.0, "stun": 34,
+				"sound": &"hit_light"})
+			_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -38), "box": Vector2(40, 52),
+				"delay": 34, "life": 0.22, "pierce": true, "share": 0.7, "knock": 220.0, "stun": 26, "nostatus": true,
+				"shake": 4.0, "sound": &"hit_heavy"})
+		&"t34":
+			# Mariya: su T-34 cruza el escenario disparando y remata con una explosión.
+			_spawn(cm, f, atk, {"art": &"tank", "off": Vector2(-34, -14), "box": Vector2(60, 28), "speed": 160.0,
+				"life": 2.4, "pierce": true, "share": 0.35, "knock": 40.0, "stun": 30, "sound": &"hit_heavy"})
+			for i in 3:
+				_spawn(cm, f, atk, {"style": &"ball", "off": Vector2(14, -26), "box": Vector2(12, 12), "speed": 300.0,
+					"delay": 10 + i * 12, "life": 1.2, "share": 0.1, "knock": 30.0, "stun": 24, "sound": &"cannon"})
+			_spawn(cm, f, atk, {"art": &"lightburst", "at_opp": true, "off": Vector2(0, -32), "box": Vector2(66, 72),
+				"delay": 58, "life": 0.35, "pierce": true, "share": 0.35, "knock": 200.0, "launch": -300.0, "stun": 36,
+				"shake": 6.0, "sound": &"hit_heavy"})
+		&"death_shot":
+			# Liudmila: la mira se cierra sobre el rival (tiempo lento) y una bala de energía lo atraviesa.
+			_spawn(cm, f, atk, {"art": &"scope", "color": Color("ff6060"), "at_opp": true, "off": Vector2(0, -40),
+				"box": Vector2(44, 44), "delay": 14, "show": true, "life": 0.5, "pierce": true, "share": 0.15,
+				"knock": 0.0, "stun": 40, "sound": &"confirm"})
+			_spawn(cm, f, atk, {"art": &"tracer", "color": Color("ffe080"), "off": Vector2(26, -46), "box": Vector2(26, 10),
+				"speed": 560.0, "delay": 34, "life": 0.8, "pierce": true, "share": 0.85, "knock": 270.0, "stun": 30,
+				"nostatus": true, "shake": 4.0, "sound": &"cannon"})
 		&"ult":
 			_cast_ultimate(cm, f, atk)
 		_:
@@ -290,7 +410,7 @@ const ART_GEOM := {
 	&"legion": [62.0, 44.0, -22.0], &"caravel": [78.0, 44.0, -18.0], &"shipfull": [130.0, 90.0, -42.0],
 	&"bear": [40.0, 28.0, -13.0], &"dragon": [64.0, 30.0, -50.0], &"jackal": [50.0, 30.0, -14.0],
 	&"guard": [44.0, 40.0, -20.0], &"monkeys": [48.0, 42.0, -20.0], &"corgis": [70.0, 24.0, -12.0],
-	&"bell_wave": [24.0, 54.0, -30.0],
+	&"bell_wave": [24.0, 54.0, -30.0], &"ghost_army": [50.0, 40.0, -20.0], &"galleon": [88.0, 52.0, -26.0],
 }
 
 ## Programa un evento de pantalla (si el efecto existe).
@@ -311,6 +431,8 @@ static func _cast_ultimate(cm: CombatManager, f: Fighter, atk: AttackData) -> vo
 		&"summon": _ult_summon(cm, f, atk)
 		&"meteor": _ult_meteor(cm, f, atk)
 		&"slash": _ult_slash(cm, f, atk)
+		&"trap": _ult_trap(cm, f, atk)
+		&"snipe": _ult_snipe(cm, f, atk)
 		_: push_warning("PowerEffects: tipo de ultimate desconocido «%s»" % atk.ult_kind)
 
 ## Lluvia de bombas sobre toda la zona del rival; cada impacto abre una grieta.
@@ -452,6 +574,50 @@ static func _ult_slash(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 		"shake": 7.0, "sound": &"hit_heavy"})
 	_ufx(cm, 66.0 / 60.0, &"crack", {"x": f.opponent.position.x, "len": 120.0, "shake": 6.0})
 	_ufx(cm, 66.0 / 60.0, &"flash", {"amount": 0.7})
+
+## Trampa: un objeto gigante (copa, caverna, pizarra, estatua, libro, manzana, disco solar)
+## cae o se cierra sobre el rival, lo golpea varias veces y lo despide con un estallido final.
+static func _ult_trap(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	var drop := 40
+	_spawn(cm, f, atk, {"art": atk.ult_art, "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -50),
+		"box": Vector2(66, 100), "delay": drop, "show": true, "life": 1.4, "pierce": true, "rehit": 16, "max_hits": 4,
+		"share": 0.15, "knock": 0.0, "stun": 30, "shake": 6.0, "sound": &"hit_heavy"})
+	_ufx(cm, float(drop) / 60.0, &"crack", {"x": o, "len": 110.0, "shake": 5.0})
+	_ufx(cm, float(drop) / 60.0, &"debris", {"x": o})
+	_ufx(cm, float(drop) / 60.0, &"flash", {"amount": 0.4})
+	_spawn(cm, f, atk, {"art": &"ring", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -36), "box": Vector2(190, 90),
+		"delay": drop + 80, "show": true, "life": 0.45, "pierce": true, "radial": true, "share": 0.4, "knock": 330.0,
+		"launch": -280.0, "stun": 40, "shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, float(drop + 80) / 60.0, &"ring", {"x": o})
+	_ufx(cm, float(drop + 80) / 60.0, &"flash", {"amount": 0.8})
+
+## Disparo: la pantalla se oscurece, se apunta al rival (mira o cañón del tanque) y un
+## único disparo lo derriba dentro de una nube de humo.
+static func _ult_snipe(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	var shot := 70
+	if atk.ult_art == &"tank":
+		# El tanque entra en primer plano por detrás de quien lo lanza.
+		_visual(cm, f, f.position + Vector2(-70.0 * f.facing, -16.0), {"art": &"tank", "box": Vector2(70, 34),
+			"speed": 60.0, "life": 1.6, "show": true})
+	else:
+		_visual(cm, f, f.opponent.position + Vector2(0, -40), {"art": &"scope", "color": atk.ult_color,
+			"box": Vector2(70, 70), "life": float(shot) / 60.0, "show": true})
+	_spawn(cm, f, atk, {"art": &"lightburst", "at_opp": true, "off": Vector2(0, -40), "box": Vector2(60, 76),
+		"delay": shot, "life": 0.35, "pierce": true, "share": 0.7, "knock": 340.0, "launch": -240.0, "stun": 44,
+		"shake": 8.0, "sound": &"cannon"})
+	_spawn(cm, f, atk, {"art": &"smoke", "color": Color("4a4440"), "at_opp": true, "off": Vector2(0, -30),
+		"box": Vector2(80, 70), "delay": shot + 4, "show": false, "life": 1.0, "pierce": true, "rehit": 12,
+		"max_hits": 3, "share": 0.1, "knock": 40.0, "stun": 20})
+	_ufx(cm, float(shot) / 60.0, &"flash", {"amount": 1.0})
+	_ufx(cm, float(shot) / 60.0, &"crack", {"x": o, "len": 120.0, "shake": 6.0})
+	_ufx(cm, float(shot) / 60.0, &"debris", {"x": o})
+
+## Desplazamiento (hacia delante) desde el rival que no saca la entidad de la pantalla.
+static func _opp_dx(f: Fighter, dx: float) -> float:
+	var x := clampf(f.opponent.position.x + dx * f.facing, -40.0, 466.0)
+	return (x - f.opponent.position.x) * f.facing
 
 ## Fragmentos de piedra en el suelo tras `frames` (cuando el poder golpea).
 static func _stones_later(cm: CombatManager, x: float, frames: int) -> void:

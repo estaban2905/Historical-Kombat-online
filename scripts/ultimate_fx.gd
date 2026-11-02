@@ -18,7 +18,7 @@ const H := 240.0
 const MAX_PARTS := 220
 ## Partículas por segundo según el tipo de ultimate.
 const RATES := {&"storm": 150.0, &"barrage": 60.0, &"meteor": 70.0, &"quake": 55.0, &"charge": 40.0,
-	&"light": 45.0, &"wave": 40.0, &"summon": 40.0, &"slash": 60.0}
+	&"light": 45.0, &"wave": 40.0, &"summon": 40.0, &"slash": 60.0, &"trap": 45.0, &"snipe": 30.0}
 
 var kind: StringName = &""
 var color: Color = Color.WHITE

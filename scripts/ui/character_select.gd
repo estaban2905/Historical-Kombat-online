@@ -6,10 +6,10 @@
 ##   ESC: volver al menú
 extends Control
 
-const COLS := 7
+const COLS := 9
 const ROWS := 6
-const CELL := Vector2(24, 18)
-const GRID_ORIGIN := Vector2(129, 34)
+const CELL := Vector2(22, 18)
+const GRID_ORIGIN := Vector2(114, 34)
 const P1_COLOR := Color("e83a3a")
 const P2_COLOR := Color("3a8af0")
 const SHADE := Color(0.05, 0.02, 0.07, 0.78)
