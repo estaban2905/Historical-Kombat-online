@@ -66,8 +66,8 @@ func _setup_buttons() -> void:
 				Game.arcade_advance()
 				Game.goto(Game.SCENE_STORY))
 		&"complete":
-			btn_rematch.text = "VER CRÉDITOS"
-			btn_rematch.pressed.connect(func(): Game.goto(Game.SCENE_CREDITS))
+			btn_rematch.text = "EL DESTINO"
+			btn_rematch.pressed.connect(func(): Game.goto(Game.SCENE_STORY_ENDING))
 		&"retry":
 			btn_rematch.text = "CONTINUAR (%d)" % Game.arcade_continues
 			btn_rematch.pressed.connect(func():

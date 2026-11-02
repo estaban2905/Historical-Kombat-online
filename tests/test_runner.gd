@@ -710,7 +710,7 @@ func _test_arcade() -> void:
 	check(Game.arcade_outcome() == &"complete", "ganar al último rival completa el arcade")
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
 	check(await wait_scene("Results"), "resultados del arcade completado")
-	check(rematch_text_is("VER CRÉDITOS"), "historia completada: se ofrece VER CRÉDITOS")
+	check(rematch_text_is("EL DESTINO"), "historia completada: se ofrece EL DESTINO (final con elección)")
 
 	# --- Sin gastar revanchas aparece el jefe secreto, reforzado ---
 	Game.story_continues_used = 0

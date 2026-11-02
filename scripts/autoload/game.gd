@@ -16,6 +16,7 @@ const SCENE_RANKING := "res://scenes/Ranking.tscn"
 const SCENE_ROSTER := "res://scenes/Roster.tscn"
 const SCENE_CREDITS := "res://scenes/Credits.tscn"
 const SCENE_STORY := "res://scenes/Story.tscn"
+const SCENE_STORY_ENDING := "res://scenes/StoryEnding.tscn"
 
 const VERSION := "0.1.0"
 
