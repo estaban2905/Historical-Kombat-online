@@ -27,8 +27,9 @@ func _ready() -> void:
 		Game.story_continues_used = [0, 0, 1, 2, 4, 4][mini(k, 5)]
 		var scene := (load(Game.SCENE_STORY) as PackedScene).instantiate()
 		add_child(scene)
-		if scene._prologue:
-			scene._prologue.skip()
+		scene._skip_intros = true
+		if scene._intro:
+			scene._intro.skip()
 		await get_tree().create_timer(1.0).timeout
 		_save("%s/card_%d.png" % [out, k + 1])
 		scene._t = scene.CARD_TIME

@@ -27,8 +27,10 @@ var _card: bool = false
 var _btn: Button
 ## Capa superior para la tarjeta de capítulo (debe tapar también a los luchadores).
 var _overlay: Control
-## Mini-intro del primer combate; mientras existe, la tarjeta y el botón esperan.
-var _prologue: StoryPrologue
+## Animación en curso (mini-intro del Nexo y/o arranque de la época); mientras existe, la tarjeta
+## y el botón esperan. Cualquier tecla las salta todas.
+var _intro: Node
+var _skip_intros: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -55,11 +57,26 @@ func _ready() -> void:
 	_btn.visible = not _card
 	if not _card:
 		_btn.grab_focus()
-	if _card and Game.arcade_stage == 0:
-		# Mini-intro del Nexo: al acabar o saltarla sigue la tarjeta del capítulo.
-		_prologue = StoryPrologue.new()
-		add_child(_prologue)
-		_prologue.finished.connect(func(): _prologue = null)
+	if _card:
+		# En el primer combate, la mini-intro del Nexo; después, la animación de la época.
+		# Al acabar (o saltarlas) sigue la tarjeta del capítulo.
+		if Game.arcade_stage == 0:
+			_play_intro(StoryPrologue.new(), true)
+		else:
+			_play_era_intro()
+
+func _play_intro(intro: Node, then_era: bool) -> void:
+	_intro = intro
+	add_child(intro)
+	intro.finished.connect(func():
+		_intro = null
+		if then_era and not _skip_intros:
+			_play_era_intro())
+
+func _play_era_intro() -> void:
+	var era := StoryEraIntro.new()
+	era.chapter = Game.story_chapter_of(Game.arcade_ladder[Game.arcade_stage])
+	_play_intro(era, false)
 
 func _load_stage(fighter_id: StringName) -> void:
 	var packed := load(StageRegistry.scene_for(fighter_id)) as PackedScene
@@ -85,16 +102,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if Game.is_changing_scene():
 		return
 	if _card and event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
-		_t = maxf(_t, CARD_TIME - CARD_FADE)   # saltar la tarjeta (y la mini-intro, si la hay)
-		if _prologue:
-			_prologue.skip()
+		_t = maxf(_t, CARD_TIME - CARD_FADE)   # saltar la tarjeta y las animaciones, si las hay
+		_skip_intros = true
+		if _intro:
+			_intro.skip()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"ui_cancel"):
 		Game.goto(Game.SCENE_MENU)
 		get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
-	if _prologue:
+	if _intro:
 		return
 	_t += delta
 	if _card and _t >= CARD_TIME:
