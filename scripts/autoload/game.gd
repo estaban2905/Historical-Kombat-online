@@ -47,7 +47,7 @@ const DIFFICULTY_LEVEL: Array[float] = [0.2, 0.5, 0.8]
 const ARCADE_CONTINUES := 3
 ## Jefe final: el Nexo cierra la escalera tras la última época.
 const STORY_NEXO_ID := FighterRegistry.NEXO_ID
-const STORY_NEXO_NAME := "EL NEXO"
+const STORY_NEXO_NAME := "EL JUICIO DEL NEXO"
 ## Épocas del más reciente al más antiguo: [nombre, [luchadores]]. Cada una cierra con
 ## su jefe (STORY_BOSSES) y dentro de la época se ordenan por año.
 const STORY_CHAPTERS := [
