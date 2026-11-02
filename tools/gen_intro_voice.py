@@ -66,23 +66,27 @@ FILTER = (
     "aecho=0.8:0.88:110|230|470:0.40|0.28|0.16,alimiter=limit=0.95,volume=1.5"
 )
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
+def render(lines: list, out_dir: Path, prefix: str) -> None:
+    """Sintetiza cada frase y la deja procesada en out_dir/<prefix>_N.wav (imprime su duración)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         script = Path(tmp) / "tts.ps1"
         script.write_text(PS, encoding="utf-8-sig")
-        for i, text in enumerate(LINES, start=1):
+        for i, text in enumerate(lines, start=1):
             txt = Path(tmp) / f"l{i}.txt"
             raw = Path(tmp) / f"l{i}.wav"
             txt.write_text(text, encoding="utf-8")
             subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
                             str(txt), str(raw)], check=True)
-            dest = OUT / f"voice_{i}.wav"
+            dest = out_dir / f"{prefix}_{i}.wav"
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-filter_complex", FILTER,
                             "-ac", "1", "-ar", "22050", str(dest)], check=True)
             print(dest.name, subprocess.run(
                 ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(dest)],
                 capture_output=True, text=True).stdout.strip(), "s")
+
+def main() -> None:
+    render(LINES, OUT, "voice")
 
 if __name__ == "__main__":
     sys.exit(main())

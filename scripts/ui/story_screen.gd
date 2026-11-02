@@ -17,8 +17,6 @@ const RIVAL_X := 346.0
 ## Segundos que dura la tarjeta de capítulo (los últimos 0.5 se desvanece).
 const CARD_TIME := 2.4
 const CARD_FADE := 0.5
-## Segundos de la apertura del Nexo, antes de la tarjeta del primer capítulo.
-const PROLOGUE_TIME := 3.6
 const ROMAN: Array[String] = ["I", "II", "III", "IV", "V", "?"]
 const DONE := Color("f0c040")
 const FUTURE := Color("5a4a58")
@@ -29,6 +27,8 @@ var _card: bool = false
 var _btn: Button
 ## Capa superior para la tarjeta de capítulo (debe tapar también a los luchadores).
 var _overlay: Control
+## Mini-intro del primer combate; mientras existe, la tarjeta y el botón esperan.
+var _prologue: StoryPrologue
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -56,7 +56,10 @@ func _ready() -> void:
 	if not _card:
 		_btn.grab_focus()
 	if _card and Game.arcade_stage == 0:
-		_t = -PROLOGUE_TIME   # la apertura cuenta desde un tiempo negativo hasta 0
+		# Mini-intro del Nexo: al acabar o saltarla sigue la tarjeta del capítulo.
+		_prologue = StoryPrologue.new()
+		add_child(_prologue)
+		_prologue.finished.connect(func(): _prologue = null)
 
 func _load_stage(fighter_id: StringName) -> void:
 	var packed := load(StageRegistry.scene_for(fighter_id)) as PackedScene
@@ -82,13 +85,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if Game.is_changing_scene():
 		return
 	if _card and event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
-		_t = maxf(_t, CARD_TIME - CARD_FADE)   # saltar la tarjeta
+		_t = maxf(_t, CARD_TIME - CARD_FADE)   # saltar la tarjeta (y la mini-intro, si la hay)
+		if _prologue:
+			_prologue.skip()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"ui_cancel"):
 		Game.goto(Game.SCENE_MENU)
 		get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
+	if _prologue:
+		return
 	_t += delta
 	if _card and _t >= CARD_TIME:
 		_card = false
@@ -203,9 +210,6 @@ func _draw_card() -> void:
 	var a := clampf((CARD_TIME - _t) / CARD_FADE, 0.0, 1.0)
 	if a <= 0.0:
 		return
-	if _t < 0.0:
-		_draw_prologue()
-		return
 	var chapter := Game.story_chapter_of(Game.arcade_ladder[Game.arcade_stage])
 	_overlay.draw_rect(Rect2(0, 0, 426, 240), Color(0.03, 0.02, 0.05, a))
 	var fade := Color(1, 1, 1, a)
@@ -227,17 +231,6 @@ func _draw_card() -> void:
 		HKTheme.draw_text(_overlay, Vector2(0, 208 + i * 11), react[i], 8, HKTheme.GOLD.darkened(0.1) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 	HKTheme.draw_text(_overlay, Vector2(0, 158), "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues],
 		8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
-
-## Apertura del Nexo al empezar la partida: se funde desde negro y se apaga antes de la tarjeta.
-func _draw_prologue() -> void:
-	var k := clampf((_t + PROLOGUE_TIME) / 0.8, 0.0, 1.0) * clampf(-_t / 0.5, 0.0, 1.0)
-	_overlay.draw_rect(Rect2(0, 0, 426, 240), Color(0.03, 0.02, 0.05))
-	var violet := Color("9a4dff").lightened(0.4)
-	var w := Color(1, 1, 1, k)
-	HKTheme.draw_text(_overlay, Vector2(0, 92), "EL NEXO TE OBSERVA", 8, violet * w, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
-	HKTheme.draw_text(_overlay, Vector2(0, 108), Game.p1_data().short_name.to_upper(), 16, HKTheme.GOLD * w, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
-	HKTheme.draw_text(_overlay, Vector2(0, 136), "¿QUIÉN MERECE CONTROLAR EL DESTINO", 8, HKTheme.PAPER * w, HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
-	HKTheme.draw_text(_overlay, Vector2(0, 148), "DE TODA LA HISTORIA?", 8, HKTheme.PAPER * w, HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
 
 func _centered(cx: float, y: float, text: String, color: Color) -> void:
 	HKTheme.draw_text(self, Vector2(cx - HKTheme.text_width(text, 8) * 0.5, y), text, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
