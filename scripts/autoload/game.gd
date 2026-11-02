@@ -91,6 +91,52 @@ const STORY_VS := {
 	&"adolf_hitler": ["SU IMPERIO DEBÍA DURAR MIL AÑOS.", "DURÓ DOCE."],
 	&"joseph_stalin": ["ACERO EN EL NOMBRE.", "ACERO EN LOS PUÑOS."],
 	&"donald_trump": ["EL ÚLTIMO EN LLEGAR", "SIEMPRE QUIERE LA CABECERA."],
+	&"kim_jong_un": ["GOBIERNA UN PAÍS CERRADO.", "AQUÍ SOLO ENTRAN PUÑOS."],
+	&"vladimir_putin": ["CINTURÓN NEGRO DE JUDO.", "NO SE LE DA LA ESPALDA."],
+	&"xi_jinping": ["PACIENTE COMO UNA MURALLA.", "ESPERA TU ERROR."],
+	&"nicolas_maduro": ["BAILA SALSA ENTRE GOLPES.", "NO CONFÍES EN SU RITMO."],
+	&"benito_mussolini": ["EL DUCE SUBE AL BALCÓN", "A DAR SU ÚLTIMO DISCURSO."],
+	&"saddam_hussein": ["REY DEL DESIERTO.", "SU TRONO ES ARENA."],
+	&"osama_bin_laden": ["SE ESCONDE EN LA SOMBRA.", "ATACA SIN AVISAR."],
+	&"fidel_castro": ["BAJÓ DE LA SIERRA", "A CAMBIAR UNA ISLA."],
+	&"isabel_ii": ["SIETE DÉCADAS EN EL TRONO.", "NI UN GOLPE LA DESPEINA."],
+	&"abraham_lincoln": ["ABOLIÓ LA ESCLAVITUD", "CON LAS MANOS Y UN HACHA."],
+	&"papa_francisco": ["PASTOR DE LOS HUMILDES.", "TAMBIÉN SABE GOLPEAR."],
+	&"rasputin": ["EL MONJE QUE NO MUERE.", "SU MIRADA TE CONTROLA."],
+	&"pablo_escobar": ["PLATA O PLOMO.", "AQUÍ PAGAS EN GOLPES."],
+	&"charles_darwin": ["SOBREVIVE EL MÁS ADAPTADO.", "A VER SI ERES TÚ."],
+	&"galileo_galilei": ["LA TIERRA SE MUEVE.", "Y SU TELESCOPIO TAMBIÉN."],
+	&"janequeo": ["LA TOQUI DEL SUR.", "SU PICA NO PERDONA."],
+	&"pachacutec": ["TRANSFORMADOR DEL MUNDO.", "FUNDÓ EL TAHUANTINSUYO."],
+	&"ivan_el_terrible": ["PRIMER ZAR DE RUSIA.", "SU FAMA ES SU ARMA."],
+	&"boudica": ["REINA DE LOS ICENOS.", "ROMA TEMBLÓ ANTE ELLA."],
+	&"arturo_prat": ["SALTÓ AL ABORDAJE", "SABIENDO QUE NO VOLVERÍA."],
+	&"socrates": ["SOLO SÉ QUE NO SÉ NADA.", "PERO PEGA MUY FUERTE."],
+	&"platon": ["FUNDÓ LA ACADEMIA.", "SU REPÚBLICA ES IMBATIBLE."],
+	&"aristoteles": ["MAESTRO DE ALEJANDRO.", "SU LÓGICA ES IMPLACABLE."],
+	&"confucio": ["PRIMERO EL ORDEN,", "DESPUÉS EL GOLPE."],
+	&"isaac_newton": ["LA GRAVEDAD TIENE", "UN NOMBRE: ÉL."],
+	&"nicolas_maquiavelo": ["EL FIN JUSTIFICA", "LOS MEDIOS. TODOS."],
+	&"mariya_oktyabrskaya": ["VENDIÓ TODO PARA COMPRAR", "UN TANQUE: EL SUYO."],
+	&"liudmila_pavlichenko": ["LADY DEATH: MÁS DE 300", "BAJAS EN SEVASTÓPOL."],
+}
+## Frases cuando se enfrentan dos luchadores concretos, en cualquier orden: "id|id" -> líneas.
+const STORY_VS_PAIR := {
+	"salvador_allende|augusto_pinochet": ["LA MONEDA, 1973.", "AHORA SE DECIDE DE OTRO MODO."],
+	"hernan_cortes|moctezuma_ii": ["DOS MUNDOS SE ENCUENTRAN", "EN TENOCHTITLAN."],
+	"cristobal_colon|lautaro": ["EL DESCUBRIDOR Y EL TOQUI", "SE VEN LAS CARAS."],
+	"napoleon|juana_de_arco": ["UN EMPERADOR Y UNA SANTA.", "DOS SIGLOS DE DISTANCIA."],
+	"abraham_lincoln|charles_darwin": ["NACIERON EL MISMO DÍA.", "SOLO UNO SE QUEDA EN PIE."],
+	"socrates|platon": ["MAESTRO Y DISCÍPULO.", "LA LECCIÓN SE DA A GOLPES."],
+	"platon|aristoteles": ["EL DISCÍPULO CONTRA", "SU MAYOR RIVAL DE IDEAS."],
+	"socrates|aristoteles": ["TRES SABIOS, UNA IDEA:", "EL MÁS FUERTE ENSEÑA."],
+	"julio_cesar|cleopatra": ["ROMA Y EGIPTO,", "OTRA VEZ ENFRENTADAS."],
+	"alejandro_magno|aristoteles": ["EL ALUMNO DEBE LA CLASE", "A SU MAESTRO."],
+	"adolf_hitler|joseph_stalin": ["DOS TIRANOS, UN PACTO", "ROTO. FUEGO CRUZADO."],
+	"adolf_hitler|benito_mussolini": ["EL EJE SE QUIEBRA.", "NO HAY ALIADOS EN EL NEXO."],
+	"fidel_castro|donald_trump": ["MEDIO SIGLO DE ENEMISTAD.", "SALDADA EN UN RING."],
+	"nikola_tesla|albert_einstein": ["DOS MENTES, UNA MÁQUINA.", "AHORA, UN SOLO GANADOR."],
+	"marie_curie|nikola_tesla": ["LUZ CONTRA CORRIENTE.", "EL RELOJ LOS UNIÓ."],
 }
 ## Refuerzo [vida, fuerza, resistencia] del jefe de cada capítulo y del jefe secreto.
 const BOSS_BOOST := [1.12, 1.05, 1.0]
@@ -295,8 +341,12 @@ func _year_chapter(year: int) -> int:
 			return i
 	return STORY_CHAPTERS.size() - 1
 
-## Frase de presentación del rival actual (vacía si no tiene).
+## Frase de presentación del rival: la del duelo concreto con el jugador si existe,
+## y si no la del propio rival (vacía si no tiene).
 func story_vs_lines(fighter_id: StringName) -> Array:
+	for key in ["%s|%s" % [p1_fighter_id, fighter_id], "%s|%s" % [fighter_id, p1_fighter_id]]:
+		if STORY_VS_PAIR.has(key):
+			return STORY_VS_PAIR[key]
 	return STORY_VS.get(fighter_id, [])
 
 ## true si al ganar el último combate toca enfrentarse al jefe secreto.
