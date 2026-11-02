@@ -589,6 +589,7 @@ func _test_arcade() -> void:
 	for id in ladder:
 		if Game.story_vs_lines(id).size() != 2:
 			sin_frase += 1
+	check(Game.story_nexo_reaction().is_empty(), "el primer capítulo no tiene reacción del Nexo")
 	check(sin_frase == 0, "todos los rivales tienen su frase de presentación (%d sin ella)" % sin_frase)
 	check(not ladder.has(Game.STORY_SECRET_ID), "el jefe secreto no está en la escalera")
 	check(Game.story_chapter_start(0), "el primer combate abre el capítulo I")

@@ -68,6 +68,10 @@ const STORY_NEXO_LINES := [
 	["EL ORIGEN. AQUÍ EMPEZÓ TODO", "Y AQUÍ DECIDIRÁS CÓMO TERMINA."],
 	["NO TODO LO QUE BRILLA ESTÁ VENCIDO.", "ÉL ESPERA DONDE EL TIEMPO NACE."],
 ]
+## Reacción del Nexo al empezar un capítulo, según las revanchas gastadas hasta ahora.
+const STORY_NEXO_REACT_FLAWLESS := ["SIN UNA SOLA REVANCHA.", "EL TIEMPO TE RESPETA."]
+const STORY_NEXO_REACT_WOUNDED := ["HAS CAÍDO, PERO TE LEVANTAS.", "EL TIEMPO TOMA NOTA."]
+const STORY_NEXO_REACT_WORN := ["TANTAS CAÍDAS... ¿SEGURO", "QUE MERECES EL NEXO?"]
 ## Frases antes del combate: rival -> [línea 1, línea 2].
 const STORY_VS := {
 	&"albert_einstein": ["JEFE: CREÓ EL RELOJ", "Y TEME SU PRECIO."],
@@ -340,6 +344,14 @@ func _year_chapter(year: int) -> int:
 		if year >= STORY_CHAPTERS[i][1]:
 			return i
 	return STORY_CHAPTERS.size() - 1
+
+## Lo que dice el Nexo al abrir un capítulo que no es el primero (vacío en el primero).
+func story_nexo_reaction() -> Array:
+	if arcade_stage == 0:
+		return []
+	if story_continues_used == 0:
+		return STORY_NEXO_REACT_FLAWLESS
+	return STORY_NEXO_REACT_WOUNDED if story_continues_used <= 2 else STORY_NEXO_REACT_WORN
 
 ## Frase de presentación del rival: la del duelo concreto con el jugador si existe,
 ## y si no la del propio rival (vacía si no tiene).

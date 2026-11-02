@@ -222,6 +222,9 @@ func _draw_card() -> void:
 	var nexo: Array = Game.STORY_NEXO_LINES[mini(chapter, Game.STORY_NEXO_LINES.size() - 1)]
 	for i in nexo.size():
 		HKTheme.draw_text(_overlay, Vector2(0, 176 + i * 11), nexo[i], 8, Color("9a4dff").lightened(0.4) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	var react := Game.story_nexo_reaction()
+	for i in react.size():
+		HKTheme.draw_text(_overlay, Vector2(0, 208 + i * 11), react[i], 8, HKTheme.GOLD.darkened(0.1) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 	HKTheme.draw_text(_overlay, Vector2(0, 158), "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues],
 		8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 
