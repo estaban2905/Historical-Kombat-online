@@ -19,6 +19,8 @@ const PLATE_Y := 27.0
 const PREVIEW_X := [62.0, 364.0]
 ## Alto en pantalla del luchador de la vista previa.
 const PREVIEW_H := 104.0
+## Montar un escenario es caro: se cambia solo cuando el cursor lleva un rato quieto.
+const STAGE_DELAY := 0.3
 
 var roster: Array[FighterData] = []
 var cursor: Array[int] = [0, 0, 1]      # índice de casilla por jugador (1 y 2)
@@ -36,6 +38,12 @@ var _overlay: Control
 var _stage: Stage
 var _stage_id: StringName = &""
 var _floor_y: float = 206.0
+var _stage_pending: StringName = &""
+var _stage_wait: float = 0.0
+## Estado dibujado la última vez: solo se redibuja si cambia (y el cursor al parpadear).
+var _drawn_key: Array = []
+var _drawn_blink: int = -1
+var _wrap_cache: Dictionary = {}
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -73,6 +81,8 @@ func _build_cells() -> void:
 		add_child(cell)
 		var bust := FighterRenderer.new()
 		bust.draw_shadow = false
+		# Retrato fijo: se dibuja una vez en setup(); sin _process no se redibuja cada frame.
+		bust.set_process(false)
 		bust.setup(roster[i])
 		# Pies fuera de la casilla: solo se ve cabeza y hombros.
 		bust.position = Vector2(CELL.x * 0.5 - 2, bust.approx_height() + 1)
@@ -121,8 +131,20 @@ func _process(delta: float) -> void:
 	if not _starting:
 		for p in ([1] if _cpu else [1, 2]):
 			_handle_player(p)
-	queue_redraw()
-	_overlay.queue_redraw()
+	if _stage_pending != &"":
+		_stage_wait -= delta
+		if _stage_wait <= 0.0:
+			_load_stage(_stage_pending)
+			_stage_pending = &""
+	var key := [cursor[1], cursor[2], confirmed[1], confirmed[2], _starting]
+	var blink := int(_t * 6.0) % 2
+	if key != _drawn_key:
+		_drawn_key = key
+		queue_redraw()
+		_overlay.queue_redraw()
+	elif blink != _drawn_blink:
+		_overlay.queue_redraw()
+	_drawn_blink = blink
 
 func _handle_player(p: int) -> void:
 	var inp: InputManager = _inputs[p]
@@ -141,7 +163,8 @@ func _handle_player(p: int) -> void:
 			cursor[p] = c
 			Sfx.play(&"select")
 			if c < roster.size():
-				_load_stage(roster[c].id)
+				_stage_pending = roster[c].id
+				_stage_wait = STAGE_DELAY
 			_refresh_preview(p)
 		if inp.just_pressed(&"punch_light"):
 			if cursor[p] < roster.size():
@@ -260,6 +283,12 @@ func _draw_quotes(top: float) -> void:
 
 ## Texto de 8 px partido en líneas de un ancho máximo.
 func _wrap(text: String, width: float) -> PackedStringArray:
+	var cache_key := "%s|%d" % [text, int(width)]
+	if not _wrap_cache.has(cache_key):
+		_wrap_cache[cache_key] = _wrap_lines(text, width)
+	return _wrap_cache[cache_key]
+
+func _wrap_lines(text: String, width: float) -> PackedStringArray:
 	var lines := PackedStringArray()
 	var line := ""
 	for word in text.split(" "):
