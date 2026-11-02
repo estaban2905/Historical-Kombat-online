@@ -470,6 +470,14 @@ func _torso(length: float) -> void:
 		draw_rect(Rect2(2, top - 1, 5, 2), _c(data.shirt_color.darkened(0.15)))
 		draw_rect(Rect2(3, top + 1, 3, 4), _c(data.skin_color.darkened(0.1)))
 		draw_rect(Rect2(4, top + 5, 1, 1), _c(OUTLINE))
+	elif data.chest_style == &"mao":
+		# Traje estilo Mao: cuello alto cerrado, botonadura central y cuatro bolsillos.
+		draw_rect(Rect2(-w / 2.0 + 2, top - 2, w - 2, 3).abs(), _c(data.coat_color.lightened(0.12)))
+		for i in 5:
+			draw_rect(Rect2(3, top + 3 + i * 4.5, 1, 1), _c(data.coat_trim_color))
+		for pocket in [Rect2(-5, top + 5, 6, 4), Rect2(5, top + 5, 4, 4), Rect2(-5, top + length - 9, 6, 5), Rect2(5, top + length - 9, 4, 5)]:
+			draw_rect(pocket, _c(data.coat_color.darkened(0.2)))
+			draw_rect(Rect2(pocket.position, Vector2(pocket.size.x, 1)), _c(data.coat_color.lightened(0.1)))
 	elif data.chest_style == &"uniform":
 		# Guerrera militar: cuello, botonadura, bolsillo y cinturón.
 		draw_rect(Rect2(-w / 2.0, top - 1, w, 3).abs(), _c(data.accent_color))
@@ -488,6 +496,11 @@ func _torso(length: float) -> void:
 			for i in 5:
 				draw_rect(Rect2(xs[i], top + ys[i], 2, 2), _c(OUTLINE))
 				draw_rect(Rect2(xs[i], top + ys[i], 1, 1), _c(data.jewelry_color))
+		&"pin":
+			# Insignia en la solapa (izquierda del pecho, visible por delante).
+			draw_rect(Rect2(-5, top + 4, 5, 5), _c(OUTLINE))
+			draw_rect(Rect2(-4, top + 5, 3, 3), _c(data.jewelry_color))
+			draw_rect(Rect2(-3, top + 6, 1, 1), _c(Color("f0d040")))
 		&"cross":
 			draw_rect(Rect2(3, top + 2, 3, 9), _c(OUTLINE))
 			draw_rect(Rect2(1, top + 4, 7, 3), _c(OUTLINE))
@@ -640,6 +653,26 @@ func _head() -> void:
 				draw_rect(Rect2(lx + 1, -hh + 1 + i * 4.0, 5, 3), _c(data.hair_color if i % 2 == 0 else data.hair_color.darkened(0.12)))
 			draw_rect(Rect2(fx - 3, -hh + 1, 3, 5), _c(data.hair_color))
 			draw_rect(Rect2(fx - 3, -hh + 6, 2, 3), _c(data.hair_color.darkened(0.12)))
+		&"undercut":
+			# Laterales rapados (sombra azulada) y copete alto y plano peinado hacia atrás.
+			var shaved := _c(data.skin_color.lerp(data.hair_color, 0.22))
+			draw_rect(Rect2(head.position.x, -hh + 1, 5, roundf(hh * 0.45)), shaved)
+			draw_rect(Rect2(head.position.x + 1, -hh - 1, hw, 2), shaved)
+			var top := Rect2(head.position.x + 1, -hh - 5, hw + 1, 5)
+			draw_rect(top.grow(1), _c(OUTLINE))
+			draw_rect(top, _c(data.hair_color))
+			draw_rect(Rect2(top.position.x + 2, top.position.y, hw - 3, 1), _c(data.hair_color.lightened(0.3)))
+			draw_rect(Rect2(fx - 3, -hh - 1, 3, 2), _c(data.hair_color))
+		&"sidepart":
+			# Pelo abundante con raya al lado, peinado hacia atrás y sienes cubiertas.
+			var hc := _c(data.hair_color)
+			var mass := Rect2(head.position.x - 2, -hh - 4, hw + 3, 6)
+			draw_rect(mass.grow(1), _c(OUTLINE))
+			draw_rect(mass, hc)
+			draw_rect(Rect2(head.position.x - 2, -hh + 1, 5, roundf(hh * 0.45)), hc)
+			draw_rect(Rect2(fx - 3, -hh + 1, 3, 2), hc)
+			draw_rect(Rect2(head.position.x + 1, -hh - 3, hw - 6, 1), _c(data.hair_color.lightened(0.35)))
+			draw_rect(Rect2(fx - 5, -hh - 4, 1, 2), _c(data.hair_color.lightened(0.6)))
 		&"mop":
 			# Melena de rizos abultada: bucles por arriba, la nuca y el flequillo.
 			var hc := _c(data.hair_color)

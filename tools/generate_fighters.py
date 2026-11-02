@@ -85,9 +85,9 @@ CHARACTERS = [
          victory="Otro éxito rotundo. Que nadie diga lo contrario.",
          bio="Líder supremo con pasión por los misiles y los peinados atrevidos.",
          arch="bruiser", build="stocky",
-         skin="f0d0a8", hair="141010", coat="3a4048", trim="9aa0a8", shirt="d8d8d8", accent="3a4048",
-         pants="30343a", boots="141414", hat="141414",
-         hair_style="short", hat_style="none", beard="none", chest="uniform",
+         skin="f0d0a8", hair="141010", coat="1e2026", trim="9aa0a8", shirt="d8d8d8", accent="3a4048",
+         pants="1e2026", boots="141414", hat="141414",
+         hair_style="undercut", hat_style="none", beard="none", chest="mao",
          moves=("Palmada Suprema", "Puño Juche", "Patada de Pyongyang", "Patada Balística"),
          s1=P(name="Misil Balístico", anim="cannon", style="orb", color="ff5030", speed=220, dmg=15),
          s2=D(name="Desfile Militar", anim="rush", dmg=18, dash=280),
@@ -111,7 +111,7 @@ CHARACTERS = [
          arch="tank", build="big",
          skin="f0cfa8", hair="141010", coat="202428", trim="c0a040", shirt="e8e8e8", accent="c02020",
          pants="202428", boots="141414", hat="141414",
-         hair_style="short", hat_style="none", beard="none", chest="tie",
+         hair_style="sidepart", hat_style="none", beard="none", chest="tie",
          moves=("Palmada Imperial", "Puño del Dragón", "Patada de Tai Chi", "Patada del Pueblo"),
          s1=P(name="Ruta de la Seda", anim="cast", style="spin", color="e0c040", speed=200, dmg=14),
          s2=S(name="Gran Muralla", anim="straight", dmg=20),
@@ -1211,6 +1211,8 @@ LOOKS = {
     "arturo_prat": dict(hair_style="bald", hat_style="none"),   # calvo y sin gorra, con barba
     "leonardo_da_vinci": dict(cape="6a2a2a"),
     "pablo_escobar": dict(jewelry="necklace", jewelry_color="e8c040"),   # cadena de oro
+    "kim_jong_un": dict(jewelry="pin", jewelry_color="c02020"),        # insignia roja del Partido
+    "xi_jinping": dict(jewelry="pin", jewelry_color="c02020"),         # insignia del Partido en la solapa
 }
 
 

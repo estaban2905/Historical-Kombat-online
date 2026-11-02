@@ -79,14 +79,14 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var pants_color: Color = Color("2a2a3a")
 @export var boots_color: Color = Color("1a1a1a")
 @export var hat_color: Color = Color("111111")
-## Peinado: swoop | short | bald | long | wild | bun | curls | bob | braids | updo | ponytail | wig | mop
+## Peinado: swoop | short | bald | long | wild | bun | curls | bob | braids | updo | ponytail | wig | mop | undercut | sidepart
 @export var hair_style: StringName = &"short"
 ## Sombrero: none | bicorne | top_hat | crown | nemes | cap | beret | turban |
 ## fur_hat | laurel | helmet | zucchetto | halo | tiara | headband | plumes | guan | morion
 @export var hat_style: StringName = &"none"
 ## Vello facial: none | mustache | toothbrush | goatee | chin | full | long | stubble
 @export var beard_style: StringName = &"none"
-## Decoración del pecho: tie | lapels | plain | robe | uniform | polo
+## Decoración del pecho: tie | lapels | plain | robe | uniform | polo | mao
 @export var chest_style: StringName = &"tie"
 @export var has_epaulettes: bool = false
 @export var tall_boots: bool = false
@@ -115,7 +115,8 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var glasses: StringName = &"none"
 ## Capa que cuelga a la espalda (transparente = sin capa).
 @export var cape_color: Color = Color(0, 0, 0, 0)
-## Joyas: none | necklace (collar y pendiente) | cross (cruz al cuello) | earplug (disco en la oreja)
+## Joyas: none | necklace (collar y pendiente) | cross (cruz al cuello) | earplug (disco en la oreja) |
+## pin (insignia en la solapa)
 @export var jewelry: StringName = &"none"
 @export var jewelry_color: Color = Color("e8c040")
 
