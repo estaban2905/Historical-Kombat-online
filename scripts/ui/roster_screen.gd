@@ -1,14 +1,15 @@
 ## Pantalla PERSONAJES: ficha de cada luchador sobre SU escenario.
 ##   Fondo      el escenario del personaje (el mismo del combate), con él de pie en el suelo.
 ##   Arriba izq. placa con nombre completo, país y época.
-##   Derecha    panel con dos pestañas (TAB o botón para cambiar):
+##   Derecha    panel con tres pestañas (TAB o botón para cambiar):
 ##                HISTORIA  estadísticas, quién fue y qué hizo.
-##                PODERES   sus dos especiales y su ultimate, con coste y daño.
+##                PODERES   sus dos especiales, con coste y daño, y sus combos.
+##                ULTIMATE  su ataque definitivo (o fatality) y cómo se lanza.
 ##   ← → cambian de personaje, ESC vuelve al menú.
 ## Los textos largos salen de RosterLore; los números, de la propia ficha.
 extends Control
 
-enum Page { STORY, POWERS }
+enum Page { STORY, POWERS, ULTIMATE }
 
 const PANEL_X := 154.0
 const PANEL_Y := 26.0
@@ -18,11 +19,11 @@ const TEXT_X := PANEL_X + 8.0
 const TEXT_W := PANEL_W - 16.0
 const LINE_H := 10.0   # la fuente es de 8 px: menos de 10 hace que las líneas se pisen
 const SPRITE_X := 78.0
-const SPRITE_MAX_H := 118.0
+const SPRITE_MAX_H := 104.0   # deja sitio a la placa (nombre, país, época y escenario)
 ## Ancho de la placa del nombre.
 const PLATE_W := 142.0
 
-const PAGE_NAMES: Array[String] = ["HISTORIA", "PODERES"]
+const PAGE_NAMES: Array[String] = ["HISTORIA", "PODERES", "ULTIMATE"]
 const BLUE_TEXT := Color("5aa0ff")
 const BAR_BG := Color("2a1a20")
 const SHADE := Color(0.05, 0.02, 0.07, 0.72)
@@ -149,23 +150,32 @@ func _draw() -> void:
 	match _page:
 		Page.STORY: _draw_story()
 		Page.POWERS: _draw_powers()
-	var hint := "ESCENARIO: %s   ·   < > CAMBIAR   ·   TAB: PÁGINA" % StageRegistry.name_for(_data().id)
+		Page.ULTIMATE: _draw_ultimate()
+	var hint := "< > CAMBIAR   ·   TAB: PÁGINA   ·   %d/%d" % [_idx + 1, _roster.size()]
 	HKTheme.draw_text(self, Vector2(0, 218), hint, 8, HKTheme.MUTED.lightened(0.3), HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
 
-## Placa del personaje: nombre, país y época.
+## Placa del personaje: nombre, país, época y escenario.
 func _draw_plate() -> void:
 	var d := _data()
-	var lines := _wrap(d.display_name.to_upper(), PLATE_W - 12.0)
-	var h := 8.0 + lines.size() * LINE_H + 2.0 * LINE_H
-	var r := Rect2(6, PANEL_Y, PLATE_W, h)
+	var rows: Array = []   # [texto, color]
+	for line in _wrap(d.display_name.to_upper(), PLATE_W - 12.0):
+		rows.append([line, HKTheme.PAPER])
+	for line in _wrap(d.country.to_upper(), PLATE_W - 12.0):
+		rows.append([line, HKTheme.GOLD])
+	rows.append([d.era, HKTheme.MUTED.lightened(0.25)])
+	var stage_lines := _wrap(StageRegistry.name_for(d.id), PLATE_W - 12.0)
+	var r := Rect2(6, PANEL_Y, PLATE_W, 8.0 + (rows.size() + stage_lines.size()) * LINE_H + 5.0)
 	draw_rect(r, SHADE)
 	draw_rect(r, HKTheme.GOLD_DARK, false, 1.0)
 	var y := PANEL_Y + 4.0
-	for line in lines:
+	for row in rows:
 		y += LINE_H
-		HKTheme.draw_text(self, Vector2(12, y), line, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
-	HKTheme.draw_text(self, Vector2(12, y + LINE_H), d.country.to_upper(), 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_LEFT, PLATE_W - 12.0, 0)
-	HKTheme.draw_text(self, Vector2(12, y + 2.0 * LINE_H), d.era, 8, HKTheme.MUTED.lightened(0.25), HORIZONTAL_ALIGNMENT_LEFT, PLATE_W - 12.0, 0)
+		HKTheme.draw_text(self, Vector2(12, y), row[0], 8, row[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
+	y += 3.0
+	draw_rect(Rect2(10, y + 1.0, PLATE_W - 8.0, 1), HKTheme.GOLD_DARK.darkened(0.3))
+	for line in stage_lines:
+		y += LINE_H
+		HKTheme.draw_text(self, Vector2(12, y), line, 8, BLUE_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
 
 ## Panel derecho con las dos pestañas y el número de personaje.
 func _draw_panel() -> void:
@@ -179,9 +189,7 @@ func _draw_panel() -> void:
 		HKTheme.draw_text(self, Vector2(x, PANEL_Y + 12), tab, 8, HKTheme.GOLD if active else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
 		if active:
 			draw_rect(Rect2(x, PANEL_Y + 14, HKTheme.text_width(tab, 8), 2), HKTheme.GOLD)
-		x += HKTheme.text_width(tab, 8) + 14.0
-	HKTheme.draw_text(self, Vector2(PANEL_X + 6, PANEL_Y + 12), "%d/%d" % [_idx + 1, _roster.size()], 8, HKTheme.MUTED,
-		HORIZONTAL_ALIGNMENT_RIGHT, PANEL_W - 14.0, 0)
+		x += HKTheme.text_width(tab, 8) + 12.0
 	draw_rect(Rect2(PANEL_X + 4, PANEL_Y + 17, PANEL_W - 8, 1), HKTheme.GOLD_DARK)
 
 # --- Pestaña HISTORIA -------------------------------------------------------------
@@ -205,7 +213,7 @@ func _draw_story() -> void:
 	y += 22.0
 	draw_rect(Rect2(PANEL_X + 4, y - 4, PANEL_W - 8, 1), HKTheme.GOLD_DARK.darkened(0.3))
 	y = _section(TEXT_X, y + 8.0, "QUIÉN FUE", _text_or(lore[0], d.bio))
-	_section(TEXT_X, y + 12.0, "QUÉ HIZO", _text_or(lore[1], ""))
+	_section(TEXT_X, y + 13.0, "QUÉ HIZO", _text_or(lore[1], ""))
 
 func _text_or(text: String, fallback: String) -> String:
 	return text if text != "" else fallback
@@ -216,14 +224,27 @@ func _draw_powers() -> void:
 	var lore := RosterLore.get_lore(d.id)
 	var y := PANEL_Y + 22.0
 	y = _skill(y, "ESPECIAL 1", d.special_1, lore[2], HKTheme.GOLD)
-	y = _skill(y + 2.0, "ESPECIAL 2", d.special_2, lore[3], HKTheme.GOLD)
-	_skill(y + 2.0, "ULTIMATE", d.ultimate, RosterLore.ult_text(d.ultimate, d.id), Color("ff7050"))
+	_skill(y + 4.0, "ESPECIAL 2", d.special_2, lore[3], HKTheme.GOLD)
+	# Combos al pie del panel (pueden ocupar dos líneas).
 	var combos := PackedStringArray()
 	for c in d.get_combos():
 		combos.append(c.display_name)
-	draw_rect(Rect2(PANEL_X + 4, PANEL_BOTTOM - 16, PANEL_W - 8, 1), HKTheme.GOLD_DARK.darkened(0.3))
-	HKTheme.draw_text(self, Vector2(TEXT_X, PANEL_BOTTOM - 6.0), "COMBOS: " + " · ".join(combos), 8, BLUE_TEXT,
-		HORIZONTAL_ALIGNMENT_LEFT, TEXT_W, 0)
+	var lines := _wrap("COMBOS: " + " · ".join(combos), TEXT_W)
+	var cy := PANEL_BOTTOM - 6.0 - (lines.size() - 1) * LINE_H
+	draw_rect(Rect2(PANEL_X + 4, cy - 10.0, PANEL_W - 8, 1), HKTheme.GOLD_DARK.darkened(0.3))
+	for line in lines:
+		HKTheme.draw_text(self, Vector2(TEXT_X, cy), line, 8, BLUE_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
+		cy += LINE_H
+
+# --- Pestaña ULTIMATE -------------------------------------------------------------
+func _draw_ultimate() -> void:
+	var d := _data()
+	var red := Color("ff7050")
+	var y := _skill(PANEL_Y + 22.0, "ULTIMATE", d.ultimate, RosterLore.ult_text(d.ultimate, d.id), red)
+	draw_rect(Rect2(PANEL_X + 4, y + 2.0, PANEL_W - 8, 1), HKTheme.GOLD_DARK.darkened(0.3))
+	y = _section(TEXT_X, y + 16.0, "CÓMO SE LANZA",
+		"Especial 1 + Especial 2 a la vez, en el suelo y con la energía al 100.")
+	_section(TEXT_X, y + 13.0, "EFECTO", RosterLore.ULT_TEXT.get(d.ultimate.ult_kind, "Ataque definitivo.") if d.ultimate else "")
 
 ## Un poder: línea de etiqueta con daño y coste, nombre en color y descripción. Devuelve la y siguiente.
 func _skill(y: float, slot: String, atk: AttackData, desc: String, color: Color) -> float:
@@ -247,9 +268,9 @@ func _skill(y: float, slot: String, atk: AttackData, desc: String, color: Color)
 ## Título de sección azul y párrafo ajustado debajo. Devuelve la y de la última línea.
 func _section(x: float, y: float, title: String, text: String) -> float:
 	HKTheme.draw_text(self, Vector2(x, y), title, 8, BLUE_TEXT, HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
-	y += 2.0
+	y += 1.0
 	for line in _wrap(text, TEXT_W):
-		y += LINE_H + 1.0
+		y += LINE_H
 		HKTheme.draw_text(self, Vector2(x, y), line, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
 	return y
 
