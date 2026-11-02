@@ -84,7 +84,7 @@ const ATTACK_SLOTS: Array[StringName] = [
 ## Sombrero: none | bicorne | top_hat | crown | nemes | cap | beret | turban |
 ## fur_hat | laurel | helmet | zucchetto | halo | tiara | headband | plumes | guan | morion
 @export var hat_style: StringName = &"none"
-## Vello facial: none | mustache | toothbrush | goatee | chin | full | long | stubble
+## Vello facial: none | mustache | toothbrush | goatee | chin | full | long | stubble | brush
 @export var beard_style: StringName = &"none"
 ## Decoración del pecho: tie | lapels | plain | robe | uniform | polo | mao
 @export var chest_style: StringName = &"tie"
@@ -113,12 +113,12 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var outfit_color: Color = Color(0, 0, 0, 0)
 ## Forma de los ojos: normal | almond (rasgados)
 @export var eye_shape: StringName = &"normal"
-## Gafas: none | round | dark
+## Gafas: none | round | dark | thick (marco grueso de pasta)
 @export var glasses: StringName = &"none"
 ## Capa que cuelga a la espalda (transparente = sin capa).
 @export var cape_color: Color = Color(0, 0, 0, 0)
 ## Joyas: none | necklace (collar y pendiente) | cross (cruz al cuello) | earplug (disco en la oreja) |
-## pin (insignia en la solapa)
+## pin (insignia en la solapa) | sash (banda presidencial azul, blanca y roja)
 @export var jewelry: StringName = &"none"
 @export var jewelry_color: Color = Color("e8c040")
 

@@ -500,9 +500,9 @@ CHARACTERS = [
          intro="x", victory="x",
          bio="Médico y presidente de Chile. Defendió sus ideas hasta el último día con casco y fusil.",
          arch="zoner", build="normal",
-         skin="e8c8a8", hair="3a3a3a", coat="6a4a3a", trim="c02828", shirt="e8e8e0", accent="c02828",
-         pants="4a3a3a", boots="141010", hat="3a5a3a",
-         hair_style="short", hat_style="helmet", beard="mustache", chest="tie",
+         skin="e8c8a8", hair="2a2624", coat="3a3a42", trim="c02828", shirt="f0f0ea", accent="6a1a22",
+         pants="3a3a42", boots="141010", hat="3a5a3a",
+         hair_style="sidepart", hat_style="none", beard="brush", chest="tie",
          moves=("Puño Popular", "Discurso Directo", "Patada Obrera", "Patada Constituyente"),
          s1=P(name="Octavilla Roja", anim="cannon", style="spin", color="e03030", speed=225, dmg=14),
          s2=W(name="x", anim="cast", power="x", dmg=1),
@@ -1175,7 +1175,7 @@ def build_tres(c):
 # Rasgos que definen el aspecto de cada luchador más allá de los colores: silueta femenina,
 # falda o vestido, peinado, gafas, capa y joyas. Se mezclan sobre la tabla CHARACTERS.
 #   female, outfit (skirt|dress|gown), outfit_color, glasses (round|dark), cape (color),
-#   jewelry (necklace|cross|earplug|pin), jewelry_color, eyes (almond), y cualquier campo de CHARACTERS.
+#   jewelry (necklace|cross|earplug|pin|sash), jewelry_color, eyes (almond), y cualquier campo de CHARACTERS.
 LOOKS = {
     # --- Mujeres ---
     "cleopatra": dict(female=True, outfit="gown", outfit_color="f6f2e4", jewelry="necklace", jewelry_color="e8c040"),
@@ -1200,7 +1200,7 @@ LOOKS = {
     "nicolas_maquiavelo": dict(outfit="dress", outfit_color="1c1c24"),
     # --- Hombres con rasgos propios ---
     "augusto_pinochet": dict(glasses="dark", cape="4a5a4a"),
-    "salvador_allende": dict(glasses="round"),
+    "salvador_allende": dict(glasses="thick", jewelry="sash"),   # anteojos de pasta y banda presidencial
     "papa_francisco": dict(glasses="round", jewelry="cross", jewelry_color="c8c8d0"),
     "rasputin": dict(jewelry="cross", jewelry_color="c8a040"),
     "ivan_el_terrible": dict(cape="5a1020", jewelry="cross", jewelry_color="e8c040"),

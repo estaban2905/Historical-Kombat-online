@@ -496,6 +496,14 @@ func _torso(length: float) -> void:
 			for i in 5:
 				draw_rect(Rect2(xs[i], top + ys[i], 2, 2), _c(OUTLINE))
 				draw_rect(Rect2(xs[i], top + ys[i], 1, 1), _c(data.jewelry_color))
+		&"sash":
+			# Banda presidencial cruzada del hombro delantero a la cadera trasera (azul, blanco y rojo).
+			var a := Vector2(roundf(w / 2.0) - 1, top + 1)
+			var b := Vector2(-roundf(w / 2.0) + 3, -9)
+			draw_line(a + Vector2(0, 2), b + Vector2(0, 2), _c(OUTLINE), 7.0)
+			var cols: Array[Color] = [Color("2a4ab0"), Color("f0f0f0"), Color("d02828")]
+			for i in 3:
+				draw_line(a + Vector2(0, i * 2.0), b + Vector2(0, i * 2.0), _c(cols[i]), 2.0)
 		&"pin":
 			# Insignia en la solapa (izquierda del pecho, visible por delante).
 			draw_rect(Rect2(-5, top + 4, 5, 5), _c(OUTLINE))
@@ -555,6 +563,13 @@ func _head() -> void:
 		&"round":
 			draw_rect(Rect2(fx - 6, eye_y - 2, 6, 5), _c(OUTLINE), false, 1.0)
 			draw_line(Vector2(head.position.x + 3, eye_y), Vector2(fx - 6, eye_y), _c(OUTLINE), 1.0)
+		&"thick":
+			# Marco grueso y negro de pasta, con cristal claro y patilla hasta la oreja.
+			draw_rect(Rect2(fx - 7, eye_y - 3, 8, 6), _c(OUTLINE))
+			draw_rect(Rect2(fx - 6, eye_y - 1, 6, 3), _c(Color("d8e8f0")))
+			draw_rect(Rect2(fx - 4, eye_y, 2, 2), _c(Color.WHITE))
+			draw_rect(Rect2(fx - 3, eye_y, 1, 2), _c(OUTLINE))
+			draw_rect(Rect2(head.position.x + 3, eye_y - 2, fx - 10 - head.position.x, 2), _c(OUTLINE))
 		&"dark":
 			draw_rect(Rect2(fx - 6, eye_y - 1, 7, 4), _c(OUTLINE))
 			draw_rect(Rect2(fx - 5, eye_y, 2, 1), _c(Color("7090c0")))
@@ -574,6 +589,10 @@ func _head() -> void:
 	match data.beard_style:
 		&"mustache":
 			draw_rect(Rect2(fx - 5, mouth_y, 6, 2), beard)
+		&"brush":
+			# Bigote tupido y recortado.
+			draw_rect(Rect2(fx - 6, mouth_y - 1, 7, 3), beard)
+			draw_rect(Rect2(fx - 5, mouth_y - 1, 5, 1), _c(data.hair_color.lightened(0.2)))
 		&"stubble":
 			# Barba de pocos días en mandíbula y mentón, y bigote grueso que baja por las comisuras.
 			var shadow := _c(data.skin_color.lerp(data.hair_color, 0.22))
