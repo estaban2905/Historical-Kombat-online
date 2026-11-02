@@ -49,6 +49,11 @@ var cinematic_fighter: Fighter
 var cinematic_text: String = ""
 ## Efectos de pantalla del ultimate en curso (ambiente, grietas, rayos...).
 var ult_fx: UltimateFX
+## Fases del Nexo (jefe final): [fracción de vida, rótulo, fuerza x, velocidad x].
+const NEXO_PHASES := [[0.66, "FASE II", 1.15, 1.15], [0.33, "FASE III", 1.3, 1.3]]
+var _nexo_phase: int = 0
+## (fuerza, velocidad) de la ficha del Nexo sin fases; Vector2.ZERO = no es el combate final.
+var _nexo_base := Vector2.ZERO
 
 func _ready() -> void:
 	_load_stage()
@@ -62,6 +67,8 @@ func _ready() -> void:
 	p1.opponent = p2
 	p2.opponent = p1
 	fighters = [p1, p2]
+	if Game.is_story_nexo_fight():
+		_nexo_base = Vector2(p2.data.strength, p2.data.walk_speed)
 	if Game.is_vs_cpu():
 		p2.input.use_keyboard = false
 		ai = AIController.new(p2, p1, Game.ai_level())
@@ -134,6 +141,8 @@ func reset_round() -> void:
 	fx.clear()
 	p1.reset_for_round(stage.p1_spawn_x, 1)
 	p2.reset_for_round(stage.p2_spawn_x, -1)
+	if _nexo_base != Vector2.ZERO:
+		_set_nexo_phase(0, false)
 
 func set_controls(enabled: bool) -> void:
 	for f in fighters:
@@ -166,6 +175,8 @@ func _physics_process(delta: float) -> void:
 		training.pre_tick()
 	for f in fighters:
 		f.tick(delta)
+	if _nexo_base != Vector2.ZERO:
+		_update_nexo_phase()
 	for p in projectiles_root.get_children():
 		(p as Projectile).tick(delta)
 	_resolve_bodies()
@@ -176,6 +187,30 @@ func _physics_process(delta: float) -> void:
 	_update_fx()
 	tick_count += 1
 	ticked.emit()
+
+## El Nexo se endurece al perder vida: más fuerza y velocidad en cada fase (se reinicia cada ronda).
+func _update_nexo_phase() -> void:
+	var frac := p2.health / maxf(p2.data.max_health, 1.0)
+	var phase := 0
+	for i in NEXO_PHASES.size():
+		if frac <= NEXO_PHASES[i][0]:
+			phase = i + 1
+	if phase > _nexo_phase:
+		_set_nexo_phase(phase, true)
+
+func _set_nexo_phase(phase: int, announce: bool) -> void:
+	_nexo_phase = phase
+	var mult_s := 1.0
+	var mult_v := 1.0
+	if phase > 0:
+		mult_s = NEXO_PHASES[phase - 1][2]
+		mult_v = NEXO_PHASES[phase - 1][3]
+	p2.data.strength = _nexo_base.x * mult_s
+	p2.data.walk_speed = _nexo_base.y * mult_v
+	if announce:
+		hud.show_message("EL NEXO · %s" % NEXO_PHASES[phase - 1][1], 1.6, Color("ffd24a"))
+		shake(6.0)
+		Sfx.play(&"hit_heavy")
 
 ## Sustituye el teclado por una fuente externa de entradas (partida online,
 ## repeticiones, pruebas). `source` recibe el número de tick y devuelve

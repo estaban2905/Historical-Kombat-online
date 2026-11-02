@@ -117,7 +117,7 @@ func _draw() -> void:
 ## Línea del tiempo con todos los rivales.
 func _draw_timeline() -> void:
 	var ladder := Game.arcade_ladder
-	var total := ladder.size() + 1   # el último punto, "?", es el Nexo
+	var total := ladder.size()   # el último punto, "?", es el Nexo
 	var step := (BAR_X1 - BAR_X0) / maxf(total - 1.0, 1.0)
 	var cur := Game.arcade_stage
 	var cur_chapter := Game.story_chapter_of(ladder[cur])
@@ -142,8 +142,9 @@ func _draw_timeline() -> void:
 	# Puntos
 	for i in total:
 		var x := BAR_X0 + step * i
-		if i >= ladder.size():
-			HKTheme.draw_text(self, Vector2(x - 3, BAR_Y + 4), "?", 8, HKTheme.MUTED.lightened(0.2), HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		if ladder[i] == Game.STORY_NEXO_ID:
+			var lit := Color("fff0a0").lerp(Color.WHITE, 0.5 + 0.5 * sin(_t * 8.0)) if i == cur else HKTheme.MUTED.lightened(0.2)
+			HKTheme.draw_text(self, Vector2(x - 3, BAR_Y + 4), "?", 8, lit, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 			continue
 		var boss := Game.story_is_chapter_boss(i)
 		var r := 3.0 if boss else 2.0
@@ -170,6 +171,8 @@ func _dot(x: float, r: float, color: Color, diamond: bool) -> void:
 		draw_rect(Rect2(x - r, BAR_Y - r, r * 2.0, r * 2.0), color)
 
 func _year_text(d: FighterData) -> String:
+	if d.id == Game.STORY_NEXO_ID:
+		return "????"
 	return "%d A.C." % -d.year if d.year < 0 else str(d.year)
 
 ## Placa central con el capítulo, el número de combate y los datos del rival.
@@ -183,7 +186,9 @@ func _draw_plate() -> void:
 	var cx := 213.0
 	_centered(cx, 84, "COMBATE %d/%d" % [stage + 1, Game.arcade_ladder.size()], HKTheme.MUTED.lightened(0.25))
 	var tag := ""
-	if boss:
+	if Game.is_story_nexo_fight():
+		tag = "JEFE FINAL"
+	elif boss:
 		tag = "JEFE DE LA ÉPOCA"
 	elif Game.story_is_creator(stage):
 		tag = "CREADOR DEL RELOJ"
@@ -220,6 +225,9 @@ func _draw_card() -> void:
 		last += 1
 	var span := "%s  ›  %s" % [_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[first])),
 		_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[last]))]
+	var final := chapter >= Game.STORY_CHAPTERS.size()
+	if final:
+		span = "FUERA DEL TIEMPO"
 	HKTheme.draw_text(_overlay, Vector2(0, 142), span, 8, HKTheme.MUTED.lightened(0.2) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 	var nexo: Array = Game.STORY_NEXO_LINES[mini(chapter, Game.STORY_NEXO_LINES.size() - 1)]
 	for i in nexo.size():
@@ -227,8 +235,9 @@ func _draw_card() -> void:
 	var react := Game.story_nexo_reaction()
 	for i in react.size():
 		HKTheme.draw_text(_overlay, Vector2(0, 208 + i * 11), react[i], 8, HKTheme.GOLD.darkened(0.1) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
-	HKTheme.draw_text(_overlay, Vector2(0, 158), "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues],
-		8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	var count := "EL COMBATE FINAL · %d REVANCHAS" % Game.arcade_continues if final \
+		else "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues]
+	HKTheme.draw_text(_overlay, Vector2(0, 158), count, 8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 
 func _centered(cx: float, y: float, text: String, color: Color) -> void:
 	HKTheme.draw_text(self, Vector2(cx - HKTheme.text_width(text, 8) * 0.5, y), text, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)

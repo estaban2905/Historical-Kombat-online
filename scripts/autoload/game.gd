@@ -45,6 +45,9 @@ const DIFFICULTY_NAMES: Array[String] = ["FÁCIL", "NORMAL", "DIFÍCIL"]
 const DIFFICULTY_LEVEL: Array[float] = [0.2, 0.5, 0.8]
 ## Revanchas por capítulo del modo Historia (se recuperan al empezar cada capítulo).
 const ARCADE_CONTINUES := 3
+## Jefe final: el Nexo cierra la escalera tras la última época.
+const STORY_NEXO_ID := FighterRegistry.NEXO_ID
+const STORY_NEXO_NAME := "EL NEXO"
 ## Épocas del más reciente al más antiguo: [nombre, [luchadores]]. Cada una cierra con
 ## su jefe (STORY_BOSSES) y dentro de la época se ordenan por año.
 const STORY_CHAPTERS := [
@@ -73,6 +76,7 @@ const STORY_NEXO_LINES := [
 	["REVOLUCIONES Y DESCUBRIMIENTOS:", "LA CHISPA DE LOS NUEVOS TIEMPOS."],
 	["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."],
 	["EL ORIGEN. AQUÍ EMPEZÓ TODO", "Y AQUÍ DECIDIRÁS CÓMO TERMINA."],
+	["HAS LLEGADO HASTA MÍ.", "DEMUESTRA QUE MERECES EL TIEMPO."],
 ]
 ## Reacción del Nexo al empezar un capítulo, según las revanchas gastadas hasta ahora.
 const STORY_NEXO_REACT_FLAWLESS := ["SIN UNA SOLA REVANCHA.", "EL TIEMPO TE RESPETA."]
@@ -80,6 +84,7 @@ const STORY_NEXO_REACT_WOUNDED := ["HAS CAÍDO, PERO TE LEVANTAS.", "EL TIEMPO T
 const STORY_NEXO_REACT_WORN := ["TANTAS CAÍDAS... ¿SEGURO", "QUE MERECES EL NEXO?"]
 ## Frases antes del combate: rival -> [línea 1, línea 2].
 const STORY_VS := {
+	&"el_nexo": ["EL PODER QUE SOSTIENE", "TODAS LAS ÉPOCAS."],
 	&"albert_einstein": ["CREADOR DEL RELOJ: LO CONSTRUYÓ", "Y TEME SU PRECIO."],
 	&"leonardo_da_vinci": ["CREADOR DEL RELOJ: DISEÑÓ", "EL MECANISMO DEL ORIGEN."],
 	&"nikola_tesla": ["CREADOR DEL RELOJ: SU", "CORRIENTE ALIMENTÓ LA MÁQUINA."],
@@ -151,6 +156,8 @@ const STORY_VS_PAIR := {
 }
 ## Refuerzo [vida, fuerza, resistencia] del jefe de cada época.
 const BOSS_BOOST := [1.12, 1.05, 1.0]
+## Refuerzo del Nexo, el jefe final (sus fases lo suben aún más durante el combate).
+const NEXO_BOOST := [1.5, 1.1, 1.05]
 
 var mode: Mode = Mode.VERSUS
 var difficulty: Difficulty = Difficulty.NORMAL
@@ -221,6 +228,8 @@ func p2_data() -> FighterData:
 
 ## Refuerzo del rival actual del modo Historia (vacío = ninguno).
 func _boss_boost() -> Array:
+	if is_story_nexo_fight():
+		return NEXO_BOOST
 	if story_is_chapter_boss(arcade_stage):
 		return BOSS_BOOST
 	return []
@@ -301,6 +310,8 @@ func difficulty_name() -> String:
 func ai_level() -> float:
 	var level := DIFFICULTY_LEVEL[difficulty]
 	if mode == Mode.ARCADE and not arcade_ladder.is_empty():
+		if is_story_nexo_fight():
+			return 1.0
 		# Sube de forma pareja a lo largo de toda la escalera (hasta +0.5 al llegar al final).
 		level += 0.5 * arcade_stage / maxf(arcade_ladder.size() - 1.0, 1.0)
 	return clampf(level, 0.0, 1.0)
@@ -318,6 +329,7 @@ func start_story(player_id: StringName) -> void:
 	arcade_ladder.clear()
 	for d in rivals:
 		arcade_ladder.append(d.id)
+	arcade_ladder.append(STORY_NEXO_ID)
 	arcade_stage = 0
 	arcade_continues = ARCADE_CONTINUES
 	story_continues_used = 0
@@ -362,10 +374,16 @@ func story_vs_lines(fighter_id: StringName) -> Array:
 
 ## Época (índice en STORY_CHAPTERS) a la que pertenece un luchador.
 func story_chapter_of(fighter_id: StringName) -> int:
+	if fighter_id == STORY_NEXO_ID:
+		return STORY_CHAPTERS.size()
 	return _chapter_of_id(fighter_id)
 
+## ¿El rival actual es el Nexo, el jefe final?
+func is_story_nexo_fight() -> bool:
+	return mode == Mode.ARCADE and p2_fighter_id == STORY_NEXO_ID
+
 func story_chapter_name(chapter: int) -> String:
-	return STORY_CHAPTERS[chapter][0]
+	return STORY_CHAPTERS[chapter][0] if chapter < STORY_CHAPTERS.size() else STORY_NEXO_NAME
 
 ## ¿El combate `stage` abre un capítulo nuevo?
 func story_chapter_start(stage: int) -> bool:

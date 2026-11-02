@@ -165,7 +165,7 @@ func _not_saved_reason(reason: String) -> String:
 func _epilogue() -> PackedStringArray:
 	match _arcade:
 		&"complete":
-			return PackedStringArray(["HAS RECORRIDO TODA LA HISTORIA", "EL NEXO TE OFRECE SU PODER"])
+			return PackedStringArray(["¡VENCISTE AL NEXO!", "EL TIEMPO ESPERA TU DECISIÓN"])
 	return PackedStringArray()
 
 func _arcade_status() -> String:
