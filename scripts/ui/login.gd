@@ -11,8 +11,8 @@ var _registering: bool = false
 var _busy: bool = false
 ## ID token de Google a la espera de que el jugador (nuevo) elija su nombre. "" = no hay.
 var _google_cred: String = ""
-## Hueco del formulario sobre el que se coloca el botón HTML de Google (null si no hay Google).
-var _google_slot: Control
+## Botón arcade de Google; encima se coloca, invisible, el botón HTML oficial (null si no hay Google).
+var _google_slot: Button
 var _google_shown: bool = false
 var _google_rect: Rect2
 
@@ -69,6 +69,9 @@ func _process(_delta: float) -> void:
 		GoogleSignIn.show(rect)
 		_google_shown = true
 		_google_rect = rect
+	# El canvas no ve el ratón bajo el botón HTML: el resaltado se da con el foco.
+	if GoogleSignIn.hovered() and not _google_slot.has_focus():
+		_google_slot.grab_focus()
 	var cred := GoogleSignIn.take_credential()
 	if cred != "":
 		_on_google(cred)
@@ -77,7 +80,7 @@ func _build_form() -> void:
 	_form = VBoxContainer.new()
 	_form.position = Vector2((426 - FORM_WIDTH) / 2.0, 88)
 	_form.custom_minimum_size = Vector2(FORM_WIDTH, 0)
-	_form.add_theme_constant_override("separation", 4)
+	_form.add_theme_constant_override("separation", 3)
 	add_child(_form)
 
 	# Dos líneas con ajuste de texto: un mensaje largo no debe ensanchar el formulario.
@@ -96,17 +99,20 @@ func _build_form() -> void:
 
 	_submit = _button("ENTRAR")
 	_toggle = _button("CREAR CUENTA NUEVA")
+	var buttons: Array[Button] = [_submit, _toggle]
 	if GoogleSignIn.available():
-		_google_slot = Control.new()
-		_google_slot.custom_minimum_size = Vector2(FORM_WIDTH, 20)
-		_form.add_child(_google_slot)
+		_google_slot = _button("CONTINUAR CON GOOGLE")
+		_google_slot.icon = _google_icon()
+		_google_slot.pressed.connect(GoogleSignIn.prompt)
+		buttons.append(_google_slot)
 	_guest = _button("JUGAR SIN CUENTA")
+	buttons.append(_guest)
 	_submit.pressed.connect(_on_submit)
 	_toggle.pressed.connect(_on_toggle)
 	_guest.pressed.connect(_on_guest)
 	for f in [_email, _username, _password]:
 		f.text_submitted.connect(func(_t: String): _on_submit())
-	for b in [_submit, _toggle, _guest]:
+	for b in buttons:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	_set_registering(false)
@@ -126,6 +132,28 @@ func _button(label: String) -> Button:
 	_form.add_child(b)
 	return b
 
+## "G" de Google en pixel art, con sus cuatro colores.
+func _google_icon() -> ImageTexture:
+	const ROWS := [
+		".RRRRR.",
+		"RR...RR",
+		"Y......",
+		"Y..BBBB",
+		"Y....BB",
+		"GG...BB",
+		".GGGGG.",
+	]
+	const COLORS := {
+		"R": Color("ea4335"), "Y": Color("fbbc05"), "G": Color("34a853"), "B": Color("4285f4"),
+	}
+	var img := Image.create(7, 7, false, Image.FORMAT_RGBA8)
+	for y in ROWS.size():
+		for x in ROWS[y].length():
+			var c: String = ROWS[y][x]
+			if COLORS.has(c):
+				img.set_pixel(x, y, COLORS[c])
+	return ImageTexture.create_from_image(img)
+
 func _set_registering(value: bool) -> void:
 	_registering = value
 	_google_cred = ""
@@ -135,14 +163,22 @@ func _set_registering(value: bool) -> void:
 	_submit.text = "CREAR CUENTA" if value else "ENTRAR"
 	_toggle.text = "YA TENGO CUENTA" if value else "CREAR CUENTA NUEVA"
 	_status.text = ""
+	_fit_form()
+
+## Con más campos visibles (crear cuenta) el formulario sube lo justo para no salirse por abajo.
+func _fit_form() -> void:
+	var h := _form.get_combined_minimum_size().y
+	_form.size.y = h
+	_form.position.y = minf(88.0, 240.0 - 2.0 - h)
 
 func _set_busy(busy: bool, message: String = "") -> void:
 	_busy = busy
 	_status.text = message
 	for c in [_email, _username, _password]:
 		c.editable = not busy
-	for b in [_submit, _toggle, _guest]:
-		b.disabled = busy
+	for b in [_submit, _toggle, _guest, _google_slot]:
+		if b:
+			b.disabled = busy
 	if _form:
 		_form.visible = true
 
@@ -177,6 +213,7 @@ func _ask_google_username(message: String) -> void:
 	_username.visible = true
 	_submit.text = "CONTINUAR"
 	_toggle.text = "CANCELAR"
+	_fit_form()
 	_set_busy(false, message if message != "" else "ELIGE TU NOMBRE DE JUGADOR")
 	_username.grab_focus()
 
