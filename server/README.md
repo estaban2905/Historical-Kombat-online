@@ -23,7 +23,7 @@ npm run build && npm start
 | `GET /protocol` | Catálogo de mensajes del WebSocket |
 | `GET /docs` | Swagger UI (`/docs/json` es el OpenAPI) |
 | `WS /ws` | Conexión de juego |
-| `POST /auth/register` · `/auth/login` · `/auth/refresh` · `/auth/logout` | Cuentas y sesiones (solo con base de datos) |
+| `POST /auth/register` · `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout` | Cuentas y sesiones (solo con base de datos) |
 | `GET /me` · `GET /me/matches` · `GET /leaderboard` | Mi perfil, mi historial de duelos (con token) y el ranking |
 
 ## Estructura
@@ -63,6 +63,7 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 | `DATABASE_URL` | (vacía) | Postgres. En Railway: `${{Postgres.DATABASE_URL}}`. Sin ella no hay cuentas, solo emparejamiento |
 | `ALLOWED_ORIGINS` | (vacía = cualquiera) | Dominios de la web del juego, separados por comas |
 | `AUTH_RATE_LIMIT_PER_MINUTE` | 10 | Intentos de registro/login por minuto y por IP |
+| `GOOGLE_CLIENT_ID` | (vacía) | Client ID de Google (OAuth tipo web). Con él, `POST /auth/google` acepta ID tokens de Google; sin él responde 503. Debe ser el mismo que usa el servicio web |
 
 ## Duelos con ranking
 

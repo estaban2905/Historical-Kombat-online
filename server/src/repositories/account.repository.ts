@@ -7,14 +7,15 @@ interface AccountRow {
   id: string;
   username: string;
   email: string;
-  password_hash: string;
+  password_hash: string | null;
+  google_sub: string | null;
   points: number;
   wins: number;
   losses: number;
   created_at: Date | string;
 }
 
-const COLUMNS = "id, username, email, password_hash, points, wins, losses, created_at";
+const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, created_at";
 
 function toAccount(r: AccountRow): Account {
   return {
@@ -22,6 +23,7 @@ function toAccount(r: AccountRow): Account {
     username: r.username,
     email: r.email,
     passwordHash: r.password_hash,
+    googleSub: r.google_sub,
     points: r.points,
     wins: r.wins,
     losses: r.losses,
@@ -34,11 +36,16 @@ export class AccountRepository {
   constructor(private readonly db: Queryable) {}
 
   /** Crea la cuenta; lanza DuplicateAccountError si el nombre o el email ya existen. */
-  async create(input: { username: string; email: string; passwordHash: string }): Promise<Account> {
+  async create(input: {
+    username: string;
+    email: string;
+    passwordHash?: string;
+    googleSub?: string;
+  }): Promise<Account> {
     try {
       const res = await this.db.query<AccountRow>(
-        `insert into players (username, email, password_hash) values ($1, $2, $3) returning ${COLUMNS}`,
-        [input.username, input.email, input.passwordHash],
+        `insert into players (username, email, password_hash, google_sub) values ($1, $2, $3, $4) returning ${COLUMNS}`,
+        [input.username, input.email, input.passwordHash ?? null, input.googleSub ?? null],
       );
       return toAccount(res.rows[0]!);
     } catch (err) {
@@ -53,6 +60,16 @@ export class AccountRepository {
   async findByEmail(email: string): Promise<Account | null> {
     const res = await this.db.query<AccountRow>(`select ${COLUMNS} from players where lower(email) = lower($1)`, [email]);
     return res.rows[0] ? toAccount(res.rows[0]) : null;
+  }
+
+  async findByGoogleSub(sub: string): Promise<Account | null> {
+    const res = await this.db.query<AccountRow>(`select ${COLUMNS} from players where google_sub = $1`, [sub]);
+    return res.rows[0] ? toAccount(res.rows[0]) : null;
+  }
+
+  /** Enlaza una cuenta que ya existía (por email) con la cuenta de Google. */
+  async linkGoogle(id: string, sub: string): Promise<void> {
+    await this.db.query("update players set google_sub = $2 where id = $1", [id, sub]);
   }
 
   async findById(id: string): Promise<Account | null> {

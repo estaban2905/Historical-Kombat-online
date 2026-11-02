@@ -1,13 +1,20 @@
 ## Pantalla de inicio de sesión / registro. Es la escena principal del juego.
 ##   - Sin servidor, o con un servidor sin cuentas: pasa directo al menú (el juego funciona offline).
 ##   - Con una sesión guardada: la recupera y pasa al menú.
-##   - Si no: formulario de ENTRAR / CREAR CUENTA, o JUGAR SIN CUENTA.
+##   - Si no: formulario de ENTRAR / CREAR CUENTA, CONTINUAR CON GOOGLE (solo en la web),
+##     o JUGAR SIN CUENTA.
 extends Control
 
 const FORM_WIDTH := 240.0
 
 var _registering: bool = false
 var _busy: bool = false
+## ID token de Google a la espera de que el jugador (nuevo) elija su nombre. "" = no hay.
+var _google_cred: String = ""
+## Hueco del formulario sobre el que se coloca el botón HTML de Google (null si no hay Google).
+var _google_slot: Control
+var _google_shown: bool = false
+var _google_rect: Rect2
 
 var _form: VBoxContainer
 var _status: Label
@@ -43,6 +50,29 @@ func _ready() -> void:
 func _go_menu() -> void:
 	Game.goto(Game.SCENE_MENU)
 
+func _exit_tree() -> void:
+	if _google_shown:
+		GoogleSignIn.hide()
+
+## Coloca el botón de Google sobre su hueco (solo mientras el formulario está libre)
+## y recoge el ID token cuando el jugador elige cuenta.
+func _process(_delta: float) -> void:
+	if _google_slot == null:
+		return
+	if _busy or _google_cred != "":
+		if _google_shown:
+			GoogleSignIn.hide()
+			_google_shown = false
+		return
+	var rect := _google_slot.get_global_rect()
+	if not _google_shown or rect != _google_rect:
+		GoogleSignIn.show(rect)
+		_google_shown = true
+		_google_rect = rect
+	var cred := GoogleSignIn.take_credential()
+	if cred != "":
+		_on_google(cred)
+
 func _build_form() -> void:
 	_form = VBoxContainer.new()
 	_form.position = Vector2((426 - FORM_WIDTH) / 2.0, 88)
@@ -66,9 +96,13 @@ func _build_form() -> void:
 
 	_submit = _button("ENTRAR")
 	_toggle = _button("CREAR CUENTA NUEVA")
+	if GoogleSignIn.available():
+		_google_slot = Control.new()
+		_google_slot.custom_minimum_size = Vector2(FORM_WIDTH, 20)
+		_form.add_child(_google_slot)
 	_guest = _button("JUGAR SIN CUENTA")
 	_submit.pressed.connect(_on_submit)
-	_toggle.pressed.connect(func(): _set_registering(not _registering))
+	_toggle.pressed.connect(_on_toggle)
 	_guest.pressed.connect(_on_guest)
 	for f in [_email, _username, _password]:
 		f.text_submitted.connect(func(_t: String): _on_submit())
@@ -94,6 +128,9 @@ func _button(label: String) -> Button:
 
 func _set_registering(value: bool) -> void:
 	_registering = value
+	_google_cred = ""
+	_email.visible = true
+	_password.visible = true
 	_username.visible = value
 	_submit.text = "CREAR CUENTA" if value else "ENTRAR"
 	_toggle.text = "YA TENGO CUENTA" if value else "CREAR CUENTA NUEVA"
@@ -109,8 +146,51 @@ func _set_busy(busy: bool, message: String = "") -> void:
 	if _form:
 		_form.visible = true
 
+func _on_toggle() -> void:
+	if _busy:
+		return
+	# Con un token de Google pendiente, este botón cancela y vuelve al formulario normal.
+	_set_registering(false if _google_cred != "" else not _registering)
+
+## El jugador eligió su cuenta de Google. Si ya existe, entra; si es nueva, pide un nombre.
+func _on_google(cred: String) -> void:
+	_google_cred = cred
+	await _finish_google("")
+
+func _finish_google(player_name: String) -> void:
+	_set_busy(true, "CONECTANDO...")
+	var r := await Backend.sign_in_google(_google_cred, player_name)
+	if r.ok:
+		_go_menu()
+		return
+	if r.need_username or (player_name != "" and r.error == "ESE NOMBRE YA ESTÁ EN USO"):
+		_ask_google_username(r.error)
+		return
+	_set_registering(false)
+	_set_busy(false, r.error)
+	Sfx.play(&"denied")
+
+## Cuenta de Google nueva: solo falta elegir el nombre de jugador (el email lo da Google).
+func _ask_google_username(message: String) -> void:
+	_email.visible = false
+	_password.visible = false
+	_username.visible = true
+	_submit.text = "CONTINUAR"
+	_toggle.text = "CANCELAR"
+	_set_busy(false, message if message != "" else "ELIGE TU NOMBRE DE JUGADOR")
+	_username.grab_focus()
+
 func _on_submit() -> void:
 	if _busy:
+		return
+	if _google_cred != "":
+		var chosen := _username.text.strip_edges()
+		var bad := Backend.validate_username(chosen)
+		if bad != "":
+			_status.text = bad
+			Sfx.play(&"denied")
+			return
+		await _finish_google(chosen)
 		return
 	var email := _email.text.strip_edges()
 	var name := _username.text.strip_edges()

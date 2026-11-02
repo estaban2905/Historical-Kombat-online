@@ -8,7 +8,7 @@ test("las migraciones se aplican una vez y la segunda vez no hacen nada", async 
   const db = new PgliteDb(new PGlite());
   t.after(() => db.close());
   const first = await migrate(db);
-  assert.deepEqual(first, ["001_init.sql"]);
+  assert.deepEqual(first, ["001_init.sql", "002_google.sql"]);
   assert.deepEqual(await migrate(db), []);
   const tables = await db.query<{ tablename: string }>(
     "select tablename from pg_tables where schemaname = 'public' order by tablename",

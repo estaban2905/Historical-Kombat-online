@@ -16,7 +16,7 @@ function fakeGame(): string {
   return dir;
 }
 
-const base = { logger: false, serverUrl: "wss://server.example.com/ws" };
+const base = { logger: false, serverUrl: "wss://server.example.com/ws", googleClientId: "" };
 
 test("sirve la página del juego en /", async (t) => {
   const app = await buildApp({ ...base, staticDir: fakeGame() });
@@ -34,14 +34,24 @@ test("/config.js entrega al juego la dirección del servidor, sin caché", async
   assert.equal(res.statusCode, 200);
   assert.match(String(res.headers["content-type"]), /javascript/);
   assert.equal(res.headers["cache-control"], "no-store");
-  assert.equal(res.body, 'window.HC_SERVER_URL = "wss://server.example.com/ws";\n');
+  assert.equal(
+    res.body,
+    'window.HC_SERVER_URL = "wss://server.example.com/ws";\nwindow.HC_GOOGLE_CLIENT_ID = "";\n',
+  );
+});
+
+test("/config.js entrega el Client ID de Google cuando está configurado", async (t) => {
+  const app = await buildApp({ ...base, googleClientId: "abc.apps.googleusercontent.com", staticDir: fakeGame() });
+  t.after(() => app.close());
+  const res = await app.inject({ method: "GET", url: "/config.js" });
+  assert.match(res.body, /window\.HC_GOOGLE_CLIENT_ID = "abc\.apps\.googleusercontent\.com";/);
 });
 
 test("/config.js escapa el valor (no se puede inyectar código)", async (t) => {
   const app = await buildApp({ ...base, serverUrl: '";alert(1);"', staticDir: fakeGame() });
   t.after(() => app.close());
   const res = await app.inject({ method: "GET", url: "/config.js" });
-  assert.equal(res.body, 'window.HC_SERVER_URL = "\\";alert(1);\\"";\n');
+  assert.ok(res.body.startsWith('window.HC_SERVER_URL = "\\";alert(1);\\"";\n'));
 });
 
 test("/health responde ok", async (t) => {
@@ -77,7 +87,7 @@ test("sin juego exportado, / da 404 pero /health y /config.js siguen respondiend
 });
 
 test("loadConfig: valores por defecto y variables de entorno", () => {
-  assert.deepEqual(loadConfig({}), { staticDir: "public", serverUrl: "", logger: true });
-  assert.deepEqual(loadConfig({ STATIC_DIR: "x", SERVER_URL: "wss://a/ws", LOG: "false" }),
-    { staticDir: "x", serverUrl: "wss://a/ws", logger: false });
+  assert.deepEqual(loadConfig({}), { staticDir: "public", serverUrl: "", googleClientId: "", logger: true });
+  assert.deepEqual(loadConfig({ STATIC_DIR: "x", SERVER_URL: "wss://a/ws", GOOGLE_CLIENT_ID: " g.apps ", LOG: "false" }),
+    { staticDir: "x", serverUrl: "wss://a/ws", googleClientId: "g.apps", logger: false });
 });

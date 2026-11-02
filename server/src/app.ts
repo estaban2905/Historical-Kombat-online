@@ -13,6 +13,7 @@ import { gameRoutes } from "./routes/game.routes.js";
 import { profileRoutes } from "./routes/profile.routes.js";
 import { systemRoutes } from "./routes/system.routes.js";
 import { MatchService } from "./services/match.service.js";
+import { createGoogleVerifier, type GoogleVerifier } from "./services/google-verifier.js";
 import { MatchmakingService } from "./services/matchmaking.service.js";
 
 export interface BuildOptions {
@@ -20,6 +21,8 @@ export interface BuildOptions {
   matchmaking?: MatchmakingService;
   /** Base de datos ya migrada. Sin ella no hay cuentas: solo emparejamiento. */
   db?: Db;
+  /** Para pruebas: reemplaza la verificación real contra Google. */
+  googleVerifier?: GoogleVerifier;
 }
 
 /** Arma la aplicación: plugins, servicios y rutas. No abre ningún puerto. */
@@ -46,7 +49,9 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   await app.register(gameRoutes);
   if (options.db) {
     await app.register(rateLimit, { global: false });
-    registerAuth(app, options.db);
+    const googleVerifier =
+      options.googleVerifier ?? (config.googleClientId ? createGoogleVerifier(config.googleClientId) : null);
+    registerAuth(app, options.db, googleVerifier);
     await app.register(authRoutes, { prefix: "/auth" });
     await app.register(profileRoutes);
   }

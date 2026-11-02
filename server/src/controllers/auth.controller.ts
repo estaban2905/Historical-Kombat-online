@@ -12,6 +12,10 @@ export interface LoginBody {
   email: string;
   password: string;
 }
+export interface GoogleBody {
+  id_token: string;
+  username?: string;
+}
 export interface RefreshBody {
   refresh_token: string;
 }
@@ -34,6 +38,10 @@ export const authController = (auth: AuthService) => ({
 
   async login(req: FastifyRequest<{ Body: LoginBody }>) {
     return toResponse(await auth.login(req.body.email, req.body.password));
+  },
+
+  async google(req: FastifyRequest<{ Body: GoogleBody }>) {
+    return toResponse(await auth.loginWithGoogle(req.body.id_token, req.body.username));
   },
 
   async refresh(req: FastifyRequest<{ Body: RefreshBody }>) {

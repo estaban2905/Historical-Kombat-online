@@ -6,6 +6,7 @@ import { AccountRepository } from "../repositories/account.repository.js";
 import { MatchRepository } from "../repositories/match.repository.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 import { AuthService } from "../services/auth.service.js";
+import type { GoogleVerifier } from "../services/google-verifier.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -28,9 +29,9 @@ export function bearerToken(req: FastifyRequest): string | null {
 }
 
 /** Crea el servicio de cuentas sobre la base de datos y lo deja en app.auth / app.accounts. */
-export function registerAuth(app: FastifyInstance, db: Db): void {
+export function registerAuth(app: FastifyInstance, db: Db, googleVerifier: GoogleVerifier | null = null): void {
   const accounts = new AccountRepository(db);
-  const auth = new AuthService(accounts, new SessionRepository(db));
+  const auth = new AuthService(accounts, new SessionRepository(db), {}, googleVerifier);
   app.decorate("accounts", accounts);
   app.decorate("matchHistory", new MatchRepository(db));
   app.decorate("auth", auth);

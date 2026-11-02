@@ -7,7 +7,7 @@ Entrega el juego exportado a Web (carpeta `public/`) y le dice a qué servidor d
 | Ruta | Qué es |
 |---|---|
 | `GET /` | El juego (`index.html`, `.wasm`, `.pck`; con Brotli/gzip ya comprimidos) |
-| `GET /config.js` | `window.HC_SERVER_URL = "<SERVER_URL>"`; el juego lo lee antes de arrancar |
+| `GET /config.js` | `window.HC_SERVER_URL` y `window.HC_GOOGLE_CLIENT_ID`; el juego los lee antes de arrancar |
 | `GET /health` | Estado (lo usa Railway) |
 
 ## Variables de entorno
@@ -16,6 +16,7 @@ Entrega el juego exportado a Web (carpeta `public/`) y le dice a qué servidor d
 |---|---|---|
 | `PORT` | 8788 | Puerto (Railway lo define solo) |
 | `SERVER_URL` | (vacía) | Dirección WebSocket del servicio `server`, p. ej. `wss://history-combat-server.up.railway.app/ws` |
+| `GOOGLE_CLIENT_ID` | (vacía) | Client ID de Google (no es secreto). Con él, el Login del juego muestra "Continuar con Google". Va en `/config.js` como `window.HC_GOOGLE_CLIENT_ID` |
 | `STATIC_DIR` | public | Carpeta del juego exportado |
 | `LOG` | true | `false` apaga los logs |
 

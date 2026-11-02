@@ -68,6 +68,20 @@ func sign_in(p_email: String, password: String) -> Dictionary:
 	_start_session(r.data)
 	return {"ok": true}
 
+## Entra con el ID token de Google. Si la cuenta es nueva hace falta p_username: sin él
+## devuelve {ok: false, need_username: true} para que la pantalla lo pida y reintente.
+## Devuelve {ok: bool, error: String, need_username: bool}.
+func sign_in_google(id_token: String, p_username: String = "") -> Dictionary:
+	var body := {"id_token": id_token}
+	if p_username != "":
+		body["username"] = p_username
+	var r := await _request("POST", "/auth/google", body, false)
+	if not r.ok:
+		var need: bool = r.data is Dictionary and str(r.data.get("error", "")) == "username_required"
+		return {"ok": false, "error": "" if need else _error_text(r), "need_username": need}
+	_start_session(r.data)
+	return {"ok": true, "error": "", "need_username": false}
+
 ## Recupera la sesión guardada. Devuelve {ok: bool, error: String}.
 func restore_session() -> Dictionary:
 	var token := load_saved_refresh_token()
@@ -208,6 +222,8 @@ func _error_text(r: Dictionary) -> String:
 		"invalid_credentials": return "EMAIL O CONTRASEÑA INCORRECTOS"
 		"email_taken": return "ESE EMAIL YA ESTÁ REGISTRADO"
 		"username_taken": return "ESE NOMBRE YA ESTÁ EN USO"
+		"invalid_google_token": return "NO SE PUDO VERIFICAR TU CUENTA DE GOOGLE"
+		"google_disabled": return "GOOGLE NO ESTÁ DISPONIBLE"
 		"invalid_request": return "DATOS NO VÁLIDOS"
 		"rate_limited": return "DEMASIADOS INTENTOS, ESPERA UN POCO"
 		"invalid_token": return "SESIÓN CADUCADA, ENTRA DE NUEVO"
@@ -220,7 +236,12 @@ static func validate_credentials(p_email: String, password: String, p_username: 
 	if password.length() < 6:
 		return "CONTRASEÑA: MÍNIMO 6 CARACTERES"
 	if registering:
-		var rx := RegEx.create_from_string("^[A-Za-z0-9_]{3,16}$")
-		if rx.search(p_username) == null:
-			return "NOMBRE: 3-16 LETRAS, NÚMEROS O _"
+		return validate_username(p_username)
+	return ""
+
+## Comprueba el nombre de jugador. "" = correcto.
+static func validate_username(p_username: String) -> String:
+	var rx := RegEx.create_from_string("^[A-Za-z0-9_]{3,16}$")
+	if rx.search(p_username) == null:
+		return "NOMBRE: 3-16 LETRAS, NÚMEROS O _"
 	return ""

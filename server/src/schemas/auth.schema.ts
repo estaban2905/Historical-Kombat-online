@@ -81,6 +81,21 @@ export const loginSchema = {
   response: { 200: sessionResponse, 400: errors[400], 401: errors[401], 429: errors[429] },
 } as const;
 
+export const googleSchema = {
+  tags: ["auth"],
+  summary: "Entrar con Google",
+  description:
+    "Recibe el ID token de Google Identity Services. Si el jugador es nuevo hace falta `username`; " +
+    "sin él responde 409 `username_required`. Si ya había una cuenta con ese email, se enlaza.",
+  body: {
+    type: "object",
+    required: ["id_token"],
+    additionalProperties: false,
+    properties: { id_token: { type: "string", minLength: 20, maxLength: 4096 }, username },
+  },
+  response: { 200: sessionResponse, 400: errors[400], 401: errors[401], 409: errors[409], 429: errors[429], 503: errorSchema },
+} as const;
+
 export const refreshSchema = {
   tags: ["auth"],
   summary: "Renovar la sesión",

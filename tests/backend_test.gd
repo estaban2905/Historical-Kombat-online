@@ -36,6 +36,7 @@ func _run() -> void:
 	check(Backend.validate_credentials("a@b.co", "123456", "ab", true) != "", "nombre de 2 letras rechazado")
 	check(Backend.validate_credentials("a@b.co", "123456", "con espacio", true) != "", "nombre con espacio rechazado")
 	check(Backend.validate_credentials("a@b.co", "123456", "Max_29", true) == "", "nombre válido aceptado")
+	check(Backend.validate_username("Max_29") == "" and Backend.validate_username("a b") != "", "validate_username")
 
 	print("\n# Direcciones")
 	check(ServerConfig.to_http("wss://x.up.railway.app/ws") == "https://x.up.railway.app", "wss://.../ws → https://...")

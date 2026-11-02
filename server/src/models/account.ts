@@ -3,7 +3,9 @@ export interface Account {
   id: string;
   username: string;
   email: string;
-  passwordHash: string;
+  /** null en las cuentas creadas con Google (no tienen contraseña). */
+  passwordHash: string | null;
+  googleSub: string | null;
   points: number;
   wins: number;
   losses: number;

@@ -13,6 +13,8 @@ export interface AppConfig {
   databaseUrl: string;
   /** Orígenes que pueden llamar a la API desde un navegador (la web del juego). Vacío = cualquiera. */
   allowedOrigins: string[];
+  /** Client ID de Google (OAuth, tipo web). Vacío = el inicio de sesión con Google está apagado. */
+  googleClientId: string;
   /** Intentos de registro/login por minuto y por IP. */
   authRateLimitPerMinute: number;
   logger: boolean;
@@ -30,6 +32,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       .split(",")
       .map((o) => o.trim())
       .filter((o) => o !== ""),
+    googleClientId: (env["GOOGLE_CLIENT_ID"] ?? "").trim(),
     authRateLimitPerMinute: toInt(env["AUTH_RATE_LIMIT_PER_MINUTE"], 10),
     logger: env["LOG"] !== "false",
   };
