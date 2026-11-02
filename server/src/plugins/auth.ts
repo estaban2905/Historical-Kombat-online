@@ -5,6 +5,7 @@ import type { Account } from "../models/account.js";
 import { AccountRepository } from "../repositories/account.repository.js";
 import { MatchRepository } from "../repositories/match.repository.js";
 import { SessionRepository } from "../repositories/session.repository.js";
+import { StoryRepository } from "../repositories/story.repository.js";
 import { AuthService } from "../services/auth.service.js";
 import type { GoogleVerifier } from "../services/google-verifier.js";
 
@@ -13,6 +14,7 @@ declare module "fastify" {
     auth: AuthService;
     accounts: AccountRepository;
     matchHistory: MatchRepository;
+    storySaves: StoryRepository;
     /** preHandler: exige `Authorization: Bearer <token>` válido y deja la cuenta en request.account. */
     requireAuth: (req: FastifyRequest) => Promise<void>;
   }
@@ -34,6 +36,7 @@ export function registerAuth(app: FastifyInstance, db: Db, googleVerifier: Googl
   const auth = new AuthService(accounts, new SessionRepository(db), {}, googleVerifier);
   app.decorate("accounts", accounts);
   app.decorate("matchHistory", new MatchRepository(db));
+  app.decorate("storySaves", new StoryRepository(db));
   app.decorate("auth", auth);
   app.decorateRequest("account", null);
   app.decorate("requireAuth", async (req: FastifyRequest) => {

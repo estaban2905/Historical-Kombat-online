@@ -337,6 +337,62 @@ func start_story(player_id: StringName) -> void:
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
 
+## Lo mínimo para retomar la partida (la escalera se recalcula con start_story al restaurar).
+func story_snapshot() -> Dictionary:
+	return {
+		"fighter": str(p1_fighter_id),
+		"stage": arcade_stage,
+		"continues": arcade_continues,
+		"continues_used": story_continues_used,
+		"difficulty": int(difficulty),
+	}
+
+## Guarda la partida en curso (equipo y cuenta). Se llama al empezar y tras cada combate.
+func story_autosave() -> void:
+	Backend.save_story(story_snapshot())
+
+## Guarda la partida como quedará al pasar al combate siguiente (sin avanzarlo todavía).
+func story_autosave_next() -> void:
+	var s := story_snapshot()
+	var next_stage := mini(arcade_stage + 1, arcade_ladder.size() - 1)
+	s["stage"] = next_stage
+	if story_chapter_start(next_stage):
+		s["continues"] = ARCADE_CONTINUES
+	Backend.save_story(s)
+
+## Guarda la partida como quedará al gastar una revancha (sin gastarla todavía).
+func story_autosave_retry() -> void:
+	var s := story_snapshot()
+	s["continues"] = maxi(arcade_continues - 1, 0)
+	s["continues_used"] = story_continues_used + 1
+	Backend.save_story(s)
+
+## Retoma una partida guardada. Devuelve false (sin tocar nada) si ya no es válida,
+## por ejemplo si el luchador o el combate ya no existen en esta versión.
+func story_resume(save: Dictionary) -> bool:
+	var id := StringName(str(save.get("fighter", "")))
+	var found := false
+	for d in FighterRegistry.all():
+		if d.id == id:
+			found = true
+	if not found:
+		return false
+	var diff := int(save.get("difficulty", Difficulty.NORMAL))
+	if diff < 0 or diff >= DIFFICULTY_NAMES.size():
+		return false
+	var old_difficulty := difficulty
+	start_story(id)
+	var stage := int(save.get("stage", 0))
+	if stage < 0 or stage >= arcade_ladder.size():
+		difficulty = old_difficulty
+		return false
+	difficulty = diff as Difficulty
+	arcade_stage = stage
+	arcade_continues = clampi(int(save.get("continues", ARCADE_CONTINUES)), 0, ARCADE_CONTINUES)
+	story_continues_used = maxi(int(save.get("continues_used", 0)), 0)
+	p2_fighter_id = arcade_ladder[arcade_stage]
+	return true
+
 ## Orden de la escalera: por capítulo del más reciente al más antiguo y, dentro de uno,
 ## por año, salvo el jefe designado del capítulo, que va al final.
 func _story_before(a: FighterData, b: FighterData) -> bool:

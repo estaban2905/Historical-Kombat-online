@@ -113,6 +113,50 @@ func _run() -> void:
 	Backend.apply_settled({"ranked": false, "ok": true, "points": 5})
 	check(int(Backend.profile.points) == 1016, "un duelo amistoso no cambia los puntos")
 
+	print("
+# Partida guardada del modo Historia")
+	Backend.story_path = "user://story_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Backend.story_path))
+	check((await Backend.load_story()).is_empty(), "cuenta nueva: sin partida guardada")
+	var save := {"fighter": "nikola_tesla", "stage": 7, "continues": 2, "continues_used": 1, "difficulty": 1}
+	check(await Backend.save_story(save.duplicate()), "guardar la partida en la cuenta")
+	check(Backend.story_local().get("stage", -1) == 7, "queda también una copia local")
+	# Otro PC: sin copia local, la partida vuelve desde la cuenta.
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Backend.story_path))
+	check(Backend.story_local().is_empty(), "otro equipo: sin copia local")
+	var got := await Backend.load_story()
+	check(got.get("fighter", "") == "nikola_tesla" and int(got.get("stage", -1)) == 7, "la partida se recupera desde la cuenta")
+	check(int(got.get("continues", -1)) == 2 and int(got.get("continues_used", -1)) == 1 and int(got.get("difficulty", -1)) == 1,
+		"recupera revanchas y dificultad")
+	check(Backend.story_local().get("stage", -1) == 7, "y se copia al equipo")
+	# Un guardado más nuevo hecho desde otro equipo gana al local.
+	var newer := save.duplicate()
+	newer["stage"] = 9
+	await Backend.save_story(newer)
+	var stale := ConfigFile.new()
+	for k in Backend.STORY_KEYS:
+		stale.set_value(Backend.user_id, k, {"fighter": "nikola_tesla", "stage": 3, "continues": 3, "continues_used": 0,
+			"difficulty": 1, "saved_at": 1}[k])
+	stale.save(Backend.story_path)
+	check(int((await Backend.load_story()).get("stage", -1)) == 9, "gana la partida más reciente (cuenta sobre copia vieja)")
+	# Sin red se usa la copia local.
+	ServerConfig.override_ws = "ws://127.0.0.1:1/ws"
+	check(int((await Backend.load_story()).get("stage", -1)) == 9, "sin conexión se usa la copia local")
+	ServerConfig.override_ws = url
+	await Backend.clear_story()
+	check(Backend.story_local().is_empty() and (await Backend.load_story()).is_empty(), "borrar quita la partida de equipo y cuenta")
+	# Reanudar en el juego.
+	check(Game.story_resume({"fighter": "nikola_tesla", "stage": 5, "continues": 1, "continues_used": 2, "difficulty": 1}),
+		"Game.story_resume acepta una partida válida")
+	check(Game.arcade_stage == 5 and Game.arcade_continues == 1 and Game.story_continues_used == 2
+		and Game.p1_fighter_id == &"nikola_tesla" and Game.p2_fighter_id == Game.arcade_ladder[5], "y deja el juego en ese combate")
+	check(Game.story_snapshot().get("stage", -1) == 5, "story_snapshot refleja el estado")
+	check(not Game.story_resume({"fighter": "no_existe", "stage": 1, "continues": 1, "continues_used": 0, "difficulty": 1}),
+		"un luchador que ya no existe se rechaza")
+	check(not Game.story_resume({"fighter": "nikola_tesla", "stage": 9999, "continues": 1, "continues_used": 0, "difficulty": 1}),
+		"un combate fuera de la escalera se rechaza")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Backend.story_path))
+
 	await Backend.sign_out()
 	Backend._forget_session()
 	ServerConfig.override_ws = ""

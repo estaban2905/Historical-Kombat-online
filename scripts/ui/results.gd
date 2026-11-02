@@ -56,6 +56,8 @@ func _setup_buttons() -> void:
 	btn_select.visible = false
 	match _arcade:
 		&"next":
+			# Se guarda ya, al ganar: si se recarga aquí, se retoma en el combate siguiente.
+			Game.story_autosave_next()
 			btn_rematch.text = "SIGUIENTE COMBATE"
 			btn_rematch.pressed.connect(func():
 				Game.arcade_advance()
@@ -64,11 +66,15 @@ func _setup_buttons() -> void:
 			btn_rematch.text = "EL DESTINO"
 			btn_rematch.pressed.connect(func(): Game.goto(Game.SCENE_STORY_ENDING))
 		&"retry":
+			# La revancha se descuenta ya, al perder: recargar no la devuelve.
+			Game.story_autosave_retry()
 			btn_rematch.text = "CONTINUAR (%d)" % Game.arcade_continues
 			btn_rematch.pressed.connect(func():
 				Game.arcade_use_continue()
 				Game.goto(Game.SCENE_FIGHT))
 		_:
+			# Sin revanchas: la historia terminó, no queda nada que retomar.
+			Backend.clear_story()
 			btn_rematch.visible = false
 
 ## Duelo online: dice al servidor cómo terminó y espera a que confirme los puntos.

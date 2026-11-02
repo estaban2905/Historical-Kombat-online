@@ -324,7 +324,7 @@ Menú principal → **DUELO ONLINE** → eliges luchador → *buscando rival* �
 
 ### Cuentas, perfil y ranking
 
-- **Cuentas en tu servidor con Postgres** (no hay Supabase): `scripts/autoload/backend.gd` habla con `/auth/*`, `/me`, `/me/matches` y `/leaderboard`. La sesión se recuerda (refresh token en `user://`) y se renueva sola.
+- **Cuentas en tu servidor con Postgres** (no hay Supabase): `scripts/autoload/backend.gd` habla con `/auth/*`, `/me`, `/me/matches` y `/leaderboard`. La sesión se recuerda (refresh token en `user://`) y se renueva sola. **Partida del modo Historia:** se guarda sola al empezar, al ganar cada combate y al perder (descuenta la revancha), en la tabla `story_saves` de la cuenta (`/me/story`) y como copia local (`user://story_save.cfg`); el menú muestra **CONTINUAR HISTORIA** y se queda con la más reciente, así que se puede seguir tras recargar la página o desde otro PC. Se borra al elegir el final o al quedarse sin revanchas. Sin sesión solo existe la copia local.
 - **Pantallas:** `login.gd` (entrar / crear cuenta / jugar sin cuenta), `profile.gd` (puntos, victorias, derrotas y últimos duelos), `ranking.gd` y los botones RANKING / PERFIL del menú.
 - **Duelo con ranking:** si los dos jugadores tienen cuenta, el resultado cuenta. Al terminar, `results.gd` reporta el resultado y espera a que el servidor confirme los puntos (`+16 PUNTOS`, `TOTAL 1016`). Contra un invitado el duelo es amistoso. Reglas completas en `server/README.md`.
 - **Limitaciones actuales:** sin revancha online (se vuelve al menú), sin detección de desincronización en vivo, sin pausa online (ESC solo permite abandonar). Si un jugador abandona, el otro gana la partida.

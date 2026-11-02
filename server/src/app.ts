@@ -11,6 +11,7 @@ import { registerSwagger } from "./plugins/swagger.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { gameRoutes } from "./routes/game.routes.js";
 import { profileRoutes } from "./routes/profile.routes.js";
+import { storyRoutes } from "./routes/story.routes.js";
 import { systemRoutes } from "./routes/system.routes.js";
 import { MatchService } from "./services/match.service.js";
 import { createGoogleVerifier, type GoogleVerifier } from "./services/google-verifier.js";
@@ -57,6 +58,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     registerAuth(app, options.db, googleVerifier);
     await app.register(authRoutes, { prefix: "/auth" });
     await app.register(profileRoutes);
+    await app.register(storyRoutes);
   }
   return app;
 }

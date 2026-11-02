@@ -35,6 +35,13 @@ offset_right = 333.0
 offset_bottom = 214.0
 theme_override_constants/separation = 2
 
+[node name="Continue" type="Button" parent="Buttons" unique_id=1081200090]
+visible = false
+custom_minimum_size = Vector2(186, 15)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "CONTINUAR HISTORIA"
+
 [node name="Play" type="Button" parent="Buttons" unique_id=1081200093]
 custom_minimum_size = Vector2(186, 15)
 layout_mode = 2

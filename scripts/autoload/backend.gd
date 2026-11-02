@@ -2,6 +2,7 @@
 ##   - Registro, inicio y cierre de sesión (rutas /auth/* del servidor, por HTTP).
 ##   - Sesión recordada entre ejecuciones (solo el refresh token, en user://).
 ##   - Perfil del jugador (nombre, puntos, victorias, derrotas), ranking e historial.
+##   - Partida guardada del modo Historia: en la cuenta (servidor) y copia local de respaldo.
 ## Si el servidor no está o no tiene cuentas, el juego funciona igual, sin cuentas.
 ##
 ## La dirección del servidor se resuelve en server_config.gd.
@@ -11,6 +12,8 @@ signal session_changed
 
 ## Archivo de la sesión guardada (las pruebas usan otro para no pisar el real).
 var session_path: String = "user://session.cfg"
+## Copia local de la partida de Historia, una sección por cuenta ("guest" sin sesión).
+var story_path: String = "user://story_save.cfg"
 const REQUEST_TIMEOUT := 10.0
 ## Respuesta rápida: no se espera 10 s para saber que el servidor no está.
 const HEALTH_TIMEOUT := 4.0
@@ -125,6 +128,84 @@ func fetch_matches(limit: int = 8) -> Array:
 	var r := await _request("GET", "/me/matches?limit=%d" % limit, null, true)
 	return r.data if r.ok and r.data is Array else []
 
+# =========================================================================
+#  Partida guardada del modo Historia
+# =========================================================================
+## Campos de la partida: fighter, stage, continues, continues_used, difficulty, saved_at.
+const STORY_KEYS: Array[String] = ["fighter", "stage", "continues", "continues_used", "difficulty", "saved_at"]
+
+func _story_section() -> String:
+	return user_id if user_id != "" else "guest"
+
+## La copia local de esta cuenta, o {} si no hay.
+func story_local() -> Dictionary:
+	var cfg := ConfigFile.new()
+	if cfg.load(story_path) != OK or not cfg.has_section(_story_section()):
+		return {}
+	var d := {}
+	for k in STORY_KEYS:
+		if not cfg.has_section_key(_story_section(), k):
+			return {}
+		d[k] = cfg.get_value(_story_section(), k)
+	return d
+
+func _write_story_local(data: Dictionary) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(story_path)   # conserva las secciones de otras cuentas
+	if data.is_empty():
+		if cfg.has_section(_story_section()):
+			cfg.erase_section(_story_section())
+	else:
+		for k in STORY_KEYS:
+			cfg.set_value(_story_section(), k, data[k])
+	cfg.save(story_path)
+
+## Guarda la partida: primero en este equipo y, con sesión, en la cuenta. Devuelve true si
+## quedó también en el servidor (o si no hay sesión y no hacía falta).
+func save_story(data: Dictionary) -> bool:
+	data["saved_at"] = int(Time.get_unix_time_from_system())
+	_write_story_local(data)
+	if not is_logged_in():
+		return true
+	var r := await _request("PUT", "/me/story", data, true)
+	return r.ok
+
+## La partida a retomar: la más reciente entre la de este equipo y la de la cuenta.
+## Si una está más atrasada que la otra, se actualiza. {} si no hay ninguna.
+func load_story() -> Dictionary:
+	var local := story_local()
+	if not is_logged_in():
+		return local
+	var r := await _request("GET", "/me/story", null, true)
+	if not r.ok or not r.data is Dictionary:
+		# 404 = la cuenta no tiene partida; otro error (p. ej. sin red) = se usa la local.
+		if r.code == 404 and not local.is_empty():
+			await _request("PUT", "/me/story", local, true)
+		return local
+	var remote := _clean_story(r.data)
+	if remote.is_empty():
+		return local
+	if local.is_empty() or int(remote["saved_at"]) >= int(local["saved_at"]):
+		_write_story_local(remote)
+		return remote
+	await _request("PUT", "/me/story", local, true)
+	return local
+
+## Borra la partida (al terminar la historia o quedarse sin revanchas).
+func clear_story() -> void:
+	_write_story_local({})
+	if is_logged_in():
+		await _request("DELETE", "/me/story", null, true)
+
+## Deja solo los campos esperados, con su tipo. {} si falta alguno.
+func _clean_story(d: Dictionary) -> Dictionary:
+	var out := {}
+	for k in STORY_KEYS:
+		if not d.has(k):
+			return {}
+		out[k] = str(d[k]) if k == "fighter" else int(d[k])
+	return out
+
 ## Renueva el token si le queda poco de vida (antes de entrar a un duelo).
 ## Devuelve true si hay una sesión válida.
 func ensure_fresh_token() -> bool:
@@ -189,15 +270,18 @@ func _clear_state() -> void:
 ## una vez y reintenta.
 func _request(method: String, path: String, body: Variant, use_token: bool,
 		retry: bool = true, timeout: float = REQUEST_TIMEOUT) -> Dictionary:
-	var headers := PackedStringArray(["Content-Type: application/json"])
+	# Sin cuerpo no se declara JSON: el servidor rechaza un "application/json" vacío (DELETE, logout).
+	var headers := PackedStringArray(["Content-Type: application/json"] if body != null else [])
 	if use_token and access_token != "":
 		headers.append("Authorization: Bearer " + access_token)
 	var http := HTTPRequest.new()
 	http.timeout = timeout
 	add_child(http)
 	var verb := HTTPClient.METHOD_GET
-	if method == "POST":
-		verb = HTTPClient.METHOD_POST
+	match method:
+		"POST": verb = HTTPClient.METHOD_POST
+		"PUT": verb = HTTPClient.METHOD_PUT
+		"DELETE": verb = HTTPClient.METHOD_DELETE
 	var err := http.request(ServerConfig.http_url() + path, headers, verb, "" if body == null else JSON.stringify(body))
 	if err != OK:
 		http.queue_free()

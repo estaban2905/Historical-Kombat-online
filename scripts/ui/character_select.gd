@@ -168,6 +168,7 @@ func _check_start() -> void:
 			Game.p1_fighter_id = roster[cursor[1]].id
 		elif _cpu:
 			Game.start_story(roster[cursor[1]].id)
+			Game.story_autosave()
 		else:
 			Game.p1_fighter_id = roster[cursor[1]].id
 			Game.p2_fighter_id = roster[cursor[2]].id
