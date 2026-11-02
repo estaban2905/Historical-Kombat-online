@@ -68,11 +68,19 @@ static func theme() -> Theme:
 	return t
 
 ## Dibuja texto con contorno de 1 px (para HUD y títulos dibujados a mano).
+## La fuente no tiene mayúsculas acentuadas (Ó se dibuja como una "ó" pequeña): se quita el acento.
+static func fold(text: String) -> String:
+	for pair in [["Á", "A"], ["É", "E"], ["Í", "I"], ["Ó", "O"], ["Ú", "U"], ["Ü", "U"],
+			["á", "A"], ["é", "E"], ["í", "I"], ["ó", "O"], ["ú", "U"], ["ü", "U"]]:
+		text = text.replace(pair[0], pair[1])
+	return text
+
 static func draw_text(ci: CanvasItem, pos: Vector2, text: String, size: int, color: Color,
 		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT, width: float = -1.0, outline: int = 2) -> void:
 	var f := font()
 	if f == null:
 		return
+	text = fold(text)
 	if outline > 0:
 		ci.draw_string_outline(f, pos.round(), text, align, width, size, outline, INK)
 	ci.draw_string(f, pos.round(), text, align, width, size, color)

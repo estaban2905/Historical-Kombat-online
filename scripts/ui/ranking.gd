@@ -3,6 +3,8 @@
 extends Control
 
 const ROWS := 10
+## Oro, plata y bronce para los tres primeros.
+const PODIUM: Array[Color] = [Color("f0c040"), Color("c8ccd8"), Color("d08850")]
 
 var _players: Array = []
 var _loading: bool = true
@@ -43,17 +45,27 @@ func _draw() -> void:
 	HKTheme.draw_text(self, Vector2(60, 46), "#", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(90, 46), "JUGADOR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(230, 46), "PUNTOS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(310, 46), "V / D", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(310, 46), "VICT/DERR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(384, 46), "%", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var me := Backend.username().to_lower() if Backend.is_logged_in() else ""
 	var y := 62.0
 	for i in _players.size():
 		var p: Dictionary = _players[i]
+		var wins := int(p.get("wins", 0))
+		var losses := int(p.get("losses", 0))
+		var played := wins + losses
 		var mine := str(p.get("username", "")).to_lower() == me
-		var color := HKTheme.GOLD if mine else (HKTheme.PAPER if i > 2 else Color("f0d890"))
+		var color: Color = PODIUM[i] if i < PODIUM.size() else HKTheme.PAPER
+		if played == 0:
+			color = HKTheme.MUTED   # todavía sin duelos: sin mérito que destacar
+		elif mine and i >= PODIUM.size():
+			color = HKTheme.GOLD
 		if mine:
-			draw_rect(Rect2(52, y - 9, 322, 12), Color(1, 1, 1, 0.08))
+			draw_rect(Rect2(52, y - 9, 354, 12), Color(1, 1, 1, 0.08))
 		HKTheme.draw_text(self, Vector2(60, y), str(i + 1), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 		HKTheme.draw_text(self, Vector2(90, y), str(p.get("username", "")).to_upper().left(16), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 		HKTheme.draw_text(self, Vector2(230, y), str(int(p.get("points", 0))), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-		HKTheme.draw_text(self, Vector2(310, y), "%d / %d" % [int(p.get("wins", 0)), int(p.get("losses", 0))], 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		HKTheme.draw_text(self, Vector2(310, y), "%d / %d" % [wins, losses], 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		var rate := "%d%%" % roundi(100.0 * wins / played) if played > 0 else "-"
+		HKTheme.draw_text(self, Vector2(384, y), rate, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 		y += 13.0
