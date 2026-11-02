@@ -5,6 +5,7 @@ extends Control
 const MAX_MATCHES := 8
 
 var _matches: Array = []
+var _favorite: String = ""
 var _loading: bool = true
 var _back: Button
 var _logout: Button
@@ -25,7 +26,21 @@ func _ready() -> void:
 	Backend.session_changed.connect(queue_redraw)
 	await Backend.fetch_profile()
 	_matches = await Backend.fetch_matches(MAX_MATCHES)
+	_favorite = _most_used_fighter()
 	_loading = false
+
+## El luchador que más aparece en los últimos duelos ("" si no hay ninguno).
+func _most_used_fighter() -> String:
+	var counts := {}
+	for m in _matches:
+		var fname := _fighter_name(str(m.get("my_fighter", "")))
+		if fname != "":
+			counts[fname] = int(counts.get(fname, 0)) + 1
+	var best := ""
+	for fname in counts:
+		if best == "" or counts[fname] > counts[best]:
+			best = fname
+	return best
 
 func _button(text: String, x: float) -> Button:
 	var b := Button.new()
@@ -62,10 +77,13 @@ func _draw() -> void:
 		HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	var total := wins + losses
 	var rate := "%d%%" % roundi(100.0 * wins / total) if total > 0 else "-"
-	HKTheme.draw_text(self, Vector2(0, 81), "%d VICTORIAS · %d DERROTAS · %s" % [wins, losses, rate], 8,
+	HKTheme.draw_text(self, Vector2(0, 81), "%d %s · %d %s · %s" % [
+		wins, "VICTORIA" if wins == 1 else "VICTORIAS", losses, "DERROTA" if losses == 1 else "DERROTAS", rate], 8,
 		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 
 	HKTheme.draw_text(self, Vector2(40, 102), "ÚLTIMOS DUELOS", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	if not _loading and not _favorite.is_empty():
+		HKTheme.draw_text(self, Vector2(0, 102), "MÁS USADO: %s" % _favorite, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, 386, 1)
 	if _loading:
 		HKTheme.draw_text(self, Vector2(0, 150), "CARGANDO...", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 		return
@@ -85,6 +103,7 @@ func _draw_match(m: Dictionary, y: float) -> void:
 	var label := {"win": "VICTORIA", "loss": "DERROTA", "draw": "EMPATE"}.get(result, "?") as String
 	if str(m.get("reason", "")) == "forfeit":
 		label += "*"
+	draw_rect(Rect2(34, y - 9, 358, 11), Color(color.r, color.g, color.b, 0.10))
 	HKTheme.draw_text(self, Vector2(40, y), label, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(112, y), "%+d" % delta, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(150, y), "VS %s" % str(m.get("opponent", "")).to_upper().left(14), 8,
