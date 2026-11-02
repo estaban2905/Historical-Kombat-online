@@ -574,7 +574,7 @@ func _test_arcade() -> void:
 	await tap(KEY_U)
 	check(await wait_scene("Story", 240), "con J1 confirmado se muestra la línea del tiempo")
 	var ladder := Game.arcade_ladder
-	var expected := FighterRegistry.all().size() - 2   # sin el jugador y sin el jefe secreto
+	var expected := FighterRegistry.all().size() - 1   # todos menos el jugador
 	check(ladder.size() == expected, "la escalera tiene %d rivales (%d)" % [expected, ladder.size()])
 	var ordered := true
 	for i in range(1, ladder.size()):
@@ -587,7 +587,7 @@ func _test_arcade() -> void:
 			assigned[fid] = assigned.get(fid, 0) + 1
 	var missing := 0
 	for d in FighterRegistry.all():
-		if d.id != Game.STORY_SECRET_ID and assigned.get(d.id, 0) != 1:
+		if assigned.get(d.id, 0) != 1:
 			missing += 1
 	check(missing == 0, "cada luchador está en un solo capítulo (%d mal asignados)" % missing)
 	for ch in Game.STORY_BOSSES:
@@ -600,7 +600,7 @@ func _test_arcade() -> void:
 			sin_frase += 1
 	check(Game.story_nexo_reaction().is_empty(), "el primer capítulo no tiene reacción del Nexo")
 	check(sin_frase == 0, "todos los rivales tienen su frase de presentación (%d sin ella)" % sin_frase)
-	check(not ladder.has(Game.STORY_SECRET_ID), "el jefe secreto no está en la escalera")
+	check(ladder.has(&"jesus_de_nazaret") != (Game.p1_fighter_id == &"jesus_de_nazaret"), "Jesús es un rival normal de la escalera")
 	check(Game.story_chapter_start(0), "el primer combate abre el capítulo I")
 	await tap(KEY_ENTER)   # salta la tarjeta del capítulo
 	await frames(60)
@@ -727,18 +727,10 @@ func _test_arcade() -> void:
 	check(await wait_scene("Results"), "resultados del arcade completado")
 	check(rematch_text_is("EL DESTINO"), "historia completada: se ofrece EL DESTINO (final con elección)")
 
-	# --- Sin gastar revanchas aparece el jefe secreto, reforzado ---
-	Game.story_continues_used = 0
-	Game.story_secret = false
-	Game.arcade_stage = ladder.size() - 1
-	Game.set_match_result(1, 2, 0)
-	check(Game.arcade_outcome() == &"secret", "sin revanchas gastadas toca el jefe secreto")
-	var base_hp := FighterRegistry.get_by_id(Game.STORY_SECRET_ID).max_health
-	Game.arcade_advance()
-	check(Game.is_story_secret_fight() and Game.p2_fighter_id == Game.STORY_SECRET_ID, "el último rival es el jefe secreto")
-	check(Game.p2_data().max_health > base_hp * 1.5, "el jefe secreto tiene más vida (%.0f > %.0f)" % [Game.p2_data().max_health, base_hp])
-	check(Game.ai_level() == 1.0, "el jefe secreto usa la IA al máximo")
-	Game.set_match_result(1, 2, 0)
-	check(Game.arcade_outcome() == &"complete", "vencer al jefe secreto completa la historia")
-	check(Game.story_chapter_of(Game.STORY_SECRET_ID) == Game.STORY_CHAPTERS.size(), "el jefe secreto tiene su propio capítulo")
+	# --- El jefe de cada época sale reforzado ---
+	var boss_at := ladder.size() - 1
+	Game.arcade_stage = boss_at
+	Game.p2_fighter_id = ladder[boss_at]
+	var boss_base := FighterRegistry.get_by_id(ladder[boss_at]).max_health
+	check(Game.story_is_chapter_boss(boss_at) and Game.p2_data().max_health > boss_base, "el jefe de la época tiene más vida")
 	Game.mode = Game.Mode.VERSUS

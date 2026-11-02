@@ -1,7 +1,7 @@
 ## Pantalla del MODO HISTORIA que se ve antes de cada combate.
 ##   Arriba   la línea del tiempo: un punto por rival, de hoy (izquierda) al origen (derecha),
 ##            agrupados en capítulos (I, II, III...). Dorado = vencido, parpadeo = combate actual,
-##            rombo = jefe del capítulo, "?" = el secreto del final.
+##            rombo = jefe de la época, "?" = el Nexo, el combate final.
 ##   Centro   tu luchador y el rival sobre el escenario del rival, con su nombre y época.
 ##   Al empezar un capítulo nuevo se muestra primero su tarjeta de título.
 ## COMBATIR (o ENTER) empieza el combate; ESC vuelve al menú.
@@ -17,7 +17,7 @@ const RIVAL_X := 346.0
 ## Segundos que dura la tarjeta de capítulo (los últimos 0.5 se desvanece).
 const CARD_TIME := 2.4
 const CARD_FADE := 0.5
-const ROMAN: Array[String] = ["I", "II", "III", "IV", "V", "VI", "VII", "?"]
+const ROMAN: Array[String] = ["I", "II", "III", "IV", "V", "?"]
 const DONE := Color("f0c040")
 const FUTURE := Color("5a4a58")
 
@@ -117,8 +117,7 @@ func _draw() -> void:
 ## Línea del tiempo con todos los rivales.
 func _draw_timeline() -> void:
 	var ladder := Game.arcade_ladder
-	var hidden := not Game.story_secret and Game.p1_fighter_id != Game.STORY_SECRET_ID
-	var total := ladder.size() + (1 if hidden else 0)
+	var total := ladder.size() + 1   # el último punto, "?", es el Nexo
 	var step := (BAR_X1 - BAR_X0) / maxf(total - 1.0, 1.0)
 	var cur := Game.arcade_stage
 	var cur_chapter := Game.story_chapter_of(ladder[cur])
@@ -178,21 +177,18 @@ func _draw_plate() -> void:
 	var d := Game.p2_data()
 	var stage := Game.arcade_stage
 	var boss := Game.story_is_chapter_boss(stage)
-	var secret := Game.is_story_secret_fight()
 	var r := Rect2(150, 72, 126, 112)
 	draw_rect(r, SHADE)
 	draw_rect(r, HKTheme.GOLD_DARK, false, 1.0)
 	var cx := 213.0
 	_centered(cx, 84, "COMBATE %d/%d" % [stage + 1, Game.arcade_ladder.size()], HKTheme.MUTED.lightened(0.25))
 	var tag := ""
-	if secret:
-		tag = "JEFE SECRETO"
-	elif boss:
-		tag = "JEFE DEL CAPÍTULO"
+	if boss:
+		tag = "JEFE DE LA ÉPOCA"
 	elif Game.story_is_creator(stage):
 		tag = "CREADOR DEL RELOJ"
 	if tag != "":
-		_centered(cx, 96, tag, Color("ff7050") if secret else HKTheme.GOLD)
+		_centered(cx, 96, tag, HKTheme.GOLD)
 	HKTheme.draw_text(self, Vector2(cx - 54, 116), "VS", 16, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 108, 3)
 	var y := 138.0
 	for line in _wrap(d.display_name.to_upper(), 114.0):
@@ -215,7 +211,7 @@ func _draw_card() -> void:
 	var chapter := Game.story_chapter_of(Game.arcade_ladder[Game.arcade_stage])
 	_overlay.draw_rect(Rect2(0, 0, 426, 240), Color(0.03, 0.02, 0.05, a))
 	var fade := Color(1, 1, 1, a)
-	var title := "CAPÍTULO %s" % ROMAN[mini(chapter, ROMAN.size() - 1)] if chapter < Game.STORY_CHAPTERS.size() else "FINAL SECRETO"
+	var title := "CAPÍTULO %s" % ROMAN[mini(chapter, ROMAN.size() - 1)] if chapter < Game.STORY_CHAPTERS.size() else "EL NEXO"
 	HKTheme.draw_text(_overlay, Vector2(0, 104), title, 16, HKTheme.GOLD * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 3 if a > 0.5 else 0)
 	HKTheme.draw_text(_overlay, Vector2(0, 126), Game.story_chapter_name(chapter), 8, HKTheme.PAPER * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 2 if a > 0.5 else 0)
 	var first := Game.arcade_stage

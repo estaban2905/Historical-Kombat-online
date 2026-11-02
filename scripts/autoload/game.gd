@@ -45,39 +45,34 @@ const DIFFICULTY_NAMES: Array[String] = ["FÁCIL", "NORMAL", "DIFÍCIL"]
 const DIFFICULTY_LEVEL: Array[float] = [0.2, 0.5, 0.8]
 ## Revanchas por capítulo del modo Historia (se recuperan al empezar cada capítulo).
 const ARCADE_CONTINUES := 3
-## Jefe secreto: aparece tras el último capítulo si se llega sin gastar ninguna revancha.
-const STORY_SECRET_ID := &"jesus_de_nazaret"
-## Capítulos del más reciente al más antiguo: [nombre, [luchadores]]. Cada uno cierra con
-## su jefe (STORY_BOSSES) y dentro del capítulo se ordenan por año.
+## Épocas del más reciente al más antiguo: [nombre, [luchadores]]. Cada una cierra con
+## su jefe (STORY_BOSSES) y dentro de la época se ordenan por año.
 const STORY_CHAPTERS := [
 	["EL MUNDO ACTUAL", [&"kim_jong_un", &"nicolas_maduro", &"osama_bin_laden", &"xi_jinping", &"vladimir_putin",
-		&"pablo_escobar", &"donald_trump", &"papa_francisco", &"isabel_ii"]],
-	["GUERRAS Y DICTADURAS", [&"saddam_hussein", &"fidel_castro", &"liudmila_pavlichenko", &"augusto_pinochet",
-		&"salvador_allende", &"mariya_oktyabrskaya", &"adolf_hitler", &"benito_mussolini", &"joseph_stalin", &"rasputin"]],
-	["LOS CREADORES DEL RELOJ", [&"albert_einstein", &"marie_curie", &"nikola_tesla", &"leonardo_da_vinci"]],
-	["REVOLUCIONES Y PROGRESO", [&"arturo_prat", &"abraham_lincoln", &"charles_darwin", &"napoleon", &"isaac_newton",
-		&"janequeo", &"galileo_galilei"]],
-	["IMPERIOS Y CONQUISTAS", [&"ivan_el_terrible", &"lautaro", &"hernan_cortes", &"nicolas_maquiavelo", &"moctezuma_ii",
-		&"cristobal_colon", &"pachacutec", &"juana_de_arco", &"gengis_kan"]],
-	["LA ANTIGÜEDAD IMPERIAL", [&"boudica", &"cleopatra", &"julio_cesar", &"alejandro_magno"]],
-	["LOS SABIOS DEL ORIGEN", [&"aristoteles", &"platon", &"socrates", &"sun_tzu", &"confucio", &"buda"]],
+		&"pablo_escobar", &"papa_francisco", &"isabel_ii", &"donald_trump"]],
+	["EL SIGLO XX", [&"saddam_hussein", &"fidel_castro", &"liudmila_pavlichenko", &"augusto_pinochet",
+		&"salvador_allende", &"mariya_oktyabrskaya", &"benito_mussolini", &"joseph_stalin", &"rasputin",
+		&"albert_einstein", &"adolf_hitler"]],
+	["REVOLUCIONES Y PROGRESO", [&"arturo_prat", &"abraham_lincoln", &"charles_darwin", &"nikola_tesla",
+		&"marie_curie", &"napoleon"]],
+	["IMPERIOS Y DESCUBRIMIENTOS", [&"isaac_newton", &"janequeo", &"galileo_galilei", &"lautaro", &"ivan_el_terrible",
+		&"nicolas_maquiavelo", &"moctezuma_ii", &"leonardo_da_vinci", &"cristobal_colon", &"pachacutec",
+		&"juana_de_arco", &"gengis_kan", &"hernan_cortes"]],
+	["LA ANTIGÜEDAD", [&"boudica", &"jesus_de_nazaret", &"cleopatra", &"alejandro_magno", &"aristoteles", &"platon",
+		&"socrates", &"sun_tzu", &"confucio", &"buda", &"julio_cesar"]],
 ]
-const STORY_SECRET_NAME := "EL ÚLTIMO SECRETO"
-## Jefe de cada capítulo (índice -> luchador); va al final de su capítulo.
-const STORY_BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"albert_einstein", 3: &"napoleon",
-	4: &"gengis_kan", 5: &"alejandro_magno", 6: &"buda"}
-## Capítulos cuyos luchadores son todos jefes reforzados: los cuatro creadores del Reloj.
-const STORY_ALL_BOSS_CHAPTERS := [2]
-## Palabras del Nexo al abrir cada capítulo (la última, para el jefe secreto).
+## Jefe de cada época (índice -> luchador), el más controvertido de su tiempo; va al final.
+const STORY_BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"napoleon", 3: &"hernan_cortes",
+	4: &"julio_cesar"}
+## Los cuatro creadores del Reloj del Origen, repartidos por las épocas.
+const STORY_CREATORS: Array[StringName] = [&"nikola_tesla", &"albert_einstein", &"marie_curie", &"leonardo_da_vinci"]
+## Palabras del Nexo al abrir cada época.
 const STORY_NEXO_LINES := [
 	["LOS LÍDERES DE HOY CREEN", "QUE EL TIEMPO LES PERTENECE."],
 	["UN SIGLO DE GUERRAS Y GRITOS.", "EL TIEMPO AÚN SANGRA."],
-	["AQUÍ NACIÓ LA GRIETA: LAS MENTES", "QUE ARMARON EL RELOJ DEL ORIGEN."],
 	["REVOLUCIONES Y DESCUBRIMIENTOS:", "LA CHISPA DE LOS NUEVOS TIEMPOS."],
 	["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."],
-	["ROMA, EGIPTO Y MACEDONIA:", "LOS IMPERIOS QUE ABRIERON EL CAMINO."],
 	["EL ORIGEN. AQUÍ EMPEZÓ TODO", "Y AQUÍ DECIDIRÁS CÓMO TERMINA."],
-	["NO TODO LO QUE BRILLA ESTÁ VENCIDO.", "ÉL ESPERA DONDE EL TIEMPO NACE."],
 ]
 ## Reacción del Nexo al empezar un capítulo, según las revanchas gastadas hasta ahora.
 const STORY_NEXO_REACT_FLAWLESS := ["SIN UNA SOLA REVANCHA.", "EL TIEMPO TE RESPETA."]
@@ -100,6 +95,7 @@ const STORY_VS := {
 	&"gengis_kan": ["SU HORDA CRUZÓ", "MEDIO MUNDO."],
 	&"cleopatra": ["LA ÚLTIMA FARAONA.", "SU ASTUCIA AFILA SU DAGA."],
 	&"julio_cesar": ["LLEGÓ, VIO...", "Y VENCERÁ."],
+	&"jesus_de_nazaret": ["PREDICÓ EL PERDÓN.", "SU VARA TAMBIÉN GOLPEA."],
 	&"alejandro_magno": ["NUNCA PERDIÓ UNA BATALLA.", "NO EMPEZARÁ AHORA."],
 	&"sun_tzu": ["GANA SIN LUCHAR.", "TÚ LO ESTÁS HACIENDO MAL."],
 	&"buda": ["LA PAZ INTERIOR", "TAMBIÉN GOLPEA."],
@@ -153,9 +149,8 @@ const STORY_VS_PAIR := {
 	"nikola_tesla|albert_einstein": ["DOS MENTES, UNA MÁQUINA.", "AHORA, UN SOLO GANADOR."],
 	"marie_curie|nikola_tesla": ["LUZ CONTRA CORRIENTE.", "EL RELOJ LOS UNIÓ."],
 }
-## Refuerzo [vida, fuerza, resistencia] del jefe de cada capítulo y del jefe secreto.
+## Refuerzo [vida, fuerza, resistencia] del jefe de cada época.
 const BOSS_BOOST := [1.12, 1.05, 1.0]
-const SECRET_BOOST := [1.6, 1.25, 1.1]
 
 var mode: Mode = Mode.VERSUS
 var difficulty: Difficulty = Difficulty.NORMAL
@@ -164,10 +159,8 @@ var difficulty: Difficulty = Difficulty.NORMAL
 var arcade_ladder: Array[StringName] = []
 var arcade_stage: int = 0
 var arcade_continues: int = ARCADE_CONTINUES
-## Revanchas gastadas en toda la partida (si es 0 al final, aparece el jefe secreto).
+## Revanchas gastadas en toda la partida.
 var story_continues_used: int = 0
-## true cuando el jefe secreto ya se añadió a la escalera.
-var story_secret: bool = false
 ## Fichas reforzadas de los jefes (se crean una vez por combate).
 var _boss_cache := {}
 
@@ -228,9 +221,7 @@ func p2_data() -> FighterData:
 
 ## Refuerzo del rival actual del modo Historia (vacío = ninguno).
 func _boss_boost() -> Array:
-	if is_story_secret_fight():
-		return SECRET_BOOST
-	if story_is_chapter_boss(arcade_stage) or story_is_creator(arcade_stage):
+	if story_is_chapter_boss(arcade_stage):
 		return BOSS_BOOST
 	return []
 
@@ -310,20 +301,18 @@ func difficulty_name() -> String:
 func ai_level() -> float:
 	var level := DIFFICULTY_LEVEL[difficulty]
 	if mode == Mode.ARCADE and not arcade_ladder.is_empty():
-		if is_story_secret_fight():
-			return 1.0
 		# Sube de forma pareja a lo largo de toda la escalera (hasta +0.5 al llegar al final).
 		level += 0.5 * arcade_stage / maxf(arcade_ladder.size() - 1.0, 1.0)
 	return clampf(level, 0.0, 1.0)
 
-## Empieza el modo Historia: todos los luchadores menos el jugador (y el jefe secreto),
+## Empieza el modo Historia: todos los luchadores menos el jugador,
 ## del más reciente al más antiguo.
 func start_story(player_id: StringName) -> void:
 	mode = Mode.ARCADE
 	p1_fighter_id = player_id
 	var rivals: Array[FighterData] = []
 	for d in FighterRegistry.all():
-		if d.id != player_id and d.id != STORY_SECRET_ID:
+		if d.id != player_id:
 			rivals.append(d)
 	rivals.sort_custom(_story_before)
 	arcade_ladder.clear()
@@ -332,7 +321,6 @@ func start_story(player_id: StringName) -> void:
 	arcade_stage = 0
 	arcade_continues = ARCADE_CONTINUES
 	story_continues_used = 0
-	story_secret = false
 	_boss_cache.clear()
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
@@ -372,23 +360,12 @@ func story_vs_lines(fighter_id: StringName) -> Array:
 			return STORY_VS_PAIR[key]
 	return STORY_VS.get(fighter_id, [])
 
-## true si al ganar el último combate toca enfrentarse al jefe secreto.
-func _secret_unlocked() -> bool:
-	return not story_secret and p1_fighter_id != STORY_SECRET_ID and story_continues_used == 0 \
-		and FighterRegistry.get_by_id(STORY_SECRET_ID).id == STORY_SECRET_ID
-
-## ¿El rival actual es el jefe secreto?
-func is_story_secret_fight() -> bool:
-	return story_secret and arcade_stage == arcade_ladder.size() - 1
-
-## Capítulo (índice en STORY_CHAPTERS) al que pertenece un luchador. El jefe secreto va aparte.
+## Época (índice en STORY_CHAPTERS) a la que pertenece un luchador.
 func story_chapter_of(fighter_id: StringName) -> int:
-	if fighter_id == STORY_SECRET_ID and p1_fighter_id != STORY_SECRET_ID:
-		return STORY_CHAPTERS.size()
 	return _chapter_of_id(fighter_id)
 
 func story_chapter_name(chapter: int) -> String:
-	return STORY_CHAPTERS[chapter][0] if chapter < STORY_CHAPTERS.size() else STORY_SECRET_NAME
+	return STORY_CHAPTERS[chapter][0]
 
 ## ¿El combate `stage` abre un capítulo nuevo?
 func story_chapter_start(stage: int) -> bool:
@@ -398,24 +375,21 @@ func story_chapter_start(stage: int) -> bool:
 func story_is_chapter_boss(stage: int) -> bool:
 	return stage >= arcade_ladder.size() - 1 or story_chapter_of(arcade_ladder[stage + 1]) != story_chapter_of(arcade_ladder[stage])
 
-## ¿El combate `stage` es contra uno de los creadores del Reloj (todos son jefes)?
+## ¿El combate `stage` es contra uno de los creadores del Reloj?
 func story_is_creator(stage: int) -> bool:
-	return STORY_ALL_BOSS_CHAPTERS.has(story_chapter_of(arcade_ladder[stage]))
+	return STORY_CREATORS.has(arcade_ladder[stage])
 
 ## Qué toca tras el último combate:
-##   next = siguiente rival · secret = tras el último rival aparece el jefe secreto
+##   next = siguiente rival
 ##   complete = historia ganada · retry = repetir rival gastando una revancha · over = sin revanchas
 func arcade_outcome() -> StringName:
 	if last_winner == 1:
 		if arcade_stage < arcade_ladder.size() - 1:
 			return &"next"
-		return &"secret" if _secret_unlocked() else &"complete"
+		return &"complete"
 	return &"retry" if arcade_continues > 0 else &"over"
 
 func arcade_advance() -> void:
-	if arcade_stage >= arcade_ladder.size() - 1 and _secret_unlocked():
-		story_secret = true
-		arcade_ladder.append(STORY_SECRET_ID)
 	arcade_stage = mini(arcade_stage + 1, arcade_ladder.size() - 1)
 	p2_fighter_id = arcade_ladder[arcade_stage]
 	# Cada capítulo nuevo devuelve las revanchas.

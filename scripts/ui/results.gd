@@ -11,7 +11,7 @@ const SETTLE_WAIT := 40.0
 
 var _t: float = 0.0
 var _winner_data: FighterData
-## Modo Historia: qué toca después (next | secret | complete | retry | over). Vacío en versus.
+## Modo Historia: qué toca después (next | complete | retry | over). Vacío en versus.
 var _arcade: StringName = &""
 ## Online: lo que confirmó el servidor ({} mientras espera) y un aviso si no llegó.
 var _settled: Dictionary = {}
@@ -57,11 +57,6 @@ func _setup_buttons() -> void:
 	match _arcade:
 		&"next":
 			btn_rematch.text = "SIGUIENTE COMBATE"
-			btn_rematch.pressed.connect(func():
-				Game.arcade_advance()
-				Game.goto(Game.SCENE_STORY))
-		&"secret":
-			btn_rematch.text = "¿UN RIVAL MÁS?"
 			btn_rematch.pressed.connect(func():
 				Game.arcade_advance()
 				Game.goto(Game.SCENE_STORY))
@@ -169,12 +164,8 @@ func _not_saved_reason(reason: String) -> String:
 ## Líneas finales al ganar el último combate del modo Historia.
 func _epilogue() -> PackedStringArray:
 	match _arcade:
-		&"secret":
-			return PackedStringArray(["¡LLEGASTE AL ORIGEN!", "ALGO MÁS TE ESPERA..."])
 		&"complete":
-			if Game.story_secret:
-				return PackedStringArray(["¡VENCISTE AL ÚLTIMO SECRETO!", "HAS DOMINADO LA HISTORIA"])
-			return PackedStringArray(["HAS RECORRIDO LA HISTORIA", "SIN VENCER AL SECRETO..."]) if Game.p1_fighter_id != Game.STORY_SECRET_ID 				else PackedStringArray(["HAS RECORRIDO LA HISTORIA", "COMO LA LUZ DEL MUNDO"])
+			return PackedStringArray(["HAS RECORRIDO TODA LA HISTORIA", "EL NEXO TE OFRECE SU PODER"])
 	return PackedStringArray()
 
 func _arcade_status() -> String:
@@ -182,8 +173,6 @@ func _arcade_status() -> String:
 	match _arcade:
 		&"complete":
 			return "¡HISTORIA COMPLETADA!"
-		&"secret":
-			return "¡CAPÍTULOS COMPLETADOS!"
 		&"over":
 			return "FIN DEL JUEGO · %s" % fight
 	return "%s · %s" % [fight, Game.difficulty_name()]
