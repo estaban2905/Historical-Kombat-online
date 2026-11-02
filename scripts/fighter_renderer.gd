@@ -529,8 +529,14 @@ func _head() -> void:
 	# Oreja
 	draw_rect(Rect2(head.position.x + 2, -hh * 0.6, 2, 3), _c(data.skin_color.darkened(0.2)))
 	# Ojo, ceja, nariz y boca
-	draw_rect(Rect2(fx - 4, roundf(-hh * 0.62), 2, 2), _c(Color.WHITE))
-	draw_rect(Rect2(fx - 3, roundf(-hh * 0.62), 1, 2), _c(OUTLINE))
+	if data.eye_shape == &"almond":
+		# Ojo rasgado: más estrecho y alargado, con el párpado superior marcado.
+		draw_rect(Rect2(fx - 5, roundf(-hh * 0.62) + 1, 3, 1), _c(Color.WHITE))
+		draw_rect(Rect2(fx - 3, roundf(-hh * 0.62) + 1, 1, 1), _c(OUTLINE))
+		draw_rect(Rect2(fx - 5, roundf(-hh * 0.62), 4, 1), _c(OUTLINE))
+	else:
+		draw_rect(Rect2(fx - 4, roundf(-hh * 0.62), 2, 2), _c(Color.WHITE))
+		draw_rect(Rect2(fx - 3, roundf(-hh * 0.62), 1, 2), _c(OUTLINE))
 	draw_rect(Rect2(fx - 5, roundf(-hh * 0.62) - 2, 4, 1), _c(data.hair_color.darkened(0.2)))
 	draw_rect(Rect2(fx, roundf(-hh * 0.55), 2, 3), _c(data.skin_color.darkened(0.1)))
 	var eye_y := roundf(-hh * 0.62)

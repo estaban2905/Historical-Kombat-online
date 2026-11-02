@@ -111,6 +111,8 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var outfit: StringName = &"none"
 ## Color de la falda o el vestido (transparente = el del abrigo).
 @export var outfit_color: Color = Color(0, 0, 0, 0)
+## Forma de los ojos: normal | almond (rasgados)
+@export var eye_shape: StringName = &"normal"
 ## Gafas: none | round | dark
 @export var glasses: StringName = &"none"
 ## Capa que cuelga a la espalda (transparente = sin capa).

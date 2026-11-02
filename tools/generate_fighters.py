@@ -1006,6 +1006,8 @@ def look_lines(c):
         out.append(f'outfit = &"{c["outfit"]}"')
         if c.get("outfit_color"):
             out.append(f"outfit_color = {col(c['outfit_color'])}")
+    if c.get("eyes"):
+        out.append(f'eye_shape = &"{c["eyes"]}"')
     if c.get("glasses"):
         out.append(f'glasses = &"{c["glasses"]}"')
     if c.get("cape"):
@@ -1173,7 +1175,7 @@ def build_tres(c):
 # Rasgos que definen el aspecto de cada luchador más allá de los colores: silueta femenina,
 # falda o vestido, peinado, gafas, capa y joyas. Se mezclan sobre la tabla CHARACTERS.
 #   female, outfit (skirt|dress|gown), outfit_color, glasses (round|dark), cape (color),
-#   jewelry (necklace|cross|earplug), jewelry_color, y cualquier campo de CHARACTERS.
+#   jewelry (necklace|cross|earplug|pin), jewelry_color, eyes (almond), y cualquier campo de CHARACTERS.
 LOOKS = {
     # --- Mujeres ---
     "cleopatra": dict(female=True, outfit="gown", outfit_color="f6f2e4", jewelry="necklace", jewelry_color="e8c040"),
@@ -1211,8 +1213,8 @@ LOOKS = {
     "arturo_prat": dict(hair_style="bald", hat_style="none"),   # calvo y sin gorra, con barba
     "leonardo_da_vinci": dict(cape="6a2a2a"),
     "pablo_escobar": dict(jewelry="necklace", jewelry_color="e8c040"),   # cadena de oro
-    "kim_jong_un": dict(jewelry="pin", jewelry_color="c02020"),        # insignia roja del Partido
-    "xi_jinping": dict(jewelry="pin", jewelry_color="c02020"),         # insignia del Partido en la solapa
+    "kim_jong_un": dict(jewelry="pin", jewelry_color="c02020", eyes="almond"),        # insignia roja del Partido
+    "xi_jinping": dict(jewelry="pin", jewelry_color="c02020", eyes="almond"),         # insignia del Partido en la solapa
 }
 
 
