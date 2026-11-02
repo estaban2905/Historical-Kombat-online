@@ -3,9 +3,14 @@
 extends Node
 
 const NEW := ["janequeo", "lautaro", "pachacutec", "ivan_el_terrible", "boudica", "juana_de_arco",
-	"augusto_pinochet", "salvador_allende", "arturo_prat"]
+	"augusto_pinochet", "salvador_allende", "arturo_prat", "socrates", "platon", "aristoteles", "sun_tzu",
+	"confucio", "isaac_newton", "hernan_cortes", "moctezuma_ii", "nicolas_maquiavelo", "mariya_oktyabrskaya",
+	"liudmila_pavlichenko"]
 const FRAMES := {"janequeo": 36, "lautaro": 45, "pachacutec": 44, "ivan_el_terrible": 46, "boudica": 45,
-	"juana_de_arco": 40, "augusto_pinochet": 36, "salvador_allende": 30, "arturo_prat": 40}
+	"juana_de_arco": 40, "augusto_pinochet": 36, "salvador_allende": 30, "arturo_prat": 40,
+	"socrates": 40, "platon": 44, "aristoteles": 36, "sun_tzu": 34, "confucio": 40, "isaac_newton": 50,
+	"hernan_cortes": 44, "moctezuma_ii": 40, "nicolas_maquiavelo": 40, "mariya_oktyabrskaya": 50,
+	"liudmila_pavlichenko": 40}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS

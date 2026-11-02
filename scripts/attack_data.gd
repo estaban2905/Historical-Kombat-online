@@ -29,7 +29,8 @@ enum HitLevel { MID, LOW, OVERHEAD }
 @export var blockstun: int = 8
 ## Velocidad horizontal (px/s) con la que se empuja al rival.
 @export var knockback: float = 90.0
-## Velocidad vertical (px/s, negativa = hacia arriba). Lanza al rival por los aires.
+## Velocidad vertical (px/s, negativa = hacia arriba). Lanza al rival por los aires;
+## positiva lo estrella contra el suelo si está en el aire. Ambas lo derriban.
 @export var launch: float = 0.0
 ## Frames de "congelado" de ambos luchadores al impactar (sensación de golpe).
 @export var hitstop: int = 4
@@ -86,7 +87,8 @@ enum HitLevel { MID, LOW, OVERHEAD }
 @export var energy_on_hit: float = 0.0
 
 @export_group("Ultimate (efectos de pantalla)")
-## Tipo de ultimate: barrage | charge | quake | storm | light | wave | summon | meteor | slash
+## Tipo de ultimate: barrage | charge | quake | storm | light | wave | summon | meteor | slash |
+## trap (un objeto gigante cae y atrapa al rival) | snipe (un único disparo devastador)
 @export var ult_kind: StringName = &""
 ## Dibujo principal de sus golpes (ver PowerArt) y colores de las grietas y del ambiente.
 @export var ult_art: StringName = &""

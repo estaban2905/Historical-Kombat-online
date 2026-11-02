@@ -1,7 +1,8 @@
 ## Textos de la pantalla PERSONAJES: quién fue, qué hizo y qué hace cada poder.
 ##
 ## LORE[id] = [quién fue, qué hizo, descripción del especial 1, descripción del especial 2].
-## La descripción del ultimate sale de su `ult_kind` (ULT_TEXT) para no repetirla 39 veces.
+## La descripción del ultimate sale de su `ult_kind` (ULT_TEXT) para no repetirla en cada uno,
+## salvo los que tienen una fatality propia (ULT_LORE).
 ## Textos cortos (la pantalla es de 426x240): ~150 caracteres la historia, ~90 cada poder.
 class_name RosterLore
 extends RefCounted
@@ -241,6 +242,87 @@ const LORE := {
 		"Un cañonazo naval cruza el mar.",
 		"Abordaje de la Esmeralda: un salto al ataque con la espada.",
 	],
+	&"socrates": [
+		"Filósofo de Atenas, maestro de Platón. Nunca escribió nada: enseñaba haciendo preguntas por la calle.",
+		"Lo condenaron a beber cicuta por \"corromper a la juventud\" con sus preguntas. Murió en el 399 a.C.",
+		"Una pregunta incómoda vuela en forma de onda y aturde al rival.",
+		"Le llueven preguntas al rival, que queda confundido, y recibe una ráfaga de bastonazos.",
+	],
+	&"platon": [
+		"Filósofo ateniense, discípulo de Sócrates. Fundó la Academia, la primera gran escuela de Occidente.",
+		"Escribió La República y el mito de la caverna: lo que vemos son solo sombras de las ideas.",
+		"Un rayo de luz de las ideas sale de su pergamino.",
+		"Tres copias ilusorias atacan al rival desde delante, desde detrás y desde arriba.",
+	],
+	&"aristoteles": [
+		"Filósofo griego, discípulo de Platón y maestro de Alejandro Magno. Fundó el Liceo.",
+		"Ordenó la lógica, la biología y la física de su tiempo. Durante siglos fue \"el Filósofo\".",
+		"Un silogismo contundente: golpe pesado con el bastón que empuja muy lejos.",
+		"Analiza al rival y descarga tres golpes calculados; el último lo lanza por los aires.",
+	],
+	&"sun_tzu": [
+		"General y estratega de la antigua China, al servicio del reino de Wu.",
+		"Se le atribuye El arte de la guerra, un libro de estrategia que aún se estudia en todo el mundo.",
+		"Avanza como un relámpago con su espada jian.",
+		"Deja una ilusión que carga de frente, desaparece y ataca por la espalda.",
+	],
+	&"confucio": [
+		"Maestro y pensador chino. Enseñó la virtud, el respeto a los mayores y el buen gobierno.",
+		"Sus discípulos recogieron sus enseñanzas en las Analectas, base de la cultura china durante siglos.",
+		"Un golpe de bastón de abajo arriba que lanza al rival.",
+		"Símbolos luminosos del orden celestial golpean al rival y lo empujan.",
+	],
+	&"isaac_newton": [
+		"Físico y matemático inglés. Según la leyenda, una manzana que caía le hizo pensar en la gravedad.",
+		"Formuló las leyes del movimiento y la gravitación universal, e inventó el cálculo.",
+		"Lanza una manzana que gira hacia el rival.",
+		"Levanta al rival, lo deja flotando y lo estrella contra el suelo.",
+	],
+	&"hernan_cortes": [
+		"Conquistador español nacido en Medellín. Llegó a México en 1519 con unos cientos de soldados.",
+		"Con aliados indígenas tomó Tenochtitlán en 1521 y puso fin al Imperio mexica.",
+		"Un disparo de arcabuz cruza la pantalla.",
+		"Jinetes y soldados con pica atraviesan la pantalla arrollando al rival.",
+	],
+	&"moctezuma_ii": [
+		"Huey tlatoani (emperador) de los mexicas. Gobernó Tenochtitlán, una ciudad construida sobre un lago.",
+		"Recibió a Hernán Cortés en 1519. Murió en 1520, prisionero de los españoles, en plena rebelión.",
+		"Un rayo dorado de Tonatiuh, el dios del Sol.",
+		"La figura de Huitzilopochtli aparece y suelta una explosión de energía solar.",
+	],
+	&"nicolas_maquiavelo": [
+		"Diplomático y pensador de Florencia, en el Renacimiento italiano.",
+		"Escribió El príncipe, un manual de poder tan crudo que su apellido acabó siendo un adjetivo.",
+		"Se lanza hacia delante con una puñalada traicionera.",
+		"Deja una ilusión, reaparece tras el rival, lo atrapa en un cepo y lo apuñala.",
+	],
+	&"mariya_oktyabrskaya": [
+		"Tanquista soviética. Al saber que su marido había muerto en la guerra, vendió todo lo que tenía.",
+		"Con el dinero compró un tanque T-34, lo llamó \"Novia combatiente\" y lo condujo ella misma.",
+		"Un disparo de pistola rápido y recto.",
+		"Su T-34 cruza el escenario disparando y remata con una explosión que lanza al rival.",
+	],
+	&"liudmila_pavlichenko": [
+		"Francotiradora del Ejército Rojo nacida en Ucrania. Estudiaba historia cuando estalló la guerra.",
+		"Defendió Odesa y Sebastopol y fue una de las tiradoras más certeras de la historia.",
+		"Un disparo certero que cruza la pantalla.",
+		"Fija al rival en su mira, el tiempo se ralentiza y una bala de energía lo atraviesa.",
+	],
+}
+
+## Fatalities caricaturescas: descripción propia del ultimate (si no, sale de ULT_TEXT).
+const ULT_LORE := {
+	&"socrates": "Una copa de cicuta gigante atrapa al rival como una prisión de cristal.",
+	&"platon": "Encierra al rival en la caverna de las sombras y lo expulsa con una explosión de luz.",
+	&"aristoteles": "Resuelve la ecuación y la pizarra gigante cae sobre el rival.",
+	&"sun_tzu": "Un ejército de soldados ilusorios rodea al rival y lo lanza por los aires.",
+	&"confucio": "Una estatua enorme de Confucio aplasta al rival con un pergamino gigante.",
+	&"isaac_newton": "Una manzana gigante cae del cielo y abre un cráter bajo el rival.",
+	&"hernan_cortes": "La flota aparece tras el rival y lo arrastra en una ola enorme.",
+	&"moctezuma_ii": "Un disco solar de energía cae sobre el rival y lo lanza fuera de la pantalla.",
+	&"nicolas_maquiavelo": "El príncipe se abre y atrapa al rival entre sus páginas.",
+	&"mariya_oktyabrskaya": "El tanque aparece en primer plano y un cañonazo hunde al rival en una nube de humo.",
+	&"liudmila_pavlichenko": "La pantalla se oscurece, aparece la mira y un disparo deja al rival humeando.",
 }
 
 ## Descripción del ultimate según su `ult_kind` (AttackData.ult_kind).
@@ -254,13 +336,17 @@ const ULT_TEXT := {
 	&"summon": "Invoca aliados que aplastan al rival desde los dos lados.",
 	&"meteor": "Meteoritos que arrasan la pantalla.",
 	&"slash": "Lluvia de cortes y un tajo final que lanza al rival.",
+	&"trap": "Un objeto gigante cae sobre el rival, lo atrapa y lo despide.",
+	&"snipe": "La pantalla se oscurece y un único disparo derriba al rival.",
 }
 
 ## Textos del personaje, con valores por defecto si todavía no hay ficha.
 static func get_lore(id: StringName) -> Array:
 	return LORE.get(id, ["", "", "", ""])
 
-static func ult_text(atk: AttackData) -> String:
+static func ult_text(atk: AttackData, id: StringName = &"") -> String:
 	if atk == null:
 		return ""
+	if ULT_LORE.has(id):
+		return ULT_LORE[id]
 	return ULT_TEXT.get(atk.ult_kind, "Ataque definitivo.")

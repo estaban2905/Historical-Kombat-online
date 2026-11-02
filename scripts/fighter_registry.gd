@@ -47,6 +47,17 @@ const ROSTER: Array[String] = [
 	"res://fighters/augusto_pinochet/augusto_pinochet.tres",
 	"res://fighters/salvador_allende/salvador_allende.tres",
 	"res://fighters/arturo_prat/arturo_prat.tres",
+	"res://fighters/socrates/socrates.tres",
+	"res://fighters/platon/platon.tres",
+	"res://fighters/aristoteles/aristoteles.tres",
+	"res://fighters/sun_tzu/sun_tzu.tres",
+	"res://fighters/confucio/confucio.tres",
+	"res://fighters/isaac_newton/isaac_newton.tres",
+	"res://fighters/hernan_cortes/hernan_cortes.tres",
+	"res://fighters/moctezuma_ii/moctezuma_ii.tres",
+	"res://fighters/nicolas_maquiavelo/nicolas_maquiavelo.tres",
+	"res://fighters/mariya_oktyabrskaya/mariya_oktyabrskaya.tres",
+	"res://fighters/liudmila_pavlichenko/liudmila_pavlichenko.tres",
 ]
 
 static var _cache: Array[FighterData] = []

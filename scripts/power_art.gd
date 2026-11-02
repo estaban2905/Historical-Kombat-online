@@ -56,6 +56,27 @@ static func draw(ci: CanvasItem, style: StringName, t: float, prog: float, a: fl
 		&"lightpillar": _lightpillar(ci, prog, a, box, col)
 		&"meteor": _meteor(ci, t, col)
 		&"anchor": _anchor(ci, t)
+		&"questions": _questions(ci, t, prog, box)
+		&"clone": _clone(ci, t, col)
+		&"logic": _logic(ci, t, prog, box)
+		&"glyph": _glyph(ci, t, col)
+		&"gravslam": _gravslam(ci, t, box)
+		&"conquistadors": _conquistadors(ci, t)
+		&"tercio": _tercio(ci, t)
+		&"sungod": _sungod(ci, t, prog, box)
+		&"jaws": _jaws(ci, prog, a, box)
+		&"tank": _tank(ci, t)
+		&"scope": _scope(ci, t, prog, box, col)
+		&"tracer": _tracer(ci, t, box, col)
+		&"hemlock": _hemlock(ci, prog, a, box, col)
+		&"cave": _cave(ci, t, prog, a, box)
+		&"blackboard": _blackboard(ci, prog, box)
+		&"statue": _statue(ci, prog, box)
+		&"prince_book": _prince_book(ci, prog, a, box)
+		&"apple": _apple(ci, prog, box)
+		&"sundisc": _sundisc(ci, t, prog, box, col)
+		&"ghost_army": _ghost_army(ci, t)
+		&"galleon": _galleon(ci, t)
 		_: ci.draw_circle(Vector2.ZERO, 4.0, col)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -627,3 +648,348 @@ static func _meteor(ci: CanvasItem, t: float, col: Color) -> void:
 	ci.draw_circle(Vector2.ZERO, 8.5, Color("5a3a30"))
 	ci.draw_circle(Vector2(-2, -2), 5.0, col.darkened(0.2))
 	ci.draw_circle(Vector2(-3, -3), 2.0, Color("fff0a0"))
+
+
+# --- Poderes de los filósofos, estrategas, científicos y soldados ---------------
+## Texto sin voltear (los signos y las letras no deben salir en espejo).
+static func _text(ci: CanvasItem, p: Vector2, s: String, size: int, c: Color, w: float = -1.0) -> void:
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	HKTheme.draw_text(ci, p, s, size, c, HORIZONTAL_ALIGNMENT_CENTER if w > 0.0 else HORIZONTAL_ALIGNMENT_LEFT, w, 1)
+
+## Sócrates: signos de interrogación que giran alrededor del rival.
+static func _questions(ci: CanvasItem, t: float, prog: float, box: Vector2) -> void:
+	var k := _ease(prog)
+	var cols := [Color("fff0a0"), Color("ffffff"), Color("a8d8ff")]
+	for i in 6:
+		var ang := i * TAU / 6.0 + t * 2.5
+		var p := Vector2(cos(ang) * box.x * 0.5 * k, sin(ang) * box.y * 0.32 * k - 8.0)
+		_text(ci, p + Vector2(-8, 8), "?", 16 if i % 2 == 0 else 8, cols[i % 3], 16.0)
+
+## Copia ilusoria (Platón, Sun Tzu, Maquiavelo): silueta translúcida que parpadea.
+static func _clone(ci: CanvasItem, t: float, col: Color) -> void:
+	var c := Color(col.r, col.g, col.b, 0.45 + 0.2 * sin(t * 24.0))
+	var edge := Color(1, 1, 1, 0.7)
+	var run := sin(t * 14.0) * 4.0
+	ci.draw_line(Vector2(-2, 6), Vector2(-4 + run, 20), c, 4.0)
+	ci.draw_line(Vector2(2, 6), Vector2(4 - run, 20), c, 4.0)
+	ci.draw_rect(Rect2(-6, -12, 12, 19), c)
+	ci.draw_line(Vector2(4, -9), Vector2(15, -6), c, 3.0)
+	ci.draw_circle(Vector2(0, -17), 5.0, c)
+	ci.draw_rect(Rect2(-6, -12, 12, 19), edge, false, 1.0)
+	ci.draw_arc(Vector2(0, -17), 5.0, 0.0, TAU, 12, edge, 1.0)
+	for i in 3:
+		ci.draw_line(Vector2(-10.0 - i * 5.0, -8.0 + i * 7.0), Vector2(-16.0 - i * 5.0, -8.0 + i * 7.0), Color(c.r, c.g, c.b, 0.35), 2.0)
+
+## Aristóteles: la mira analiza al rival (corchetes, triángulo y arcos de compás).
+static func _logic(ci: CanvasItem, t: float, prog: float, box: Vector2) -> void:
+	var k := _ease(prog)
+	var hw := box.x * 0.5 * (1.4 - 0.4 * k)
+	var hh := box.y * 0.5 * (1.4 - 0.4 * k)
+	var c := Color("80f0c0")
+	for sx in [-1.0, 1.0]:
+		for sy in [-1.0, 1.0]:
+			var p := Vector2(hw * sx, hh * sy)
+			ci.draw_line(p, p - Vector2(8.0 * sx, 0), c, 2.0)
+			ci.draw_line(p, p - Vector2(0, 8.0 * sy), c, 2.0)
+	var scan := -hh + fmod(t * 120.0, hh * 2.0)
+	ci.draw_line(Vector2(-hw, scan), Vector2(hw, scan), Color(c.r, c.g, c.b, 0.5), 1.0)
+	var r := 14.0 * k
+	var tri := PackedVector2Array([Vector2(0, -r), Vector2(r * 0.87, r * 0.5), Vector2(-r * 0.87, r * 0.5), Vector2(0, -r)])
+	ci.draw_set_transform(Vector2.ZERO, t * 2.0, Vector2.ONE)
+	ci.draw_polyline(tri, c, 1.0)
+	ci.draw_arc(Vector2.ZERO, maxf(r * 1.3, 1.0), 0.0, TAU * maxf(k, 0.05), 24, Color(c.r, c.g, c.b, 0.6), 1.0)
+
+## Confucio: sello luminoso con trazos de carácter.
+static func _glyph(ci: CanvasItem, t: float, col: Color) -> void:
+	var pulse := 1.0 + sin(t * 16.0) * 0.08
+	ci.draw_set_transform(Vector2.ZERO, sin(t * 6.0) * 0.15, Vector2(pulse, pulse))
+	ci.draw_circle(Vector2.ZERO, 12.0, Color(col.r, col.g, col.b, 0.25))
+	ci.draw_rect(Rect2(-8, -8, 16, 16), OL)
+	ci.draw_rect(Rect2(-7, -7, 14, 14), col)
+	ci.draw_rect(Rect2(-5, -5, 10, 10), Color("fff8d8"))
+	var ink := Color("a02020")
+	ci.draw_rect(Rect2(-4, -4, 8, 1), ink)
+	ci.draw_rect(Rect2(-1, -4, 2, 8), ink)
+	ci.draw_rect(Rect2(-4, 0, 8, 1), ink)
+	ci.draw_rect(Rect2(-4, 3, 3, 1), ink)
+	ci.draw_rect(Rect2(1, 3, 3, 1), ink)
+
+## Newton: columna de gravedad que aplasta contra el suelo.
+static func _gravslam(ci: CanvasItem, t: float, box: Vector2) -> void:
+	var hh := box.y * 0.5
+	ci.draw_rect(Rect2(-box.x * 0.5, -hh, box.x, box.y), Color(0.6, 0.35, 1.0, 0.22))
+	for i in 3:
+		var x := -12.0 + i * 12.0
+		var y := -hh + fmod(t * 260.0 + i * 20.0, box.y - 10.0)
+		_poly(ci, [Vector2(x - 5, y), Vector2(x + 5, y), Vector2(x, y + 8)], Color("c090ff"))
+	ci.draw_rect(Rect2(-box.x * 0.5 - 6, hh - 4, box.x + 12, 4), Color("e0c8ff"))
+	for i in 5:
+		var d := Vector2(cos(PI + i * PI / 4.0), sin(PI + i * PI / 4.0))
+		ci.draw_line(Vector2(0, hh - 2) + d * 10.0, Vector2(0, hh - 2) + d * (18.0 + t * 30.0), Color("b080ff"), 2.0)
+
+## Soldado con morrión y pica (tercios de Cortés).
+static func _pikeman(ci: CanvasItem, ox: float, t: float, ph: float) -> void:
+	var g := sin(t * 12.0 + ph)
+	ci.draw_line(Vector2(ox - 2, 6), Vector2(ox - 2 + g * 3, 15), OL, 4.0)
+	ci.draw_line(Vector2(ox + 2, 6), Vector2(ox + 2 - g * 3, 15), OL, 4.0)
+	ci.draw_line(Vector2(ox - 2, 6), Vector2(ox - 2 + g * 3, 15), Color("5a2a22"), 2.0)
+	ci.draw_line(Vector2(ox + 2, 6), Vector2(ox + 2 - g * 3, 15), Color("5a2a22"), 2.0)
+	ci.draw_line(Vector2(ox - 6, 4), Vector2(ox + 18, -16), OL, 3.0)
+	ci.draw_line(Vector2(ox - 6, 4), Vector2(ox + 18, -16), Color("8a6a3a"), 1.0)
+	_poly(ci, [Vector2(ox + 17, -19), Vector2(ox + 22, -20), Vector2(ox + 19, -15)], Color("d0d8e0"), false)
+	_rect(ci, ox - 5, -8, 10, 15, Color("9a9aa4"))
+	ci.draw_rect(Rect2(ox - 5, 2, 10, 2), Color("b02020"))
+	_rect(ci, ox - 3, -15, 6, 6, Color("e8c098"))
+	_poly(ci, [Vector2(ox - 7, -16), Vector2(ox + 7, -16), Vector2(ox, -23)], Color("b8b8c4"))
+
+static func _tercio(ci: CanvasItem, t: float) -> void:
+	for i in 4:
+		_pikeman(ci, -21.0 + i * 14.0, t, i * 0.9)
+
+## Cortés: dos jinetes con armadura y morrión al galope.
+static func _conquistadors(ci: CanvasItem, t: float) -> void:
+	for i in 2:
+		var ox := -14.0 + i * 28.0
+		var oy := 6.0 - i * 2.0
+		_horse(ci, ox, oy, t, i * 1.7, Color("5a3a22") if i == 0 else Color("e8e0d0"), Color("1a1010"))
+		_rect(ci, ox - 4, oy - 20, 8, 13, Color("a0a0a8"))
+		ci.draw_rect(Rect2(ox - 4, oy - 12, 8, 2), Color("b02020"))
+		ci.draw_circle(Vector2(ox, oy - 24), 3.5, OL)
+		ci.draw_circle(Vector2(ox, oy - 24), 2.6, Color("e8c098"))
+		_poly(ci, [Vector2(ox - 6, oy - 26), Vector2(ox + 6, oy - 26), Vector2(ox, oy - 32)], Color("b8b8c4"))
+		ci.draw_line(Vector2(ox + 3, oy - 16), Vector2(ox + 24, oy - 22), OL, 3.0)
+		ci.draw_line(Vector2(ox + 3, oy - 16), Vector2(ox + 24, oy - 22), Color("e0e8f0"), 1.0)
+
+## Moctezuma: Huitzilopochtli como un sol gigante con rostro y rayos de plumas.
+static func _sungod(ci: CanvasItem, t: float, prog: float, box: Vector2) -> void:
+	var k := _ease(clampf(t / 0.3, 0.0, 1.0))
+	var r := maxf(box.x * 0.32 * k, 1.0)
+	var fade := clampf((1.1 - t) / 0.3, 0.0, 1.0)
+	for i in 16:
+		var ang := i * TAU / 16.0 + t * 0.8
+		var d := Vector2(cos(ang), sin(ang))
+		var side := Vector2(-d.y, d.x) * 4.0
+		var c := Color("ffc040") if i % 2 == 0 else Color("40b080")
+		c.a = 0.85 * fade
+		_poly(ci, [d * r * 0.9 + side, d * r * (1.5 + 0.1 * sin(t * 10.0 + i)), d * r * 0.9 - side], c, false)
+	ci.draw_circle(Vector2.ZERO, r + 2.0, Color(0.07, 0.04, 0.08, fade))
+	ci.draw_circle(Vector2.ZERO, r, Color(1.0, 0.75, 0.25, fade))
+	ci.draw_circle(Vector2.ZERO, r * 0.7, Color(1.0, 0.88, 0.45, fade))
+	var face := Color(0.6, 0.15, 0.1, fade)
+	ci.draw_rect(Rect2(-r * 0.35, -r * 0.2, r * 0.2, r * 0.12), face)
+	ci.draw_rect(Rect2(r * 0.15, -r * 0.2, r * 0.2, r * 0.12), face)
+	ci.draw_rect(Rect2(-r * 0.25, r * 0.2, r * 0.5, r * 0.1), face)
+	ci.draw_rect(Rect2(-r * 0.08, r * 0.3, r * 0.16, r * 0.22), Color(0.9, 0.3, 0.2, fade))
+
+## Maquiavelo: cepo que se cierra en el suelo bajo el rival.
+static func _jaws(ci: CanvasItem, prog: float, a: float, box: Vector2) -> void:
+	var hw := box.x * 0.5
+	var base := box.y * 0.5
+	var close := _ease(a / 0.12) if prog >= 1.0 else 0.0
+	var theta := lerpf(0.25, 1.45, close)
+	var arm := hw * 0.9
+	ci.draw_rect(Rect2(-hw, base - 3, box.x, 3), Color("3a3a40"))
+	for side in [-1.0, 1.0]:
+		var hinge := Vector2(side * hw * 0.15, base - 2)
+		var tip := hinge + Vector2(side * arm * cos(theta), -arm * sin(theta))
+		ci.draw_line(hinge, tip, OL, 4.0)
+		ci.draw_line(hinge, tip, Color("9a9aa8"), 2.0)
+		for i in 3:
+			var p := hinge.lerp(tip, 0.35 + i * 0.25)
+			ci.draw_rect(Rect2(p.x - 3.0 * side - 1.0, p.y - 1, 3, 2), Color("d8d8e0"))
+	if prog < 1.0:
+		ci.draw_arc(Vector2(0, base - 2), maxf(hw * prog, 1.0), PI, TAU, 12, Color(1, 0.3, 0.3, 0.6), 1.0)
+
+## Mariya: el tanque T-34 «Novia combatiente».
+static func _tank(ci: CanvasItem, t: float) -> void:
+	var green := Color("4a5a30")
+	var bob := 1.0 if int(t * 16.0) % 2 == 0 else 0.0
+	_rect(ci, -28, 4, 56, 9, Color("2a2a24"))
+	for i in 6:
+		var c := Vector2(-23.0 + i * 9.2, 9.0)
+		ci.draw_circle(c, 3.5, Color("5a5a50"))
+		ci.draw_line(c, c + Vector2(cos(t * 20.0), sin(t * 20.0)) * 3.0, OL, 1.0)
+	_poly(ci, [Vector2(-28, 4), Vector2(28, 4), Vector2(22, -6 - bob), Vector2(-24, -6 - bob)], green)
+	_rect(ci, -12, -15 - bob, 20, 10, green.lightened(0.08))
+	_rect(ci, 8, -12 - bob, 26, 3, Color("3a4a24"))
+	ci.draw_rect(Rect2(-6, -12 - bob, 4, 4), Color("c02020"))
+	ci.draw_rect(Rect2(-22, -3 - bob, 30, 1), Color("e8e0c0"))
+	if fmod(t, 0.5) < 0.08:
+		ci.draw_circle(Vector2(38, -11 - bob), 6.0, Color("ffd060"))
+		ci.draw_circle(Vector2(38, -11 - bob), 3.0, Color.WHITE)
+	for i in 3:
+		ci.draw_circle(Vector2(-32.0 - i * 5.0, -2.0 - i * 3.0 + sin(t * 9.0 + i)), 2.0 + i, Color(0.4, 0.38, 0.34, 0.5))
+
+## Liudmila: mira telescópica que se cierra sobre el objetivo.
+static func _scope(ci: CanvasItem, t: float, prog: float, box: Vector2, col: Color) -> void:
+	var r := box.x * 0.5 * (1.6 - 0.6 * _ease(prog))
+	ci.draw_arc(Vector2.ZERO, r, 0.0, TAU, 40, OL, 4.0)
+	ci.draw_arc(Vector2.ZERO, r, 0.0, TAU, 40, col, 2.0)
+	ci.draw_line(Vector2(-r, 0), Vector2(-4, 0), col, 1.0)
+	ci.draw_line(Vector2(4, 0), Vector2(r, 0), col, 1.0)
+	ci.draw_line(Vector2(0, -r), Vector2(0, -4), col, 1.0)
+	ci.draw_line(Vector2(0, 4), Vector2(0, r), col, 1.0)
+	for i in 3:
+		ci.draw_line(Vector2(-3, 6.0 + i * 6.0), Vector2(3, 6.0 + i * 6.0), col, 1.0)
+	if int(t * 8.0) % 2 == 0:
+		ci.draw_circle(Vector2.ZERO, 1.5, Color("ff3030"))
+
+## Bala de energía con estela larga.
+static func _tracer(ci: CanvasItem, t: float, box: Vector2, col: Color) -> void:
+	var l := box.x * 2.5
+	ci.draw_line(Vector2(-l, 0), Vector2(0, 0), Color(col.r, col.g, col.b, 0.35), 6.0)
+	ci.draw_line(Vector2(-l * 0.6, 0), Vector2(0, 0), col, 3.0)
+	ci.draw_line(Vector2(-l * 0.3, 0), Vector2(2, 0), Color.WHITE, 1.0)
+	ci.draw_circle(Vector2(2, 0), 3.0 + sin(t * 40.0), Color.WHITE)
+
+# --- Fatalities caricaturescas (ultimates de tipo trampa y disparo) --------------
+## Altura extra a la que está un objeto que cae antes de aplastar.
+static func _drop(prog: float) -> float:
+	return -(1.0 - _ease(prog)) * 190.0 if prog < 1.0 else 0.0
+
+## Sócrates: copa de cicuta gigante que encierra al rival como una prisión de cristal.
+static func _hemlock(ci: CanvasItem, prog: float, a: float, box: Vector2, col: Color) -> void:
+	var hw := box.x * 0.5
+	var hh := box.y * 0.5
+	var oy := _drop(prog)
+	var bowl := PackedVector2Array([Vector2(-hw, -hh + oy), Vector2(hw, -hh + oy), Vector2(hw * 0.7, hh * 0.45 + oy),
+		Vector2(-hw * 0.7, hh * 0.45 + oy)])
+	ci.draw_colored_polygon(bowl, Color(0.75, 0.9, 1.0, 0.22))
+	var lvl := clampf(a, 0.0, 1.0)
+	if lvl > 0.0:
+		var top := hh * 0.45 - hh * 1.3 * lvl
+		ci.draw_rect(Rect2(-hw * 0.68, top + oy, hw * 1.36, hh * 0.45 - top), Color(col.r, col.g, col.b, 0.35))
+		for i in 4:
+			ci.draw_circle(Vector2(-hw * 0.4 + i * hw * 0.27, top + 6.0 + fmod(a * 40.0 + i * 9.0, 30.0) + oy), 2.0, Color(col.r, col.g, col.b, 0.7))
+	var closed := bowl.duplicate()
+	closed.append(bowl[0])
+	ci.draw_polyline(closed, OL, 4.0)
+	ci.draw_polyline(closed, Color("e0f4ff"), 2.0)
+	ci.draw_line(Vector2(-hw * 0.5, -hh + 6 + oy), Vector2(-hw * 0.6, hh * 0.3 + oy), Color(1, 1, 1, 0.6), 2.0)
+	_rect(ci, -4, hh * 0.45 + oy, 8, hh * 0.35, Color("d8ecf8"))
+	_rect(ci, -hw * 0.6, hh * 0.8 + oy, hw * 1.2, hh * 0.2, Color("d8ecf8"))
+
+## Platón: caverna de sombras que se cierra; al final estalla en luz.
+static func _cave(ci: CanvasItem, t: float, prog: float, a: float, box: Vector2) -> void:
+	var hw := box.x * 0.5
+	var hh := box.y * 0.5
+	var k := _ease(prog)
+	var lift := 40.0 * (1.0 - k)
+	var rock := Color("3a3038")
+	ci.draw_rect(Rect2(-hw, -hh, box.x, box.y), Color(0.02, 0.01, 0.04, 0.55 * k))
+	for side in [-1.0, 1.0]:
+		var x0: float = side * (hw + lift)
+		_poly(ci, [Vector2(x0, hh), Vector2(x0 - side * 26.0, hh), Vector2(x0 - side * 34.0, 0), Vector2(x0 - side * 30.0, -hh * 0.6),
+			Vector2(x0 - side * 10.0, -hh), Vector2(x0, -hh)], rock)
+	_poly(ci, [Vector2(-hw, -hh - lift), Vector2(hw, -hh - lift), Vector2(hw * 0.6, -hh + 18.0 - lift),
+		Vector2(0, -hh + 26.0 - lift), Vector2(-hw * 0.6, -hh + 18.0 - lift)], rock.darkened(0.2))
+	if prog >= 1.0:
+		# Sombras chinescas que bailan en la pared del fondo, junto a la hoguera.
+		for i in 3:
+			var x := -hw * 0.45 + i * hw * 0.45 + sin(t * 3.0 + i * 2.0) * 6.0
+			ci.draw_circle(Vector2(x, -hh * 0.25), 5.0, Color(0, 0, 0, 0.8))
+			ci.draw_rect(Rect2(x - 4, -hh * 0.25 + 4, 8, 16), Color(0, 0, 0, 0.8))
+		ci.draw_circle(Vector2(0, hh - 8), 6.0, Color(1.0, 0.6, 0.2, 0.6 + 0.3 * sin(t * 20.0)))
+		ci.draw_circle(Vector2(0, hh - 9), 3.0, Color(1.0, 0.95, 0.6, 0.9))
+
+## Aristóteles: pizarra gigante con la ecuación resuelta que cae encima del rival.
+static func _blackboard(ci: CanvasItem, prog: float, box: Vector2) -> void:
+	var hw := box.x * 0.5
+	var hh := box.y * 0.5
+	var oy := _drop(prog) - hh * 0.35
+	_rect(ci, -hw - 4, -hh * 0.65 + oy, box.x + 8, hh * 1.3, Color("8a5a2a"))
+	ci.draw_rect(Rect2(-hw, -hh * 0.65 + 4 + oy, box.x, hh * 1.3 - 8), Color("1e3a2a"))
+	_text(ci, Vector2(-hw, -hh * 0.2 + oy), "A=A", 8, Color("f0f0e0"), box.x)
+	_text(ci, Vector2(-hw, -hh * 0.2 + 12 + oy), "QED", 8, Color("fff080"), box.x)
+
+## Confucio: estatua de piedra que aplasta con un pergamino gigante.
+static func _statue(ci: CanvasItem, prog: float, box: Vector2) -> void:
+	var hh := box.y * 0.5
+	var oy := _drop(prog)
+	var stone := Color("a8a49a")
+	_rect(ci, -14, -hh * 0.4 + oy, 28, hh * 1.05, stone)
+	ci.draw_rect(Rect2(-14, hh * 0.3 + oy, 28, 2), stone.darkened(0.2))
+	ci.draw_circle(Vector2(0, -hh * 0.55 + oy), 10.0, OL)
+	ci.draw_circle(Vector2(0, -hh * 0.55 + oy), 9.0, stone)
+	_rect(ci, -4, -hh * 0.5 + oy, 8, 10, stone.darkened(0.1))
+	_rect(ci, -6, -hh * 0.82 + oy, 12, 6, stone.darkened(0.25))
+	_rect(ci, -box.x * 0.5, hh * 0.65 + oy, box.x, 10, Color("efe2b8"))
+	ci.draw_rect(Rect2(-box.x * 0.5 - 3, hh * 0.65 - 2 + oy, 4, 14), Color("8a5a2a"))
+	ci.draw_rect(Rect2(box.x * 0.5 - 1, hh * 0.65 - 2 + oy, 4, 14), Color("8a5a2a"))
+
+## Maquiavelo: «El príncipe» se abre y atrapa al rival entre sus páginas.
+static func _prince_book(ci: CanvasItem, prog: float, a: float, box: Vector2) -> void:
+	var hw := box.x * 0.5
+	var hh := box.y * 0.5
+	var open := _ease(prog) * (1.0 - _ease(a / 0.18))
+	var cover := Color("6a1a1a")
+	ci.draw_rect(Rect2(-3, -hh, 6, box.y), OL)
+	for side in [-1.0, 1.0]:
+		var w := hw * (0.15 + 0.85 * open)
+		var x: float = 0.0 if side > 0.0 else -w
+		_rect(ci, x, -hh, w, box.y, cover)
+		if open > 0.3:
+			ci.draw_rect(Rect2(x + 2, -hh + 3, w - 4, box.y - 6), Color("f0e6c8"))
+			for i in 5:
+				ci.draw_rect(Rect2(x + 5, -hh + 12 + i * 10, w - 10, 1), Color("8a7a60"))
+	if open < 0.3:
+		_text(ci, Vector2(-hw, -6), "EL", 8, Color("e8c040"), box.x)
+		_text(ci, Vector2(-hw, 6), "PRÍNCIPE", 8, Color("e8c040"), box.x)
+
+## Newton: manzana gigante que cae del cielo.
+static func _apple(ci: CanvasItem, prog: float, box: Vector2) -> void:
+	var r := box.x * 0.45
+	var oy := _drop(prog) + box.y * 0.5 - r
+	ci.draw_circle(Vector2(-r * 0.3, oy), r * 0.8 + 1.5, OL)
+	ci.draw_circle(Vector2(r * 0.3, oy), r * 0.8 + 1.5, OL)
+	ci.draw_circle(Vector2(-r * 0.3, oy), r * 0.8, Color("c82020"))
+	ci.draw_circle(Vector2(r * 0.3, oy), r * 0.8, Color("d83030"))
+	ci.draw_circle(Vector2(-r * 0.45, oy - r * 0.35), r * 0.2, Color("ff9080"))
+	ci.draw_line(Vector2(0, oy - r * 0.7), Vector2(3, oy - r * 1.1), OL, 4.0)
+	ci.draw_line(Vector2(0, oy - r * 0.7), Vector2(3, oy - r * 1.1), Color("6a4a20"), 2.0)
+	_poly(ci, [Vector2(3, oy - r * 1.0), Vector2(r * 0.5, oy - r * 1.25), Vector2(r * 0.3, oy - r * 0.9)], Color("3a9a3a"))
+
+## Moctezuma: disco solar de energía que cae sobre el rival.
+static func _sundisc(ci: CanvasItem, t: float, prog: float, box: Vector2, col: Color) -> void:
+	var r := box.x * 0.42
+	var c0 := Vector2(0, _drop(prog))
+	for i in 12:
+		var ang := i * TAU / 12.0 + t * 3.0
+		var d := Vector2(cos(ang), sin(ang))
+		ci.draw_line(c0 + d * r, c0 + d * (r + 10.0), col, 3.0)
+	ci.draw_circle(c0, r + 2.0, OL)
+	ci.draw_circle(c0, r, col)
+	ci.draw_arc(c0, r * 0.75, 0.0, TAU, 24, Color("40b080"), 3.0)
+	ci.draw_circle(c0, r * 0.45, Color("fff0b0"))
+	ci.draw_circle(c0, r * 0.2, Color("e05030"))
+
+## Sun Tzu: ejército de soldados ilusorios (translúcidos).
+static func _ghost_army(ci: CanvasItem, t: float) -> void:
+	for i in 3:
+		var ox := -18.0 + i * 16.0
+		var c := Color(0.55, 0.75, 1.0, 0.5 + 0.15 * sin(t * 12.0 + i))
+		var g := sin(t * 12.0 + i)
+		ci.draw_line(Vector2(ox - 2, 6), Vector2(ox - 2 + g * 3, 16), c, 3.0)
+		ci.draw_line(Vector2(ox + 2, 6), Vector2(ox + 2 - g * 3, 16), c, 3.0)
+		ci.draw_rect(Rect2(ox - 5, -9, 10, 16), c)
+		ci.draw_circle(Vector2(ox, -13), 4.0, c)
+		_poly(ci, [Vector2(ox - 7, -15), Vector2(ox + 7, -15), Vector2(ox, -21)], c, false)
+		ci.draw_line(Vector2(ox + 3, -2), Vector2(ox + 18, -18), Color(1, 1, 1, 0.7), 1.0)
+
+## Cortés: galeón sobre una ola enorme.
+static func _galleon(ci: CanvasItem, t: float) -> void:
+	var bob := sin(t * 5.0) * 2.0
+	var pts := PackedVector2Array([Vector2(-44, 22)])
+	for i in 9:
+		pts.append(Vector2(-44 + i * 11.0, 12.0 + sin(t * 8.0 + i * 0.8) * 3.0 - (8.0 if i > 5 else 0.0)))
+	pts.append(Vector2(44, 22))
+	ci.draw_colored_polygon(pts, Color("3a70b0"))
+	var wood := Color("6a3a20")
+	_poly(ci, [Vector2(-34, 4 + bob), Vector2(32, 4 + bob), Vector2(26, 15 + bob), Vector2(-26, 15 + bob)], wood)
+	_rect(ci, 22, -6 + bob, 12, 10, wood)
+	_rect(ci, -8, -30 + bob, 3, 34, Color("4a2a14"))
+	_poly(ci, [Vector2(-24, -28 + bob), Vector2(8, -28 + bob), Vector2(6, -6 + bob), Vector2(-22, -6 + bob)], Color("f0ece0"))
+	ci.draw_rect(Rect2(-10, -26 + bob, 4, 18), Color("b02020"))
+	ci.draw_rect(Rect2(-16, -19 + bob, 16, 4), Color("e8c040"))
+	for i in 6:
+		ci.draw_circle(Vector2(-40 + i * 16 + sin(t * 9.0 + i) * 2.0, 10), 3.0, Color(0.85, 0.95, 1.0, 0.8))

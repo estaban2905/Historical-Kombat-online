@@ -50,6 +50,7 @@ const STYLES := {
 	"celt": {"uni": "2a6a3a", "legs": "6a3a2a", "boots": "3a2a1a", "helm": "hair", "hc": "c04a20", "skin": "f0c8a0", "weap": "spear", "shield": "8a6a3a"},
 	"chilean": {"uni": "4a5a4a", "legs": "3a4a3a", "helm": "steel", "hc": "4a5a4a", "weap": "rifle"},
 	"florentine": {"uni": "8a3a2a", "legs": "3a3a4a", "trim": "d8b040", "helm": "beret", "hc": "2a2a5a", "weap": "none"},
+	"mexica": {"uni": "e8e0c8", "legs": "a86a40", "boots": "a07040", "trim": "2a8a7a", "helm": "hair", "hc": "141010", "skin": "a86a40", "weap": "spear", "shield": "2a8a7a"},
 }
 
 static var _cc := {}
