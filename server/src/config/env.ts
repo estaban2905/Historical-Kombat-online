@@ -17,6 +17,13 @@ export interface AppConfig {
   googleClientId: string;
   /** Intentos de registro/login por minuto y por IP. */
   authRateLimitPerMinute: number;
+  /** Intentos de login cada 15 minutos para un mismo email, vengan de la IP que vengan. */
+  loginRateLimitPerEmail: number;
+  /**
+   * Proxies delante del servidor (Railway: 1). La IP del cliente se toma de X-Forwarded-For
+   * saltando solo esos proxies: lo que el cliente escriba antes en la cabecera no cuenta.
+   */
+  trustProxyHops: number;
   logger: boolean;
 }
 
@@ -34,6 +41,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       .filter((o) => o !== ""),
     googleClientId: (env["GOOGLE_CLIENT_ID"] ?? "").trim(),
     authRateLimitPerMinute: toInt(env["AUTH_RATE_LIMIT_PER_MINUTE"], 10),
+    loginRateLimitPerEmail: toInt(env["LOGIN_RATE_LIMIT_PER_EMAIL"], 10),
+    trustProxyHops: toInt(env["TRUST_PROXY_HOPS"], 1),
     logger: env["LOG"] !== "false",
   };
 }

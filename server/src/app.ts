@@ -28,8 +28,11 @@ export interface BuildOptions {
 /** Arma la aplicación: plugins, servicios y rutas. No abre ningún puerto. */
 export async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
   const config: AppConfig = { ...loadConfig(), ...options.config };
-  // Detrás del proxy de Railway: la IP real del cliente viene en X-Forwarded-For.
-  const app = Fastify({ logger: config.logger, trustProxy: true });
+  // Detrás del proxy de Railway: la IP real del cliente viene en X-Forwarded-For. Solo se
+  // confía en los saltos de nuestros proxies; con `true` el cliente podría inventarse su IP
+  // y esquivar el límite de intentos.
+  // (Es lo mismo que `trustProxy: <número>`, que los tipos de Fastify no admiten.)
+  const app = Fastify({ logger: config.logger, trustProxy: (_addr, hop) => hop < config.trustProxyHops });
 
   registerErrorHandler(app);
   // Con base de datos, los duelos entre cuentas se guardan (puntos, ranking e historial).
