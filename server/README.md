@@ -24,7 +24,7 @@ npm run build && npm start
 | `GET /docs` | Swagger UI (`/docs/json` es el OpenAPI) |
 | `WS /ws` | Conexión de juego |
 | `POST /auth/register` · `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout` | Cuentas y sesiones (solo con base de datos) |
-| `GET /me` · `GET /me/matches` · `GET /leaderboard` | Mi perfil, mi historial de duelos (con token) y el ranking |
+| `GET /me` · `PATCH /me` · `GET /me/matches` · `GET /leaderboard` | Mi perfil, cambiar mi avatar (id de un luchador), mi historial de duelos (con token) y el ranking |
 | `GET` · `PUT` · `DELETE /me/story` | Partida guardada del modo Historia (con token): una por cuenta, para seguir desde otro dispositivo. `GET` da 404 si no hay |
 
 ## Estructura

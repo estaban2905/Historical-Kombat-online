@@ -26,6 +26,7 @@ export const profileSchema = {
     points: { type: "integer", examples: [1000] },
     wins: { type: "integer" },
     losses: { type: "integer" },
+    avatar: { type: ["string", "null"], description: "Id del luchador elegido como retrato" },
   },
 } as const;
 
@@ -144,10 +145,25 @@ export const rankingSchema = {
           points: { type: "integer" },
           wins: { type: "integer" },
           losses: { type: "integer" },
+          avatar: { type: ["string", "null"] },
         },
       },
     },
   },
+} as const;
+
+export const updateMeSchema = {
+  tags: ["profile"],
+  summary: "Editar mi perfil",
+  description: "Por ahora solo el avatar: el id de un luchador, o null para quitarlo.",
+  security: [{ bearerAuth: [] }],
+  body: {
+    type: "object",
+    required: ["avatar"],
+    additionalProperties: false,
+    properties: { avatar: { type: ["string", "null"], pattern: "^[a-z0-9_]{1,40}$" } },
+  },
+  response: { 200: profileSchema, 400: errors[400], 401: errors[401] },
 } as const;
 
 export const matchesSchema = {

@@ -9,6 +9,8 @@ export interface Account {
   points: number;
   wins: number;
   losses: number;
+  /** Id del luchador elegido como retrato, o null. */
+  avatar: string | null;
   createdAt: Date;
 }
 
@@ -19,6 +21,7 @@ export interface Profile {
   points: number;
   wins: number;
   losses: number;
+  avatar: string | null;
 }
 
 export interface RankingEntry {
@@ -26,6 +29,7 @@ export interface RankingEntry {
   points: number;
   wins: number;
   losses: number;
+  avatar: string | null;
 }
 
 /** Sesión abierta tras registrarse o iniciar sesión. */
@@ -38,5 +42,5 @@ export interface AuthResult {
 }
 
 export function toProfile(a: Account): Profile {
-  return { id: a.id, username: a.username, points: a.points, wins: a.wins, losses: a.losses };
+  return { id: a.id, username: a.username, points: a.points, wins: a.wins, losses: a.losses, avatar: a.avatar };
 }

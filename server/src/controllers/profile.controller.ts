@@ -9,6 +9,12 @@ export const profileController = (accounts: AccountRepository, matches: MatchRep
     return toProfile(req.account!);
   },
 
+  /** Cambia el avatar y devuelve el perfil ya actualizado. */
+  async updateMe(req: FastifyRequest<{ Body: { avatar: string | null } }>) {
+    await accounts.setAvatar(req.account!.id, req.body.avatar);
+    return toProfile({ ...req.account!, avatar: req.body.avatar });
+  },
+
   /** Mis últimos duelos, en el formato público (snake_case). */
   async myMatches(req: FastifyRequest<{ Querystring: { limit?: number } }>) {
     const rows = await matches.history(req.account!.id, req.query.limit ?? 20);

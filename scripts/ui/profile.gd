@@ -8,23 +8,32 @@ var _matches: Array = []
 var _favorite: String = ""
 var _loading: bool = true
 var _back: Button
+var _avatar_btn: Button
 var _logout: Button
+var _portrait: AvatarFrame
 
 func _ready() -> void:
 	theme = HKTheme.theme()
 	if not Backend.is_logged_in():
 		Game.goto.call_deferred(Game.SCENE_MENU)
 		return
-	_back = _button("VOLVER", 96)
-	_logout = _button("CERRAR SESIÓN", 230)
+	_back = _button("VOLVER", 40)
+	_avatar_btn = _button("AVATAR", 150)
+	_logout = _button(HKTheme.fold("CERRAR SESIÓN"), 260)
 	_back.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
+	_avatar_btn.pressed.connect(func(): Game.goto(Game.SCENE_AVATAR))
 	_logout.pressed.connect(_on_logout)
-	for b in [_back, _logout]:
+	_portrait = AvatarFrame.new(Vector2(40, 40))
+	_portrait.position = Vector2(46, 30)
+	add_child(_portrait)
+	_portrait.set_fighter(Backend.avatar())
+	for b in [_back, _avatar_btn, _logout]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	_back.grab_focus()
 	Backend.session_changed.connect(queue_redraw)
 	await Backend.fetch_profile()
+	_portrait.set_fighter(Backend.avatar())
 	_matches = await Backend.fetch_matches(MAX_MATCHES)
 	_favorite = _most_used_fighter()
 	_loading = false
@@ -114,6 +123,6 @@ func _draw_match(m: Dictionary, y: float) -> void:
 		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 
 func _fighter_name(id: String) -> String:
-	if FighterRegistry.index_of(StringName(id)) < 0:
+	if not FighterRegistry.has(StringName(id)):
 		return ""
 	return FighterRegistry.get_by_id(StringName(id)).short_name.left(10)
