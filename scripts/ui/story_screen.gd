@@ -17,7 +17,7 @@ const RIVAL_X := 346.0
 ## Segundos que dura la tarjeta de capítulo (los últimos 0.5 se desvanece).
 const CARD_TIME := 2.4
 const CARD_FADE := 0.5
-const ROMAN: Array[String] = ["I", "II", "III", "IV", "V", "?"]
+const ROMAN: Array[String] = ["I", "II", "III", "IV", "V", "VI", "VII", "?"]
 const DONE := Color("f0c040")
 const FUTURE := Color("5a4a58")
 
@@ -189,6 +189,8 @@ func _draw_plate() -> void:
 		tag = "JEFE SECRETO"
 	elif boss:
 		tag = "JEFE DEL CAPÍTULO"
+	elif Game.story_is_creator(stage):
+		tag = "CREADOR DEL RELOJ"
 	if tag != "":
 		_centered(cx, 96, tag, Color("ff7050") if secret else HKTheme.GOLD)
 	HKTheme.draw_text(self, Vector2(cx - 54, 116), "VS", 16, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 108, 3)

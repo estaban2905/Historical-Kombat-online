@@ -581,6 +581,15 @@ func _test_arcade() -> void:
 		if Game.story_chapter_of(ladder[i]) < Game.story_chapter_of(ladder[i - 1]):
 			ordered = false
 	check(ordered, "los capítulos van del más reciente al más antiguo")
+	var assigned := {}
+	for chap in Game.STORY_CHAPTERS:
+		for fid in chap[1]:
+			assigned[fid] = assigned.get(fid, 0) + 1
+	var missing := 0
+	for d in FighterRegistry.all():
+		if d.id != Game.STORY_SECRET_ID and assigned.get(d.id, 0) != 1:
+			missing += 1
+	check(missing == 0, "cada luchador está en un solo capítulo (%d mal asignados)" % missing)
 	for ch in Game.STORY_BOSSES:
 		var boss: StringName = Game.STORY_BOSSES[ch]
 		var at := ladder.find(boss)

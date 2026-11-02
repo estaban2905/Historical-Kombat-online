@@ -47,24 +47,35 @@ const DIFFICULTY_LEVEL: Array[float] = [0.2, 0.5, 0.8]
 const ARCADE_CONTINUES := 3
 ## Jefe secreto: aparece tras el último capítulo si se llega sin gastar ninguna revancha.
 const STORY_SECRET_ID := &"jesus_de_nazaret"
-## Capítulos de la línea del tiempo, del más reciente al más antiguo: [nombre, año mínimo].
+## Capítulos del más reciente al más antiguo: [nombre, [luchadores]]. Cada uno cierra con
+## su jefe (STORY_BOSSES) y dentro del capítulo se ordenan por año.
 const STORY_CHAPTERS := [
-	["EL MUNDO ACTUAL", 1940],
-	["EL SIGLO XX", 1880],
-	["CIENCIA E INDUSTRIA", 1800],
-	["IMPERIOS Y DESCUBRIMIENTOS", 1400],
-	["LA ANTIGÜEDAD", -100000],
+	["EL MUNDO ACTUAL", [&"kim_jong_un", &"nicolas_maduro", &"osama_bin_laden", &"xi_jinping", &"vladimir_putin",
+		&"pablo_escobar", &"donald_trump", &"papa_francisco", &"isabel_ii"]],
+	["GUERRAS Y DICTADURAS", [&"saddam_hussein", &"fidel_castro", &"liudmila_pavlichenko", &"augusto_pinochet",
+		&"salvador_allende", &"mariya_oktyabrskaya", &"adolf_hitler", &"benito_mussolini", &"joseph_stalin", &"rasputin"]],
+	["LOS CREADORES DEL RELOJ", [&"albert_einstein", &"marie_curie", &"nikola_tesla", &"leonardo_da_vinci"]],
+	["REVOLUCIONES Y PROGRESO", [&"arturo_prat", &"abraham_lincoln", &"charles_darwin", &"napoleon", &"isaac_newton",
+		&"janequeo", &"galileo_galilei"]],
+	["IMPERIOS Y CONQUISTAS", [&"ivan_el_terrible", &"lautaro", &"hernan_cortes", &"nicolas_maquiavelo", &"moctezuma_ii",
+		&"cristobal_colon", &"pachacutec", &"juana_de_arco", &"gengis_kan"]],
+	["LA ANTIGÜEDAD IMPERIAL", [&"boudica", &"cleopatra", &"julio_cesar", &"alejandro_magno"]],
+	["LOS SABIOS DEL ORIGEN", [&"aristoteles", &"platon", &"socrates", &"sun_tzu", &"confucio", &"buda"]],
 ]
 const STORY_SECRET_NAME := "EL ÚLTIMO SECRETO"
-## Los creadores del Reloj del Origen cierran su capítulo: capítulo (índice) -> luchador.
-## Tesla y Curie, del mismo capítulo que Einstein, lo preceden como guardianes.
-const STORY_BOSSES := {2: &"albert_einstein", 3: &"leonardo_da_vinci"}
+## Jefe de cada capítulo (índice -> luchador); va al final de su capítulo.
+const STORY_BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"albert_einstein", 3: &"napoleon",
+	4: &"gengis_kan", 5: &"alejandro_magno", 6: &"buda"}
+## Capítulos cuyos luchadores son todos jefes reforzados: los cuatro creadores del Reloj.
+const STORY_ALL_BOSS_CHAPTERS := [2]
 ## Palabras del Nexo al abrir cada capítulo (la última, para el jefe secreto).
 const STORY_NEXO_LINES := [
 	["LOS LÍDERES DE HOY CREEN", "QUE EL TIEMPO LES PERTENECE."],
 	["UN SIGLO DE GUERRAS Y GRITOS.", "EL TIEMPO AÚN SANGRA."],
 	["AQUÍ NACIÓ LA GRIETA: LAS MENTES", "QUE ARMARON EL RELOJ DEL ORIGEN."],
+	["REVOLUCIONES Y DESCUBRIMIENTOS:", "LA CHISPA DE LOS NUEVOS TIEMPOS."],
 	["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."],
+	["ROMA, EGIPTO Y MACEDONIA:", "LOS IMPERIOS QUE ABRIERON EL CAMINO."],
 	["EL ORIGEN. AQUÍ EMPEZÓ TODO", "Y AQUÍ DECIDIRÁS CÓMO TERMINA."],
 	["NO TODO LO QUE BRILLA ESTÁ VENCIDO.", "ÉL ESPERA DONDE EL TIEMPO NACE."],
 ]
@@ -74,10 +85,10 @@ const STORY_NEXO_REACT_WOUNDED := ["HAS CAÍDO, PERO TE LEVANTAS.", "EL TIEMPO T
 const STORY_NEXO_REACT_WORN := ["TANTAS CAÍDAS... ¿SEGURO", "QUE MERECES EL NEXO?"]
 ## Frases antes del combate: rival -> [línea 1, línea 2].
 const STORY_VS := {
-	&"albert_einstein": ["JEFE: CREÓ EL RELOJ", "Y TEME SU PRECIO."],
-	&"leonardo_da_vinci": ["JEFE: DISEÑÓ EL MECANISMO", "DEL RELOJ DEL ORIGEN."],
-	&"nikola_tesla": ["GUARDIÁN: SU CORRIENTE", "ALIMENTÓ LA MÁQUINA."],
-	&"marie_curie": ["GUARDIANA: SU LUZ", "ENCENDIÓ EL NÚCLEO."],
+	&"albert_einstein": ["CREADOR DEL RELOJ: LO CONSTRUYÓ", "Y TEME SU PRECIO."],
+	&"leonardo_da_vinci": ["CREADOR DEL RELOJ: DISEÑÓ", "EL MECANISMO DEL ORIGEN."],
+	&"nikola_tesla": ["CREADOR DEL RELOJ: SU", "CORRIENTE ALIMENTÓ LA MÁQUINA."],
+	&"marie_curie": ["CREADORA DEL RELOJ: SU", "LUZ ENCENDIÓ EL NÚCLEO."],
 	&"salvador_allende": ["CAYÓ EN LA MONEDA.", "AQUÍ PELEA DE PIE."],
 	&"augusto_pinochet": ["SE LLEVÓ EL PODER A LA FUERZA.", "AQUÍ NO HAY CUARTEL."],
 	&"moctezuma_ii": ["SU IMPERIO CAYÓ ANTE", "UN PUÑADO DE ESPADAS."],
@@ -219,7 +230,7 @@ func p2_data() -> FighterData:
 func _boss_boost() -> Array:
 	if is_story_secret_fight():
 		return SECRET_BOOST
-	if story_is_chapter_boss(arcade_stage):
+	if story_is_chapter_boss(arcade_stage) or story_is_creator(arcade_stage):
 		return BOSS_BOOST
 	return []
 
@@ -329,8 +340,8 @@ func start_story(player_id: StringName) -> void:
 ## Orden de la escalera: por capítulo del más reciente al más antiguo y, dentro de uno,
 ## por año, salvo el jefe designado del capítulo, que va al final.
 func _story_before(a: FighterData, b: FighterData) -> bool:
-	var ca := _year_chapter(a.year)
-	var cb := _year_chapter(b.year)
+	var ca := _chapter_of_id(a.id)
+	var cb := _chapter_of_id(b.id)
 	if ca != cb:
 		return ca < cb
 	var boss_a: bool = STORY_BOSSES.get(ca, &"") == a.id
@@ -339,9 +350,9 @@ func _story_before(a: FighterData, b: FighterData) -> bool:
 		return boss_b
 	return a.year > b.year
 
-func _year_chapter(year: int) -> int:
+func _chapter_of_id(fighter_id: StringName) -> int:
 	for i in STORY_CHAPTERS.size():
-		if year >= STORY_CHAPTERS[i][1]:
+		if (STORY_CHAPTERS[i][1] as Array).has(fighter_id):
 			return i
 	return STORY_CHAPTERS.size() - 1
 
@@ -374,7 +385,7 @@ func is_story_secret_fight() -> bool:
 func story_chapter_of(fighter_id: StringName) -> int:
 	if fighter_id == STORY_SECRET_ID and p1_fighter_id != STORY_SECRET_ID:
 		return STORY_CHAPTERS.size()
-	return _year_chapter(FighterRegistry.get_by_id(fighter_id).year)
+	return _chapter_of_id(fighter_id)
 
 func story_chapter_name(chapter: int) -> String:
 	return STORY_CHAPTERS[chapter][0] if chapter < STORY_CHAPTERS.size() else STORY_SECRET_NAME
@@ -386,6 +397,10 @@ func story_chapter_start(stage: int) -> bool:
 ## ¿Es el último combate de su capítulo (el jefe)?
 func story_is_chapter_boss(stage: int) -> bool:
 	return stage >= arcade_ladder.size() - 1 or story_chapter_of(arcade_ladder[stage + 1]) != story_chapter_of(arcade_ladder[stage])
+
+## ¿El combate `stage` es contra uno de los creadores del Reloj (todos son jefes)?
+func story_is_creator(stage: int) -> bool:
+	return STORY_ALL_BOSS_CHAPTERS.has(story_chapter_of(arcade_ladder[stage]))
 
 ## Qué toca tras el último combate:
 ##   next = siguiente rival · secret = tras el último rival aparece el jefe secreto
