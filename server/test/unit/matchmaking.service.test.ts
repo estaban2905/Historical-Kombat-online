@@ -43,6 +43,9 @@ test("los inputs se reenvían solo al rival", () => {
 
   assert.deepEqual(b.got.at(-1), { t: "input", f: 10, m: 5 });
   assert.equal(a.got.some((m) => m.t === "input"), false);
+
+  mm.handle(a, { t: "input", f: 11, m: 5, a: 7 });
+  assert.deepEqual(b.got.at(-1), { t: "input", f: 11, m: 5, a: 7 });
 });
 
 test("un input sin partida se ignora", () => {

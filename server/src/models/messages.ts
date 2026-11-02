@@ -12,7 +12,7 @@ export type ClientMessage =
   /** `token`: access token de la cuenta; sin él se juega de invitado (sin puntos). */
   | { t: "find"; fighter: string; name?: string; token?: string }
   | { t: "cancel" }
-  | { t: "input"; f: number; m: number }
+  | { t: "input"; f: number; m: number; a?: number }
   /** Resultado de la pelea según la simulación de este cliente. Los dos deben coincidir. */
   | { t: "result"; winner: Winner; p1Rounds: number; p2Rounds: number }
   | { t: "leave" };
@@ -49,7 +49,7 @@ export interface SettledMessage {
 export type ServerMessage =
   | { t: "queued" }
   | MatchedMessage
-  | { t: "input"; f: number; m: number }
+  | { t: "input"; f: number; m: number; a?: number }
   | SettledMessage
   | { t: "opponent_left" }
   | { t: "error"; msg: string };

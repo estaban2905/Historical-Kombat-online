@@ -126,8 +126,11 @@ func input_source(tick: int) -> Array:
 	return masks
 
 func _new_session() -> LockstepSession:
-	return LockstepSession.new(side, _sampler.sample_mask, func(frame: int, mask: int):
-		_send({"t": "input", "f": frame, "m": mask}))
+	return LockstepSession.new(side, _sampler.sample_mask, func(frame: int, mask: int, ack: int):
+		var msg := {"t": "input", "f": frame, "m": mask}
+		if ack >= 0:
+			msg["a"] = ack
+		_send(msg))
 
 # =========================================================================
 #  Red
@@ -176,7 +179,7 @@ func _on_message(text: String) -> void:
 		"input":
 			# Un mensaje fuera de lugar nunca debe tumbar la partida.
 			if _session != null and data.has("f") and data.has("m"):
-				_session.receive(int(data["f"]), int(data["m"]))
+				_session.receive(int(data["f"]), int(data["m"]), int(data.get("a", -1)))
 		"opponent_left":
 			if state == State.FIGHTING:
 				# El socket sigue abierto: aún puede hacer falta mandar mi resultado o recibir los puntos.

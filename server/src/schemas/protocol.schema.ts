@@ -40,6 +40,12 @@ const input = {
     t: { const: "input" },
     f: { type: "integer", minimum: 0, description: "Número de frame del input", examples: [120] },
     m: { type: "integer", minimum: 0, maximum: 65535, description: "Máscara de bits de botones", examples: [5] },
+    a: {
+      type: "integer",
+      minimum: 0,
+      description: "Acuse: último frame del rival recibido. El rival mide con él la latencia (opcional)",
+      examples: [117],
+    },
   },
   description: "Botones apretados en un frame. Se reenvía tal cual al rival.",
 } as const;

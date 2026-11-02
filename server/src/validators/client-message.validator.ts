@@ -58,7 +58,10 @@ function parseInput(msg: Record<string, unknown>): ClientMessage | null {
   const m = msg["m"];
   if (!Number.isInteger(f) || (f as number) < 0) return null;
   if (!Number.isInteger(m) || (m as number) < 0 || (m as number) > MAX_INPUT_MASK) return null;
-  return { t: "input", f: f as number, m: m as number };
+  const a = msg["a"];
+  if (a === undefined) return { t: "input", f: f as number, m: m as number };
+  if (!Number.isInteger(a) || (a as number) < 0) return null;
+  return { t: "input", f: f as number, m: m as number, a: a as number };
 }
 
 function parseResult(msg: Record<string, unknown>): ClientMessage | null {

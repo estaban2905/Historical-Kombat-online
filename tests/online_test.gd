@@ -6,7 +6,8 @@
 ##   - si el lag supera el retraso de entrada, el combate espera y NO se desincroniza
 ##     (tampoco el reloj de la ronda);
 ##   - los botones de cada jugador llegan al luchador correcto (P1/P2);
-##   - el servidor/rival que se va se detecta recién al agotar los botones recibidos.
+##   - el servidor/rival que se va se detecta recién al agotar los botones recibidos;
+##   - con mucho lag, el retraso se ajusta solo y la pelea deja de esperar.
 ## Uso:  godot --headless --path . res://tests/OnlineTest.tscn
 extends Node
 
@@ -15,7 +16,7 @@ const SAMPLE_EVERY := 10
 
 var _failures := 0
 var _frame := 0
-## Mensajes en tránsito: {to: LockstepSession, at: frame, f, m}. Orden de llegada = orden de envío.
+## Mensajes en tránsito: {to: LockstepSession, at: frame, f, m, a}. Orden de llegada = orden de envío.
 var _wire: Array[Dictionary] = []
 var _last_arrival: Dictionary = {}
 var _latency := 0
@@ -41,6 +42,7 @@ func _run() -> void:
 	await _case("sin lag", 0, 0)
 	await _case("lag 3 frames (dentro del retraso)", 3, 0)
 	await _case("lag 12 frames con variación (provoca esperas)", 12, 6)
+	await _case_adaptive_delay()
 	await _case_lone_inputs()
 	await _case_opponent_gone()
 	print("\n=== RESULTADO: %d fallos ===" % _failures)
@@ -53,16 +55,20 @@ func _physics_process(_delta: float) -> void:
 	_frame += 1
 	while not _wire.is_empty() and _wire[0].at <= _frame:
 		var msg: Dictionary = _wire.pop_front()
-		(msg.to as LockstepSession).receive(msg.f, msg.m)
+		(msg.to as LockstepSession).receive(msg.f, msg.m, msg.a)
 
 func _sender(to_ref: Array) -> Callable:
-	return func(frame: int, mask: int) -> void:
+	return func(frame: int, mask: int, ack: int) -> void:
 		var to: LockstepSession = to_ref[0]
 		var at := _frame + _latency + (_net_rng.randi_range(0, _jitter) if _jitter > 0 else 0)
 		# Un WebSocket entrega en orden: la variación nunca adelanta un mensaje a otro.
 		at = maxi(at, _last_arrival.get(to, 0))
 		_last_arrival[to] = at
-		_wire.append({"to": to, "at": at, "f": frame, "m": mask})
+		_wire.append({"to": to, "at": at, "f": frame, "m": mask, "a": ack})
+
+## Reloj de las sesiones: el del cable simulado, en ms.
+func _clock() -> int:
+	return roundi(_frame * 1000.0 / 60.0)
 
 ## Botones al azar, siempre la misma secuencia para la misma semilla y jugador.
 func _scripted_sampler(seed_value: int, player: int) -> Callable:
@@ -110,8 +116,8 @@ func _case(label: String, latency: int, jitter: int) -> void:
 	_net_rng.seed = 99
 	var ref_a := [null]
 	var ref_b := [null]
-	var sess_a := LockstepSession.new(1, _scripted_sampler(11, 0), _sender(ref_b))
-	var sess_b := LockstepSession.new(2, _scripted_sampler(22, 1), _sender(ref_a))
+	var sess_a := LockstepSession.new(1, _scripted_sampler(11, 0), _sender(ref_b), _clock)
+	var sess_b := LockstepSession.new(2, _scripted_sampler(22, 1), _sender(ref_a), _clock)
 	ref_a[0] = sess_a
 	ref_b[0] = sess_b
 	var a := _new_combat()
@@ -157,6 +163,57 @@ func _case(label: String, latency: int, jitter: int) -> void:
 	a.free()
 	b.free()
 
+## Con 12 frames de lag (200 ms de ida) el retraso inicial no alcanza: al principio
+## se espera en casi cada tick (cámara lenta), pero el retraso sube solo y después
+## la pelea corre a velocidad normal, sin desincronizarse.
+func _case_adaptive_delay() -> void:
+	_wire.clear()
+	_last_arrival.clear()
+	_latency = 12
+	_jitter = 2
+	_net_rng.seed = 7
+	var ref_a := [null]
+	var ref_b := [null]
+	var sess_a := LockstepSession.new(1, _scripted_sampler(33, 0), _sender(ref_b), _clock)
+	var sess_b := LockstepSession.new(2, _scripted_sampler(44, 1), _sender(ref_a), _clock)
+	ref_a[0] = sess_a
+	ref_b[0] = sess_b
+	var a := _new_combat()
+	var b := _new_combat()
+	a.set_input_source(sess_a.masks_for)
+	b.set_input_source(sess_b.masks_for)
+	var frames_late := 0
+	var ticks_late := 0
+	var snaps_a := {}
+	var snaps_b := {}
+	var guard := 0
+	while (a.tick_count < 600 or b.tick_count < 600) and guard < 6000:
+		var before := a.tick_count
+		await get_tree().physics_frame
+		guard += 1
+		if a.tick_count >= 300:
+			frames_late += 1
+			ticks_late += a.tick_count - before
+		for pair in [[a, snaps_a], [b, snaps_b]]:
+			var c: CombatManager = pair[0]
+			if c.tick_count % SAMPLE_EVERY == 0 and c.tick_count > 0 and not pair[1].has(c.tick_count):
+				pair[1][c.tick_count] = hash(c.state_snapshot())
+	var common := 0
+	var same := true
+	for t in snaps_a:
+		if snaps_b.has(t):
+			common += 1
+			same = same and snaps_a[t] == snaps_b[t]
+	var speed := float(ticks_late) / maxf(frames_late, 1.0)
+	check(sess_a.delay >= 12 and sess_b.delay >= 12,
+		"el retraso sube solo con el lag (A %d, B %d ticks; ida y vuelta %.0f ms)" % [sess_a.delay, sess_b.delay, sess_a.rtt_ms])
+	check(speed > 0.95, "ya ajustado, la pelea corre a velocidad normal (%.0f%% de 60 ticks/s)" % (speed * 100.0))
+	check(common > 0 and same, "las dos peleas siguen idénticas tras cambiar el retraso (%d muestras)" % common)
+	remove_child(a)
+	remove_child(b)
+	a.free()
+	b.free()
+
 ## Cada jugador solo manda sus botones al luchador que le toca.
 func _case_lone_inputs() -> void:
 	_wire.clear()
@@ -192,24 +249,24 @@ func _case_lone_inputs() -> void:
 ## La sesión no inventa botones: sin los del rival, se detiene (y el aviso lo da Online).
 func _case_opponent_gone() -> void:
 	var sent: Array = []
-	var sess := LockstepSession.new(1, func() -> int: return 0, func(f: int, m: int): sent.append([f, m]))
+	var sess := LockstepSession.new(1, func() -> int: return 0, func(f: int, m: int, _a: int): sent.append([f, m]))
 	# Ticks iniciales: no necesitan botones del rival.
-	for t in LockstepSession.INPUT_DELAY:
+	for t in LockstepSession.INITIAL_DELAY:
 		check(not sess.masks_for(t).is_empty(), "tick %d inicial se juega sin esperar" % t)
-	check(sess.masks_for(LockstepSession.INPUT_DELAY).is_empty(), "sin botones del rival, el tick %d espera" % LockstepSession.INPUT_DELAY)
+	check(sess.masks_for(LockstepSession.INITIAL_DELAY).is_empty(), "sin botones del rival, el tick %d espera" % LockstepSession.INITIAL_DELAY)
 	check(sess.stalled_ticks == 1, "cuenta la espera")
-	sess.receive(LockstepSession.INPUT_DELAY, 5)
-	var m := sess.masks_for(LockstepSession.INPUT_DELAY)
+	sess.receive(LockstepSession.INITIAL_DELAY, 5)
+	var m := sess.masks_for(LockstepSession.INITIAL_DELAY)
 	check(m == [0, 5], "al llegar los botones del rival, el tick se juega (P1=%s)" % [str(m)])
 	check(sess.stalled_ticks == 0, "la espera se reinicia")
 	# Pedir el mismo tick varias veces no manda botones repetidos.
 	var before := sent.size()
-	sess.masks_for(LockstepSession.INPUT_DELAY + 1)
-	sess.masks_for(LockstepSession.INPUT_DELAY + 1)
+	sess.masks_for(LockstepSession.INITIAL_DELAY + 1)
+	sess.masks_for(LockstepSession.INITIAL_DELAY + 1)
 	check(sent.size() - before == 1, "un solo envío por tick aunque se repita la consulta")
 	# Del lado de P2 el orden de las máscaras se invierte.
-	var s2 := LockstepSession.new(2, func() -> int: return 3, func(_f: int, _m: int): pass)
-	s2.receive(LockstepSession.INPUT_DELAY, 7)
-	for t in LockstepSession.INPUT_DELAY:
+	var s2 := LockstepSession.new(2, func() -> int: return 3, func(_f: int, _m: int, _a: int): pass)
+	s2.receive(LockstepSession.INITIAL_DELAY, 7)
+	for t in LockstepSession.INITIAL_DELAY:
 		s2.masks_for(t)
-	check(s2.masks_for(LockstepSession.INPUT_DELAY) == [7, 3], "P2 recibe [rival, yo]")
+	check(s2.masks_for(LockstepSession.INITIAL_DELAY) == [7, 3], "P2 recibe [rival, yo]")

@@ -67,7 +67,7 @@ export class MatchmakingService {
         this.disconnect(peer);
         break;
       case "input":
-        this.relayInput(peer, msg.f, msg.m);
+        this.relayInput(peer, msg.f, msg.m, msg.a);
         break;
       case "result":
         this.receiveResult(peer, { winner: msg.winner, p1Rounds: msg.p1Rounds, p2Rounds: msg.p2Rounds });
@@ -147,13 +147,13 @@ export class MatchmakingService {
     second.peer.send({ t: "matched", side: 2, seed, ranked, opponent: { fighter: first.fighter, name: first.name } });
   }
 
-  private relayInput(peer: Peer, f: number, m: number): void {
+  private relayInput(peer: Peer, f: number, m: number, a?: number): void {
     const player = this.players.get(peer);
     const room = player?.room;
     if (!player || !room || room.closed) return;
     room.fightStarted = true;
     room.inputs[sideOf(room, player)]++;
-    opponentOf(room, player).peer.send({ t: "input", f, m });
+    opponentOf(room, player).peer.send(a === undefined ? { t: "input", f, m } : { t: "input", f, m, a });
   }
 
   // =========================================================================

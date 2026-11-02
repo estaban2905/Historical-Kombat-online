@@ -18,6 +18,12 @@ test("input válido", () => {
   assert.deepEqual(parseClientMessage('{"t":"input","f":12,"m":255}'), { t: "input", f: 12, m: 255 });
 });
 
+test("input con acuse", () => {
+  assert.deepEqual(parseClientMessage('{"t":"input","f":12,"m":3,"a":9}'), { t: "input", f: 12, m: 3, a: 9 });
+  assert.equal(parseClientMessage('{"t":"input","f":12,"m":3,"a":-1}'), null);
+  assert.equal(parseClientMessage('{"t":"input","f":12,"m":3,"a":"9"}'), null);
+});
+
 test("input fuera de rango o con tipos raros se rechaza", () => {
   assert.equal(parseClientMessage('{"t":"input","f":-1,"m":1}'), null);
   assert.equal(parseClientMessage('{"t":"input","f":1.5,"m":1}'), null);
