@@ -39,9 +39,9 @@ ERA_LINES = [
 END_LINES = [
     "Me has vencido. Todas las épocas cayeron ante ti, y ahora esperan.",
     "El poder del Nexo es tuyo. ¿Qué harás con el tiempo?",
-    "Que cada uno vuelva a su tiempo. Que la grieta se cierre, y el mundo recuerde.",
-    "Que el tiempo sea tuyo. La historia se escribe de nuevo, a tu imagen.",
-    "Ni tú, ni yo. Que el tiempo fluya libre. Por fin.",
+    "Que cada uno vuelva a su tiempo. Que el mundo recuerde sus errores, y aprenda de ellos.",
+    "Que el tiempo sea tuyo. Pero quien escribe la historia a su imagen, termina repitiéndola.",
+    "Ni tú, ni yo. Que el tiempo sea de todos, y que cada generación aprenda de la anterior.",
 ]
 
 if __name__ == "__main__":

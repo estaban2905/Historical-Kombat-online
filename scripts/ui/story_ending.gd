@@ -4,7 +4,8 @@
 ##   0  el Nexo habla        CONTINUAR
 ##   1  la elección          REPARAR EL TIEMPO / REESCRIBIRLO / LIBERAR EL TIEMPO (oculta)
 ##   2  la animación         cualquier tecla la salta
-##   3  el epílogo           VER CRÉDITOS
+##   3  el epílogo           CONTINUAR
+##   4  la lección del tiempo  VER CRÉDITOS
 ## LIBERAR solo aparece si se llegó hasta aquí sin gastar ninguna revancha.
 ## La voz sale de tools/gen_story_voice.py (end_1 a end_5, mismo texto que los subtítulos).
 class_name StoryEnding
@@ -28,25 +29,39 @@ const NEXO_LINES: Array = [
 ## Por decisión: voz (end_N), título, color del título y subtítulos de la animación.
 const ENDINGS := {
 	&"repair": {"voice": 3, "title": "EL TIEMPO SANA", "color": Color("ffd24a"),
-		"subs": ["QUE CADA UNO VUELVA A SU TIEMPO.", "QUE LA GRIETA SE CIERRE, Y EL MUNDO RECUERDE."]},
+		"subs": ["QUE CADA UNO VUELVA A SU TIEMPO.", "QUE EL MUNDO RECUERDE SUS ERRORES,", "Y APRENDA DE ELLOS."],
+		"lesson": ["LA HISTORIA NO SE BORRA:", "SE RECUERDA Y SE APRENDE."]},
 	&"rewrite": {"voice": 4, "title": "LA HISTORIA REESCRITA", "color": Color("ff7050"),
-		"subs": ["QUE EL TIEMPO SEA TUYO.", "LA HISTORIA SE ESCRIBE DE NUEVO, A TU IMAGEN."]},
+		"subs": ["QUE EL TIEMPO SEA TUYO.", "PERO QUIEN ESCRIBE LA HISTORIA A SU IMAGEN,", "TERMINA REPITIÉNDOLA."],
+		"lesson": ["QUIEN REESCRIBE LA HISTORIA A SU MEDIDA", "ACABA REPITIENDO SUS ERRORES."]},
 	&"free": {"voice": 5, "title": "EL TIEMPO LIBRE", "color": Color("70e0ff"),
-		"subs": ["NI TÚ, NI YO.", "QUE EL TIEMPO FLUYA LIBRE. POR FIN."]},
+		"subs": ["NI TÚ, NI YO.", "QUE EL TIEMPO SEA DE TODOS,", "Y QUE CADA GENERACIÓN APRENDA DE LA ANTERIOR."],
+		"lesson": ["EL TIEMPO ES DE TODOS:", "CADA GENERACIÓN APRENDE DE LA ANTERIOR."]},
 }
 ## Epílogos propios: id -> [reparar, reescribir]. El resto usa una plantilla.
 const EPILOGUES := {
-	&"napoleon": ["VUELVE A SU CAMPAÑA Y ESTA VEZ\nSABE DÓNDE DETENERSE.", "CORONA UN IMPERIO QUE\nNINGÚN INVIERNO PUEDE ROMPER."],
-	&"julio_cesar": ["CRUZA EL RUBICÓN POR ÚLTIMA VEZ\nY ESQUIVA LOS IDUS DE MARZO.", "ROMA NUNCA CAE: EL TIEMPO\nSE LLAMA CÉSAR."],
-	&"cleopatra": ["REGRESA AL NILO Y GOBIERNA\nSIN QUE NADIE LA ENGAÑE.", "EGIPTO DURA PARA SIEMPRE\nBAJO SU ÁSPID DORADO."],
-	&"lautaro": ["VUELVE A LA ARAUCANÍA\nCON LA VICTORIA ASEGURADA.", "LA TIERRA NO CONOCE\nOTRO TOQUI QUE ÉL."],
-	&"arturo_prat": ["PISA LA ESMERALDA Y SU\nSACRIFICIO NO SE OLVIDA.", "EL ABORDAJE SE REPITE Y\nESTA VEZ EL MAR ES SUYO."],
-	&"albert_einstein": ["APAGA EL RELOJ Y LE PIDE\nPERDÓN AL TIEMPO.", "ESCRIBE UNA ECUACIÓN\nNUEVA: LA DEL UNIVERSO."],
-	&"nikola_tesla": ["DESMONTA LA MÁQUINA Y LA\nENERGÍA LLEGA A TODOS.", "EL MUNDO SE ENCIENDE\nCON SU CORRIENTE."],
-	&"marie_curie": ["CIERRA LA GRIETA CON SU\nPROPIA LUZ.", "SU RADIACIÓN ILUMINA\nCADA ÉPOCA."],
-	&"leonardo_da_vinci": ["GUARDA LOS PLANOS DEL RELOJ\nPARA QUE NADIE LOS USE.", "DISEÑA EL TIEMPO COMO\nSU OBRA MAESTRA."],
-	&"alejandro_magno": ["REGRESA A BABILONIA Y\nVIVE MÁS DE 32 AÑOS.", "SU IMPERIO NO TIENE\nLÍMITE NI FIN."],
-	&"jesus_de_nazaret": ["DEVUELVE A CADA UNO A SU\nLUGAR Y PERDONA.", "NO REESCRIBE NADA:\nLO REDIME TODO."],
+	&"napoleon": ["VUELVE A SU CAMPAÑA,\nSABIENDO DÓNDE DETENERSE.\nEL INVIERNO LE ENSEÑÓ\nMÁS QUE UN TRIUNFO.",
+		"CORONA UN IMPERIO SIN FIN,\nPERO SOLO, Y SIN QUIEN\nSE ATREVA A CONTRADECIRLO."],
+	&"julio_cesar": ["CRUZA EL RUBICÓN OTRA VEZ,\nPERO ESCUCHA EL AVISO\nDE LOS IDUS DE MARZO.",
+		"ROMA NUNCA CAE:\nEL TIEMPO SE LLAMA CÉSAR.\nNADIE LO CONTRADICE."],
+	&"cleopatra": ["REGRESA AL NILO Y GOBIERNA,\nAPRENDIENDO EN QUIÉN\nCONFIAR.",
+		"EGIPTO DURA PARA SIEMPRE,\nBAJO UN TRONO QUE YA\nNO ESCUCHA A NADIE."],
+	&"lautaro": ["VUELVE A LA ARAUCANÍA,\nLLEVANDO LA LECCIÓN\nDE CADA BATALLA.",
+		"LA TIERRA NO CONOCE\nOTRO TOQUI QUE ÉL.\nNADIE APRENDE A LIDERAR."],
+	&"arturo_prat": ["PISA LA ESMERALDA Y\nSU SACRIFICIO SE RECUERDA\nCOMO UN EJEMPLO.",
+		"EL ABORDAJE SE REPITE\nY EL MAR ES SUYO,\nPERO SIN NADA QUE ENSEÑAR."],
+	&"albert_einstein": ["APAGA EL RELOJ Y LE PIDE\nPERDÓN AL TIEMPO.\nAPRENDE: SABER NO BASTA.",
+		"ESCRIBE UNA ECUACIÓN NUEVA:\nLA DEL UNIVERSO,\nY NADIE PUEDE REVISARLA."],
+	&"nikola_tesla": ["DESMONTA LA MÁQUINA:\nLA ENERGÍA LLEGA A TODOS\nY NADIE QUEDA A OSCURAS.",
+		"EL MUNDO SE ENCIENDE\nCON SU CORRIENTE,\nSOLO SI ÉL LO PERMITE."],
+	&"marie_curie": ["CIERRA LA GRIETA CON\nSU PROPIA LUZ Y APRENDE\nA CUIDAR LO QUE CREA.",
+		"SU RADIACIÓN ILUMINA\nCADA ÉPOCA,\nY TAMBIÉN LAS ENFERMA."],
+	&"leonardo_da_vinci": ["GUARDA LOS PLANOS DEL RELOJ.\nAHORA SABE QUE NO TODO\nLO POSIBLE SE DEBE HACER.",
+		"DISEÑA EL TIEMPO COMO\nSU OBRA MAESTRA,\nSIN BORRADORES NI ERRORES."],
+	&"alejandro_magno": ["REGRESA A BABILONIA Y\nVIVE MÁS DE 32 AÑOS,\nAPRENDIENDO A GOBERNAR.",
+		"SU IMPERIO NO TIENE\nLÍMITE NI FIN,\nNI QUIEN DIGA BASTA."],
+	&"jesus_de_nazaret": ["DEVUELVE A CADA UNO\nA SU LUGAR Y PERDONA:\nEL ERROR TAMBIÉN ENSEÑA.",
+		"NO REESCRIBE NADA:\nPERDONA Y ENSEÑA\nA CORREGIR LOS ERRORES."],
 }
 
 var _step: int = 0
@@ -126,6 +141,13 @@ func _go_epilogue() -> void:
 	_t = 0.0
 	_show_buttons()
 
+## La enseñanza del final: una frase sola sobre fondo oscuro antes de los créditos.
+func _go_lesson() -> void:
+	Sfx.play(&"confirm")
+	_step = 4
+	_t = 0.0
+	_show_buttons()
+
 func _show_buttons() -> void:
 	for b in _btns:
 		b.visible = false
@@ -140,7 +162,9 @@ func _show_buttons() -> void:
 			if _free_unlocked():
 				_place(_btns[2], "LIBERAR EL TIEMPO", Vector2(118, 192), 190, _choose.bind(&"free"))
 		3:
-			_place(_btns[0], "VER CRÉDITOS", Vector2(236, 214), 110, func(): Game.goto(Game.SCENE_CREDITS))
+			_place(_btns[0], "CONTINUAR", Vector2(236, 214), 110, _go_lesson)
+		4:
+			_place(_btns[0], "VER CRÉDITOS", Vector2(158, 214), 110, func(): Game.goto(Game.SCENE_CREDITS))
 	for b in _btns:
 		if b.visible:
 			b.grab_focus()
@@ -180,6 +204,7 @@ func _process(delta: float) -> void:
 func _place_fighter() -> void:
 	if _fighter == null:
 		return
+	_fighter.visible = _step != 4
 	if _step == 2:
 		var s := clampf(84.0 / maxf(_fighter.approx_height(), 1.0), 0.6, 1.4)
 		_fighter.scale = Vector2(s, s)
@@ -213,9 +238,11 @@ func _draw() -> void:
 			_draw_nexo_speech()
 		2:
 			_draw_decision()
-		_:
+		3:
 			draw_rect(Rect2(0, 0, W, H), Color(0.03, 0.02, 0.05, 0.7))
 			_draw_epilogue()
+		_:
+			_draw_lesson()
 
 func _draw_nexo_speech() -> void:
 	var lines: Array = NEXO_LINES[_step]
@@ -382,23 +409,42 @@ func _decision_free() -> void:
 		draw_rect(Rect2(x, 212.0 + (i % 3) * 8.0, 14.0, 1), Color(0.7, 0.9, 1.0, 0.5))
 	draw_rect(Rect2(0, 206, W, 1), Color(0.8, 0.95, 1.0, 0.6))
 
+func _draw_lesson() -> void:
+	var info: Dictionary = ENDINGS[_ending]
+	var col: Color = info["color"]
+	var a := _ph(0.2, 1.4)
+	draw_rect(Rect2(0, 0, W, H), Color(0.02, 0.01, 0.04, 0.92))
+	for i in 40:
+		var p := fposmod(_t * (0.1 + _h(i) * 0.15) + _h(i + 3.0), 1.0)
+		draw_rect(Rect2(10.0 + _h(i + 1.0) * (W - 20.0), H - p * H, 2, 2), Color(col, 0.5 * (1.0 - p) * a))
+	var tw := HKTheme.text_width("LECCIÓN DEL TIEMPO", 16) + 30.0
+	draw_rect(Rect2(W * 0.5 - tw * 0.5, 66, tw, 1), Color(col, a))
+	draw_rect(Rect2(W * 0.5 - tw * 0.5, 104, tw, 1), Color(col, a))
+	HKTheme.draw_text(self, Vector2(0, 94), "LECCIÓN DEL TIEMPO", 16, Color(col, a), HORIZONTAL_ALIGNMENT_CENTER, W, 3)
+	var lines: Array = info["lesson"]
+	for i in lines.size():
+		HKTheme.draw_text(self, Vector2(0, 132 + i * 14), lines[i], 8, Color(HKTheme.PAPER, _ph(0.8 + i * 0.5, 1.8 + i * 0.5)), HORIZONTAL_ALIGNMENT_CENTER, W, 2)
+
 func _draw_epilogue() -> void:
 	var d := Game.p1_data()
-	var x0 := 236.0
 	var info: Dictionary = ENDINGS[_ending]
-	HKTheme.draw_text(self, Vector2(x0 - 28, 40), info["title"], 16, info["color"], HORIZONTAL_ALIGNMENT_CENTER, 220, 3)
-	HKTheme.draw_text(self, Vector2(x0 - 28, 60), d.display_name.to_upper(), 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 220, 2)
-	HKTheme.draw_text(self, Vector2(x0 - 28, 72), d.era, 8, HKTheme.MUTED.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER, 220, 1)
+	# El título ocupa todo el ancho; el texto del luchador va a la derecha de su figura.
+	HKTheme.draw_text(self, Vector2(0, 34), info["title"], 16, info["color"], HORIZONTAL_ALIGNMENT_CENTER, W, 3)
+	var x := 186.0
+	var w := 236.0
+	HKTheme.draw_text(self, Vector2(x, 60), d.display_name.to_upper(), 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w, 2)
+	HKTheme.draw_text(self, Vector2(x, 72), d.era, 8, HKTheme.MUTED.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER, w, 1)
 	var lines := epilogue_lines(d, _ending)
 	for i in lines.size():
-		HKTheme.draw_text(self, Vector2(x0 - 28, 108 + i * 12), lines[i], 8, Color("e8d8b8"), HORIZONTAL_ALIGNMENT_CENTER, 220, 1)
+		HKTheme.draw_text(self, Vector2(x, 108 + i * 12), lines[i], 8, Color("e8d8b8"), HORIZONTAL_ALIGNMENT_CENTER, w, 1)
 
-## Texto de despedida del luchador según la decisión (&"repair", &"rewrite" o &"free").
+## Texto de despedida del luchador según la decisión (&"repair", &"rewrite" o &"free"):
+## lo que aprendió o lo que le costó.
 static func epilogue_lines(d: FighterData, ending: StringName) -> PackedStringArray:
 	if ending == &"free":
-		return PackedStringArray(["%s DEJA ATRÁS EL PODER" % d.short_name.to_upper(), "Y VUELVE A SU ÉPOCA.", "EL TIEMPO FLUYE LIBRE:", "NADIE LO CONTROLA."])
+		return PackedStringArray(["%s SUELTA EL PODER" % d.short_name.to_upper(), "Y VUELVE A SU ÉPOCA.", "EL TIEMPO ES DE TODOS:", "APRENDER ES COMPARTIR."])
 	if EPILOGUES.has(d.id):
 		return PackedStringArray((EPILOGUES[d.id][0 if ending == &"repair" else 1] as String).split("\n"))
 	if ending == &"repair":
-		return PackedStringArray(["%s REGRESA A SU ÉPOCA" % d.short_name.to_upper(), "(%s) Y EL MUNDO" % d.era.to_upper(), "RECUERDA SU NOMBRE."])
-	return PackedStringArray(["%s TOMA EL NEXO" % d.short_name.to_upper(), "Y REESCRIBE LA HISTORIA", "A SU IMAGEN."])
+		return PackedStringArray(["%s REGRESA A SU ÉPOCA" % d.short_name.to_upper(), "(%s) Y EL MUNDO" % d.era.to_upper(), "RECUERDA SUS ERRORES", "Y APRENDE DE ELLOS."])
+	return PackedStringArray(["%s TOMA EL NEXO" % d.short_name.to_upper(), "Y REESCRIBE LA HISTORIA,", "PERO PRONTO REPITE", "LO QUE QUISO CORREGIR."])

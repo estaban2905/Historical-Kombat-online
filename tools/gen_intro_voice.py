@@ -66,6 +66,16 @@ FILTER = (
     "aecho=0.8:0.88:110|230|470:0.40|0.28|0.16,alimiter=limit=0.95,volume=1.5"
 )
 
+def count_clipped(path: Path) -> int:
+    """Muestras al límite del rango: un audio limpio casi no tiene."""
+    import struct
+    import wave
+    with wave.open(str(path)) as w:
+        n = w.getnframes()
+        samples = struct.unpack("<%dh" % n, w.readframes(n))
+    return sum(1 for x in samples if abs(x) >= 32700)
+
+
 def render(lines: list, out_dir: Path, prefix: str) -> None:
     """Sintetiza cada frase y la deja procesada en out_dir/<prefix>_N.wav (imprime su duración)."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -76,11 +86,17 @@ def render(lines: list, out_dir: Path, prefix: str) -> None:
             txt = Path(tmp) / f"l{i}.txt"
             raw = Path(tmp) / f"l{i}.wav"
             txt.write_text(text, encoding="utf-8")
-            subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
-                            str(txt), str(raw)], check=True)
             dest = out_dir / f"{prefix}_{i}.wav"
-            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-filter_complex", FILTER,
-                            "-ac", "1", "-ar", "22050", str(dest)], check=True)
+            # El sintetizador falla a veces y deja el audio saturado (ruido): se repite hasta que salga limpio.
+            for attempt in range(1, 6):
+                subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
+                                str(txt), str(raw)], check=True)
+                subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(raw), "-filter_complex", FILTER,
+                                "-ac", "1", "-ar", "22050", str(dest)], check=True)
+                clipped = count_clipped(dest)
+                if clipped < 200:
+                    break
+                print(f"  {dest.name}: saturado ({clipped} muestras), reintento {attempt}")
             print(dest.name, subprocess.run(
                 ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(dest)],
                 capture_output=True, text=True).stdout.strip(), "s")

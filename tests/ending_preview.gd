@@ -39,7 +39,7 @@ func _ready() -> void:
 	if ending != &"":
 		scene._choose(ending)
 
-## Los tres finales uno tras otro; el epílogo de cada uno se ve 4 s. Cualquier tecla salta la animación.
+## Los tres finales uno tras otro; el epílogo y la lección de cada uno se ven 4 s. Cualquier tecla salta la animación.
 func _play_all() -> void:
 	for ending in [&"repair", &"rewrite", &"free"]:
 		var scene := StoryEnding.new()
@@ -47,6 +47,8 @@ func _play_all() -> void:
 		scene._choose(ending)
 		while is_instance_valid(scene) and scene._step < 3:
 			await get_tree().process_frame
+		await get_tree().create_timer(4.0).timeout
+		scene._go_lesson()
 		await get_tree().create_timer(4.0).timeout
 		scene.queue_free()
 		await get_tree().process_frame
@@ -69,6 +71,23 @@ func _shots(dir: String) -> void:
 			var img := get_viewport().get_texture().get_image()
 			img.resize(img.get_width() * SCALE, img.get_height() * SCALE, Image.INTERPOLATE_NEAREST)
 			img.save_png("%s/%s_%d.png" % [dir, ending, int(t)])
+			if t == SHOT_TIMES[-1]:
+				scene._go_epilogue()
+				await get_tree().process_frame
+				await get_tree().process_frame
+				_snap("%s/%s_epilogo.png" % [dir, ending])
+				scene._go_lesson()
+				scene._t = 3.0
+				await get_tree().process_frame
+				await get_tree().process_frame
+				scene._t = 3.0
+				await get_tree().process_frame
+				_snap("%s/%s_leccion.png" % [dir, ending])
 			scene.queue_free()
 			await get_tree().process_frame
 	print("Capturas en ", dir)
+
+func _snap(path: String) -> void:
+	var img := get_viewport().get_texture().get_image()
+	img.resize(img.get_width() * SCALE, img.get_height() * SCALE, Image.INTERPOLATE_NEAREST)
+	img.save_png(path)
