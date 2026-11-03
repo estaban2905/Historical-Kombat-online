@@ -11,6 +11,11 @@ export interface Account {
   losses: number;
   /** Id del luchador elegido como retrato, o null. */
   avatar: string | null;
+  /** Última vez que cambió su nombre, o null si nunca. */
+  usernameChangedAt: Date | null;
+  /** Cosméticos puestos: marco del retrato y título bajo el nombre (null = ninguno). */
+  frame: string | null;
+  title: string | null;
   createdAt: Date;
 }
 
@@ -22,9 +27,15 @@ export interface Profile {
   wins: number;
   losses: number;
   avatar: string | null;
+  frame: string | null;
+  title: string | null;
+  /** true en las cuentas de Google: entran con Google y no tienen contraseña que cambiar. */
+  google_account: boolean;
 }
 
+/** Una fila del ranking. El id es interno: sirve para pedir sus estadísticas y no sale por la API. */
 export interface RankingEntry {
+  id: string;
   username: string;
   points: number;
   wins: number;
@@ -42,5 +53,5 @@ export interface AuthResult {
 }
 
 export function toProfile(a: Account): Profile {
-  return { id: a.id, username: a.username, points: a.points, wins: a.wins, losses: a.losses, avatar: a.avatar };
+  return { id: a.id, username: a.username, points: a.points, wins: a.wins, losses: a.losses, avatar: a.avatar, frame: a.frame, title: a.title, google_account: a.passwordHash === null };
 }

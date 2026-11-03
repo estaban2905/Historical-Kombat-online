@@ -1,21 +1,21 @@
 ## Menú principal en dos niveles:
-##   arriba, grandes  MODO HISTORIA, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO y el selector DIFICULTAD < > ;
-##   abajo, en fila   PERSONAJES · CONTROLES · CRÉDITOS.
-## MODO HISTORIA (1 jugador contra la CPU, de hoy al origen), VERSUS LOCAL (2 jugadores) y DUELO ONLINE
-## (contra otra persona por internet) llevan a la selección de luchador. DIFICULTAD se cambia con
-## izquierda/derecha (o pulsándolo). VERSUS LOCAL y ENTRENAMIENTO solo aparecen en el editor (desarrollo).
+##   arriba, grandes  MODO HISTORIA, DUELO ONLINE, ENTRENAMIENTO y el selector DIFICULTAD < > ;
+##   abajo, en fila   PERSONAJES · CONTROLES · AJUSTES · CRÉDITOS.
+## MODO HISTORIA (1 jugador contra la CPU, de hoy al origen) y DUELO ONLINE (contra otra persona por
+## internet) llevan a la selección de luchador. DIFICULTAD se cambia con izquierda/derecha (o pulsándolo).
+## ENTRENAMIENTO solo aparece en el editor (desarrollo).
 ## Un solo botón resaltado (el ratón mueve el foco) con un cursor que rebota; de fondo, un duelo
 ## entre dos luchadores al azar que cambia cada pocos segundos (MenuDuel).
 extends Control
 
 @onready var btn_continue: Button = $Buttons/Continue
 @onready var btn_play: Button = $Buttons/Play
-@onready var btn_versus: Button = $Buttons/Versus
 @onready var btn_online: Button = $Buttons/Online
 @onready var btn_training: Button = $Buttons/Training
 @onready var btn_difficulty: Button = $Buttons/Difficulty
 @onready var btn_roster: Button = $Buttons/Extras/Roster
 @onready var btn_controls: Button = $Buttons/Extras/Controls
+@onready var btn_settings: Button = $Buttons/Extras/Settings
 @onready var btn_credits: Button = $Buttons/Extras/Credits
 @onready var footer: Label = $Footer
 
@@ -25,6 +25,14 @@ var _t: float = 0.0
 ## Botón que tenía el foco en el fotograma anterior (para el rebote al cambiar).
 var _last_focus: Control
 var _bounce: float = 0.0
+## Botón AMIGOS de la esquina (con sesión): avisa de las solicitudes por contestar.
+var _friends_btn: Button
+## Aviso de reto de un amigo (encima de todo) y cada cuánto se pregunta al servidor si hay alguno.
+const CHALLENGE_POLL := 5.0
+var _challenge_box: Control
+var _challenge_until: float = 0.0
+var _poll_t: float = 0.0
+var _polling: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -32,19 +40,18 @@ func _ready() -> void:
 	footer.text = "v%s" % Game.VERSION
 	btn_continue.pressed.connect(_continue_story)
 	btn_play.pressed.connect(func(): _go_select(Game.Mode.ARCADE))
-	btn_versus.pressed.connect(func(): _go_select(Game.Mode.VERSUS))
 	btn_online.pressed.connect(func(): _go_select(Game.Mode.ONLINE))
 	btn_training.pressed.connect(func(): _go_select(Game.Mode.TRAINING))
 	btn_difficulty.pressed.connect(_cycle_difficulty)
 	btn_roster.pressed.connect(_show_roster)
 	btn_controls.pressed.connect(func(): Game.goto(Game.SCENE_CONTROLS))
+	btn_settings.pressed.connect(func(): Game.goto(Game.SCENE_SETTINGS))
 	btn_credits.pressed.connect(_show_credits)
+	btn_credits.text = HKTheme.fold(btn_credits.text)   # la fuente no tiene la É mayúscula
 	_refresh_difficulty()
-	# VERSUS LOCAL y ENTRENAMIENTO son herramientas de desarrollo: solo se ven al correr desde el editor.
-	var dev := OS.has_feature("editor")
-	btn_versus.visible = dev
-	btn_training.visible = dev
-	for b in [btn_continue, btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_credits]:
+	# ENTRENAMIENTO es una herramienta de desarrollo: solo se ve al correr desde el editor.
+	btn_training.visible = OS.has_feature("editor")
+	for b in [btn_continue, btn_play, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_settings, btn_credits]:
 		_single_highlight(b)
 	btn_difficulty.gui_input.connect(_on_difficulty_input)
 	_spawn_duel()
@@ -59,6 +66,8 @@ func _ready() -> void:
 	if Backend.is_logged_in():
 		# La partida de la cuenta puede ser más nueva que la de este equipo (otro PC).
 		_show_saved_story(await Backend.load_story())
+		await Backend.sync_unlocks()
+		await _refresh_friends_badge()
 
 ## Un solo botón resaltado: pasar el ratón por encima le da el foco, y el estilo "hover"
 ## es el normal, así nunca hay dos botones con marco dorado a la vez.
@@ -73,6 +82,12 @@ func _single_highlight(b: Button) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_poll_t += delta
+	if Backend.is_logged_in() and _challenge_box == null and not _polling and _poll_t >= CHALLENGE_POLL:
+		_poll_t = 0.0
+		_check_challenges()
+	if _challenge_box != null and _t > _challenge_until:
+		_close_challenge()
 	var f := get_viewport().gui_get_focus_owner()
 	if f != _last_focus:
 		_last_focus = f
@@ -117,6 +132,8 @@ func _build_account_button() -> void:
 	if not Backend.is_configured():
 		return
 	_corner_button("RANKING", Vector2(4, 4), func(): Game.goto(Game.SCENE_RANKING))
+	if Backend.is_logged_in():
+		_friends_btn = _corner_button("AMIGOS", Vector2(4, 22), func(): Game.goto(Game.SCENE_FRIENDS))
 	_corner_button("PERFIL" if Backend.is_logged_in() else "ENTRAR", Vector2(338, 4), _on_account_pressed)
 	if Backend.is_logged_in():
 		var who := Label.new()
@@ -127,7 +144,88 @@ func _build_account_button() -> void:
 		who.add_theme_color_override("font_color", HKTheme.GOLD)
 		add_child(who)
 
-func _corner_button(text: String, pos: Vector2, on_press: Callable) -> void:
+## Pregunta si algún amigo me ha retado y, si es así, lo avisa.
+func _check_challenges() -> void:
+	_polling = true
+	var list := await Backend.fetch_challenges()
+	_polling = false
+	if list.is_empty() or _challenge_box != null or not is_inside_tree():
+		return
+	_show_challenge(list[0])
+
+## Caja sobre el menú: "ANA TE RETA" con ACEPTAR y RECHAZAR. El menú de debajo se apaga mientras tanto.
+func _show_challenge(c: Dictionary) -> void:
+	$Buttons.process_mode = Node.PROCESS_MODE_DISABLED
+	_challenge_until = _t + float(c.get("expires_in", 60))
+	_challenge_box = Control.new()
+	_challenge_box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_challenge_box)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.75)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_challenge_box.add_child(dim)
+	# Un recuadro sólido para que el menú de detrás no se mezcle con el texto.
+	var border := ColorRect.new()
+	border.color = HKTheme.GOLD_DARK
+	border.position = Vector2(79, 83)
+	border.size = Vector2(268, 78)
+	_challenge_box.add_child(border)
+	var inner := ColorRect.new()
+	inner.color = HKTheme.INK
+	inner.position = Vector2(80, 84)
+	inner.size = Vector2(266, 76)
+	_challenge_box.add_child(inner)
+	var who := str(c.get("from", "")).to_upper()
+	_box_label("%s TE RETA A UN DUELO" % who, 94, HKTheme.GOLD)
+	_box_label("AMISTOSO: NO MUEVE PUNTOS", 110, HKTheme.MUTED)
+	var accept := _box_button("ACEPTAR", Vector2(108, 134))
+	var reject := _box_button("RECHAZAR", Vector2(218, 134))
+	accept.pressed.connect(func():
+		Game.challenge_code = str(c.get("code", ""))
+		Game.challenge_opponent = str(c.get("from", ""))
+		Game.mode = Game.Mode.ONLINE
+		Game.goto(Game.SCENE_SELECT))
+	reject.pressed.connect(func():
+		Backend.cancel_challenge(str(c.get("code", "")))
+		_close_challenge())
+	Sfx.play(&"confirm")
+	accept.grab_focus()
+
+func _box_label(text: String, y: float, color: Color) -> void:
+	var l := Label.new()
+	l.text = text
+	l.position = Vector2(0, y)
+	l.size = Vector2(426, 12)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_color_override("font_color", color)
+	_challenge_box.add_child(l)
+
+func _box_button(text: String, pos: Vector2) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.position = pos
+	b.custom_minimum_size = Vector2(100, 14)
+	_challenge_box.add_child(b)
+	b.size = Vector2(100, 14)   # tras añadirlo: ya tiene el tema
+	b.focus_entered.connect(func(): Sfx.play(&"select"))
+	return b
+
+func _close_challenge() -> void:
+	if _challenge_box != null:
+		_challenge_box.queue_free()
+		_challenge_box = null
+	$Buttons.process_mode = Node.PROCESS_MODE_INHERIT
+	btn_play.grab_focus()
+
+## "AMIGOS (2)" si hay solicitudes de amistad por contestar.
+func _refresh_friends_badge() -> void:
+	var list: Variant = await Backend.fetch_friends()
+	if list == null or _friends_btn == null or not is_instance_valid(_friends_btn):
+		return
+	var pending := FriendsScreen.pending_count(list)
+	_friends_btn.text = "AMIGOS (%d)" % pending if pending > 0 else "AMIGOS"
+
+func _corner_button(text: String, pos: Vector2, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.position = pos
@@ -138,6 +236,7 @@ func _corner_button(text: String, pos: Vector2, on_press: Callable) -> void:
 	b.focus_entered.connect(func(): Sfx.play(&"select"))
 	add_child(b)
 	b.size = Vector2(84, 14)   # tras añadirlo: ya tiene el tema
+	return b
 
 func _on_account_pressed() -> void:
 	if Backend.is_logged_in():

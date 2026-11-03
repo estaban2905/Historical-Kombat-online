@@ -56,6 +56,11 @@ export class SessionRepository {
     await this.db.query("delete from sessions where access_hash = $1", [hash]);
   }
 
+  /** Cierra todas las sesiones de la cuenta menos la del access token dado (la que está en uso). */
+  async deleteOthers(playerId: string, keepAccessHash: string): Promise<void> {
+    await this.db.query("delete from sessions where player_id = $1 and access_hash <> $2", [playerId, keepAccessHash]);
+  }
+
   /** Limpieza: borra las sesiones de un jugador cuyo refresh token ya caducó. */
   async deleteExpired(playerId: string): Promise<void> {
     await this.db.query("delete from sessions where player_id = $1 and refresh_expires <= now()", [playerId]);

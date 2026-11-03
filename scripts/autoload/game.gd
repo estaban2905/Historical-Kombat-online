@@ -14,6 +14,11 @@ const SCENE_LOBBY := "res://scenes/OnlineLobby.tscn"
 const SCENE_PROFILE := "res://scenes/Profile.tscn"
 const SCENE_RANKING := "res://scenes/Ranking.tscn"
 const SCENE_AVATAR := "res://scenes/AvatarPicker.tscn"
+const SCENE_SETTINGS := "res://scenes/Settings.tscn"
+const SCENE_PLAYER := "res://scenes/PlayerProfile.tscn"
+const SCENE_EDIT_PROFILE := "res://scenes/EditProfile.tscn"
+const SCENE_ACHIEVEMENTS := "res://scenes/Achievements.tscn"
+const SCENE_FRIENDS := "res://scenes/Friends.tscn"
 const SCENE_ROSTER := "res://scenes/Roster.tscn"
 const SCENE_CREDITS := "res://scenes/Credits.tscn"
 const SCENE_STORY := "res://scenes/Story.tscn"
@@ -36,6 +41,7 @@ var last_p1_rounds: int = 0
 var last_p2_rounds: int = 0
 
 # --- Modos de juego ---
+## VERSUS: dos jugadores en el mismo equipo. No está en el menú: solo lo usan las pruebas y las herramientas.
 ## TRAINING: modo entrenamiento (muñeco, vida infinita y frame data; ver training_mode.gd).
 ## ONLINE: duelo contra otra persona por internet (ver online.gd).
 enum Mode { VERSUS, ARCADE, TRAINING, ONLINE }
@@ -243,6 +249,27 @@ func stage_owner(round_number: int) -> StringName:
 		return p2_fighter_id
 	return p1_fighter_id if round_number % 2 == 1 else p2_fighter_id
 
+## Reto entre amigos en curso: código de la sala privada y nombre del amigo ("" = ninguno: cola pública).
+var challenge_code: String = ""
+var challenge_opponent: String = ""
+
+## Deja el reto en curso (salir de la selección o de la sala): avisa a la cuenta para que el amigo no lo siga viendo.
+func drop_challenge() -> void:
+	if challenge_code != "":
+		Backend.cancel_challenge(challenge_code)   # sin esperar: si falla, caduca solo
+	challenge_code = ""
+	challenge_opponent = ""
+
+## Perfil de otro jugador que se está viendo y escena a la que vuelve VOLVER.
+var viewed_player: String = ""
+var viewed_return: String = SCENE_RANKING
+
+## Abre el perfil de un jugador; VOLVER regresa a `back_scene`.
+func view_player(player_name: String, back_scene: String) -> void:
+	viewed_player = player_name
+	viewed_return = back_scene
+	goto(SCENE_PLAYER)
+
 ## Cambia de escena con un fundido a negro.
 ## Una escena que redirige en cuanto carga (p. ej. el login sin cuentas, con el servidor
 ## local respondiendo en milisegundos) llama aquí durante el fundido de entrada: ese
@@ -337,6 +364,11 @@ func start_story(player_id: StringName) -> void:
 	_boss_cache.clear()
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
+
+## Vencer a un rival en el modo Historia lo desbloquea para siempre (el Nexo no: es el final).
+func story_record_win() -> void:
+	if mode == Mode.ARCADE and p2_fighter_id != STORY_NEXO_ID:
+		Unlocks.add("fighter", str(p2_fighter_id))
 
 ## Lo mínimo para retomar la partida (la escalera se recalcula con start_story al restaurar).
 func story_snapshot() -> Dictionary:

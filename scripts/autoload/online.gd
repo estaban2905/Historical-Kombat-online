@@ -64,7 +64,8 @@ func _ready() -> void:
 # =========================================================================
 ## Conecta y entra en la cola con el luchador elegido. `token` es el access token de la
 ## cuenta (Backend.access_token); vacío = se juega de invitado, sin puntos.
-func find_match(fighter_id: StringName, player_name: String, token: String = "") -> void:
+## `room`: código de un reto entre amigos (Backend.create_challenge); solo se empareja con quien entre con el mismo.
+func find_match(fighter_id: StringName, player_name: String, token: String = "", room: String = "") -> void:
 	disconnect_from_server()
 	ranked = false
 	last_settled = {}
@@ -80,6 +81,8 @@ func find_match(fighter_id: StringName, player_name: String, token: String = "")
 	var find := {"t": "find", "fighter": String(fighter_id), "name": player_name}
 	if token != "":
 		find["token"] = token
+	if room != "":
+		find["room"] = room
 	_pending.append(find)
 	set_process(true)
 
@@ -204,6 +207,8 @@ func _on_message(text: String) -> void:
 		"error":
 			if str(data.get("msg", "")) == "invalid_token":
 				_fail("TU SESIÓN CADUCÓ, ENTRA DE NUEVO")
+			elif str(data.get("msg", "")) == "invalid_room":
+				_fail("EL RETO YA NO ESTÁ DISPONIBLE")
 			else:
 				push_warning("Servidor: %s" % str(data.get("msg", "")))
 

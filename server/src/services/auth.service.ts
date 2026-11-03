@@ -21,6 +21,8 @@ const USERNAME_REQUIRED = new AppError(409, "username_required", "ELIGE UN NOMBR
 const GOOGLE_OFF = new AppError(503, "google_disabled", "GOOGLE NO ESTÁ DISPONIBLE");
 const INVALID_GOOGLE = new AppError(401, "invalid_google_token", "NO SE PUDO VERIFICAR TU CUENTA DE GOOGLE");
 const INVALID_TOKEN = new AppError(401, "invalid_token", "SESIÓN NO VÁLIDA");
+/** Días que hay que esperar entre un cambio de nombre y el siguiente. */
+export const USERNAME_COOLDOWN_DAYS = 7;
 
 /** Registro, inicio de sesión y sesiones. No sabe nada de HTTP. */
 export class AuthService {
@@ -123,6 +125,38 @@ export class AuthService {
 
   async logout(accessToken: string): Promise<void> {
     await this.sessions.deleteByAccessHash(hashToken(accessToken));
+  }
+
+  /** Cambia el nombre de la cuenta (una vez cada USERNAME_COOLDOWN_DAYS días) y devuelve la cuenta ya actualizada. */
+  async rename(account: Account, username: string): Promise<Account> {
+    // Escribir el mismo nombre otra vez no cambia nada ni gasta la espera.
+    if (username === account.username) return account;
+    let changed: boolean;
+    try {
+      changed = await this.accounts.rename(account.id, username, USERNAME_COOLDOWN_DAYS);
+    } catch (err) {
+      if (err instanceof DuplicateAccountError) throw new AppError(409, "username_taken", "ESE NOMBRE YA ESTÁ EN USO");
+      throw err;
+    }
+    if (!changed) {
+      throw new AppError(429, "username_cooldown", `SOLO PUEDES CAMBIAR TU NOMBRE UNA VEZ CADA ${USERNAME_COOLDOWN_DAYS} DÍAS`);
+    }
+    return (await this.accounts.findById(account.id))!;
+  }
+
+  /**
+   * Cambia la contraseña (pide la actual) y cierra las demás sesiones de la cuenta: quien la tuviera
+   * abierta en otro equipo tendrá que entrar de nuevo. Las cuentas de Google no tienen contraseña.
+   */
+  async changePassword(account: Account, accessToken: string, current: string, next: string): Promise<void> {
+    if (account.passwordHash === null) {
+      throw new AppError(400, "no_password", "TU CUENTA ENTRA CON GOOGLE: NO TIENE CONTRASEÑA");
+    }
+    if (!(await verifyPassword(current, account.passwordHash))) {
+      throw new AppError(403, "wrong_password", "LA CONTRASEÑA ACTUAL NO ES CORRECTA");
+    }
+    await this.accounts.setPasswordHash(account.id, await hashPassword(next));
+    await this.sessions.deleteOthers(account.id, hashToken(accessToken));
   }
 
   /** La cuenta a la que pertenece un access token válido, o null. */

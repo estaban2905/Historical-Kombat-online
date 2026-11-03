@@ -5,6 +5,8 @@ extends Control
 var _clip: Control
 var _bust: FighterRenderer
 var _has_fighter: bool = false
+## Color del borde: el marco que lleva puesto el jugador (Cosmetics) o el de siempre.
+var _border: Color = HKTheme.GOLD_DARK
 
 func _init(p_size: Vector2 = Vector2(36, 36)) -> void:
 	custom_minimum_size = p_size
@@ -34,8 +36,13 @@ func set_fighter(fighter_id: String) -> void:
 		_clip.add_child(_bust)
 	queue_redraw()
 
+## Pone el marco `key` (de Cosmetics.FRAMES); "" o desconocido deja el borde normal.
+func set_frame(key: String) -> void:
+	_border = Cosmetics.frame_color(key)
+	queue_redraw()
+
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), HKTheme.GOLD_DARK)
+	draw_rect(Rect2(Vector2.ZERO, size), _border)
 	draw_rect(Rect2(Vector2(1, 1), size - Vector2(2, 2)), Color("2a1a30"))
 	if not _has_fighter:
 		HKTheme.draw_text(self, Vector2(0, size.y * 0.5 + 4), "?", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, size.x, 1)

@@ -48,12 +48,6 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "MODO HISTORIA"
 
-[node name="Versus" type="Button" parent="Buttons" unique_id=1649249306]
-custom_minimum_size = Vector2(186, 15)
-layout_mode = 2
-size_flags_horizontal = 4
-text = "VERSUS LOCAL"
-
 [node name="Online" type="Button" parent="Buttons" unique_id=1649249600]
 custom_minimum_size = Vector2(186, 15)
 layout_mode = 2
@@ -91,6 +85,11 @@ text = "PERSONAJES"
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "CONTROLES"
+
+[node name="Settings" type="Button" parent="Buttons/Extras" unique_id=1649250001]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+text = "AJUSTES"
 
 [node name="Credits" type="Button" parent="Buttons/Extras" unique_id=597305843]
 custom_minimum_size = Vector2(0, 12)

@@ -54,6 +54,7 @@ func wait_scene(scene_name: String, max_frames: int = 120) -> bool:
 func _run() -> void:
 	print("\n=== HISTORY COMBAT · PRUEBAS AUTOMÁTICAS ===")
 	_test_resources()
+	_test_profile_helpers()
 	await _test_menu_to_fight()
 	await _test_fight()
 	await _test_powers()
@@ -103,18 +104,213 @@ func _test_resources() -> void:
 					shared += 1
 	check(shared == 0, "P1 y P2 no comparten teclas")
 
+func _test_profile_helpers() -> void:
+	print("
+# Ligas y fechas del perfil")
+	check(League.info(1000)["name"] == "BRONCE" and League.info(1100)["name"] == "PLATA", "1000 es Bronce y 1100 es Plata")
+	check(League.info(1299)["name"] == "PLATA" and League.info(1300)["name"] == "ORO", "el límite Plata/Oro está en 1300")
+	check(League.info(1500)["name"] == "DIAMANTE" and League.info(5000)["next_name"] == "", "Diamante es la última liga")
+	check(League.info(1000)["to_next"] == 100 and is_equal_approx(League.info(1200)["progress"], 0.5), "faltan 100 para Plata y a 1200 va a la mitad hacia Oro")
+	check(League.info(-50)["progress"] == 0.0, "con puntos negativos la barra no va por debajo de 0")
+	var now := Time.get_unix_time_from_datetime_string("2026-11-02T12:00:00")
+	check(MatchRow.format_ago("2026-11-02T11:59:30.000Z", now) == "AHORA", "hace 30 s: AHORA")
+	check(MatchRow.format_ago("2026-11-02T11:45:00.000Z", now) == "15M", "hace 15 min: 15M")
+	check(MatchRow.format_ago("2026-11-02T09:00:00.000Z", now) == "3H", "hace 3 h: 3H")
+	check(MatchRow.format_ago("2026-10-31T12:00:00.000Z", now) == "2D", "hace 2 días: 2D")
+	check(MatchRow.format_ago("2026-10-19T12:00:00.000Z", now) == "2SEM", "hace 14 días: 2SEM")
+	check(MatchRow.format_ago("2026-08-01T12:00:00.000Z", now) == "3MES", "hace ~3 meses: 3MES")
+	check(MatchRow.format_ago("", now) == "" and MatchRow.format_ago("ayer", now) == "", "fecha vacía o rara: sin texto")
+
+	# Estadísticas con mis duelos (el más reciente primero)
+	var ms := [
+		{"result": "win", "delta": 16, "my_fighter": "tesla", "opponent_fighter": "napoleon"},
+		{"result": "win", "delta": 14, "my_fighter": "tesla", "opponent_fighter": "napoleon"},
+		{"result": "loss", "delta": -15, "my_fighter": "tesla", "opponent_fighter": "rasputin"},
+		{"result": "loss", "delta": -17, "my_fighter": "tesla", "opponent_fighter": "rasputin"},
+		{"result": "loss", "delta": -16, "my_fighter": "einstein", "opponent_fighter": "hitler"},
+	]
+	var mine := ProfileStats.by_fighter(ms)
+	check(mine.size() == 2 and mine[0]["id"] == "tesla" and mine[0]["total"] == 4 and mine[0]["wins"] == 2 and mine[0]["losses"] == 2, "por luchador: Tesla 2-2 va primero")
+	check(mine[1]["id"] == "einstein" and ProfileStats.win_rate(mine[1]) == 0.0, "Einstein 0-1: porcentaje 0")
+	var bw := ProfileStats.best_and_worst(ProfileStats.by_fighter(ms, "opponent_fighter"))
+	check(bw["best"]["id"] == "napoleon" and bw["worst"]["id"] == "rasputin", "mejor rival Napoleón (2-0) y peor Rasputín (0-2)")
+	check(bw["best"]["total"] == 2, "Hitler (1 duelo) no cuenta: se piden al menos 2")
+	check(ProfileStats.best_and_worst([])["best"].is_empty(), "sin duelos no hay mejor ni peor rival")
+	var one := ProfileStats.best_and_worst(ProfileStats.by_fighter(ms.slice(0, 2), "opponent_fighter"))
+	check(not one["best"].is_empty() and one["worst"].is_empty(), "con un solo rival no es a la vez el mejor y el peor")
+	check(ProfileStats.by_fighter([{"result": "win"}]).is_empty(), "un duelo sin luchador se ignora")
+	var series := ProfileStats.points_series(ms, 1000)
+	check(series.size() == 6 and series[5] == 1000, "la serie termina en los puntos actuales (%s)" % str(series))
+	check(series[0] == 1000 - 16 - 14 + 15 + 17 + 16 and series[4] == 984, "la serie se reconstruye restando los deltas hacia atrás")
+	check(ProfileStats.points_series(ms, 1000, 2).size() == 3, "max_matches limita la serie")
+	check(ProfileStats.points_series([], 1000).size() == 1, "sin duelos la serie es solo el valor actual")
+
+	# Ajustes de volumen
+	check(is_equal_approx(Settings.step_to_db(Settings.STEPS), 0.0), "volumen al máximo: 0 dB (sin cambio)")
+	check(Settings.step_to_db(0) <= -80.0 and Settings.step_to_db(5) < Settings.step_to_db(6), "volumen 0 es silencio y sube con cada paso")
+	check(Settings.step_to_db(99) == 0.0 and Settings.step_to_db(-3) <= -80.0, "los pasos fuera de rango se recortan")
+	var old_path := Settings.path
+	var old_master := Settings.master
+	var old_effects := Settings.effects
+	Settings.path = "user://settings_test.cfg"
+	Settings.master = 3
+	Settings.effects = 7
+	Settings.save()
+	Settings.master = 10
+	Settings.effects = 10
+	Settings.load_settings()
+	check(Settings.master == 3 and Settings.effects == 7, "los ajustes guardados se recuperan")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Settings.path))
+	Settings.load_settings()
+	check(Settings.master == Settings.STEPS and Settings.effects == Settings.STEPS, "sin archivo: volumen al máximo")
+	Settings.path = old_path
+	Settings.master = old_master
+	Settings.effects = old_effects
+
+	# Desbloqueos
+	var old_unlocks_path := Unlocks.path
+	var old_user := Backend.user_id
+	var old_mode := Game.mode
+	var old_p2 := Game.p2_fighter_id
+	Unlocks.path = "user://unlocks_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Backend.user_id = ""
+	var starters_exist := true
+	for id in Unlocks.STARTERS:
+		starters_exist = starters_exist and FighterRegistry.has(id)
+	check(Unlocks.STARTERS.size() == 12 and starters_exist, "se empieza con 12 luchadores y todos existen en el plantel")
+	check(Unlocks.fighters_unlocked() == 12, "al principio hay 12 desbloqueados")
+	check(Unlocks.fighter_unlocked(&"nikola_tesla") and not Unlocks.fighter_unlocked(&"donald_trump"), "Tesla es inicial y Trump no")
+	check(Unlocks.add("fighter", "donald_trump") and not Unlocks.add("fighter", "donald_trump"), "añadir devuelve true solo la primera vez")
+	check(Unlocks.fighter_unlocked(&"donald_trump") and Unlocks.fighters_unlocked() == 13, "lo ganado cuenta como desbloqueado")
+	Backend.user_id = "cuenta-a"
+	check(not Unlocks.fighter_unlocked(&"donald_trump"), "otra cuenta no hereda lo del invitado")
+	Unlocks.add("ending", "repair")
+	check(Unlocks.endings_seen().size() == 1 and Unlocks.endings_seen()[0] == &"repair", "se anota el final visto")
+	check(Unlocks.merge([{"kind": "ending", "key": "rewrite"}, {"kind": "ending", "key": "repair"}]) and Unlocks.endings_seen().size() == 2,
+		"merge añade lo nuevo de la cuenta y no duplica")
+	check(not Unlocks.merge([{"kind": "ending", "key": "rewrite"}]), "merge sin novedades no cambia nada")
+	check(Unlocks.as_dicts().size() == 2 and Unlocks.as_dicts()[0].has("kind"), "as_dicts da el formato del servidor")
+	Backend.user_id = ""
+	check(Unlocks.fighter_unlocked(&"donald_trump"), "volver al invitado: sus desbloqueos siguen")
+	Game.mode = Game.Mode.ARCADE
+	Game.p2_fighter_id = &"hernan_cortes"
+	Game.story_record_win()
+	check(Unlocks.fighter_unlocked(&"hernan_cortes"), "vencer a un rival en la historia lo desbloquea")
+	Game.p2_fighter_id = Game.STORY_NEXO_ID
+	Game.story_record_win()
+	check(not Unlocks.has("fighter", "el_nexo"), "vencer al Nexo no lo desbloquea como luchador")
+	Game.mode = Game.Mode.VERSUS
+	Game.p2_fighter_id = &"boudica"
+	Game.story_record_win()
+	check(not Unlocks.fighter_unlocked(&"boudica"), "fuera de la historia no se desbloquea nada")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = old_unlocks_path
+	Backend.user_id = old_user
+	Game.mode = old_mode
+	Game.p2_fighter_id = old_p2
+
+	# Cosméticos y logros
+	var frames_ok := true
+	for k in Cosmetics.FRAMES:
+		frames_ok = frames_ok and str(k).begins_with("frame_") and Cosmetics.frame_name(str(k)) != ""
+	var titles_ok := true
+	for k in Cosmetics.TITLES:
+		titles_ok = titles_ok and str(k).begins_with("title_") and Cosmetics.title_name(str(k)) != ""
+	check(frames_ok and titles_ok, "todos los marcos y títulos tienen nombre y su prefijo")
+	var rewards_exist := true
+	for e in Cosmetics.ENDING_REWARDS:
+		check(Unlocks.ENDINGS.has(e), "la recompensa del final %s es de un final que existe" % e)
+		for k in Cosmetics.ENDING_REWARDS[e]:
+			rewards_exist = rewards_exist and (Cosmetics.FRAMES.has(k) or Cosmetics.TITLES.has(k))
+	for k in Cosmetics.ACHIEVEMENT_REWARDS:
+		rewards_exist = rewards_exist and Cosmetics.TITLES.has(Cosmetics.ACHIEVEMENT_REWARDS[k])
+	check(rewards_exist, "cada recompensa apunta a un marco o título del catálogo")
+	check(Cosmetics.frame_name("frame_inventado") == "" and Cosmetics.title_name("title_inventado") == "", "lo que no conoce no tiene nombre (no se muestra)")
+	check(Cosmetics.frame_color("frame_inventado") == HKTheme.GOLD_DARK, "un marco desconocido usa el borde normal")
+	var old_cosm_path := Unlocks.path
+	var old_cosm_user := Backend.user_id
+	Unlocks.path = "user://unlocks_cosm_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Backend.user_id = ""
+	check(Cosmetics.owned_frames().is_empty() and Cosmetics.owned_titles().is_empty(), "al principio no se tiene ningún cosmético")
+	Cosmetics.grant_ending(&"repair")
+	check(Cosmetics.owned_frames() == ["frame_gold"] and Cosmetics.owned_titles() == ["title_guardian"], "ver un final da su marco y su título")
+	Cosmetics.grant_achievements([{"key": "first_win", "done": true}, {"key": "wins_50", "done": false}, {"key": "streak_5", "done": true}, {"key": "otro", "done": true}])
+	check(Cosmetics.owned_titles().has("title_first_blood") and Cosmetics.owned_titles().has("title_unstoppable"), "los logros cumplidos dan su título")
+	check(not Cosmetics.owned_titles().has("title_legend"), "un logro sin cumplir no da nada")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = old_cosm_path
+	Backend.user_id = old_cosm_user
+	var merged := Achievements.merge([{"key": "first_win", "progress": 1, "goal": 1, "done": true}, {"key": "wins_10", "progress": 4, "goal": 10, "done": false}])
+	check(merged.size() == Achievements.LIST.size() and merged[0]["name"] == "PRIMERA SANGRE" and merged[0]["done"], "merge: respeta el orden y marca lo cumplido")
+	check(merged[1]["progress"] == 4 and merged[1]["goal"] == 10 and not merged[1]["done"], "merge: trae el progreso del servidor")
+	check(merged[2]["progress"] == 0 and merged[2]["goal"] >= 1, "merge: lo que el servidor no manda sale a 0")
+	check(Achievements.done_count(merged) == 1, "done_count cuenta los cumplidos")
+	var hidden: Dictionary = merged[Achievements.LIST.map(func(e): return e[0]).find(Achievements.HIDDEN)]
+	check(hidden["name"] == "???" and hidden["desc"] != "", "el logro oculto no dice su nombre hasta cumplirlo")
+	var shown := Achievements.merge([{"key": Achievements.HIDDEN, "progress": 1, "goal": 1, "done": true}])
+	check(shown[Achievements.LIST.map(func(e): return e[0]).find(Achievements.HIDDEN)]["name"] == "EL TIEMPO LIBRE", "cumplido, ya se muestra")
+	check(Achievements.merge([]).size() == Achievements.LIST.size(), "sin respuesta del servidor salen todos a 0")
+
+	# Lo ganado sin cuenta pasa a la cuenta
+	var guest_path := Unlocks.path
+	var guest_user := Backend.user_id
+	Unlocks.path = "user://unlocks_guest_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Backend.user_id = ""
+	Unlocks.add("fighter", "boudica")
+	Unlocks.add("ending", "repair")
+	check(not Unlocks.adopt_guest(), "sin sesión no se pasa nada")
+	Backend.user_id = "cuenta-a"
+	Unlocks.add("ending", "repair")
+	check(Unlocks.adopt_guest(), "al entrar en una cuenta, lo del invitado se le pasa")
+	check(Unlocks.fighter_unlocked(&"boudica") and Unlocks.as_dicts().size() == 2, "la cuenta tiene lo suyo y lo del invitado, sin duplicar")
+	check(not Unlocks.adopt_guest(), "pasarlo otra vez no añade nada")
+	Backend.user_id = "cuenta-b"
+	Unlocks.adopt_guest()
+	check(not Unlocks.fighter_unlocked(&"boudica"), "lo del invitado va a una sola cuenta, no a todas")
+	Backend.user_id = ""
+	check(Unlocks.items().is_empty(), "el invitado queda vacío tras pasarlo")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = guest_path
+	Backend.user_id = guest_user
+
+	# Amigos
+	var friends := [
+		{"username": "zeta", "status": "friend", "points": 1000},
+		{"username": "Beto", "status": "outgoing", "points": 1000},
+		{"username": "ana", "status": "friend", "points": 1000},
+		{"username": "Carla", "status": "incoming", "points": 1000},
+		{"username": "Dani", "status": "incoming", "points": 1000},
+	]
+	var sorted_friends := FriendsScreen.sort_entries(friends)
+	var order := sorted_friends.map(func(f): return f["username"])
+	check(order == ["Carla", "Dani", "ana", "zeta", "Beto"], "amigos: primero las solicitudes que me hacen, luego los amigos y al final las enviadas (%s)" % str(order))
+	check(friends[0]["username"] == "zeta", "ordenar no toca la lista original")
+	check(FriendsScreen.pending_count(friends) == 2 and FriendsScreen.pending_count([]) == 0, "se cuentan las solicitudes por contestar")
+	var old_cache := Backend.friends_cache
+	Backend.friends_cache = friends
+	check(Backend.friend_status("ANA") == "friend" and Backend.friend_status("carla") == "incoming", "friend_status no distingue mayúsculas")
+	check(Backend.friend_status("beto") == "outgoing" and Backend.friend_status("Nadie") == "", "sin relación devuelve vacío")
+	Backend.friends_cache = old_cache
+	Game.challenge_code = "ABCD2345"
+	Game.challenge_opponent = "Ana"
+	Game.drop_challenge()
+	check(Game.challenge_code == "" and Game.challenge_opponent == "", "soltar el reto lo limpia")
+
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
 	get_tree().change_scene_to_file(Game.SCENE_MENU)
 	check(await wait_scene("MainMenu"), "el juego arranca en el menú principal")
 	var play := scene().get_node("Buttons/Play") as Button
 	check(play.has_focus(), "ARCADE tiene el foco")
-	# VERSUS LOCAL: foco y ENTER
-	(scene().get_node("Buttons/Versus") as Button).grab_focus()
-	await frames(2)
-	await tap(KEY_ENTER)
-	check(await wait_scene("CharacterSelect"), "VERSUS LOCAL abre la selección de luchador")
-	check(Game.mode == Game.Mode.VERSUS and not Game.is_vs_cpu(), "versus local: sin CPU")
+	check(scene().get_node_or_null("Buttons/Versus") == null, "el menú ya no tiene VERSUS LOCAL")
+	# Las pruebas de combate usan el modo de dos jugadores en el mismo equipo (fuera del menú).
+	Game.mode = Game.Mode.VERSUS
+	get_tree().change_scene_to_file(Game.SCENE_SELECT)
+	check(await wait_scene("CharacterSelect"), "la selección de luchador abre en el modo de dos jugadores")
+	check(not Game.is_vs_cpu(), "dos jugadores: sin CPU")
 	await frames(5)
 	await tap(KEY_U)        # P1 confirma
 	await tap(KEY_KP_1)     # P2 confirma con el numpad

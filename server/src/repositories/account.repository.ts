@@ -13,10 +13,13 @@ interface AccountRow {
   wins: number;
   losses: number;
   avatar: string | null;
+  username_changed_at: Date | string | null;
+  frame: string | null;
+  title: string | null;
   created_at: Date | string;
 }
 
-const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, avatar, created_at";
+const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, avatar, username_changed_at, frame, title, created_at";
 
 function toAccount(r: AccountRow): Account {
   return {
@@ -29,6 +32,9 @@ function toAccount(r: AccountRow): Account {
     wins: r.wins,
     losses: r.losses,
     avatar: r.avatar,
+    usernameChangedAt: r.username_changed_at ? new Date(r.username_changed_at) : null,
+    frame: r.frame,
+    title: r.title,
     createdAt: new Date(r.created_at),
   };
 }
@@ -115,16 +121,65 @@ export class AccountRepository {
     );
   }
 
+  /**
+   * Cambia el nombre si ya pasaron `cooldownDays` desde el último cambio. false = todavía en espera.
+   * Lanza DuplicateAccountError si otro jugador ya tiene ese nombre.
+   */
+  async rename(id: string, username: string, cooldownDays: number): Promise<boolean> {
+    try {
+      const res = await this.db.query<{ id: string }>(
+        `update players set username = $2, username_changed_at = now()
+          where id = $1 and (username_changed_at is null or username_changed_at <= now() - $3::int * interval '1 day')
+          returning id`,
+        [id, username, cooldownDays],
+      );
+      return res.rows.length > 0;
+    } catch (err) {
+      if (isUniqueViolation(err)) throw new DuplicateAccountError("username");
+      throw err;
+    }
+  }
+
+  async setPasswordHash(id: string, passwordHash: string): Promise<void> {
+    await this.db.query("update players set password_hash = $2 where id = $1", [id, passwordHash]);
+  }
+
+  /** Busca por nombre sin distinguir mayúsculas. */
+  async findByUsername(username: string): Promise<Account | null> {
+    const res = await this.db.query<AccountRow>(`select ${COLUMNS} from players where lower(username) = lower($1)`, [username]);
+    return res.rows[0] ? toAccount(res.rows[0]) : null;
+  }
+
+  /** Puesto en el ranking (1 = el mejor), con el mismo orden que ranking(). */
+  async rankOf(a: Account): Promise<number> {
+    const res = await this.db.query<{ rank: number }>(
+      `select (count(*) + 1)::int as rank from players
+        where points > $1
+           or (points = $1 and wins > $2)
+           or (points = $1 and wins = $2 and created_at < $3)`,
+      [a.points, a.wins, a.createdAt.toISOString()],
+    );
+    return res.rows[0]!.rank;
+  }
+
+  /** Pone (o quita, con null) el marco y/o el título. Lo que no se pasa se deja como está. */
+  async setCosmetics(id: string, change: { frame?: string | null; title?: string | null }): Promise<void> {
+    if (change.frame !== undefined) await this.db.query("update players set frame = $2 where id = $1", [id, change.frame]);
+    if (change.title !== undefined) await this.db.query("update players set title = $2 where id = $1", [id, change.title]);
+  }
+
   /** Cambia (o quita, con null) el avatar de la cuenta. */
   async setAvatar(id: string, avatar: string | null): Promise<void> {
     await this.db.query("update players set avatar = $2 where id = $1", [id, avatar]);
   }
 
   /** Los mejores jugadores: más puntos primero, y a igualdad más victorias. */
-  async ranking(limit: number): Promise<RankingEntry[]> {
+  async ranking(limit: number, onlyIds?: string[]): Promise<RankingEntry[]> {
     const res = await this.db.query<RankingEntry>(
-      "select username, points, wins, losses, avatar from players order by points desc, wins desc, created_at asc limit $1",
-      [limit],
+      `select id, username, points, wins, losses, avatar from players
+        where $2::uuid[] is null or id = any($2::uuid[])
+        order by points desc, wins desc, created_at asc limit $1`,
+      [limit, onlyIds ?? null],
     );
     return res.rows;
   }

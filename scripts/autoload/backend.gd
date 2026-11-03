@@ -42,6 +42,19 @@ func is_logged_in() -> bool:
 func username() -> String:
 	return str(profile.get("username", ""))
 
+## true si la cuenta entra con Google: no tiene contraseña que cambiar.
+func is_google_account() -> bool:
+	return bool(profile.get("google_account", false))
+
+## Marco y título que lleva puestos ("" = ninguno).
+func frame() -> String:
+	var f: Variant = profile.get("frame")
+	return str(f) if f != null else ""
+
+func title() -> String:
+	var t: Variant = profile.get("title")
+	return str(t) if t != null else ""
+
 ## Id del luchador elegido como retrato ("" = ninguno).
 func avatar() -> String:
 	var a: Variant = profile.get("avatar")
@@ -132,7 +145,153 @@ func set_avatar(fighter_id: String) -> bool:
 		return true
 	return false
 
-## Los mejores jugadores: [{username, points, wins, losses, avatar}]. Vacío si falla.
+## Pone o quita el marco y/o el título: {"frame": "frame_gold"} o {"title": ""} (vacío = quitar). Solo los
+## desbloqueados. Devuelve {ok: bool, error: String}.
+func set_cosmetics(change: Dictionary) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var body := {}
+	for k in ["frame", "title"]:
+		if change.has(k):
+			body[k] = change[k] if str(change[k]) != "" else null
+	var r := await _request("PATCH", "/me", body, true)
+	if not r.ok or not r.data is Dictionary:
+		return {"ok": false, "error": _error_text(r)}
+	profile = r.data
+	session_changed.emit()
+	return {"ok": true, "error": ""}
+
+## Mis logros ([{key, progress, goal, done}]). null si falla (para no confundirlo con "ninguno").
+func fetch_achievements() -> Variant:
+	if not is_logged_in():
+		return null
+	var r := await _request("GET", "/me/achievements", null, true)
+	return r.data if r.ok and r.data is Array else null
+
+## Cambia mi nombre (una vez cada 7 días). Devuelve {ok: bool, error: String}.
+func set_username(new_name: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var r := await _request("PATCH", "/me", {"username": new_name}, true)
+	if not r.ok or not r.data is Dictionary:
+		return {"ok": false, "error": _error_text(r)}
+	profile = r.data
+	session_changed.emit()
+	return {"ok": true, "error": ""}
+
+## Cambia mi contraseña (pide la actual; cierra las sesiones de otros equipos). Devuelve {ok, error}.
+func change_password(current: String, new_password: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var r := await _request("POST", "/me/password", {"current_password": current, "new_password": new_password}, true)
+	return {"ok": r.ok, "error": "" if r.ok else _error_text(r)}
+
+## Perfil público de un jugador por su nombre: {username, points, wins, losses, avatar, rank,
+## favorite_fighter, streak, recent}. {} si no existe o no hay conexión.
+func fetch_player(player_name: String) -> Dictionary:
+	var r := await _request("GET", "/players/%s" % player_name.uri_encode(), null, false)
+	return r.data if r.ok and r.data is Dictionary else {}
+
+## Lo desbloqueado en la cuenta ([{kind, key}]). null si falla (para no confundir "sin conexión" con "nada").
+func fetch_unlocks() -> Variant:
+	if not is_logged_in():
+		return null
+	var r := await _request("GET", "/me/unlocks", null, true)
+	return r.data if r.ok and r.data is Array else null
+
+## Añade desbloqueos a la cuenta. true si el servidor los guardó. Si falla (sin red), quedan en el equipo
+## y la próxima sync_unlocks los sube.
+func push_unlocks(items: Array) -> bool:
+	if not is_logged_in() or items.is_empty():
+		return false
+	var r := await _request("PUT", "/me/unlocks", {"items": items}, true)
+	return r.ok
+
+## Une los desbloqueos del equipo con los de la cuenta (solo se añade): lo que falte en cada lado se copia al otro.
+## Lo ganado sin cuenta en este equipo se pasa antes a la cuenta.
+func sync_unlocks() -> void:
+	if not is_logged_in():
+		return
+	Unlocks.adopt_guest()
+	var remote: Variant = await fetch_unlocks()
+	if remote == null:
+		return
+	Unlocks.merge(remote)
+	var known := {}
+	for u in remote:
+		known["%s:%s" % [str(u.get("kind", "")), str(u.get("key", ""))]] = true
+	var missing := Unlocks.as_dicts().filter(func(u: Dictionary) -> bool: return not known.has("%s:%s" % [u["kind"], u["key"]]))
+	await push_unlocks(missing)
+
+## Amigos y solicitudes ([{username, avatar, points, status}], status: "friend", "incoming" o "outgoing").
+## null si falla. Deja la lista en friends_cache para consultarla sin red (friend_status).
+var friends_cache: Array = []
+
+func fetch_friends() -> Variant:
+	if not is_logged_in():
+		return null
+	var r := await _request("GET", "/me/friends", null, true)
+	if not r.ok or not r.data is Array:
+		return null
+	friends_cache = r.data
+	return r.data
+
+## Cómo es mi relación con un jugador según la última lista descargada: "friend", "incoming" (me pidió
+## amistad), "outgoing" (se la pedí yo) o "" (ninguna).
+func friend_status(player_name: String) -> String:
+	for f in friends_cache:
+		if str(f.get("username", "")).to_lower() == player_name.to_lower():
+			return str(f.get("status", ""))
+	return ""
+
+## Pide amistad; si esa persona ya me la había pedido, quedan como amigos.
+## Devuelve {ok, result ("requested", "accepted", "already_friends", "already_requested"), error}.
+func request_friend(player_name: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "result": "", "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var r := await _request("POST", "/me/friends", {"username": player_name}, true)
+	if not r.ok or not r.data is Dictionary:
+		return {"ok": false, "result": "", "error": _error_text(r)}
+	return {"ok": true, "result": str(r.data.get("result", "")), "error": ""}
+
+## Quita un amigo, o cancela / rechaza una solicitud. true si el servidor lo hizo.
+func remove_friend(player_name: String) -> bool:
+	if not is_logged_in():
+		return false
+	var r := await _request("DELETE", "/me/friends/%s" % player_name.uri_encode(), null, true)
+	return r.ok
+
+## Ranking entre mis amigos y yo (mismo formato que fetch_ranking). Vacío si falla.
+func fetch_friends_ranking() -> Array:
+	if not is_logged_in():
+		return []
+	var r := await _request("GET", "/me/friends/leaderboard", null, true)
+	return r.data if r.ok and r.data is Array else []
+
+## Reta a un amigo: abre una sala privada de unos 2 minutos. Devuelve {ok, code, expires_in, error}.
+func create_challenge(player_name: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "code": "", "expires_in": 0, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var r := await _request("POST", "/me/challenges", {"to": player_name}, true)
+	if not r.ok or not r.data is Dictionary:
+		return {"ok": false, "code": "", "expires_in": 0, "error": _error_text(r)}
+	return {"ok": true, "code": str(r.data.get("code", "")), "expires_in": int(r.data.get("expires_in", 0)), "error": ""}
+
+## Los retos que me han hecho ([{code, from, expires_in}]). Vacío si no hay o falla.
+func fetch_challenges() -> Array:
+	if not is_logged_in():
+		return []
+	var r := await _request("GET", "/me/challenges", null, true)
+	return r.data if r.ok and r.data is Array else []
+
+## Cancela mi reto o rechaza el que me hicieron.
+func cancel_challenge(code: String) -> bool:
+	if not is_logged_in() or code == "":
+		return false
+	var r := await _request("DELETE", "/me/challenges/%s" % code.uri_encode(), null, true)
+	return r.ok
+
+## Los mejores jugadores: [{username, points, wins, losses, avatar, favorite_fighter, streak}]. Vacío si falla.
 func fetch_ranking(limit: int = 10) -> Array:
 	var r := await _request("GET", "/leaderboard?limit=%d" % limit, null, false)
 	return r.data if r.ok and r.data is Array else []
@@ -328,6 +487,15 @@ func _error_text(r: Dictionary) -> String:
 		"invalid_request": return "DATOS NO VÁLIDOS"
 		"rate_limited": return "DEMASIADOS INTENTOS, ESPERA UN POCO"
 		"invalid_token": return "SESIÓN CADUCADA, ENTRA DE NUEVO"
+		"username_cooldown": return "SOLO PUEDES CAMBIAR EL NOMBRE UNA VEZ CADA 7 DÍAS"
+		"wrong_password": return "LA CONTRASEÑA ACTUAL NO ES CORRECTA"
+		"no_password": return "TU CUENTA ENTRA CON GOOGLE: NO TIENE CONTRASEÑA"
+		"player_not_found": return "JUGADOR NO ENCONTRADO"
+		"not_unlocked": return "TODAVÍA NO HAS DESBLOQUEADO ESO"
+		"cannot_friend_self": return "NO PUEDES SER TU PROPIO AMIGO"
+		"friend_limit": return "YA TIENES DEMASIADOS AMIGOS Y SOLICITUDES"
+		"not_friends": return "SOLO PUEDES RETAR A TUS AMIGOS"
+		"cannot_challenge_self": return "NO PUEDES RETARTE A TI MISMO"
 	return "ERROR DEL SERVIDOR (%d)" % r.code
 
 ## Valida los datos del formulario antes de enviarlos. "" = correcto.

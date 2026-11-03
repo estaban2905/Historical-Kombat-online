@@ -5,3 +5,8 @@ __pycache__/
 node_modules/
 dist/
 .dev-data/
+
+# Variables de entorno con secretos (la URL de la base de datos): nunca al repositorio
+.env
+.env.*
+!.env.example

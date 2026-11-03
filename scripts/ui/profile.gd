@@ -1,15 +1,28 @@
-## Perfil del jugador: nombre, puntos, victorias y derrotas, y sus últimos duelos.
+## Perfil del jugador: nombre, liga y récord arriba, y cuatro pestañas debajo: DUELOS (últimos
+## resultados), PERSONAJES (con quién y contra quién gano), PUNTOS (gráfica) e HISTORIA (partida guardada).
 ## CERRAR SESIÓN vuelve a la pantalla de entrada. ESC o VOLVER regresa al menú.
 extends Control
 
-const MAX_MATCHES := 8
+enum Tab { DUELOS, PERSONAJES, PUNTOS, HISTORIA }
+const TAB_NAMES: Array[String] = ["DUELOS", "PERSONAJES", "PUNTOS", "HISTORIA"]
+## El servidor devuelve como mucho 50 duelos; con todos se calculan las estadísticas.
+const MAX_MATCHES := 50
+## Filas que caben en la pestaña DUELOS.
+const SHOWN_MATCHES := 6
+const WIN_COLOR := MatchRow.WIN_COLOR
 
 var _matches: Array = []
-var _favorite: String = ""
+var _story: Dictionary = {}
+var _tab: int = Tab.DUELOS
+## Duelo elegido con el cursor en la pestaña DUELOS (-1 = ninguno): ENTER abre el perfil de ese rival.
+var _sel: int = -1
 var _loading: bool = true
 var _back: Button
-var _avatar_btn: Button
+var _edit_btn: Button
+var _achievements_btn: Button
 var _logout: Button
+var _continue_btn: Button
+var _tab_buttons: Array[Button] = []
 var _portrait: AvatarFrame
 
 func _ready() -> void:
@@ -17,48 +30,117 @@ func _ready() -> void:
 	if not Backend.is_logged_in():
 		Game.goto.call_deferred(Game.SCENE_MENU)
 		return
-	_back = _button("VOLVER", 40)
-	_avatar_btn = _button("AVATAR", 150)
-	_logout = _button(HKTheme.fold("CERRAR SESIÓN"), 260)
+	_back = _button("VOLVER", 14, 70)
+	_achievements_btn = _button("LOGROS", 90, 70)
+	_edit_btn = _button("EDITAR PERFIL", 166, 120)
+	_logout = _button(HKTheme.fold("CERRAR SESIÓN"), 292, 120)
 	_back.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
-	_avatar_btn.pressed.connect(func(): Game.goto(Game.SCENE_AVATAR))
+	_edit_btn.pressed.connect(func(): Game.goto(Game.SCENE_EDIT_PROFILE))
+	_achievements_btn.pressed.connect(func(): Game.goto(Game.SCENE_ACHIEVEMENTS))
 	_logout.pressed.connect(_on_logout)
 	_portrait = AvatarFrame.new(Vector2(40, 40))
 	_portrait.position = Vector2(46, 30)
 	add_child(_portrait)
 	_portrait.set_fighter(Backend.avatar())
-	for b in [_back, _avatar_btn, _logout]:
+	_portrait.set_frame(Backend.frame())
+	for b in [_back, _achievements_btn, _edit_btn, _logout]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
+	_build_tabs()
+	_continue_btn = _button("CONTINUAR HISTORIA", 150)
+	_continue_btn.position = Vector2(256, 166)
+	_continue_btn.size.x = 152
+	_continue_btn.visible = false
+	_continue_btn.pressed.connect(_continue_story)
+	_continue_btn.focus_entered.connect(func(): Sfx.play(&"select"))
+	_continue_btn.pressed.connect(func(): Sfx.play(&"confirm"))
 	_back.grab_focus()
 	Backend.session_changed.connect(queue_redraw)
 	await Backend.fetch_profile()
 	_portrait.set_fighter(Backend.avatar())
+	_portrait.set_frame(Backend.frame())
 	_matches = await Backend.fetch_matches(MAX_MATCHES)
-	_favorite = _most_used_fighter()
+	_story = await Backend.load_story()
 	_loading = false
+	_select_tab(_tab)
 
-## El luchador que más aparece en los últimos duelos ("" si no hay ninguno).
-func _most_used_fighter() -> String:
-	var counts := {}
-	for m in _matches:
-		var fname := _fighter_name(str(m.get("my_fighter", "")))
-		if fname != "":
-			counts[fname] = int(counts.get(fname, 0)) + 1
-	var best := ""
-	for fname in counts:
-		if best == "" or counts[fname] > counts[best]:
-			best = fname
-	return best
+## Las pestañas son botones: se mueven con las flechas y se eligen con ENTER como todo el menú.
+func _build_tabs() -> void:
+	for i in TAB_NAMES.size():
+		var b := Button.new()
+		b.text = TAB_NAMES[i]
+		b.position = Vector2(40 + i * 92, 95)
+		b.custom_minimum_size = Vector2(88, 14)
+		add_child(b)
+		b.size = Vector2(88, 14)
+		b.pressed.connect(_select_tab.bind(i))
+		b.focus_entered.connect(func(): Sfx.play(&"select"))
+		b.pressed.connect(func(): Sfx.play(&"confirm"))
+		_tab_buttons.append(b)
 
-func _button(text: String, x: float) -> Button:
+func _select_tab(tab: int) -> void:
+	_tab = tab
+	_sel = -1
+	_continue_btn.visible = tab == Tab.HISTORIA and not _loading and _story_is_valid()
+	queue_redraw()
+
+func _shown_duels() -> int:
+	return mini(_matches.size(), SHOWN_MATCHES)
+
+## Flecha abajo desde las pestañas entra en la lista de duelos; arriba/abajo se mueve; ENTER abre el perfil del
+## rival; abajo desde el último pasa a VOLVER y arriba desde el primero a la pestaña. _input y no
+## _unhandled_input: los botones se quedan las flechas y ENTER antes de que lleguen allí.
+func _input(event: InputEvent) -> void:
+	if _loading or _tab != Tab.DUELOS or _shown_duels() == 0:
+		return
+	var on_tabs := get_viewport().gui_get_focus_owner() in _tab_buttons
+	if _sel == -1:
+		if on_tabs and event.is_action_pressed(&"ui_down"):
+			_sel = 0
+			get_viewport().gui_release_focus()
+			Sfx.play(&"select")
+			get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(&"ui_down"):
+		if _sel < _shown_duels() - 1:
+			_sel += 1
+		else:
+			_sel = -1
+			_back.grab_focus()
+		Sfx.play(&"select")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_up"):
+		if _sel > 0:
+			_sel -= 1
+		else:
+			_sel = -1
+			_tab_buttons[_tab].grab_focus()
+		Sfx.play(&"select")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_accept"):
+		var rival := str(_matches[_sel].get("opponent", ""))
+		if rival != "":
+			Sfx.play(&"confirm")
+			Game.view_player(rival, Game.SCENE_PROFILE)
+		get_viewport().set_input_as_handled()
+
+func _story_is_valid() -> bool:
+	var stage := int(_story.get("stage", -1))
+	return FighterRegistry.has(StringName(str(_story.get("fighter", "")))) \
+		and stage >= 0 and stage < FighterRegistry.all().size()
+
+func _continue_story() -> void:
+	if Game.story_resume(_story):
+		Game.goto(Game.SCENE_STORY)
+
+func _button(text: String, x: float, width: float = 100.0) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.position = Vector2(x, 212)
-	b.custom_minimum_size = Vector2(100, 14)
+	b.custom_minimum_size = Vector2(width, 14)
 	add_child(b)
 	# Con el tema ya aplicado: si se fija antes, el botón nace con la altura de la fuente por defecto.
-	b.size = Vector2(100, 14)
+	b.size = Vector2(width, 14)
 	return b
 
 func _on_logout() -> void:
@@ -81,48 +163,143 @@ func _draw() -> void:
 	HKTheme.draw_text(self, Vector2(0, 24), "PERFIL", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
 	var wins := int(Backend.profile.get("wins", 0))
 	var losses := int(Backend.profile.get("losses", 0))
-	HKTheme.draw_text(self, Vector2(0, 48), Backend.username().to_upper(), 16, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
-	HKTheme.draw_text(self, Vector2(0, 68), "%d PUNTOS" % int(Backend.profile.get("points", 0)), 8,
-		HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+	HKTheme.draw_text(self, Vector2(0, 44), Backend.username().to_upper(), 16, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+	var title := Cosmetics.title_name(Backend.title())
+	if title != "":
+		HKTheme.draw_text(self, Vector2(0, 57), title, 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+	var points := int(Backend.profile.get("points", 0))
+	var league := League.info(points)
+	HKTheme.draw_text(self, Vector2(0, 68), "%d PUNTOS · %s" % [points, league["name"]], 8,
+		league["color"], HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+	_draw_league_bar(league)
 	var total := wins + losses
 	var rate := "%d%%" % roundi(100.0 * wins / total) if total > 0 else "-"
 	HKTheme.draw_text(self, Vector2(0, 81), "%d %s · %d %s · %s" % [
 		wins, "VICTORIA" if wins == 1 else "VICTORIAS", losses, "DERROTA" if losses == 1 else "DERROTAS", rate], 8,
 		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 
-	HKTheme.draw_text(self, Vector2(40, 102), "ÚLTIMOS DUELOS", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	if not _loading and not _favorite.is_empty():
-		HKTheme.draw_text(self, Vector2(0, 102), "MÁS USADO: %s" % _favorite, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, 386, 1)
+	# Subrayado de la pestaña elegida.
+	draw_rect(Rect2(40 + _tab * 92, 110, 88, 2), HKTheme.GOLD)
 	if _loading:
-		HKTheme.draw_text(self, Vector2(0, 150), "CARGANDO...", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+		_draw_empty("CARGANDO...")
 		return
-	if _matches.is_empty():
-		HKTheme.draw_text(self, Vector2(0, 150), "TODAVÍA NO HAS JUGADO NINGÚN DUELO CON RANKING", 8,
-			HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
-		return
-	var y := 116.0
-	for m in _matches:
-		_draw_match(m, y)
-		y += 12.0
+	match _tab:
+		Tab.DUELOS: _draw_duels()
+		Tab.PERSONAJES: _draw_fighters()
+		Tab.PUNTOS: _draw_points()
+		Tab.HISTORIA: _draw_story()
 
-func _draw_match(m: Dictionary, y: float) -> void:
-	var result := str(m.get("result", ""))
-	var delta := int(m.get("delta", 0))
-	var color := Color("60d060") if result == "win" else (HKTheme.BLOOD if result == "loss" else HKTheme.PAPER)
-	var label := {"win": "VICTORIA", "loss": "DERROTA", "draw": "EMPATE"}.get(result, "?") as String
-	if str(m.get("reason", "")) == "forfeit":
-		label += "*"
-	draw_rect(Rect2(34, y - 9, 358, 11), Color(color.r, color.g, color.b, 0.10))
-	HKTheme.draw_text(self, Vector2(40, y), label, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(112, y), "%+d" % delta, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(150, y), "VS %s" % str(m.get("opponent", "")).to_upper().left(14), 8,
-		HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(290, y), _fighter_name(str(m.get("my_fighter", ""))), 8,
-		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(366, y), "%d-%d" % [int(m.get("my_rounds", 0)), int(m.get("opponent_rounds", 0))], 8,
-		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+func _draw_empty(text: String) -> void:
+	HKTheme.draw_text(self, Vector2(0, 156), text, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+
+func _draw_duels() -> void:
+	if _matches.is_empty():
+		_draw_empty("TODAVÍA NO HAS JUGADO NINGÚN DUELO CON RANKING")
+		return
+	var y := 126.0
+	for i in _shown_duels():
+		MatchRow.draw(self, _matches[i], y)
+		if i == _sel:
+			MatchRow.draw_cursor(self, y)
+		y += 12.0
+	if _sel >= 0:
+		HKTheme.draw_text(self, Vector2(0, 207), "ENTER: VER A %s" % str(_matches[_sel].get("opponent", "")).to_upper().left(16),
+			8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+
+## Con qué luchadores gano (barra verde = victorias, roja = derrotas) y contra cuáles me va mejor y peor.
+func _draw_fighters() -> void:
+	if _matches.is_empty():
+		_draw_empty("TODAVÍA NO HAS JUGADO NINGÚN DUELO CON RANKING")
+		return
+	HKTheme.draw_text(self, Vector2(40, 126), "TUS LUCHADORES", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	var y := 140.0
+	for row in ProfileStats.by_fighter(_matches).slice(0, 5):
+		HKTheme.draw_text(self, Vector2(40, y), _fighter_name(row["id"]), 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		var bar := Rect2(130, y - 7, 90, 7)
+		draw_rect(bar, HKTheme.BLOOD)
+		draw_rect(Rect2(bar.position, Vector2(bar.size.x * ProfileStats.win_rate(row), bar.size.y)), WIN_COLOR)
+		HKTheme.draw_text(self, Vector2(228, y), "%d-%d" % [row["wins"], row["losses"]], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		y += 14.0
+	var matchups := ProfileStats.best_and_worst(ProfileStats.by_fighter(_matches, "opponent_fighter"))
+	_draw_matchup(290, 126, "MEJOR RIVAL", WIN_COLOR, matchups["best"])
+	_draw_matchup(290, 166, "PEOR RIVAL", HKTheme.BLOOD, matchups["worst"])
+
+func _draw_matchup(x: float, y: float, title: String, color: Color, row: Dictionary) -> void:
+	HKTheme.draw_text(self, Vector2(x, y), title, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	if row.is_empty():
+		HKTheme.draw_text(self, Vector2(x, y + 13), "2 DUELOS PARA SABER", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		return
+	HKTheme.draw_text(self, Vector2(x, y + 13), _fighter_name(row["id"]), 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(x, y + 25), "%d-%d  (%d%%)" % [row["wins"], row["losses"], roundi(100.0 * ProfileStats.win_rate(row))],
+		8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+
+## Línea de mis puntos en los últimos 20 duelos: un punto verde por victoria y rojo por derrota.
+func _draw_points() -> void:
+	var series := ProfileStats.points_series(_matches, int(Backend.profile.get("points", 0)))
+	if series.size() < 3:
+		_draw_empty("JUEGA MÁS DUELOS PARA VER LA GRÁFICA")
+		return
+	var lo := series[0]
+	var hi := series[0]
+	for v in series:
+		lo = mini(lo, v)
+		hi = maxi(hi, v)
+	var area := Rect2(80, 132, 306, 64)
+	var span := maxf(float(hi - lo), 1.0)
+	draw_rect(area, Color(1, 1, 1, 0.04))
+	HKTheme.draw_text(self, Vector2(40, area.position.y + 8), str(hi), 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(40, area.end.y), str(lo), 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	var pts := PackedVector2Array()
+	for i in series.size():
+		pts.append(Vector2(area.position.x + area.size.x * i / float(series.size() - 1),
+			area.end.y - area.size.y * (series[i] - lo) / span))
+	draw_polyline(pts, HKTheme.GOLD, 1.0)
+	# La serie va del más antiguo al más reciente; _matches viene al revés (el más reciente primero).
+	var shown := series.size() - 1
+	for i in series.size():
+		var color := HKTheme.PAPER
+		if i > 0:
+			var result := str(_matches[shown - i].get("result", ""))
+			color = WIN_COLOR if result == "win" else (HKTheme.BLOOD if result == "loss" else HKTheme.PAPER)
+		draw_rect(Rect2(pts[i] - Vector2(1, 1), Vector2(3, 3)), color)
+	HKTheme.draw_text(self, Vector2(0, 206), "TUS ÚLTIMOS %d DUELOS" % shown, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+
+## El progreso del modo Historia: finales vistos, luchadores desbloqueados y la partida guardada
+## (la misma que ofrece CONTINUAR HISTORIA en el menú).
+func _draw_story() -> void:
+	var seen := Unlocks.endings_seen()
+	_draw_pair(130.0, "FINALES %d/%d" % [seen.size(), Unlocks.ENDINGS.size()], "", HKTheme.MUTED)
+	var x := 160.0
+	for e in Unlocks.ENDINGS:
+		var known := seen.has(e)
+		# El final oculto no dice ni cómo se llama hasta que se ha visto.
+		var text: String = Unlocks.ENDING_NAMES[e] if known or e != Unlocks.HIDDEN_ENDING else "???"
+		HKTheme.draw_text(self, Vector2(x, 130), text, 8, HKTheme.GOLD if known else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		x += HKTheme.text_width(text, 8) + 12.0
+	_draw_pair(142.0, "LUCHADORES", "%d / %d" % [Unlocks.fighters_unlocked(), FighterRegistry.all().size()], HKTheme.PAPER)
+	if not _story_is_valid():
+		HKTheme.draw_text(self, Vector2(0, 176), "NO TIENES UNA PARTIDA DEL MODO HISTORIA", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+		return
+	var fighter := FighterRegistry.get_by_id(StringName(str(_story["fighter"])))
+	var diff := clampi(int(_story.get("difficulty", 1)), 0, Game.DIFFICULTY_NAMES.size() - 1)
+	_draw_pair(158.0, "LUCHADOR", fighter.display_name.to_upper().left(20), HKTheme.PAPER)
+	_draw_pair(170.0, "COMBATE", "%d / %d" % [int(_story["stage"]) + 1, FighterRegistry.all().size()], HKTheme.PAPER)
+	_draw_pair(182.0, "DIFICULTAD", Game.DIFFICULTY_NAMES[diff], HKTheme.PAPER)
+	_draw_pair(194.0, "REVANCHAS", "%d (USADAS: %d)" % [int(_story.get("continues", 0)), int(_story.get("continues_used", 0))], HKTheme.PAPER)
+
+func _draw_pair(y: float, label: String, value: String, value_color: Color) -> void:
+	HKTheme.draw_text(self, Vector2(60, y), label, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	if value != "":
+		HKTheme.draw_text(self, Vector2(160, y), value, 8, value_color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+
+## Barra de progreso hacia la siguiente liga, con lo que falta a la derecha.
+func _draw_league_bar(league: Dictionary) -> void:
+	var bar := Rect2(143, 86, 140, 4)
+	draw_rect(bar, Color(1, 1, 1, 0.10))
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(league["progress"]), bar.size.y)), league["color"])
+	var next_name := str(league["next_name"])
+	HKTheme.draw_text(self, Vector2(290, 91), "%d PARA %s" % [int(league["to_next"]), next_name] if next_name != "" else "LIGA MÁXIMA",
+		8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 
 func _fighter_name(id: String) -> String:
-	if not FighterRegistry.has(StringName(id)):
-		return ""
-	return FighterRegistry.get_by_id(StringName(id)).short_name.left(10)
+	return MatchRow.fighter_name(id)
