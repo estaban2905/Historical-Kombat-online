@@ -358,14 +358,16 @@ func _case_sync_points() -> void:
 
 ## Si el servidor avisa de que las peleas se separaron, el duelo se anula y se vuelve al menú.
 func _case_desync_ends_the_fight() -> void:
-	var count := [0]
-	var on_desync := func() -> void: count[0] += 1
+	var got: Array = []
+	var on_desync := func(loser: int) -> void: got.append(loser)
 	Online.desynced.connect(on_desync)
 	Online._on_message('{"t":"desync"}')
-	check(count[0] == 0, "fuera de una pelea se ignora el aviso de desincronización")
+	check(got.is_empty(), "fuera de una pelea se ignora el aviso de desincronización")
 	Online.begin_fight()
 	Online._on_message('{"t":"desync"}')
-	check(count[0] == 1, "en plena pelea el aviso de desincronización llega al combate")
+	Online._on_message('{"t":"desync","loser":2}')
+	Online._on_message('{"t":"desync","loser":9}')
+	check(got == [0, 2, 0], "el aviso dice quién pierde si se repite; sin dato válido, el duelo se anula (%s)" % [str(got)])
 	Online.desynced.disconnect(on_desync)
 	Online.disconnect_from_server()
 	var old_mode := Game.mode

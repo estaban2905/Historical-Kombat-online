@@ -285,15 +285,31 @@ func _on_online_opponent_left() -> void:
 	Game.goto(Game.SCENE_RESULTS)
 
 ## Los resúmenes de las dos peleas no coinciden: cada uno estaría viendo una pelea distinta.
-## No se sabe quién tiene razón, así que el duelo se anula y se vuelve al menú.
-func _on_online_desynced() -> void:
+## No se sabe quién tiene razón, así que el duelo se anula y se vuelve al menú, salvo que el servidor
+## señale a una cuenta que se repite en las anulaciones (loser): esa pierde por abandono.
+func _on_online_desynced(loser: int) -> void:
 	_stop_listening_online()
 	sync_enabled = false
-	hud.show_message("SIN SINCRONÍA · DUELO ANULADO", 2.0, HKTheme.BLOOD)
+	if loser == 0:
+		hud.show_message("SIN SINCRONÍA · DUELO ANULADO", 2.0, HKTheme.BLOOD)
+	elif loser == Online.side:
+		hud.show_message("SIN SINCRONÍA · PIERDES EL DUELO", 2.0, HKTheme.BLOOD)
+	else:
+		hud.show_message("SIN SINCRONÍA · GANAS EL DUELO", 2.0, HKTheme.GOLD)
+	await _finish_online_duel(loser)
+
+## Cierra el duelo online que el servidor ya decidió: sin culpable (loser = 0) vuelve al menú;
+## si no, muestra el resultado con la victoria para el otro.
+func _finish_online_duel(loser: int) -> void:
 	round_manager.abort()
 	await get_tree().create_timer(2.0).timeout
-	if is_inside_tree():
+	if not is_inside_tree():
+		return
+	if loser == 0:
 		Game.goto(Game.SCENE_MENU)
+		return
+	Game.set_match_result(3 - loser, round_manager.wins[1], round_manager.wins[2])
+	Game.goto(Game.SCENE_RESULTS)
 
 ## Deja de escuchar los avisos de la red: ya se decidió cómo termina el duelo.
 func _stop_listening_online() -> void:
@@ -314,15 +330,7 @@ func _on_online_timed_out(loser: int) -> void:
 		hud.show_message("TE QUEDASTE SIN RESPONDER", 2.0, HKTheme.BLOOD)
 	else:
 		hud.show_message("EL RIVAL NO RESPONDE", 2.0, HKTheme.GOLD)
-	round_manager.abort()
-	await get_tree().create_timer(2.0).timeout
-	if not is_inside_tree():
-		return
-	if loser == 0:
-		Game.goto(Game.SCENE_MENU)
-		return
-	Game.set_match_result(3 - loser, round_manager.wins[1], round_manager.wins[2])
-	Game.goto(Game.SCENE_RESULTS)
+	await _finish_online_duel(loser)
 
 ## Se perdió MI conexión: no hay ganador, se vuelve al menú.
 func _on_online_failed(message: String) -> void:
