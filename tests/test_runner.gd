@@ -212,6 +212,12 @@ func _test_profile_helpers() -> void:
 
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
+	# La selección bloquea a quien aún no se ha ganado: esta prueba elige a Trump (el luchador por defecto),
+	# así que corre con un archivo de desbloqueos aparte donde ya está ganado.
+	var real_unlocks_path := Unlocks.path
+	Unlocks.path = "user://unlocks_runner.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.add("fighter", "donald_trump")
 	get_tree().change_scene_to_file(Game.SCENE_MENU)
 	check(await wait_scene("MainMenu"), "el juego arranca en el menú principal")
 	var play := scene().get_node("Buttons/Play") as Button
@@ -226,6 +232,8 @@ func _test_menu_to_fight() -> void:
 	await tap(KEY_U)        # P1 confirma
 	await tap(KEY_KP_1)     # P2 confirma con el numpad
 	check(await wait_scene("Fight", 240), "con ambos confirmados empieza el combate")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = real_unlocks_path
 
 func rematch_text_is(text: String) -> bool:
 	var b := scene().get_node_or_null("Buttons/Rematch") as Button
