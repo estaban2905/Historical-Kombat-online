@@ -81,4 +81,21 @@ func _run() -> void:
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
 	await frames(40)
 	await shot("11_results.png")
+	# Resultados online: puntos contados, barra de liga y aviso de subida y de bajada (con la frase más larga).
+	Game.mode = Game.Mode.ONLINE
+	Online.side = 1
+	Game.p1_fighter_id = &"kim_jong_un"
+	Online.last_settled = {"ranked": true, "ok": true, "delta": 16, "points": 1104, "wins": 6, "losses": 4}
+	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
+	await frames(30)
+	await shot("12_results_online_counting.png")
+	await frames(60)
+	await shot("13_results_online_up.png")
+	Game.set_match_result(2, 1, 2)
+	Online.last_settled = {"ranked": true, "ok": true, "delta": -15, "points": 1090, "wins": 6, "losses": 5, "reason": "forfeit"}
+	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
+	await frames(90)
+	await shot("14_results_online_down.png")
+	Online.last_settled = {}
+	Game.mode = Game.Mode.VERSUS
 	get_tree().quit()

@@ -69,9 +69,9 @@ static func theme() -> Theme:
 
 ## Dibuja texto con contorno de 1 px (para HUD y títulos dibujados a mano).
 ## La fuente no tiene mayúsculas acentuadas (Ó se dibuja como una "ó" pequeña): se quita el acento.
+## Las minúsculas acentuadas sí las tiene y se dejan ("televisión", no "televisiOn").
 static func fold(text: String) -> String:
-	for pair in [["Á", "A"], ["É", "E"], ["Í", "I"], ["Ó", "O"], ["Ú", "U"], ["Ü", "U"],
-			["á", "A"], ["é", "E"], ["í", "I"], ["ó", "O"], ["ú", "U"], ["ü", "U"]]:
+	for pair in [["Á", "A"], ["É", "E"], ["Í", "I"], ["Ó", "O"], ["Ú", "U"], ["Ü", "U"]]:
 		text = text.replace(pair[0], pair[1])
 	return text
 

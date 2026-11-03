@@ -121,7 +121,7 @@ func _cycle(which: String, step: int) -> void:
 		return
 	var options := _frames if which == "frame" else _titles
 	if options.size() <= 1:
-		_status.text = "TODAVÍA NO TIENES %s: VE UN FINAL DEL MODO HISTORIA" % ("MARCOS" if which == "frame" else "TÍTULOS")
+		_status.text = HKTheme.fold("TODAVÍA NO TIENES %s: VE UN FINAL DEL MODO HISTORIA" % ("MARCOS" if which == "frame" else "TÍTULOS"))
 		Sfx.play(&"denied")
 		return
 	var previous := _frame_i if which == "frame" else _title_i
