@@ -239,7 +239,9 @@ func _draw_fighters() -> void:
 func _draw_matchup(x: float, y: float, title: String, color: Color, row: Dictionary) -> void:
 	HKTheme.draw_text(self, Vector2(x, y), title, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	if row.is_empty():
-		HKTheme.draw_text(self, Vector2(x, y + 13), "2 DUELOS PARA SABER", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		# Hacen falta al menos 2 duelos contra un luchador para saberlo (dos líneas: una sola no cabe).
+		HKTheme.draw_text(self, Vector2(x, y + 13), "SIN DATOS AÚN", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		HKTheme.draw_text(self, Vector2(x, y + 25), "MÍNIMO 2 DUELOS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 		return
 	HKTheme.draw_text(self, Vector2(x, y + 13), _fighter_name(row["id"]), 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(x, y + 25), "%d-%d  (%d%%)" % [row["wins"], row["losses"], roundi(100.0 * ProfileStats.win_rate(row))],

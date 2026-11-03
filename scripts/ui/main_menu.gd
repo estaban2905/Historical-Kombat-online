@@ -192,14 +192,16 @@ func _check_season_end() -> void:
 	_show_season_end(last)
 
 func _show_season_end(r: Dictionary) -> void:
-	_open_box(96.0, 3600.0)
-	_box_label("TEMPORADA %s TERMINADA" % Season.name_of(str(r.get("season", ""))), 94, HKTheme.GOLD)
-	var y := 107.0
+	_open_box(104.0, 3600.0)
+	# Dos líneas: con un mes largo ("NOVIEMBRE") el título en una sola no cabe en la caja.
+	_box_label("FIN DE LA TEMPORADA", 92, HKTheme.GOLD)
+	_box_label(Season.name_of(str(r.get("season", ""))), 103, HKTheme.GOLD)
+	var y := 117.0
 	for line in Season.summary(r):
 		_box_label(line, y, HKTheme.PAPER)
 		y += 12.0
-	_box_label("TUS PUNTOS SE ACERCAN A 1000", 143, HKTheme.MUTED)
-	var ok := _box_button("ACEPTAR", Vector2(163, 158))
+	_box_label("TUS PUNTOS SE ACERCAN A 1000", 152, HKTheme.MUTED)
+	var ok := _box_button("ACEPTAR", Vector2(163, 166))
 	ok.pressed.connect(_close_challenge)
 	Sfx.play(&"round")
 	ok.grab_focus()

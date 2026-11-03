@@ -4,6 +4,9 @@
 extends Control
 
 const FIRST_ROW_Y := 56.0
+## Columnas: el nombre (con su marca delante) y el progreso, pegado a la derecha.
+const NAME_X := 30.0
+const RIGHT_X := 404.0
 const ROW_STEP := 13.0
 
 var _rows: Array = []
@@ -52,16 +55,20 @@ func _draw() -> void:
 		return
 	HKTheme.draw_text(self, Vector2(0, 42), "%d / %d CUMPLIDOS" % [Achievements.done_count(_rows), _rows.size()], 8,
 		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+	# La descripción empieza tras el nombre más largo: así nunca se monta sobre él ni sobre el progreso.
+	var desc_x := NAME_X
+	for a in _rows:
+		desc_x = maxf(desc_x, NAME_X + HKTheme.text_width(HKTheme.fold(a["name"]), 8) + 10.0)
 	var y := FIRST_ROW_Y
 	for a in _rows:
-		_draw_row(a, y)
+		_draw_row(a, y, desc_x)
 		y += ROW_STEP
 
-func _draw_row(a: Dictionary, y: float) -> void:
+func _draw_row(a: Dictionary, y: float, desc_x: float) -> void:
 	var done: bool = a["done"]
 	var color := HKTheme.GOLD if done else HKTheme.MUTED
-	draw_rect(Rect2(36, y - 7, 6, 6), color if done else Color(1, 1, 1, 0.12))
-	HKTheme.draw_text(self, Vector2(48, y), a["name"], 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(190, y), a["desc"], 8, HKTheme.PAPER if done else HKTheme.MUTED.darkened(0.2), HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	draw_rect(Rect2(NAME_X - 10, y - 7, 6, 6), color if done else Color(1, 1, 1, 0.12))
+	HKTheme.draw_text(self, Vector2(NAME_X, y), a["name"], 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(desc_x, y), a["desc"], 8, HKTheme.PAPER if done else HKTheme.MUTED.darkened(0.2), HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var progress := "LISTO" if done else "%d/%d" % [a["progress"], a["goal"]]
-	HKTheme.draw_text(self, Vector2(0, y), progress, 8, color, HORIZONTAL_ALIGNMENT_RIGHT, 392, 1)
+	HKTheme.draw_text(self, Vector2(0, y), progress, 8, color, HORIZONTAL_ALIGNMENT_RIGHT, RIGHT_X, 1)

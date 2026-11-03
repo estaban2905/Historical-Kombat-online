@@ -3,6 +3,9 @@ class_name MatchRow
 extends RefCounted
 
 const WIN_COLOR := Color("60d060")
+## La fila, centrada en la pantalla de 426 px.
+const WIDTH := 384.0
+const LEFT := (426.0 - WIDTH) / 2.0
 
 ## Dibuja el duelo `m` (formato de Backend.fetch_matches) con la línea de texto en `y`.
 static func draw(ci: CanvasItem, m: Dictionary, y: float) -> void:
@@ -12,21 +15,23 @@ static func draw(ci: CanvasItem, m: Dictionary, y: float) -> void:
 	var label := {"win": "VICTORIA", "loss": "DERROTA", "draw": "EMPATE"}.get(result, "?") as String
 	if str(m.get("reason", "")) == "forfeit":
 		label += "*"
-	ci.draw_rect(Rect2(34, y - 9, 384, 11), Color(color.r, color.g, color.b, 0.10))
-	HKTheme.draw_text(ci, Vector2(40, y), label, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(ci, Vector2(112, y), "%+d" % delta, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(ci, Vector2(150, y), "VS %s" % str(m.get("opponent", "")).to_upper().left(10), 8,
+	ci.draw_rect(Rect2(LEFT, y - 9, WIDTH, 11), Color(color.r, color.g, color.b, 0.10))
+	var x := LEFT + 6.0
+	HKTheme.draw_text(ci, Vector2(x, y), label, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(ci, Vector2(x + 72, y), "%+d" % delta, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(ci, Vector2(x + 108, y), "VS %s" % str(m.get("opponent", "")).to_upper().left(10), 8,
 		HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(ci, Vector2(262, y), format_ago(str(m.get("played_at", ""))), 8,
+	HKTheme.draw_text(ci, Vector2(x + 220, y), format_ago(str(m.get("played_at", ""))), 8,
 		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(ci, Vector2(306, y), fighter_name(str(m.get("my_fighter", ""))), 8,
+	HKTheme.draw_text(ci, Vector2(x + 268, y), fighter_name(str(m.get("my_fighter", ""))).left(9), 8,
 		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(ci, Vector2(390, y), "%d-%d" % [int(m.get("my_rounds", 0)), int(m.get("opponent_rounds", 0))], 8,
-		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	# Las rondas, pegadas al borde derecho de la fila.
+	HKTheme.draw_text(ci, Vector2(LEFT, y), "%d-%d" % [int(m.get("my_rounds", 0)), int(m.get("opponent_rounds", 0))], 8,
+		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, WIDTH - 6.0, 1)
 
 ## Marco que rodea la fila elegida con el cursor.
 static func draw_cursor(ci: CanvasItem, y: float) -> void:
-	ci.draw_rect(Rect2(33, y - 10, 386, 13), HKTheme.GOLD, false, 1.0)
+	ci.draw_rect(Rect2(LEFT - 1, y - 10, WIDTH + 2, 13), HKTheme.GOLD, false, 1.0)
 
 ## "AHORA", "15M", "3H", "2D", "3SEM" o "2MES": hace cuánto se jugó (played_at es ISO en UTC).
 ## "" si la fecha no se entiende. now_unix permite probarlo con una hora fija.
