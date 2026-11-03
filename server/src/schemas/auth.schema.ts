@@ -27,6 +27,7 @@ export const profileSchema = {
     wins: { type: "integer" },
     losses: { type: "integer" },
     avatar: { type: ["string", "null"], description: "Id del luchador elegido como retrato" },
+    google_account: { type: "boolean", description: "true si entra con Google (no tiene contraseña que cambiar)" },
   },
 } as const;
 

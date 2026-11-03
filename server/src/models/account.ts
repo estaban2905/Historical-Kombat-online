@@ -24,6 +24,8 @@ export interface Profile {
   wins: number;
   losses: number;
   avatar: string | null;
+  /** true en las cuentas de Google: entran con Google y no tienen contraseña que cambiar. */
+  google_account: boolean;
 }
 
 /** Una fila del ranking. El id es interno: sirve para pedir sus estadísticas y no sale por la API. */
@@ -46,5 +48,5 @@ export interface AuthResult {
 }
 
 export function toProfile(a: Account): Profile {
-  return { id: a.id, username: a.username, points: a.points, wins: a.wins, losses: a.losses, avatar: a.avatar };
+  return { id: a.id, username: a.username, points: a.points, wins: a.wins, losses: a.losses, avatar: a.avatar, google_account: a.passwordHash === null };
 }

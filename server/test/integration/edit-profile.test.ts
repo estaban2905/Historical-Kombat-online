@@ -141,3 +141,10 @@ test("sin sesión no se puede cambiar la contraseña ni el nombre", async () => 
   assert.equal((await changePassword(undefined, { current_password: "a", new_password: "123456" })).statusCode, 401);
   assert.equal((await app.inject({ method: "PATCH", url: "/me", payload: { username: "Sin_Sesion" } })).statusCode, 401);
 });
+
+test("el perfil dice si la cuenta es de Google (sin contraseña)", async () => {
+  const t = await register("Tiene_1");
+  assert.equal((await me(t)).google_account, false);
+  await db.query("update players set password_hash = null, google_sub = 'sub-tiene-1' where username = 'Tiene_1'");
+  assert.equal((await me(t)).google_account, true);
+});
