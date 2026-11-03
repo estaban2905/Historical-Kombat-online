@@ -838,6 +838,32 @@ func current_hit_level() -> AttackData.HitLevel:
 		return AttackData.HitLevel.LOW
 	return current_attack.hit_level
 
+# --- Efectos externos: lo que los poderes (PowerEffects) piden a un luchador ---
+## Se coloca `gap` px tras el rival (en el lado contrario al que estaba), mirándole, y se detiene.
+func teleport_behind(foe: Fighter, gap: float = 30.0) -> void:
+	var side := signf(foe.position.x - position.x)
+	if side == 0.0:
+		side = float(facing)
+	position.x = clampf(foe.position.x + side * gap, bounds.x, bounds.y)
+	facing = -int(side)
+	velocity.x = 0.0
+
+## Se gira hacia `target`.
+func face_towards(target: Fighter) -> void:
+	facing = 1 if target.position.x >= position.x else -1
+
+## Escudo que absorbe el próximo golpe durante `frames` (ver receive_hit).
+func grant_shield(frames: int) -> void:
+	shield_frames = frames
+
+## Salta hacia arriba a `speed` px/s (sin pasar por el salto normal).
+func hop(speed: float) -> void:
+	velocity.y = -speed
+
+## Se lanza hacia delante a `speed` px/s.
+func lunge(speed: float) -> void:
+	velocity.x = facing * speed
+
 ## ¿El ataque en curso es un barrido (patada agachada)? Derriba al conectar.
 func is_sweep_attack() -> bool:
 	return attack_crouching and current_attack != null and current_attack.kind == AttackData.Kind.KICK

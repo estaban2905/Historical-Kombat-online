@@ -577,7 +577,7 @@ func _on_attack_started(fighter: Fighter, atk: AttackData) -> void:
 func _start_cinematic(f: Fighter, atk: AttackData) -> void:
 	cinematic_frames = ULT_CINEMATIC_FRAMES
 	cinematic_fighter = f
-	_start_ult_fx(atk)
+	start_ult_fx(atk)
 	cinematic_text = atk.display_name.to_upper()
 	Sfx.play(&"confirm")
 	Sfx.play(&"megaphone")
@@ -585,8 +585,27 @@ func _start_cinematic(f: Fighter, atk: AttackData) -> void:
 	shake(3.0)
 	_update_cinematic()
 
+# --- Interfaz para los poderes (PowerEffects): no tocan los nodos internos del combate ---
+## Añade al combate una entidad de poder (proyectil, decorado...). Si pide sacudir la cámara al armarse, se conecta.
+func add_entity(entity: Projectile) -> void:
+	entity.shake_requested.connect(shake)
+	projectiles_root.add_child(entity)
+
+## ¿Hay efectos de pantalla de un ultimate en marcha?
+func has_ult_fx() -> bool:
+	return is_instance_valid(ult_fx)
+
+## Programa un evento de los efectos de pantalla del ultimate (si existen).
+func ult_fx_at(delay: float, type: StringName, args: Dictionary = {}) -> void:
+	if is_instance_valid(ult_fx):
+		ult_fx.at(delay, type, args)
+
+## Fragmentos de piedra en el suelo, en la posición x.
+func spawn_stones(x: float) -> void:
+	fx.stones(Vector2(x, stage.floor_y))
+
 ## Crea los efectos de pantalla del ultimate (el ambiente ya se oscurece durante el zoom).
-func _start_ult_fx(atk: AttackData) -> void:
+func start_ult_fx(atk: AttackData) -> void:
 	if is_instance_valid(ult_fx):
 		ult_fx.queue_free()
 	ult_fx = null
