@@ -10,16 +10,12 @@ class_name Fighter
 extends Node2D
 
 signal health_changed(fighter: Fighter)
-signal energy_changed(fighter: Fighter)
-signal guard_broken(fighter: Fighter)
 signal knocked_out(fighter: Fighter)
 signal attack_started(fighter: Fighter, attack: AttackData)
 signal projectile_requested(fighter: Fighter, attack: AttackData, spawn_position: Vector2)
 signal power_requested(fighter: Fighter, attack: AttackData)
 signal combo_performed(fighter: Fighter, combo: ComboData)
 signal not_enough_energy(fighter: Fighter)
-## Un escudo absorbió un golpe (el que atacaba, para devolverle la onda).
-signal shield_absorbed(fighter: Fighter, attacker: Fighter)
 ## Al tocar el suelo tras una caída (solo aviso visual; no cambia el estado).
 signal landed(fighter: Fighter)
 
@@ -320,7 +316,6 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	_update_boxes()
 	_update_visual()
 	health_changed.emit(self)
-	energy_changed.emit(self)
 
 # =========================================================================
 #  Bucle principal (lo llama CombatManager)
@@ -843,6 +838,36 @@ func current_hit_level() -> AttackData.HitLevel:
 		return AttackData.HitLevel.LOW
 	return current_attack.hit_level
 
+# --- Efectos externos: lo que los poderes (PowerEffects) piden a un luchador ---
+## Se coloca `gap` px tras el rival (en el lado contrario al que estaba), mirándole, y se detiene.
+func teleport_behind(foe: Fighter, gap: float = 30.0) -> void:
+	var side := signf(foe.position.x - position.x)
+	if side == 0.0:
+		side = float(facing)
+	position.x = clampf(foe.position.x + side * gap, bounds.x, bounds.y)
+	facing = -int(side)
+	velocity.x = 0.0
+
+## Se gira hacia `target`.
+func face_towards(target: Fighter) -> void:
+	facing = 1 if target.position.x >= position.x else -1
+
+## Escudo que absorbe el próximo golpe durante `frames` (ver receive_hit).
+func grant_shield(frames: int) -> void:
+	shield_frames = frames
+
+## Salta hacia arriba a `speed` px/s (sin pasar por el salto normal).
+func hop(speed: float) -> void:
+	velocity.y = -speed
+
+## Se lanza hacia delante a `speed` px/s.
+func lunge(speed: float) -> void:
+	velocity.x = facing * speed
+
+## ¿El ataque en curso es un barrido (patada agachada)? Derriba al conectar.
+func is_sweep_attack() -> bool:
+	return attack_crouching and current_attack != null and current_attack.kind == AttackData.Kind.KICK
+
 ## true si nuestra guardia actual (de pie o agachada) para un golpe de ese nivel.
 func guards_against(level: AttackData.HitLevel) -> bool:
 	match level:
@@ -945,17 +970,18 @@ func _clear_throw() -> void:
 # =========================================================================
 ## Aplica un golpe. `direction` = hacia dónde sale despedido (+1 / -1).
 ## `level`: alto/medio/bajo (decide si la guardia actual lo para).
-## Devuelve {blocked: bool, damage: float, ko: bool}.
+## Devuelve un HitResult (bloqueado, daño, K.O., guardia rota, counter, bloqueo perfecto, absorbido).
 ## `bonus`: daño extra de un combo con nombre completado (solo si el golpe entra).
+## `sweep_hint`: el golpe era un barrido al recoger los impactos; en un intercambio el golpe del otro
+## puede haber terminado ya el ataque del atacante, así que no se lee de su estado actual.
 func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
-		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0) -> Dictionary:
-	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false, "counter": false, "perfect": false, "absorbed": false}
+		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0, sweep_hint: bool = false) -> HitResult:
+	var result := HitResult.new()
 	if shield_frames > 0 and state != State.KO:
 		shield_frames = 0
 		result.blocked = true
 		result.absorbed = true
 		add_energy(ENERGY_ON_BLOCK)
-		shield_absorbed.emit(self, attacker)
 		return result
 	var dmg := atk.damage * attacker.data.strength / maxf(data.resistance, 0.1)
 	if state == State.BLOCK and is_on_ground() and guards_against(level):
@@ -999,8 +1025,8 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		if not is_on_ground():
 			juggle_hits += 1
 		# ¿Este golpe derriba? Lanzamientos, agarres y barridos (patada agachada).
-		var sweep := attacker.attack_crouching and attacker.current_attack == atk \
-			and atk.kind == AttackData.Kind.KICK
+		var sweep := sweep_hint or (attacker.attack_crouching and attacker.current_attack == atk \
+			and atk.kind == AttackData.Kind.KICK)
 		if atk.launch != 0.0 or atk.kind == AttackData.Kind.GRAB or sweep:
 			knockdown_pending = true
 		_end_attack()
@@ -1035,7 +1061,6 @@ func _break_guard() -> void:
 	combo_hits_taken = 0
 	stun_frames = GUARD_BREAK_STUN
 	_set_state(State.HIT)
-	guard_broken.emit(self)
 
 func _knock_out(direction: int) -> void:
 	health = 0.0
@@ -1053,10 +1078,7 @@ func set_victory() -> void:
 	_set_state(State.VICTORY)
 
 func add_energy(amount: float) -> void:
-	var before := energy
 	energy = clampf(energy + amount, 0.0, MAX_ENERGY)
-	if not is_equal_approx(before, energy):
-		energy_changed.emit(self)
 
 # =========================================================================
 #  Física
@@ -1091,7 +1113,7 @@ func _tick_status() -> void:
 	if modulate != tint:
 		modulate = tint
 
-## status: slow (tiempo lento) | invert (izquierda/derecha cambiadas) | float (flota y cae)
+## status: slow (tiempo lento) | invert (izquierda/derecha cambiadas) | float (flota y cae) | root (no puede caminar ni saltar)
 func apply_status(status: StringName, frames: int) -> void:
 	match status:
 		&"slow": slow_frames = frames

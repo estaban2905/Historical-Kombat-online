@@ -7,10 +7,6 @@
 class_name RoundManager
 extends Node
 
-signal round_started(round_number: int)
-signal round_finished(winner: int, reason: String)
-signal match_finished(winner: int)
-
 enum Phase { INTRO, FIGHT, ROUND_END, MATCH_END }
 
 var phase: Phase = Phase.INTRO
@@ -58,7 +54,6 @@ func start_round() -> void:
 	combat.reset_round()
 	combat.set_controls(false)
 	combat.hud.set_round(round_number, wins)
-	round_started.emit(round_number)
 	combat.hud.show_message("ROUND %d" % round_number, 1.1, HKTheme.PAPER)
 	combat.hud.show_stage_name(combat.stage_name())
 	Sfx.play(&"round")
@@ -106,7 +101,6 @@ func _end_round(reason: String) -> void:
 		winner = 2
 	if winner != 0:
 		wins[winner] += 1
-	round_finished.emit(winner, reason)
 	combat.hud.set_round(round_number, wins)
 
 	if reason == "KO":
@@ -136,7 +130,6 @@ func _end_round(reason: String) -> void:
 			match_winner = 1 if wins[1] > wins[2] else 2
 		phase = Phase.MATCH_END
 		Game.set_match_result(match_winner, wins[1], wins[2])
-		match_finished.emit(match_winner)
 		Game.goto(Game.SCENE_RESULTS)
 	else:
 		# Cada ronda se juega en el escenario de un luchador distinto (ver Game.stage_owner).

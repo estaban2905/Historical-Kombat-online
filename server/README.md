@@ -68,6 +68,7 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 | `MAX_PAYLOAD` | 1024 | Bytes máximos por mensaje |
 | `MAX_MESSAGES_PER_SECOND` | 120 | Límite por conexión |
 | `HEARTBEAT_MS` | 15000 | Intervalo del ping |
+| `STALL_TIMEOUT_MS` | 15000 | Si pasa este tiempo sin inputs de ninguno de los dos en plena pelea, el duelo se cierra (`timeout`) y pierde quien iba por detrás en ticks |
 | `LOG` | true | `false` apaga los logs |
 | `DATABASE_URL` | (vacía) | Postgres. En Railway: `${{Postgres.DATABASE_URL}}`. Sin ella no hay cuentas, solo emparejamiento |
 | `ALLOWED_ORIGINS` | (vacía = cualquiera) | Dominios de la web del juego, separados por comas |
@@ -87,5 +88,5 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 
 ## Protocolo (resumen)
 
-`find` → `queued` → `matched` → intercambio de `input` → `result` → `settled` (o `opponent_left`).
+`find` → `queued` → `matched` → intercambio de `input` → `result` → `settled` (o `opponent_left`, o `timeout` si nadie envía inputs durante 15 s, o `desync` si los `sync` de los dos clientes difieren).
 Detalle completo en `GET /protocol` o en `/docs`.

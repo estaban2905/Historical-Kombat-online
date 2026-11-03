@@ -9,6 +9,7 @@ test("valores por defecto", () => {
   assert.equal(c.maxMessagesPerSecond, 120);
   assert.equal(c.trustProxyHops, 1);
   assert.equal(c.loginRateLimitPerEmail, 10);
+  assert.equal(c.stallTimeoutMs, 15_000);
 });
 
 test("saltos de proxy y límite por email se configuran por entorno", () => {

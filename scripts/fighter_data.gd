@@ -48,7 +48,7 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var special_1: AttackData
 ## Poder especial 2 (botón L / Numpad 6).
 @export var special_2: AttackData
-## Ataque definitivo: definido en los datos, se activará en versiones futuras.
+## Ataque definitivo: Especial 1 + Especial 2 a la vez con la energía al 100 (ver PowerEffects._cast_ultimate).
 @export var ultimate: AttackData
 ## Agarre (puño débil + patada débil a la vez). Vacío = agarre común (default_grab).
 @export var grab: AttackData
@@ -197,4 +197,11 @@ func validate() -> PackedStringArray:
 			errors.append("%s: falta el ataque %s" % [id, slot])
 	if max_health <= 0:
 		errors.append("%s: max_health debe ser > 0" % id)
+	for stat in [&"walk_speed", &"strength", &"resistance", &"body_width", &"stand_height", &"crouch_height"]:
+		if float(get(stat)) <= 0.0:
+			errors.append("%s: %s debe ser > 0" % [id, stat])
+	for slot in ATTACK_SLOTS + [&"ultimate", &"grab"]:
+		var atk := get_attack(slot)
+		if atk != null and not (slot == &"grab" and grab == null):
+			errors.append_array(atk.validate("%s/%s" % [id, slot]))
 	return errors

@@ -1,14 +1,17 @@
 ## Proyectil o efecto de un ataque especial (cañonazo, onda del megáfono,
 ## oso, dragón, muro...). El CombatManager compara su get_rect() con las
-## hurtboxes y con otros proyectiles (choque = ambos se anulan). El Area2D
-## solo se usa para ver la caja en depuración.
+## hurtboxes y con otros proyectiles (choque = ambos se anulan). No usa el motor
+## de física; DebugOverlay dibuja la caja en depuración.
 ##
 ## Sin configurar es el proyectil clásico: se mueve en horizontal y se destruye
 ## al impactar. PowerEffects lo configura (configure) para los poderes:
 ## retardo, objetos que atraviesan, golpes repetidos, caída con gravedad,
 ## entidades inofensivas de decorado, etc. Cómo se dibuja: ver power_art.gd.
 class_name Projectile
-extends Area2D
+extends Node2D
+
+## Pide sacudir la cámara cuando la entidad se arma tras su retardo (lo conecta quien la crea).
+signal shake_requested(amount: float)
 
 var owner_fighter: Fighter
 var attack: AttackData
@@ -55,7 +58,6 @@ var follow: bool = false
 var _t: float = 0.0
 var _armed: bool = true
 var _trail: Array[Vector2] = []
-var _shape: RectangleShape2D
 ## objetivo -> [golpes, frames hasta poder repetir]
 var _hit_log: Dictionary = {}
 
@@ -69,15 +71,6 @@ func setup(p_owner: Fighter, p_attack: AttackData, spawn_position: Vector2) -> v
 	life = p_attack.projectile_lifetime
 	position = spawn_position
 	box = p_attack.hitbox_size
-	monitoring = false
-	monitorable = false
-	collision_layer = 0
-	collision_mask = 0
-	var shape := CollisionShape2D.new()
-	_shape = RectangleShape2D.new()
-	_shape.size = box
-	shape.shape = _shape
-	add_child(shape)
 
 ## Aplica las opciones de un poder (claves de PowerEffects._spawn).
 func configure(d: Dictionary) -> void:
@@ -85,7 +78,6 @@ func configure(d: Dictionary) -> void:
 	art_color = d.get("color", art_color)
 	direction = int(d.get("dir", direction))
 	box = d.get("box", box)
-	_shape.size = box
 	speed = d.get("speed", 0.0)
 	vy = d.get("vy", 0.0)
 	accel_y = d.get("accel_y", 0.0)
@@ -113,10 +105,6 @@ static func make_visual(p_owner: Fighter, pos: Vector2, d: Dictionary) -> Projec
 	p.position = pos
 	p.harmless = true
 	p.clashable = false
-	p.monitoring = false
-	p.monitorable = false
-	p.collision_layer = 0
-	p.collision_mask = 0
 	p.art = d.get("art", &"")
 	p.art_color = d.get("color", Color.WHITE)
 	p.box = d.get("box", Vector2(20, 20))
@@ -174,9 +162,8 @@ func tick(delta: float) -> void:
 func _arm() -> void:
 	_armed = true
 	visible = true
-	var cm: Node = get_parent().get_parent() if get_parent() else null
-	if shake_on_arm > 0.0 and cm is CombatManager:
-		(cm as CombatManager).shake(shake_on_arm)
+	if shake_on_arm > 0.0:
+		shake_requested.emit(shake_on_arm)
 	if sound_on_arm != &"":
 		Sfx.play(sound_on_arm)
 

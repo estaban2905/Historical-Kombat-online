@@ -14,6 +14,11 @@ export type ClientMessage =
   | { t: "find"; fighter: string; name?: string; token?: string; room?: string }
   | { t: "cancel" }
   | { t: "input"; f: number; m: number; a?: number }
+  /**
+   * Resumen del estado de la pelea de este cliente en el tick `f`. Si los dos clientes mandan un `c` distinto
+   * para el mismo tick (y la misma versión `v` del resumen), sus simulaciones se separaron y el duelo se anula.
+   */
+  | { t: "sync"; f: number; c: number; v: number }
   /** Resultado de la pelea según la simulación de este cliente. Los dos deben coincidir. */
   | { t: "result"; winner: Winner; p1Rounds: number; p2Rounds: number }
   | { t: "leave" };
@@ -42,7 +47,7 @@ export interface SettledMessage {
   points: number;
   wins: number;
   losses: number;
-  /** Por qué no se guardó, o "forfeit" si ganó por abandono del rival. */
+  /** Por qué no se guardó ("stalled" = nadie respondió y no se sabe quién), o "forfeit" si ganó por abandono del rival. */
   reason?: string;
 }
 
@@ -53,6 +58,13 @@ export type ServerMessage =
   | { t: "input"; f: number; m: number; a?: number }
   | SettledMessage
   | { t: "opponent_left" }
+  /** Los resúmenes de estado de los dos clientes no coinciden: las peleas se separaron y el duelo se anula. */
+  | { t: "desync" }
+  /**
+   * Nadie envió inputs durante `stallTimeoutMs`: el duelo se cierra. `loser` es el que iba por detrás
+   * (el que dejó de responder); 0 = no se sabe quién, el duelo se anula.
+   */
+  | { t: "timeout"; loser: 0 | Side }
   | { t: "error"; msg: string };
 
 export type ClientMessageType = ClientMessage["t"];

@@ -49,7 +49,7 @@ func _run() -> void:
 	combat = load(Game.SCENE_FIGHT).instantiate() as CombatManager
 	add_child(combat)
 	combat.set_input_source(func(_tick: int) -> Array: return _masks)
-	combat.hit_landed.connect(func(a: Fighter, d: Fighter, atk: AttackData, r: Dictionary):
+	combat.hit_landed.connect(func(a: Fighter, d: Fighter, atk: AttackData, r: HitResult):
 		_hits.append([a, d, atk, r]))
 	while combat.round_manager.phase != RoundManager.Phase.FIGHT:
 		await combat.ticked
@@ -66,10 +66,13 @@ func _run() -> void:
 	await _test_new_powers()
 	_test_profiles()
 	_test_balance()
+	await _test_simultaneous_sweeps()
+	await _test_snapshot_coverage()
 
 	await get_tree().physics_frame
 	remove_child(combat)
 	combat.free()
+	await _test_nexo_rematch()
 	print("\n=== RESULTADO: %d OK, %d FALLOS ===" % [passed, failed])
 	get_tree().quit(1 if failed > 0 else 0)
 
@@ -1065,3 +1068,91 @@ func _test_profiles() -> void:
 	check(with_level == FighterRegistry.all().size(), "todos tienen un golpe alto o bajo propio (faltan: %s)" % ", ".join(no_special_hit))
 	check(unique.size() >= FighterRegistry.all().size() - 6, "los golpes normales son distintos entre luchadores (%d perfiles distintos de %d)" % [unique.size(), FighterRegistry.all().size()])
 	check(startups.size() >= 8, "hay %d startups distintos entre los golpes normales" % startups.size())
+
+# --- Revancha contra el Nexo ---------------------------------------------------
+## Las fases del Nexo suben su fuerza durante el combate; perder y repetir no debe
+## arrastrar ese refuerzo: cada intento empieza con la misma fuerza.
+func _test_nexo_rematch() -> void:
+	print("\n# Revancha contra el Nexo")
+	Game.start_story(&"napoleon")
+	Game.arcade_stage = Game.arcade_ladder.size() - 1
+	Game.p2_fighter_id = Game.arcade_ladder[Game.arcade_stage]
+	var expected := FighterRegistry.get_by_id(Game.STORY_NEXO_ID).strength * Game.NEXO_BOOST[1]
+	var starts: Array[float] = []
+	var phase3 := 0.0
+	for attempt in 3:
+		var c := load(Game.SCENE_FIGHT).instantiate() as CombatManager
+		add_child(c)
+		await get_tree().physics_frame
+		starts.append(c.p2.data.strength)
+		# El Nexo cae a la fase III (menos del 33 % de vida).
+		c.p2.health = c.p2.data.max_health * 0.2
+		c._update_nexo_phase()
+		phase3 = c.p2.data.strength
+		remove_child(c)
+		c.free()
+	for i in starts.size():
+		check(is_equal_approx(starts[i], expected), "intento %d del Nexo empieza con su fuerza de siempre (%.2f de %.2f)" % [i + 1, starts[i], expected])
+	check(is_equal_approx(phase3, expected * CombatManager.NEXO_PHASES[1][2]), "la fase III sube la fuerza una sola vez (%.2f)" % phase3)
+	Game.mode = Game.Mode.VERSUS
+
+# --- Barridos simultáneos --------------------------------------------------------
+## Si dos patadas agachadas conectan en el mismo tick, las dos derriban: el resultado
+## no puede depender de quién se procesa primero (P1 o P2).
+func _test_simultaneous_sweeps() -> void:
+	print("
+# Barridos simultáneos")
+	_set_fighters(&"napoleon", &"napoleon")
+	var crouch := 1 << BIT_CROUCH
+	await _place(34.0, crouch)
+	_masks[0] = crouch
+	await _ticks(4)
+	_masks = [crouch | (1 << BIT_LK), crouch | (1 << BIT_LK)]
+	await combat.ticked
+	_masks = [crouch, crouch]
+	var traded := await _until(func(): return _hits.size() >= 2, 60)
+	check(traded, "los dos barridos conectan en el mismo intercambio (%d impactos)" % _hits.size())
+	check(combat.p1.knockdown_pending and combat.p2.knockdown_pending,
+		"el barrido de P1 y el de P2 derriban (P1: %s, P2: %s)" % [combat.p1.knockdown_pending, combat.p2.knockdown_pending])
+	_masks = [0, 0]
+	await _ticks(60)
+	_set_fighters(&"napoleon", &"donald_trump")
+
+# --- Cobertura del snapshot ----------------------------------------------------
+## Todo lo que condiciona el siguiente tick debe estar en el snapshot: si un campo cambia y el
+## checksum no, dos PCs podrían divergir sin que la comprobación online lo note.
+func _test_snapshot_coverage() -> void:
+	print("\n# Cobertura del snapshot")
+	await _place(80.0)
+	var fighter_fields := {
+		"jump_buffer": 3, "air_attack_used": true, "running": true, "crouch_blocking": true,
+		"block_age": 12, "input_history": [{"slot": &"lp", "frame": 5, "chained": false}],
+		"attack_crouching": true, "attack_airborne": true, "guard_is_broken": true, "wake_invuln": 4,
+		"invert_grace": 5, "_prev_jump_held": true, "_prev_block_held": true, "_prev_h": 1,
+		"_tap_dir": 1, "_tap_timer": 6, "throw_ready": true, "current_slot": &"hp",
+		"projectile_spawned": true, "combo_claimed": 2, "frame_counter": 99,
+		"health": 50.0,   # control: ya estaba en el snapshot
+	}
+	for fname in fighter_fields:
+		var f: Fighter = combat.p1
+		var old: Variant = f.get(fname)
+		var before := combat.state_checksum()
+		f.set(fname, fighter_fields[fname])
+		var changed := combat.state_checksum() != before
+		f.set(fname, old)
+		check(changed, "el snapshot del luchador recoge %s" % fname)
+	var p := Projectile.new()
+	combat.projectiles_root.add_child(p)
+	var proj_fields := {"vy": 40.0, "_t": 0.5, "delay": 0.3, "_armed": false}
+	for fname in proj_fields:
+		var old: Variant = p.get(fname)
+		var before := combat.state_checksum()
+		p.set(fname, proj_fields[fname])
+		var changed := combat.state_checksum() != before
+		p.set(fname, old)
+		check(changed, "el snapshot del proyectil recoge %s" % fname)
+	var before_hits := combat.state_checksum()
+	p._hit_log[combat.p2] = [1, 8]
+	check(combat.state_checksum() != before_hits, "el snapshot del proyectil recoge el registro de golpes")
+	combat.projectiles_root.remove_child(p)
+	p.free()

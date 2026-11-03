@@ -30,6 +30,8 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return parseFind(msg);
     case "input":
       return parseInput(msg);
+    case "sync":
+      return parseSync(msg);
     case "result":
       return parseResult(msg);
     case "cancel":
@@ -66,6 +68,17 @@ function parseInput(msg: Record<string, unknown>): ClientMessage | null {
   if (a === undefined) return { t: "input", f: f as number, m: m as number };
   if (!Number.isInteger(a) || (a as number) < 0) return null;
   return { t: "input", f: f as number, m: m as number, a: a as number };
+}
+
+/** `c` es un hash de 32 bits (con o sin signo); `v`, la versión del resumen (un entero pequeño). */
+function parseSync(msg: Record<string, unknown>): ClientMessage | null {
+  const f = msg["f"];
+  const c = msg["c"];
+  const v = msg["v"];
+  if (!Number.isInteger(f) || (f as number) < 0) return null;
+  if (!Number.isInteger(c) || Math.abs(c as number) > 0xffffffff) return null;
+  if (!Number.isInteger(v) || (v as number) < 1 || (v as number) > 1000) return null;
+  return { t: "sync", f: f as number, c: c as number, v: v as number };
 }
 
 function parseResult(msg: Record<string, unknown>): ClientMessage | null {

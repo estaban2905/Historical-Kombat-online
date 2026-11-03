@@ -84,14 +84,9 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 		&"desert_ghost":
 			# Bin Laden: desaparece entre humo y reaparece tras el rival.
 			var o := f.opponent
-			var sgn := signf(o.position.x - f.position.x)
-			if sgn == 0.0:
-				sgn = float(f.facing)
 			_visual(cm, f, f.position + Vector2(0, -30), {"art": &"smoke", "color": Color("c8c0d8"),
 				"box": Vector2(30, 50), "life": 0.5})
-			f.position.x = clampf(o.position.x + sgn * 30.0, f.bounds.x, f.bounds.y)
-			f.facing = -int(sgn)
-			f.velocity.x = 0.0
+			f.teleport_behind(o)
 			_visual(cm, f, f.position + Vector2(0, -30), {"art": &"smoke", "color": Color("c8c0d8"),
 				"box": Vector2(30, 50), "life": 0.5})
 			_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -36), "box": Vector2(34, 52),
@@ -146,7 +141,7 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 				"sound": &"confirm"})
 		&"enlightenment":
 			# Buda: se eleva y libera una onda de energía espiritual.
-			f.velocity.y = -230.0
+			f.hop(230.0)
 			_spawn(cm, f, atk, {"art": &"ring", "color": Color("ffd040"), "off": Vector2(0, -56),
 				"box": Vector2(130, 70), "delay": 16, "life": 0.4, "pierce": true, "radial": true,
 				"knock": 280.0, "stun": 28, "shake": 2.0, "sound": &"confirm"})
@@ -212,7 +207,7 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 				"sound": &"whoosh"})
 		&"weichan_spirit":
 			# Janequeo: carga con la lanza, da tres lanzadas seguidas y la última suelta una onda.
-			f.velocity.x = f.facing * 150.0
+			f.lunge(150.0)
 			for i in 3:
 				_spawn(cm, f, atk, {"art": &"slash", "off": Vector2(34.0 + i * 8.0, -40.0 + (i % 2) * 8.0),
 					"box": Vector2(34, 34), "delay": i * 9, "life": 0.18, "pierce": true, "share": 0.2,
@@ -259,7 +254,7 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 				"nostatus": true, "shake": 4.0, "sound": &"hit_heavy"})
 		&"chilean_way":
 			# Allende: escudo de energía roja que absorbe un golpe y lo devuelve como onda (ver reflect).
-			f.shield_frames = SHIELD_FRAMES
+			f.grant_shield(SHIELD_FRAMES)
 			_visual(cm, f, f.position + Vector2(0, -36), {"art": &"redshield", "box": Vector2(46, 74),
 				"life": float(SHIELD_FRAMES) / 60.0, "follow": true, "show": true})
 		&"esmeralda":
@@ -304,16 +299,11 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 		&"art_of_war":
 			# Sun Tzu: deja una ilusión que carga de frente y reaparece detrás del rival.
 			var o := f.opponent
-			var sgn := signf(o.position.x - f.position.x)
-			if sgn == 0.0:
-				sgn = float(f.facing)
 			_visual(cm, f, f.position + Vector2(0, -26), {"art": &"clone", "color": Color("ffd890"), "box": Vector2(22, 44),
 				"speed": 170.0, "life": 0.5})
 			_visual(cm, f, f.position + Vector2(0, -30), {"art": &"smoke", "color": Color("c8c0b0"), "box": Vector2(30, 50),
 				"life": 0.5})
-			f.position.x = clampf(o.position.x + sgn * 30.0, f.bounds.x, f.bounds.y)
-			f.facing = -int(sgn)
-			f.velocity.x = 0.0
+			f.teleport_behind(o)
 			_visual(cm, f, f.position + Vector2(0, -30), {"art": &"smoke", "color": Color("c8c0b0"), "box": Vector2(30, 50),
 				"life": 0.5})
 			_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -40), "box": Vector2(36, 52),
@@ -353,14 +343,9 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 		&"the_prince":
 			# Maquiavelo: deja una ilusión, reaparece tras el rival, lo atrapa en un cepo y lo apuñala.
 			var o := f.opponent
-			var sgn := signf(o.position.x - f.position.x)
-			if sgn == 0.0:
-				sgn = float(f.facing)
 			_visual(cm, f, f.position + Vector2(0, -26), {"art": &"clone", "color": Color("d0a0a0"), "box": Vector2(22, 44),
 				"life": 0.7})
-			f.position.x = clampf(o.position.x + sgn * 30.0, f.bounds.x, f.bounds.y)
-			f.facing = -int(sgn)
-			f.velocity.x = 0.0
+			f.teleport_behind(o)
 			_visual(cm, f, f.position + Vector2(0, -30), {"art": &"smoke", "color": Color("8a7a8a"), "box": Vector2(30, 50),
 				"life": 0.5})
 			_spawn(cm, f, atk, {"art": &"jaws", "at_opp": true, "off": Vector2(0, -10), "box": Vector2(44, 20),
@@ -397,7 +382,7 @@ static func reflect(cm: CombatManager, f: Fighter, foe: Fighter) -> void:
 	var atk := f.data.special_2
 	if atk == null:
 		return
-	f.facing = 1 if foe.position.x >= f.position.x else -1
+	f.face_towards(foe)
 	_spawn(cm, f, atk, {"art": &"bigwave", "color": Color("e03030"), "off": Vector2(26, -40), "box": Vector2(26, 44),
 		"speed": 270.0, "life": 1.5, "knock": 260.0, "stun": 28, "shake": 3.0, "sound": &"hit_heavy"})
 
@@ -415,12 +400,11 @@ const ART_GEOM := {
 
 ## Programa un evento de pantalla (si el efecto existe).
 static func _ufx(cm: CombatManager, delay: float, type: StringName, args: Dictionary = {}) -> void:
-	if is_instance_valid(cm.ult_fx):
-		cm.ult_fx.at(delay, type, args)
+	cm.ult_fx_at(delay, type, args)
 
 static func _cast_ultimate(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
-	if not is_instance_valid(cm.ult_fx):
-		cm._start_ult_fx(atk)
+	if not cm.has_ult_fx():
+		cm.start_ult_fx(atk)
 	match atk.ult_kind:
 		&"barrage": _ult_barrage(cm, f, atk)
 		&"charge": _ult_charge(cm, f, atk)
@@ -623,7 +607,7 @@ static func _opp_dx(f: Fighter, dx: float) -> float:
 static func _stones_later(cm: CombatManager, x: float, frames: int) -> void:
 	await cm.get_tree().create_timer(frames / 60.0).timeout
 	if is_instance_valid(cm):
-		cm.fx.stones(Vector2(x, cm.stage.floor_y))
+		cm.spawn_stones(x)
 
 ## Crea una entidad que golpea (ver claves en la cabecera).
 static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary) -> Projectile:
@@ -644,7 +628,7 @@ static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary
 	var p := Projectile.new()
 	p.setup(f, a, base + Vector2(off.x * f.facing, off.y))
 	p.configure(d)
-	cm.projectiles_root.add_child(p)
+	cm.add_entity(p)
 	if p.is_armed():
 		if p.shake_on_arm > 0.0:
 			cm.shake(p.shake_on_arm)
@@ -655,5 +639,5 @@ static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary
 ## Crea una entidad solo de decorado (cañón, guardia, humo, avión...).
 static func _visual(cm: CombatManager, f: Fighter, pos: Vector2, d: Dictionary) -> Projectile:
 	var p := Projectile.make_visual(f, pos, d)
-	cm.projectiles_root.add_child(p)
+	cm.add_entity(p)
 	return p

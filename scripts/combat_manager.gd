@@ -8,14 +8,21 @@
 class_name CombatManager
 extends Node2D
 
-signal hit_landed(attacker: Fighter, defender: Fighter, attack: AttackData, result: Dictionary)
+signal hit_landed(attacker: Fighter, defender: Fighter, attack: AttackData, result: HitResult)
 signal fighter_knocked_out(fighter: Fighter)
 ## Al final de cada tick de combate (tras incrementar tick_count).
 signal ticked
+## Punto de control de la sincronía online: cada SYNC_EVERY ticks, con el resumen del estado (ver state_checksum).
+signal sync_point(tick: int, checksum: int, version: int)
 
 const FIGHTER_SCENE := preload("res://scenes/fighters/Fighter.tscn")
 ## Cinemática del ultimate: todo se congela estos frames (zoom sobre quien lo lanza y
 ## su nombre en pantalla) antes de que empiece el ataque.
+## Cada cuántos ticks se comprueba que las dos peleas online siguen iguales (1 s).
+const SYNC_EVERY := 60
+## Versión del contenido de state_snapshot: súbela si cambias qué recoge, para que el servidor no
+## compare el resumen de un juego antiguo con el de uno nuevo.
+const SNAPSHOT_VERSION := 1
 const ULT_CINEMATIC_FRAMES := 48
 const ULT_ZOOM := 1.45
 
@@ -41,6 +48,8 @@ var _shake: float = 0.0
 var fx: ParticleFX
 ## Ticks de combate transcurridos (un tick = un frame de física a 60 Hz).
 var tick_count: int = 0
+## true en el duelo online: emite sync_point cada SYNC_EVERY ticks.
+var sync_enabled: bool = false
 var _input_source: Callable
 ## Frames que quedan de la cinemática de un ultimate (0 = no hay). Mientras dura no
 ## avanza nada del combate ni del reloj de la ronda.
@@ -63,7 +72,12 @@ func _ready() -> void:
 	fx.z_index = 19
 	effects_root.add_child(fx)
 	p1 = _spawn_fighter(Game.p1_data(), 1)
-	p2 = _spawn_fighter(Game.p2_data(), 2)
+	# Las fases del Nexo cambian su ficha durante el combate: se usa una copia para que
+	# la ficha guardada en Game no arrastre el refuerzo a la revancha.
+	var p2_data := Game.p2_data()
+	if Game.is_story_nexo_fight():
+		p2_data = p2_data.duplicate() as FighterData
+	p2 = _spawn_fighter(p2_data, 2)
 	p1.opponent = p2
 	p2.opponent = p1
 	fighters = [p1, p2]
@@ -186,6 +200,8 @@ func _physics_process(delta: float) -> void:
 	_update_shake(delta)
 	_update_fx()
 	tick_count += 1
+	if sync_enabled and tick_count % SYNC_EVERY == 0:
+		sync_point.emit(tick_count, state_checksum(), SNAPSHOT_VERSION)
 	ticked.emit()
 
 ## El Nexo se endurece al perder vida: más fuerza y velocidad en cada fase (se reinicia cada ronda).
@@ -230,7 +246,11 @@ var _waiting_label: Label
 func _start_online() -> void:
 	set_input_source(Online.input_source)
 	Online.begin_fight()
+	sync_enabled = true
+	sync_point.connect(Online.send_sync)
 	Online.opponent_left.connect(_on_online_opponent_left, CONNECT_ONE_SHOT)
+	Online.timed_out.connect(_on_online_timed_out, CONNECT_ONE_SHOT)
+	Online.desynced.connect(_on_online_desynced, CONNECT_ONE_SHOT)
 	Online.failed.connect(_on_online_failed, CONNECT_ONE_SHOT)
 	var layer := CanvasLayer.new()
 	layer.layer = 40
@@ -244,15 +264,18 @@ func _start_online() -> void:
 	_waiting_label.visible = false
 	layer.add_child(_waiting_label)
 
-## Muestra el aviso solo si la espera ya se nota (más de ~6 frames seguidos).
+## Muestra el aviso solo si la espera ya se nota (más de ~6 frames seguidos), con los segundos
+## que quedan antes de que el servidor cierre el duelo.
 func _set_waiting(waiting: bool) -> void:
-	if _waiting_label != null:
-		_waiting_label.visible = waiting and Online.stalled_ticks > 6
+	if _waiting_label == null:
+		return
+	_waiting_label.visible = waiting and Online.stalled_ticks > 6
+	if _waiting_label.visible:
+		_waiting_label.text = "ESPERANDO AL RIVAL... %d" % Online.stall_seconds_left()
 
 ## El rival se desconectó en plena pelea: la partida se da por ganada.
 func _on_online_opponent_left() -> void:
-	if Online.failed.is_connected(_on_online_failed):
-		Online.failed.disconnect(_on_online_failed)
+	_stop_listening_online()
 	hud.show_message("RIVAL DESCONECTADO", 2.0, HKTheme.GOLD)
 	round_manager.abort()
 	await get_tree().create_timer(2.0).timeout
@@ -261,10 +284,49 @@ func _on_online_opponent_left() -> void:
 	Game.set_match_result(Online.side, round_manager.wins[1], round_manager.wins[2])
 	Game.goto(Game.SCENE_RESULTS)
 
+## Los resúmenes de las dos peleas no coinciden: cada uno estaría viendo una pelea distinta.
+## No se sabe quién tiene razón, así que el duelo se anula y se vuelve al menú.
+func _on_online_desynced() -> void:
+	_stop_listening_online()
+	sync_enabled = false
+	hud.show_message("SIN SINCRONÍA · DUELO ANULADO", 2.0, HKTheme.BLOOD)
+	round_manager.abort()
+	await get_tree().create_timer(2.0).timeout
+	if is_inside_tree():
+		Game.goto(Game.SCENE_MENU)
+
+## Deja de escuchar los avisos de la red: ya se decidió cómo termina el duelo.
+func _stop_listening_online() -> void:
+	for pair in [[Online.opponent_left, _on_online_opponent_left], [Online.timed_out, _on_online_timed_out],
+			[Online.desynced, _on_online_desynced], [Online.failed, _on_online_failed]]:
+		var sig: Signal = pair[0]
+		var handler: Callable = pair[1]
+		if sig.is_connected(handler):
+			sig.disconnect(handler)
+
+## El servidor cerró el duelo porque nadie respondía: pierde quien iba por detrás.
+## Si no se sabe quién fue (loser = 0), el duelo se anula y se vuelve al menú.
+func _on_online_timed_out(loser: int) -> void:
+	_stop_listening_online()
+	if loser == 0:
+		hud.show_message("SIN RESPUESTA · DUELO ANULADO", 2.0, HKTheme.BLOOD)
+	elif loser == Online.side:
+		hud.show_message("TE QUEDASTE SIN RESPONDER", 2.0, HKTheme.BLOOD)
+	else:
+		hud.show_message("EL RIVAL NO RESPONDE", 2.0, HKTheme.GOLD)
+	round_manager.abort()
+	await get_tree().create_timer(2.0).timeout
+	if not is_inside_tree():
+		return
+	if loser == 0:
+		Game.goto(Game.SCENE_MENU)
+		return
+	Game.set_match_result(3 - loser, round_manager.wins[1], round_manager.wins[2])
+	Game.goto(Game.SCENE_RESULTS)
+
 ## Se perdió MI conexión: no hay ganador, se vuelve al menú.
 func _on_online_failed(message: String) -> void:
-	if Online.opponent_left.is_connected(_on_online_opponent_left):
-		Online.opponent_left.disconnect(_on_online_opponent_left)
+	_stop_listening_online()
 	hud.show_message(message, 2.0, HKTheme.BLOOD)
 	round_manager.abort()
 	await get_tree().create_timer(2.0).timeout
@@ -286,10 +348,14 @@ func state_snapshot() -> Array:
 			f.combo_hits_taken, f.slow_frames, f.invert_frames, f.float_frames,
 			f.buffered_slot, f.buffered_frames, f.cooldowns, f.throw_timer, f.tech_requested,
 			f.guard, f.guard_idle, f.attack_connected, f.chain_slots.size(), f.juggle_hits, f.root_frames, f.shield_frames,
-				f.knockdown_pending, f.tech_fall_buffer, f.wake_frames, f.wake_rolling])
+				f.knockdown_pending, f.tech_fall_buffer, f.wake_frames, f.wake_rolling,
+				f.jump_buffer, f.air_attack_used, f.running, f.crouch_blocking, f.block_age, f.input_history,
+				f.attack_crouching, f.attack_airborne, f.guard_is_broken, f.wake_invuln, f.invert_grace,
+				f._prev_jump_held, f._prev_block_held, f._prev_h, f._tap_dir, f._tap_timer, f.throw_ready,
+				f.current_slot, f.projectile_spawned, f.combo_claimed, f.frame_counter])
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
-		parts.append([pr.position, pr.life, pr.alive])
+		parts.append([pr.position, pr.life, pr.alive, pr.vy, pr._t, pr.delay, pr._armed, pr._hit_log.values()])
 	parts.append(cinematic_frames)
 	return parts
 
@@ -328,11 +394,11 @@ func _resolve_melee_hits() -> void:
 	# Primero se recogen TODOS los impactos y luego se aplican: así un
 	# intercambio simultáneo de golpes afecta a los dos luchadores.
 	var hits: Array = []
-	# El nivel se guarda ya: si hay intercambio, el primer impacto termina el
-	# ataque del otro antes de aplicar el suyo.
+	# El nivel y si es un barrido se guardan ya: si hay intercambio, el primer impacto
+	# termina el ataque del otro antes de aplicar el suyo.
 	for f in fighters:
 		for target in f.get_hit_candidates():
-			hits.append([f, target, f.current_attack, f.current_hit_level(), f.attack_combo])
+			hits.append([f, target, f.current_attack, f.current_hit_level(), f.attack_combo, f.is_sweep_attack()])
 	for h in hits:
 		(h[0] as Fighter).register_hit(h[1])
 	var grabs: Array = []
@@ -344,7 +410,7 @@ func _resolve_melee_hits() -> void:
 			grabs.append(h)
 			continue
 		var point := _contact_point(attacker.hitbox_shape.global_position, target)
-		_apply_hit(attacker, target, atk, attacker.facing, point, false, h[3], h[4])
+		_apply_hit(attacker, target, atk, attacker.facing, point, false, h[3], h[4], h[5])
 		# Golpe dado o bloqueado: ya se puede cancelar en otro.
 		if attacker.state == Fighter.State.ATTACK and attacker.current_attack == atk:
 			attacker.on_attack_connected()
@@ -425,8 +491,8 @@ func _contact_point(from: Vector2, target: Fighter) -> Vector2:
 
 func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: int,
 		point: Vector2, from_projectile: bool, level: AttackData.HitLevel = AttackData.HitLevel.MID,
-		combo: ComboData = null) -> void:
-	var result := target.receive_hit(attacker, atk, direction, level, combo.bonus_damage if combo else 0.0)
+		combo: ComboData = null, sweep: bool = false) -> void:
+	var result := target.receive_hit(attacker, atk, direction, level, combo.bonus_damage if combo else 0.0, sweep)
 	if result.absorbed:
 		HitEffect.spawn(effects_root, point, HitEffect.Type.CLASH, 1.6)
 		Sfx.play(&"block")
@@ -435,7 +501,7 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 		hit_landed.emit(attacker, target, atk, result)
 		return
 	# Nombre del combo completado: solo si el golpe final entra (el HUD lo muestra).
-	result["combo_name"] = combo.display_name if combo and not result.blocked else ""
+	result.combo_name = combo.display_name if combo and not result.blocked else ""
 	if not result.blocked:
 		# Efectos de los poderes: estados alterados y energía recuperada.
 		if atk.status != &"" and atk.status_frames > 0:
@@ -511,7 +577,7 @@ func _on_attack_started(fighter: Fighter, atk: AttackData) -> void:
 func _start_cinematic(f: Fighter, atk: AttackData) -> void:
 	cinematic_frames = ULT_CINEMATIC_FRAMES
 	cinematic_fighter = f
-	_start_ult_fx(atk)
+	start_ult_fx(atk)
 	cinematic_text = atk.display_name.to_upper()
 	Sfx.play(&"confirm")
 	Sfx.play(&"megaphone")
@@ -519,8 +585,27 @@ func _start_cinematic(f: Fighter, atk: AttackData) -> void:
 	shake(3.0)
 	_update_cinematic()
 
+# --- Interfaz para los poderes (PowerEffects): no tocan los nodos internos del combate ---
+## Añade al combate una entidad de poder (proyectil, decorado...). Si pide sacudir la cámara al armarse, se conecta.
+func add_entity(entity: Projectile) -> void:
+	entity.shake_requested.connect(shake)
+	projectiles_root.add_child(entity)
+
+## ¿Hay efectos de pantalla de un ultimate en marcha?
+func has_ult_fx() -> bool:
+	return is_instance_valid(ult_fx)
+
+## Programa un evento de los efectos de pantalla del ultimate (si existen).
+func ult_fx_at(delay: float, type: StringName, args: Dictionary = {}) -> void:
+	if is_instance_valid(ult_fx):
+		ult_fx.at(delay, type, args)
+
+## Fragmentos de piedra en el suelo, en la posición x.
+func spawn_stones(x: float) -> void:
+	fx.stones(Vector2(x, stage.floor_y))
+
 ## Crea los efectos de pantalla del ultimate (el ambiente ya se oscurece durante el zoom).
-func _start_ult_fx(atk: AttackData) -> void:
+func start_ult_fx(atk: AttackData) -> void:
 	if is_instance_valid(ult_fx):
 		ult_fx.queue_free()
 	ult_fx = null

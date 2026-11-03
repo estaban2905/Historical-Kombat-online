@@ -80,7 +80,7 @@ enum HitLevel { MID, LOW, OVERHEAD }
 ## Si no está vacío, el ataque no usa hitbox propia: al acabar el startup se
 ## invoca PowerEffects.cast() con este identificador (ver power_effects.gd).
 @export var power: StringName = &""
-## Estado que se aplica al rival al impactar: slow | invert | float
+## Estado que se aplica al rival al impactar: slow | invert | float | root
 @export var status: StringName = &""
 @export var status_frames: int = 0
 ## Energía que recupera el atacante cuando el golpe conecta (sin bloqueo).
@@ -98,6 +98,39 @@ enum HitLevel { MID, LOW, OVERHEAD }
 ## Duración total en frames.
 func total_frames() -> int:
 	return startup + active + recovery
+
+## Estados que entiende Fighter.apply_status.
+const STATUSES: Array[StringName] = [&"", &"slow", &"invert", &"float", &"root"]
+
+## Comprueba que los números del ataque tengan sentido. `label` identifica el ataque en los mensajes
+## (p. ej. "napoleon/punch_light"). Devuelve los problemas; vacío = correcto.
+func validate(label: String) -> PackedStringArray:
+	var errors := PackedStringArray()
+	if startup < 1:
+		errors.append("%s: startup debe ser >= 1 (es %d)" % [label, startup])
+	if active < 1:
+		errors.append("%s: active debe ser >= 1 (es %d)" % [label, active])
+	if recovery < 0:
+		errors.append("%s: recovery no puede ser negativo (es %d)" % [label, recovery])
+	if damage < 0.0:
+		errors.append("%s: damage no puede ser negativo" % label)
+	for field in [&"hitstun", &"blockstun", &"hitstop", &"cooldown", &"status_frames"]:
+		if int(get(field)) < 0:
+			errors.append("%s: %s no puede ser negativo" % [label, field])
+	if energy_cost < 0.0 or energy_on_hit < 0.0:
+		errors.append("%s: la energía no puede ser negativa" % label)
+	# Un golpe cuerpo a cuerpo necesita caja; los proyectiles y los poderes llevan la suya.
+	if not is_projectile() and not is_power() and (hitbox_size.x <= 0.0 or hitbox_size.y <= 0.0):
+		errors.append("%s: la hitbox debe tener tamaño (es %s)" % [label, hitbox_size])
+	if not STATUSES.has(status):
+		errors.append("%s: estado alterado desconocido «%s»" % [label, status])
+	if (status != &"") != (status_frames > 0):
+		errors.append("%s: status y status_frames deben ir juntos" % label)
+	if is_projectile() and projectile_lifetime <= 0.0:
+		errors.append("%s: projectile_lifetime debe ser > 0" % label)
+	if kind == Kind.ULTIMATE and ult_kind == &"":
+		errors.append("%s: un ultimate necesita ult_kind" % label)
+	return errors
 
 func is_projectile() -> bool:
 	return projectile_speed > 0.0

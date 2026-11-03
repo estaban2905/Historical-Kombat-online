@@ -24,6 +24,20 @@ export interface Room {
   settled: boolean;
   /** Espera del segundo resultado. */
   timer: ReturnType<typeof setTimeout> | null;
+  /** Último tick recibido de cada lado: el que va por detrás es el que dejó de responder. */
+  lastFrame: { 1: number; 2: number };
+  /** Cuándo llegó el último input de cualquiera de los dos (ms). */
+  lastInputAt: number;
+  /** Vigila que sigan llegando inputs mientras dura la pelea. */
+  stallTimer: ReturnType<typeof setTimeout> | null;
+  /** Resúmenes de estado por tick, a la espera de que llegue el del otro jugador. */
+  syncs: Map<number, { 1?: SyncEntry; 2?: SyncEntry }>;
+}
+
+/** Resumen del estado de la pelea de un cliente en un tick y versión del resumen. */
+export interface SyncEntry {
+  c: number;
+  v: number;
 }
 
 /** El rival de `player` dentro de la sala. */
@@ -46,5 +60,9 @@ export function newRoom(p1: Player, p2: Player, ranked: boolean): Room {
     reports: { 1: null, 2: null },
     settled: false,
     timer: null,
+    lastFrame: { 1: -1, 2: -1 },
+    lastInputAt: 0,
+    stallTimer: null,
+    syncs: new Map(),
   };
 }

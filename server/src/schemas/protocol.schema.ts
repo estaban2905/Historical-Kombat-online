@@ -57,6 +57,20 @@ const input = {
   description: "Botones apretados en un frame. Se reenvía tal cual al rival.",
 } as const;
 
+const sync = {
+  type: "object",
+  required: ["t", "f", "c", "v"],
+  properties: {
+    t: { const: "sync" },
+    f: { type: "integer", minimum: 0, description: "Tick de la pelea al que corresponde el resumen", examples: [600] },
+    c: { type: "integer", description: "Resumen (hash) del estado de la pelea de este cliente en ese tick", examples: [123456789] },
+    v: { type: "integer", minimum: 1, description: "Versión del resumen: solo se comparan resúmenes de la misma versión", examples: [1] },
+  },
+  description:
+    "Comprobación de sincronía, cada 60 ticks. Si el rival manda un resumen distinto para el mismo tick, " +
+    "el duelo se anula sin puntos y los dos reciben `desync`.",
+} as const;
+
 const result = {
   type: "object",
   required: ["t", "winner", "p1Rounds", "p2Rounds"],
@@ -118,6 +132,23 @@ const opponentLeft = {
   description: "El rival se desconectó.",
 } as const;
 
+const timeout = {
+  type: "object",
+  required: ["t", "loser"],
+  properties: {
+    t: { const: "timeout" },
+    loser: { type: "integer", enum: [0, 1, 2], description: "El que dejó de responder (iba por detrás); 0 = no se sabe y el duelo se anula" },
+  },
+  description: "Nadie envió inputs durante un tiempo: el duelo se cierra. Pierde quien dejó de responder.",
+} as const;
+
+const desync = {
+  type: "object",
+  required: ["t"],
+  properties: { t: { const: "desync" } },
+  description: "Las dos peleas se separaron (resúmenes distintos para el mismo tick): el duelo se anula sin puntos.",
+} as const;
+
 const error = {
   type: "object",
   required: ["t", "msg"],
@@ -125,8 +156,8 @@ const error = {
   description: "El mensaje enviado no era válido o no corresponde en este estado.",
 } as const;
 
-export const clientMessages = { find, cancel, leave, input, result } as const;
-export const serverMessages = { queued, matched, input, settled, opponent_left: opponentLeft, error } as const;
+export const clientMessages = { find, cancel, leave, input, sync, result } as const;
+export const serverMessages = { queued, matched, input, settled, opponent_left: opponentLeft, timeout, desync, error } as const;
 
 export const protocolSchema = {
   tags: ["protocol"],
@@ -134,7 +165,7 @@ export const protocolSchema = {
   description:
     "Conéctate a `ws(s)://<host>/ws` y envía/recibe mensajes JSON de una línea. " +
     "Flujo: `find` → `queued` → `matched` → intercambio de `input` → `result` → `settled`. " +
-    "Si el rival se va: `opponent_left`.",
+    "Si el rival se va: `opponent_left`. Si nadie manda inputs durante 15 s: `timeout`. Si las peleas se separan (`sync` distinto): `desync`.",
   response: {
     200: {
       type: "object",

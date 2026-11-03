@@ -84,6 +84,12 @@ jobs:
       # .godot/ no está en el repo: hay que importar los recursos antes de probar.
       - name: Importar recursos
         run: ~/godot/godot --headless --path . --import
+      # Las fichas se generan con tools/generate_fighters.py: si alguien retoca un .tres a mano (o la tabla
+      # sin regenerar), el siguiente que ejecute el script perdería el cambio. Regenerar no debe cambiar nada.
+      - name: Fichas (regenerar no debe cambiar nada)
+        run: |
+          python3 tools/generate_fighters.py > /dev/null
+          git diff --exit-code -- fighters || { echo "::error::Las fichas de fighters/ no coinciden con tools/generate_fighters.py: edita la tabla del script (o regenera) en vez de retocar el .tres"; exit 1; }
       # --fixed-fps 60: sin él las pruebas esperan los ticks en tiempo real
       # (TestRunner ~10 min, Determinismo ~8 min); con él corren a toda velocidad.
       - name: Escenas, menús y entrada
@@ -95,8 +101,16 @@ jobs:
       - name: Entrenamiento
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/TrainingTest.tscn
       # Imprescindible para el online: ambos PC deben simular exactamente igual.
-      - name: Determinismo
+      - name: Determinismo (los 50 luchadores)
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/DeterminismTest.tscn
+      # Regresión de jugabilidad: los mismos botones deben dar el mismo estado que en tests/golden_checksums.json.
+      # Si el cambio es intencionado: GoldenTest.tscn -- --update y subir el archivo en el mismo PR.
+      # Sin referencias de Linux solo avisa (hay que generarlas en esa plataforma con --update).
+      - name: Checksum dorado
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/GoldenTest.tscn
+      # Solo registra µs por tick de la simulación (sin dibujar): línea base para ver regresiones. No falla.
+      - name: Benchmark de la simulación
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/BenchmarkTest.tscn
       # Dos PCs simulados con lag: las peleas deben quedar idénticas.
       - name: Online (sincronización con lag)
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn

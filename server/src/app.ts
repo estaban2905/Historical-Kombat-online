@@ -56,7 +56,11 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
   const matches = options.db ? new MatchService(options.db) : undefined;
   const matchmaking =
     options.matchmaking ??
-    new MatchmakingService(undefined, { settler: matches?.settle, onError: (err) => app.log.error(err) });
+    new MatchmakingService(undefined, {
+      settler: matches?.settle,
+      stallTimeoutMs: config.stallTimeoutMs,
+      onError: (err) => app.log.error(err),
+    });
   registerServices(app, config, matchmaking, options.db !== undefined);
 
   // Por defecto solo deja pasar GET, HEAD y POST: sin esto el navegador bloquea PATCH /me y PUT/DELETE /me/story.
