@@ -95,8 +95,13 @@ jobs:
       - name: Entrenamiento
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/TrainingTest.tscn
       # Imprescindible para el online: ambos PC deben simular exactamente igual.
-      - name: Determinismo
+      - name: Determinismo (los 50 luchadores)
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/DeterminismTest.tscn
+      # Regresión de jugabilidad: los mismos botones deben dar el mismo estado que en tests/golden_checksums.json.
+      # Si el cambio es intencionado: GoldenTest.tscn -- --update y subir el archivo en el mismo PR.
+      # Sin referencias de Linux solo avisa (hay que generarlas en esa plataforma con --update).
+      - name: Checksum dorado
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/GoldenTest.tscn
       # Dos PCs simulados con lag: las peleas deben quedar idénticas.
       - name: Online (sincronización con lag)
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn

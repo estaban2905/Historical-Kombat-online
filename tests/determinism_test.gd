@@ -7,6 +7,8 @@ extends Node
 
 const TICKS := 2400          # 40 s de combate
 const SAMPLE_EVERY := 20
+## Ticks de cada pelea de la matriz de los 50 luchadores (15 s).
+const MATRIX_TICKS := 900
 const SEEDS: Array[int] = [1, 7, 42]
 const MATCHUPS: Array = [[&"donald_trump", &"napoleon"], [&"napoleon", &"donald_trump"]]
 
@@ -45,8 +47,38 @@ func _run() -> void:
 				"" if ok else " · primera divergencia en el tick %d" % diverge])
 			if not ok:
 				failures += 1
+	if not quick:
+		failures += await _matrix()
 	print("\n=== RESULTADO: %d divergencias ===" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+## Los 50 luchadores, con sus poderes y ultimates: cada uno pelea (como P1 y como P2) dos veces con
+## las mismas entradas y los resúmenes de cada segundo deben coincidir.
+func _matrix() -> int:
+	print("\n# Matriz de determinismo: los %d luchadores" % FighterRegistry.all().size())
+	var roster := FighterRegistry.all()
+	var failures := 0
+	var played := {}
+	for i in roster.size():
+		var a := roster[i].id
+		var b := roster[(i + roster.size() / 2) % roster.size()].id
+		var first: Array = await ScriptedInputs.play(self, a, b, 100 + i, MATRIX_TICKS, 60)
+		var second: Array = await ScriptedInputs.play(self, a, b, 100 + i, MATRIX_TICKS, 60)
+		var bad := -1
+		for k in maxi(first.size(), second.size()):
+			if k >= first.size() or k >= second.size() or first[k] != second[k]:
+				bad = k
+				break
+		played[a] = true
+		played[b] = true
+		if bad != -1:
+			failures += 1
+			print("  [FAIL] %s vs %s: primera divergencia en el segundo %d" % [a, b, bad + 1])
+	print("  [%s] %d luchadores ejercitados, %d peleas con divergencia" % ["OK  " if failures == 0 else "FAIL", played.size(), failures])
+	if played.size() != roster.size():
+		failures += 1
+		print("  [FAIL] la matriz no cubre a todos (%d de %d)" % [played.size(), roster.size()])
+	return failures
 
 ## Juega TICKS ticks y devuelve la lista de checksums.
 func _play(seed_value: int) -> Array:
