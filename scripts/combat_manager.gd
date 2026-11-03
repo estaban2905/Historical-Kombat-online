@@ -8,7 +8,7 @@
 class_name CombatManager
 extends Node2D
 
-signal hit_landed(attacker: Fighter, defender: Fighter, attack: AttackData, result: Dictionary)
+signal hit_landed(attacker: Fighter, defender: Fighter, attack: AttackData, result: HitResult)
 signal fighter_knocked_out(fighter: Fighter)
 ## Al final de cada tick de combate (tras incrementar tick_count).
 signal ticked
@@ -501,7 +501,7 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 		hit_landed.emit(attacker, target, atk, result)
 		return
 	# Nombre del combo completado: solo si el golpe final entra (el HUD lo muestra).
-	result["combo_name"] = combo.display_name if combo and not result.blocked else ""
+	result.combo_name = combo.display_name if combo and not result.blocked else ""
 	if not result.blocked:
 		# Efectos de los poderes: estados alterados y energía recuperada.
 		if atk.status != &"" and atk.status_frames > 0:

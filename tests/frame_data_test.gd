@@ -61,7 +61,7 @@ func _measure_fighter(data: FighterData) -> void:
 	var combat := load(Game.SCENE_FIGHT).instantiate() as CombatManager
 	add_child(combat)
 	combat.set_input_source(func(_tick: int) -> Array: return _masks)
-	combat.hit_landed.connect(func(attacker: Fighter, _d: Fighter, _a: AttackData, result: Dictionary):
+	combat.hit_landed.connect(func(attacker: Fighter, _d: Fighter, _a: AttackData, result: HitResult):
 		if attacker == combat.p1 and _hit.is_empty():
 			_hit = {"tick": combat.tick_count, "frame": attacker.attack_frame, "blocked": result.blocked})
 	while combat.round_manager.phase != RoundManager.Phase.FIGHT:

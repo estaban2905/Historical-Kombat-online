@@ -155,7 +155,7 @@ func _on_attack_started(f: Fighter, atk: AttackData) -> void:
 	_last_blocked = false
 	_last_counter = false
 
-func _on_hit_landed(attacker: Fighter, defender: Fighter, atk: AttackData, result: Dictionary) -> void:
+func _on_hit_landed(attacker: Fighter, defender: Fighter, atk: AttackData, result: HitResult) -> void:
 	if _last_atk != atk or _last_player != attacker.player_id:
 		_last_player = attacker.player_id
 		_last_atk = atk

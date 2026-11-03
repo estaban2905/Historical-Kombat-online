@@ -39,7 +39,7 @@ func _run() -> void:
 		var script := ScriptedInputs.new(11)
 		combat.set_input_source(func(tick: int) -> Array: return script.masks(tick))
 		var hits := [0]
-		combat.hit_landed.connect(func(_a: Fighter, _d: Fighter, _atk: AttackData, _r: Dictionary) -> void: hits[0] += 1)
+		combat.hit_landed.connect(func(_a: Fighter, _d: Fighter, _atk: AttackData, _r: HitResult) -> void: hits[0] += 1)
 		var times := PackedInt64Array()
 		var delta := 1.0 / 60.0
 		for i in WARMUP + TICKS:

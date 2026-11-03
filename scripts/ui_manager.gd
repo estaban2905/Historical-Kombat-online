@@ -72,7 +72,7 @@ func _on_health_changed(f: Fighter) -> void:
 		_trail[f.player_id] = 1.0
 	_trail_delay[f.player_id] = 0.45
 
-func _on_hit_landed(attacker: Fighter, defender: Fighter, _atk: AttackData, result: Dictionary) -> void:
+func _on_hit_landed(attacker: Fighter, defender: Fighter, _atk: AttackData, result: HitResult) -> void:
 	if result.blocked:
 		if result.perfect:
 			_perfect_t[defender.player_id] = 1.0

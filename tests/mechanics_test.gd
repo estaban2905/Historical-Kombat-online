@@ -49,7 +49,7 @@ func _run() -> void:
 	combat = load(Game.SCENE_FIGHT).instantiate() as CombatManager
 	add_child(combat)
 	combat.set_input_source(func(_tick: int) -> Array: return _masks)
-	combat.hit_landed.connect(func(a: Fighter, d: Fighter, atk: AttackData, r: Dictionary):
+	combat.hit_landed.connect(func(a: Fighter, d: Fighter, atk: AttackData, r: HitResult):
 		_hits.append([a, d, atk, r]))
 	while combat.round_manager.phase != RoundManager.Phase.FIGHT:
 		await combat.ticked

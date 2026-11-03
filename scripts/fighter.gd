@@ -970,13 +970,13 @@ func _clear_throw() -> void:
 # =========================================================================
 ## Aplica un golpe. `direction` = hacia dónde sale despedido (+1 / -1).
 ## `level`: alto/medio/bajo (decide si la guardia actual lo para).
-## Devuelve {blocked: bool, damage: float, ko: bool}.
+## Devuelve un HitResult (bloqueado, daño, K.O., guardia rota, counter, bloqueo perfecto, absorbido).
 ## `bonus`: daño extra de un combo con nombre completado (solo si el golpe entra).
 ## `sweep_hint`: el golpe era un barrido al recoger los impactos; en un intercambio el golpe del otro
 ## puede haber terminado ya el ataque del atacante, así que no se lee de su estado actual.
 func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
-		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0, sweep_hint: bool = false) -> Dictionary:
-	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false, "counter": false, "perfect": false, "absorbed": false}
+		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0, sweep_hint: bool = false) -> HitResult:
+	var result := HitResult.new()
 	if shield_frames > 0 and state != State.KO:
 		shield_frames = 0
 		result.blocked = true
