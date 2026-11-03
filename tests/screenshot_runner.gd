@@ -98,4 +98,24 @@ func _run() -> void:
 	await shot("14_results_online_down.png")
 	Online.last_settled = {}
 	Game.mode = Game.Mode.VERSUS
+	# Ranking con datos de ejemplo: avatar y más usado en cada fila, racha y tu fila fija abajo.
+	var ids := ["napoleon", "cleopatra", "nikola_tesla", "", "kim_jong_un", "juana_de_arco", "gengis_kan", "rasputin",
+		"albert_einstein", "lautaro", "abraham_lincoln", "papa_francisco"]
+	var fake: Array = []
+	for i in ids.size():
+		fake.append({"username": "Jugador_%d" % (i + 1), "points": 1560 - i * 45, "wins": 30 - i * 2, "losses": 10 + i,
+			"streak": 5 if i == 1 else 0, "avatar": ids[i] if ids[i] != "" else null,
+			"favorite_fighter": ids[(i + 3) % ids.size()] if i != 6 else null})
+	Backend.access_token = "captura"
+	Backend.profile = {"username": "Jugador_12"}
+	get_tree().change_scene_to_file(Game.SCENE_RANKING)
+	await frames(5)
+	var ranking := get_tree().current_scene
+	ranking._global = fake
+	ranking._players = fake
+	ranking._loading = false
+	await frames(10)
+	await shot("15_ranking.png")
+	Backend.access_token = ""
+	Backend.profile = {}
 	get_tree().quit()

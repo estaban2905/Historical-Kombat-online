@@ -197,7 +197,13 @@ func approx_height() -> float:
 		&"guan": extra = 8.0
 		&"turban", &"fur_hat", &"nemes", &"crown", &"cap", &"beret": extra = 7.0
 		&"tiara", &"headband": extra = 6.0
-	return data.thigh_len + data.shin_len + data.torso_len + 2.0 + data.head_height + extra
+	return crown_height() + extra
+
+## Altura de pies a coronilla sin sombrero (para encuadrar la cara en retratos pequeños).
+func crown_height() -> float:
+	if data == null:
+		return 66.0
+	return data.thigh_len + data.shin_len + data.torso_len + 2.0 + data.head_height
 
 func flash_hit() -> void:
 	flash = 1.0

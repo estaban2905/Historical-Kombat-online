@@ -13,6 +13,13 @@ const STREAK_MARK := 3
 const STREAK_COLOR := Color("ff9030")
 const FIRST_ROW_Y := 62.0
 const ROW_STEP := 13.0
+const FOOTER_Y := 204.0
+## Retratos pequeños de cada fila: el avatar delante del nombre y el luchador más usado antes de los puntos.
+const ICON := Vector2(12, 12)
+const ICON_ZOOM := 0.55
+const AVATAR_X := 77.0
+const FAVORITE_X := 214.0
+const NAME_X := 92.0
 
 var _players: Array = []
 ## Lo que se muestra: GLOBAL (los mejores de todos) o AMIGOS (mis amigos y yo). Cada lista se pide una vez.
@@ -24,9 +31,13 @@ var _loading: bool = true
 var _back: Button
 ## Fila elegida con el cursor (-1 = ninguna: el foco está en VOLVER).
 var _sel: int = -1
+## [avatar, más usado] por fila; la última pareja es la de tu fila fija abajo.
+var _icons: Array = []
 
 func _ready() -> void:
 	theme = HKTheme.theme()
+	for i in ROWS + 1:
+		_icons.append([_new_icon(), _new_icon()])
 	_back = Button.new()
 	_back.text = "VOLVER"
 	_back.position = Vector2(163, 212)
@@ -105,7 +116,50 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _process(_delta: float) -> void:
+	_place_icons()
 	queue_redraw()
+
+func _new_icon() -> AvatarFrame:
+	var icon := AvatarFrame.new(ICON, ICON_ZOOM)
+	icon.visible = false
+	add_child(icon)
+	return icon
+
+## Pone los retratos de las filas que se ven (y de tu fila fija abajo, si sale) y oculta el resto.
+func _place_icons() -> void:
+	var my_index := _my_index()
+	for slot in _icons.size():
+		var p: Dictionary = {}
+		var y := FIRST_ROW_Y + slot * ROW_STEP
+		if _loading:
+			pass
+		elif slot < ROWS and slot < _shown():
+			p = _players[slot]
+		elif slot == ROWS and _sel < 0 and my_index >= ROWS:
+			p = _players[my_index]
+			y = FOOTER_Y
+		var avatar: AvatarFrame = _icons[slot][0]
+		var favorite: AvatarFrame = _icons[slot][1]
+		avatar.visible = not p.is_empty()
+		var fav := str(p.get("favorite_fighter", "")) if p.get("favorite_fighter") != null else ""
+		favorite.visible = fav != ""
+		if p.is_empty():
+			continue
+		var a: Variant = p.get("avatar")
+		avatar.set_fighter(str(a) if a != null else "")
+		avatar.position = Vector2(AVATAR_X, y - 10)
+		if fav != "":
+			favorite.set_fighter(fav)
+			favorite.position = Vector2(FAVORITE_X, y - 10)
+
+func _my_index() -> int:
+	var me := Backend.username().to_lower() if Backend.is_logged_in() else ""
+	if me == "":
+		return -1
+	for i in _players.size():
+		if str(_players[i].get("username", "")).to_lower() == me:
+			return i
+	return -1
 
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, 426, 240), HKTheme.INK)
@@ -118,16 +172,13 @@ func _draw() -> void:
 		return
 	_draw_scope_tabs()
 	HKTheme.draw_text(self, Vector2(60, 46), "#", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(90, 46), "JUGADOR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(NAME_X, 46), "JUGADOR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(230, 46), "PTS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(268, 46), "LIGA", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(312, 46), "VICT/DERR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(390, 46), "%", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var me := Backend.username().to_lower() if Backend.is_logged_in() else ""
-	var my_index := -1
-	for i in _players.size():
-		if str(_players[i].get("username", "")).to_lower() == me:
-			my_index = i
+	var my_index := _my_index()
 	var y := FIRST_ROW_Y
 	for i in _shown():
 		_draw_row(i, _players[i], y, i == my_index)
@@ -163,7 +214,7 @@ func _draw_footer(my_index: int, me: String) -> void:
 		HKTheme.draw_text(self, Vector2(0, 204), " · ".join(parts), 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	elif my_index >= ROWS:
 		# Fuera de las primeras filas: tu puesto queda fijo debajo de la lista.
-		_draw_row(my_index, _players[my_index], 204.0, true)
+		_draw_row(my_index, _players[my_index], FOOTER_Y, true)
 	elif my_index >= 0:
 		# Dentro de las filas visibles: en el hueco de abajo va lo que te falta para subir de liga.
 		var league := League.info(int(_players[my_index].get("points", 0)))
@@ -187,7 +238,7 @@ func _draw_row(i: int, p: Dictionary, y: float, mine: bool) -> void:
 	if mine:
 		draw_rect(Rect2(52, y - 9, 362, 12), Color(1, 1, 1, 0.08))
 	HKTheme.draw_text(self, Vector2(60, y), str(i + 1), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(90, y), str(p.get("username", "")).to_upper().left(12), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(NAME_X, y), str(p.get("username", "")).to_upper().left(12), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var streak := int(p.get("streak", 0))
 	if streak >= STREAK_MARK:
 		HKTheme.draw_text(self, Vector2(190, y), "x%d" % streak, 8, STREAK_COLOR, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
