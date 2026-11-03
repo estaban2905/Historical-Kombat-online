@@ -54,6 +54,7 @@ func wait_scene(scene_name: String, max_frames: int = 120) -> bool:
 func _run() -> void:
 	print("\n=== HISTORY COMBAT · PRUEBAS AUTOMÁTICAS ===")
 	_test_resources()
+	_test_profile_helpers()
 	await _test_menu_to_fight()
 	await _test_fight()
 	await _test_powers()
@@ -102,6 +103,24 @@ func _test_resources() -> void:
 				if keys1.has((e as InputEventKey).physical_keycode):
 					shared += 1
 	check(shared == 0, "P1 y P2 no comparten teclas")
+
+func _test_profile_helpers() -> void:
+	print("
+# Ligas y fechas del perfil")
+	check(League.info(1000)["name"] == "BRONCE" and League.info(1100)["name"] == "PLATA", "1000 es Bronce y 1100 es Plata")
+	check(League.info(1299)["name"] == "PLATA" and League.info(1300)["name"] == "ORO", "el límite Plata/Oro está en 1300")
+	check(League.info(1500)["name"] == "DIAMANTE" and League.info(5000)["next_name"] == "", "Diamante es la última liga")
+	check(League.info(1000)["to_next"] == 100 and is_equal_approx(League.info(1200)["progress"], 0.5), "faltan 100 para Plata y a 1200 va a la mitad hacia Oro")
+	check(League.info(-50)["progress"] == 0.0, "con puntos negativos la barra no va por debajo de 0")
+	var profile := load("res://scripts/ui/profile.gd")
+	var now := Time.get_unix_time_from_datetime_string("2026-11-02T12:00:00")
+	check(profile.format_ago("2026-11-02T11:59:30.000Z", now) == "AHORA", "hace 30 s: AHORA")
+	check(profile.format_ago("2026-11-02T11:45:00.000Z", now) == "15M", "hace 15 min: 15M")
+	check(profile.format_ago("2026-11-02T09:00:00.000Z", now) == "3H", "hace 3 h: 3H")
+	check(profile.format_ago("2026-10-31T12:00:00.000Z", now) == "2D", "hace 2 días: 2D")
+	check(profile.format_ago("2026-10-19T12:00:00.000Z", now) == "2SEM", "hace 14 días: 2SEM")
+	check(profile.format_ago("2026-08-01T12:00:00.000Z", now) == "3MES", "hace ~3 meses: 3MES")
+	check(profile.format_ago("", now) == "" and profile.format_ago("ayer", now) == "", "fecha vacía o rara: sin texto")
 
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
