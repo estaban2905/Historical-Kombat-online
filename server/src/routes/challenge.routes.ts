@@ -22,8 +22,21 @@ export async function challengeRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  app.get("/me/challenges", { schema: listChallengesSchema, preHandler: app.requireAuth }, async (req) =>
-    challenges.incoming(req.account!.id).map((c) => ({ code: c.code, from: c.fromName, expires_in: challenges.secondsLeft(c) })),
+  // Con ?wait=N (segundos), si no hay ningún reto la respuesta espera hasta N s y llega en cuanto alguien me reta:
+  // el aviso en el juego es al momento sin preguntar cada pocos segundos.
+  app.get<{ Querystring: { wait?: number } }>(
+    "/me/challenges",
+    { schema: listChallengesSchema, preHandler: app.requireAuth },
+    async (req, reply) => {
+      const me = req.account!.id;
+      const wait = req.query.wait ?? 0;
+      if (wait > 0 && challenges.incoming(me).length === 0) {
+        // Si el juego corta la conexión (cerró la pantalla), se deja de esperar.
+        const closed = new Promise<void>((resolve) => reply.raw.once("close", () => resolve()));
+        await challenges.waitForIncoming(me, wait * 1000, closed);
+      }
+      return challenges.incoming(me).map((c) => ({ code: c.code, from: c.fromName, expires_in: challenges.secondsLeft(c) }));
+    },
   );
 
   app.delete<{ Params: { code: string } }>(

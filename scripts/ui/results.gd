@@ -164,12 +164,14 @@ func _enter_challenge(code: String, rival: String) -> void:
 	Game.mode = Game.Mode.ONLINE
 	Game.goto(Game.SCENE_SELECT)
 
-## Cada pocos segundos mira si el rival ya me ha retado a la revancha.
+## Mira si el rival ya me ha retado a la revancha (con espera larga: el botón cambia en cuanto me reta).
 func _check_rematch_challenge() -> void:
 	_polling = true
-	var list := await Backend.fetch_challenges()
+	var list := await Backend.fetch_challenges(Backend.CHALLENGE_WAIT)
+	if not is_inside_tree():
+		return
 	_polling = false
-	if not is_inside_tree() or _rematch_mode != "challenge":
+	if _rematch_mode != "challenge":
 		return
 	for c in list:
 		if str(c.get("from", "")).to_lower() == Online.opponent_name.to_lower():

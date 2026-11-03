@@ -27,11 +27,12 @@ var _last_focus: Control
 var _bounce: float = 0.0
 ## Botón AMIGOS de la esquina (con sesión): avisa de las solicitudes por contestar.
 var _friends_btn: Button
-## Aviso de reto de un amigo (encima de todo) y cada cuánto se pregunta al servidor si hay alguno.
+## Aviso de reto de un amigo (encima de todo). Se pregunta al servidor con espera larga (contesta en cuanto
+## alguien me reta); CHALLENGE_POLL es lo mínimo entre una pregunta y la siguiente (si el servidor no espera).
 const CHALLENGE_POLL := 5.0
 var _challenge_box: Control
 var _challenge_until: float = 0.0
-var _poll_t: float = 0.0
+var _poll_t: float = CHALLENGE_POLL   # la primera pregunta, nada más abrir el menú
 var _polling: bool = false
 
 func _ready() -> void:
@@ -150,9 +151,11 @@ func _build_account_button() -> void:
 ## Pregunta si algún amigo me ha retado y, si es así, lo avisa.
 func _check_challenges() -> void:
 	_polling = true
-	var list := await Backend.fetch_challenges()
+	var list := await Backend.fetch_challenges(Backend.CHALLENGE_WAIT)
+	if not is_inside_tree():
+		return
 	_polling = false
-	if list.is_empty() or _challenge_box != null or not is_inside_tree():
+	if list.is_empty() or _challenge_box != null:
 		return
 	_show_challenge(list[0])
 

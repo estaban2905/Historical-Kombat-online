@@ -15,6 +15,8 @@ var session_path: String = "user://session.cfg"
 ## Copia local de la partida de Historia, una sección por cuenta ("guest" sin sesión).
 var story_path: String = "user://story_save.cfg"
 const REQUEST_TIMEOUT := 10.0
+## Cuánto se deja esperando la petición de retos (espera larga: el aviso llega al momento).
+const CHALLENGE_WAIT := 20
 ## Respuesta rápida: no se espera 10 s para saber que el servidor no está.
 const HEALTH_TIMEOUT := 4.0
 ## Se renueva el token si le quedan menos de 60 s de vida.
@@ -289,10 +291,12 @@ func create_challenge(player_name: String) -> Dictionary:
 	return {"ok": true, "code": str(r.data.get("code", "")), "expires_in": int(r.data.get("expires_in", 0)), "error": ""}
 
 ## Los retos que me han hecho ([{code, from, expires_in}]). Vacío si no hay o falla.
-func fetch_challenges() -> Array:
+## Con `wait` (segundos), si no hay ninguno el servidor espera hasta entonces y contesta en cuanto alguien me reta.
+func fetch_challenges(wait: int = 0) -> Array:
 	if not is_logged_in():
 		return []
-	var r := await _request("GET", "/me/challenges", null, true)
+	var path := "/me/challenges" + ("?wait=%d" % wait if wait > 0 else "")
+	var r := await _request("GET", path, null, true, true, REQUEST_TIMEOUT + wait)
 	return r.data if r.ok and r.data is Array else []
 
 ## Cancela mi reto o rechaza el que me hicieron.
