@@ -243,6 +243,14 @@ func _test_profile_helpers() -> void:
 	Game.p2_fighter_id = &"boudica"
 	Game.story_record_win()
 	check(not Unlocks.fighter_unlocked(&"boudica"), "fuera de la historia no se desbloquea nada")
+	# La selección de personaje consulta cada casilla en cada redibujo: no puede leer el archivo cada vez.
+	var reads_before := Unlocks.disk_reads
+	for i in 100:
+		Unlocks.fighters_unlocked()
+		Unlocks.has("fighter", "donald_trump")
+	check(Unlocks.disk_reads == reads_before, "consultar desbloqueos no vuelve a leer el archivo (%d lecturas)" % (Unlocks.disk_reads - reads_before))
+	Unlocks.add("fighter", "boudica")
+	check(Unlocks.fighter_unlocked(&"boudica") and Unlocks.disk_reads == reads_before, "lo recién desbloqueado se ve sin releer el archivo")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Unlocks.path = old_unlocks_path
 	Backend.user_id = old_user

@@ -23,12 +23,24 @@ const HIDDEN_ENDING := &"free"
 ## Para pruebas: otro archivo para no tocar los desbloqueos reales.
 static var path: String = "user://unlocks.cfg"
 
+## Última lista leída del archivo, con el archivo y el dueño a los que corresponde. La selección de
+## personaje pregunta por cada casilla en cada redibujo: sin esto parseaba el archivo decenas de veces.
+static var _cache := PackedStringArray()
+static var _cache_key := ""
+## Cuántas veces se ha leído el archivo (para las pruebas).
+static var disk_reads: int = 0
+
 ## Lo que hay en el equipo para el dueño actual: "tipo:clave" ("fighter:napoleon", "ending:repair").
 static func items() -> PackedStringArray:
-	var cfg := ConfigFile.new()
-	if cfg.load(path) != OK:
-		return PackedStringArray()
-	return PackedStringArray(cfg.get_value(_owner(), "items", PackedStringArray()))
+	var key := "%s|%s" % [path, _owner()]
+	if key != _cache_key:
+		var cfg := ConfigFile.new()
+		disk_reads += 1
+		_cache = PackedStringArray()
+		if cfg.load(path) == OK:
+			_cache = PackedStringArray(cfg.get_value(_owner(), "items", PackedStringArray()))
+		_cache_key = key
+	return _cache
 
 static func has(kind: String, key: String) -> bool:
 	return items().has("%s:%s" % [kind, key])
@@ -86,6 +98,7 @@ static func adopt_guest() -> bool:
 	cfg.set_value(_owner(), "items", list)
 	cfg.erase_section(GUEST)
 	cfg.save(path)
+	_cache_key = ""
 	return changed
 
 ## ¿Puede usarse este luchador en el modo Historia?
@@ -119,3 +132,5 @@ static func _save(list: PackedStringArray) -> void:
 	cfg.load(path)   # conserva las listas de los demás dueños
 	cfg.set_value(_owner(), "items", list)
 	cfg.save(path)
+	_cache = list
+	_cache_key = "%s|%s" % [path, _owner()]
