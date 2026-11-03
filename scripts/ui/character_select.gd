@@ -1,7 +1,8 @@
-## Selección de luchador para Versus local, Arcade y Duelo online.
+## Selección de luchador para el modo Historia, el Duelo online y el entrenamiento (y el modo de dos
+## jugadores en el mismo equipo que usan las pruebas).
 ## Rejilla de 54 casillas: las de los personajes y el resto bloqueadas ("?") como adelanto del roster.
-## En el modo Historia y el versus local, los luchadores que aún no se han ganado también salen bloqueados
-## (ver Unlocks); en el duelo online con ranking están los 50 abiertos.
+## En el modo Historia, los luchadores que aún no se han ganado también salen bloqueados (ver Unlocks);
+## en el duelo online con ranking están los 50 abiertos.
 ##   J1: A/D/W/S mover · U confirmar · J cancelar
 ##   J2: Flechas mover · Num1 (o Supr) confirmar · Num4 (o Insert) cancelar
 ##   ESC: volver al menú
@@ -52,10 +53,6 @@ func _ready() -> void:
 	_cpu = Game.is_vs_cpu() or Game.is_online()
 	confirmed[2] = _cpu
 	roster = FighterRegistry.all().duplicate()
-	# El Nexo se juega solo en el versus local y una vez visto el final oculto (con sus estadísticas normales:
-	# el refuerzo de jefe es solo del modo Historia). Ni el online ni la Historia lo ofrecen.
-	if nexo_playable():
-		roster.append(FighterRegistry.get_by_id(FighterRegistry.NEXO_ID))
 	cursor[1] = FighterRegistry.index_of(Game.p1_fighter_id)
 	cursor[2] = FighterRegistry.index_of(Game.p2_fighter_id)
 	cursor[1] = _first_unlocked(cursor[1])
@@ -81,16 +78,9 @@ func _ready() -> void:
 	# La capa de cursores y del VS va la última para quedar encima de todo.
 	move_child(_overlay, -1)
 
-## ¿Se ofrece el Nexo como luchador? Solo en el versus local y con el final oculto visto.
-static func nexo_playable() -> bool:
-	return Game.mode == Game.Mode.VERSUS and Unlocks.has("ending", str(Unlocks.HIDDEN_ENDING))
-
-## ¿Esta casilla es un luchador que todavía no se puede usar? Solo en el modo Historia y el versus local.
+## ¿Esta casilla es un luchador que todavía no se puede usar? Solo en el modo Historia.
 func _is_locked(i: int) -> bool:
-	if i >= roster.size() or not (Game.mode == Game.Mode.ARCADE or Game.mode == Game.Mode.VERSUS):
-		return false
-	# El Nexo solo está en la lista si ya se desbloqueó.
-	if roster[i].id == FighterRegistry.NEXO_ID:
+	if i >= roster.size() or Game.mode != Game.Mode.ARCADE:
 		return false
 	return not Unlocks.fighter_unlocked(roster[i].id)
 

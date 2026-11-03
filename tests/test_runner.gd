@@ -253,32 +253,28 @@ func _test_profile_helpers() -> void:
 	check(shown[Achievements.LIST.map(func(e): return e[0]).find(Achievements.HIDDEN)]["name"] == "EL TIEMPO LIBRE", "cumplido, ya se muestra")
 	check(Achievements.merge([]).size() == Achievements.LIST.size(), "sin respuesta del servidor salen todos a 0")
 
-	# El Nexo jugable
-	var nexo_path := Unlocks.path
-	var nexo_user := Backend.user_id
-	var nexo_mode := Game.mode
-	Unlocks.path = "user://unlocks_nexo_test.cfg"
+	# Lo ganado sin cuenta pasa a la cuenta
+	var guest_path := Unlocks.path
+	var guest_user := Backend.user_id
+	Unlocks.path = "user://unlocks_guest_test.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Backend.user_id = ""
-	Game.mode = Game.Mode.VERSUS
-	check(not CharacterSelect.nexo_playable(), "sin el final oculto el Nexo no se ofrece")
+	Unlocks.add("fighter", "boudica")
 	Unlocks.add("ending", "repair")
-	check(not CharacterSelect.nexo_playable(), "otro final no lo desbloquea")
-	Unlocks.add("ending", "free")
-	check(CharacterSelect.nexo_playable(), "con el final oculto visto, el Nexo se ofrece en el versus local")
-	Game.mode = Game.Mode.ONLINE
-	check(not CharacterSelect.nexo_playable(), "online nunca se ofrece")
-	Game.mode = Game.Mode.ARCADE
-	check(not CharacterSelect.nexo_playable(), "en la Historia tampoco (es el jefe final)")
-	var nexo_data := FighterRegistry.get_by_id(FighterRegistry.NEXO_ID)
-	Game.mode = Game.Mode.VERSUS
-	Game.p1_fighter_id = FighterRegistry.NEXO_ID
-	check(Game.p1_data() == nexo_data and Game.p1_data().max_health == nexo_data.max_health, "jugado por una persona usa su ficha normal, sin el refuerzo de jefe")
+	check(not Unlocks.adopt_guest(), "sin sesión no se pasa nada")
+	Backend.user_id = "cuenta-a"
+	Unlocks.add("ending", "repair")
+	check(Unlocks.adopt_guest(), "al entrar en una cuenta, lo del invitado se le pasa")
+	check(Unlocks.fighter_unlocked(&"boudica") and Unlocks.as_dicts().size() == 2, "la cuenta tiene lo suyo y lo del invitado, sin duplicar")
+	check(not Unlocks.adopt_guest(), "pasarlo otra vez no añade nada")
+	Backend.user_id = "cuenta-b"
+	Unlocks.adopt_guest()
+	check(not Unlocks.fighter_unlocked(&"boudica"), "lo del invitado va a una sola cuenta, no a todas")
+	Backend.user_id = ""
+	check(Unlocks.items().is_empty(), "el invitado queda vacío tras pasarlo")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
-	Unlocks.path = nexo_path
-	Backend.user_id = nexo_user
-	Game.mode = nexo_mode
-	Game.p1_fighter_id = &"donald_trump"
+	Unlocks.path = guest_path
+	Backend.user_id = guest_user
 
 	# Amigos
 	var friends := [
@@ -305,28 +301,20 @@ func _test_profile_helpers() -> void:
 
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
-	# La selección bloquea a quien aún no se ha ganado: esta prueba elige a Trump (el luchador por defecto),
-	# así que corre con un archivo de desbloqueos aparte donde ya está ganado.
-	var real_unlocks_path := Unlocks.path
-	Unlocks.path = "user://unlocks_runner.cfg"
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
-	Unlocks.add("fighter", "donald_trump")
 	get_tree().change_scene_to_file(Game.SCENE_MENU)
 	check(await wait_scene("MainMenu"), "el juego arranca en el menú principal")
 	var play := scene().get_node("Buttons/Play") as Button
 	check(play.has_focus(), "ARCADE tiene el foco")
-	# VERSUS LOCAL: foco y ENTER
-	(scene().get_node("Buttons/Versus") as Button).grab_focus()
-	await frames(2)
-	await tap(KEY_ENTER)
-	check(await wait_scene("CharacterSelect"), "VERSUS LOCAL abre la selección de luchador")
-	check(Game.mode == Game.Mode.VERSUS and not Game.is_vs_cpu(), "versus local: sin CPU")
+	check(scene().get_node_or_null("Buttons/Versus") == null, "el menú ya no tiene VERSUS LOCAL")
+	# Las pruebas de combate usan el modo de dos jugadores en el mismo equipo (fuera del menú).
+	Game.mode = Game.Mode.VERSUS
+	get_tree().change_scene_to_file(Game.SCENE_SELECT)
+	check(await wait_scene("CharacterSelect"), "la selección de luchador abre en el modo de dos jugadores")
+	check(not Game.is_vs_cpu(), "dos jugadores: sin CPU")
 	await frames(5)
 	await tap(KEY_U)        # P1 confirma
 	await tap(KEY_KP_1)     # P2 confirma con el numpad
 	check(await wait_scene("Fight", 240), "con ambos confirmados empieza el combate")
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
-	Unlocks.path = real_unlocks_path
 
 func rematch_text_is(text: String) -> bool:
 	var b := scene().get_node_or_null("Buttons/Rematch") as Button

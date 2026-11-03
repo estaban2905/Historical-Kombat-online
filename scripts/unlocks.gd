@@ -2,8 +2,10 @@
 ## Se guarda en el equipo (user://unlocks.cfg, una lista por cuenta y otra para el que juega sin cuenta) y,
 ## con sesión, se sincroniza con la cuenta (Backend.sync_unlocks). Desbloquear es para siempre: solo se añade.
 ##
-## Los desbloqueos de luchadores valen para el modo Historia y el versus local. El online con ranking
-## tiene los 50 abiertos (para que el plantel no desnivele el ranking): ver CharacterSelect.
+## Los desbloqueos de luchadores valen para el modo Historia. El online con ranking tiene los 50 abiertos
+## (para que el plantel no desnivele el ranking): ver CharacterSelect.
+##
+## Lo que se gana jugando sin cuenta pasa a la cuenta con la que se entre después (adopt_guest).
 class_name Unlocks
 extends RefCounted
 
@@ -66,7 +68,27 @@ static func as_dicts() -> Array:
 			out.append({"kind": parts[0], "key": parts[1]})
 	return out
 
-## ¿Puede usarse este luchador en el modo Historia o el versus local?
+## Con sesión, pasa a la cuenta lo ganado sin cuenta en este equipo y vacía la lista del invitado (así no
+## se reparte entre varias cuentas). true si la cuenta ha ganado algo nuevo. Sin sesión no hace nada.
+static func adopt_guest() -> bool:
+	if _owner() == GUEST:
+		return false
+	var cfg := ConfigFile.new()
+	if cfg.load(path) != OK or not cfg.has_section(GUEST):
+		return false
+	var guest_items := PackedStringArray(cfg.get_value(GUEST, "items", PackedStringArray()))
+	var list := PackedStringArray(cfg.get_value(_owner(), "items", PackedStringArray()))
+	var changed := false
+	for item in guest_items:
+		if not list.has(item):
+			list.append(item)
+			changed = true
+	cfg.set_value(_owner(), "items", list)
+	cfg.erase_section(GUEST)
+	cfg.save(path)
+	return changed
+
+## ¿Puede usarse este luchador en el modo Historia?
 static func fighter_unlocked(id: StringName) -> bool:
 	return STARTERS.has(id) or has("fighter", str(id))
 
@@ -87,8 +109,10 @@ static func endings_seen() -> Array[StringName]:
 	return out
 
 ## Cada cuenta (y quien juega sin cuenta) tiene su propia lista.
+const GUEST := "guest"
+
 static func _owner() -> String:
-	return Backend.user_id if Backend.user_id != "" else "guest"
+	return Backend.user_id if Backend.user_id != "" else GUEST
 
 static func _save(list: PackedStringArray) -> void:
 	var cfg := ConfigFile.new()

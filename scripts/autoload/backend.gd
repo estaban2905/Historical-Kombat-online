@@ -208,7 +208,11 @@ func push_unlocks(items: Array) -> bool:
 	return r.ok
 
 ## Une los desbloqueos del equipo con los de la cuenta (solo se añade): lo que falte en cada lado se copia al otro.
+## Lo ganado sin cuenta en este equipo se pasa antes a la cuenta.
 func sync_unlocks() -> void:
+	if not is_logged_in():
+		return
+	Unlocks.adopt_guest()
 	var remote: Variant = await fetch_unlocks()
 	if remote == null:
 		return

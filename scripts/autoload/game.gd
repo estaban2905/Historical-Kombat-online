@@ -41,6 +41,7 @@ var last_p1_rounds: int = 0
 var last_p2_rounds: int = 0
 
 # --- Modos de juego ---
+## VERSUS: dos jugadores en el mismo equipo. No está en el menú: solo lo usan las pruebas y las herramientas.
 ## TRAINING: modo entrenamiento (muñeco, vida infinita y frame data; ver training_mode.gd).
 ## ONLINE: duelo contra otra persona por internet (ver online.gd).
 enum Mode { VERSUS, ARCADE, TRAINING, ONLINE }

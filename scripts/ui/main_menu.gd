@@ -1,16 +1,15 @@
 ## Menú principal en dos niveles:
-##   arriba, grandes  MODO HISTORIA, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO y el selector DIFICULTAD < > ;
+##   arriba, grandes  MODO HISTORIA, DUELO ONLINE, ENTRENAMIENTO y el selector DIFICULTAD < > ;
 ##   abajo, en fila   PERSONAJES · CONTROLES · AJUSTES · CRÉDITOS.
-## MODO HISTORIA (1 jugador contra la CPU, de hoy al origen), VERSUS LOCAL (2 jugadores) y DUELO ONLINE
-## (contra otra persona por internet) llevan a la selección de luchador. DIFICULTAD se cambia con
-## izquierda/derecha (o pulsándolo). VERSUS LOCAL y ENTRENAMIENTO solo aparecen en el editor (desarrollo).
+## MODO HISTORIA (1 jugador contra la CPU, de hoy al origen) y DUELO ONLINE (contra otra persona por
+## internet) llevan a la selección de luchador. DIFICULTAD se cambia con izquierda/derecha (o pulsándolo).
+## ENTRENAMIENTO solo aparece en el editor (desarrollo).
 ## Un solo botón resaltado (el ratón mueve el foco) con un cursor que rebota; de fondo, un duelo
 ## entre dos luchadores al azar que cambia cada pocos segundos (MenuDuel).
 extends Control
 
 @onready var btn_continue: Button = $Buttons/Continue
 @onready var btn_play: Button = $Buttons/Play
-@onready var btn_versus: Button = $Buttons/Versus
 @onready var btn_online: Button = $Buttons/Online
 @onready var btn_training: Button = $Buttons/Training
 @onready var btn_difficulty: Button = $Buttons/Difficulty
@@ -41,7 +40,6 @@ func _ready() -> void:
 	footer.text = "v%s" % Game.VERSION
 	btn_continue.pressed.connect(_continue_story)
 	btn_play.pressed.connect(func(): _go_select(Game.Mode.ARCADE))
-	btn_versus.pressed.connect(func(): _go_select(Game.Mode.VERSUS))
 	btn_online.pressed.connect(func(): _go_select(Game.Mode.ONLINE))
 	btn_training.pressed.connect(func(): _go_select(Game.Mode.TRAINING))
 	btn_difficulty.pressed.connect(_cycle_difficulty)
@@ -51,11 +49,9 @@ func _ready() -> void:
 	btn_credits.pressed.connect(_show_credits)
 	btn_credits.text = HKTheme.fold(btn_credits.text)   # la fuente no tiene la É mayúscula
 	_refresh_difficulty()
-	# VERSUS LOCAL y ENTRENAMIENTO son herramientas de desarrollo: solo se ven al correr desde el editor.
-	var dev := OS.has_feature("editor")
-	btn_versus.visible = dev
-	btn_training.visible = dev
-	for b in [btn_continue, btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_settings, btn_credits]:
+	# ENTRENAMIENTO es una herramienta de desarrollo: solo se ve al correr desde el editor.
+	btn_training.visible = OS.has_feature("editor")
+	for b in [btn_continue, btn_play, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_settings, btn_credits]:
 		_single_highlight(b)
 	btn_difficulty.gui_input.connect(_on_difficulty_input)
 	_spawn_duel()
