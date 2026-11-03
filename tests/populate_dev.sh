@@ -20,7 +20,8 @@ cd "$(dirname "$0")/.."
 
 SERVER=""
 start_server() {   # $1 = días que se adelanta el reloj de las temporadas
-  (cd server && PORT="$PORT" LOG=false DEV_DATA_DIR="$DATA" DEV_CLOCK_OFFSET_DAYS="$1" exec node --import tsx src/dev.ts \
+  # Todas las cuentas entran desde la misma IP: sin subir el límite de intentos, el servidor las frena.
+  (cd server && PORT="$PORT" LOG=false AUTH_RATE_LIMIT_PER_MINUTE=1000 DEV_DATA_DIR="$DATA" DEV_CLOCK_OFFSET_DAYS="$1" exec node --import tsx src/dev.ts \
     >> "$LOGS/server.log" 2>&1) &
   SERVER=$!
   for _ in $(seq 1 100); do curl -sf "http://127.0.0.1:$PORT/health" > /dev/null && return 0; sleep 0.3; done
@@ -61,6 +62,9 @@ story Ana_Sim --fighter=cleopatra --wins=3 & PIDS+=($!)
 wait_all
 
 echo "# 2. Amigos: Max con Ana, Beto y Carla; Dani le pide a Max (pendiente); Max le pide a Eva (pendiente)"
+# Primero las cuentas que aún no existen (pedir amistad a quien no existe da "JUGADOR NO ENCONTRADO").
+for n in Beto_Sim Carla_Sim Dani_Sim Eva_Sim; do client "$n" 10 --duels=0 & PIDS+=($!); done
+wait_all
 client Max_Sim 11 --duels=0 --friends=Ana_Sim,Beto_Sim,Carla_Sim,Eva_Sim
 for n in Ana_Sim Beto_Sim Carla_Sim; do client "$n" 12 --duels=0 --friends=Max_Sim & PIDS+=($!); done
 client Dani_Sim 13 --duels=0 --friends=Max_Sim & PIDS+=($!)
