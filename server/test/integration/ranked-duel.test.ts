@@ -22,6 +22,7 @@ before(async () => {
     settler: new MatchService(db).settle,
     minInputs: 3,
     settleTimeoutMs: 2000,
+    stallTimeoutMs: 600,
   });
   app = await buildApp({ db, matchmaking, config: { logger: false, authRateLimitPerMinute: 1000 } });
   await app.listen({ port: 0, host: "127.0.0.1" });
@@ -239,4 +240,24 @@ test("los mensajes de un socket se procesan en orden (find y cancel seguidos)", 
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(app.matchmaking.stats().queued, 0, "el cancel no se puede adelantar al find");
   c.ws.close();
+});
+
+test("si un jugador se congela, el servidor cierra el duelo: pierde él, gana el otro y queda en el historial", async () => {
+  const x = await register("Congela_X");
+  const y = await register("Congela_Y");
+  const { ca, cb } = await startDuel(x, y);
+  // X no vuelve a enviar nada (pestaña oculta); Y sigue unos ticks adelantado y se queda esperando.
+  for (let f = 4; f < 10; f++) cb.send({ t: "input", f, m: 2 });
+  assert.deepEqual(await ca.next("timeout"), { t: "timeout", loser: 1 });
+  assert.deepEqual(await cb.next("timeout"), { t: "timeout", loser: 1 });
+  const s = await cb.next("settled");
+  assert.equal(s.ok, true);
+  assert.equal(s.reason, "forfeit");
+  assert.equal(s.delta, 16);
+  assert.equal((await me(y)).points, 1016);
+  assert.equal((await me(x)).points, 984);
+  assert.equal((await history(x))[0]?.result, "loss");
+  assert.equal((await history(y))[0]?.reason, "forfeit");
+  ca.ws.close();
+  cb.ws.close();
 });

@@ -9,6 +9,8 @@ export interface AppConfig {
   maxMessagesPerSecond: number;
   /** Cada cuánto se hace ping para detectar conexiones muertas. */
   heartbeatMs: number;
+  /** Silencio de inputs en una pelea (de los dos) tras el que se cierra el duelo y pierde quien iba por detrás. */
+  stallTimeoutMs: number;
   /** Postgres (en Railway: ${{Postgres.DATABASE_URL}}). Sin él no hay cuentas, solo emparejamiento. */
   databaseUrl: string;
   /** Orígenes que pueden llamar a la API desde un navegador (la web del juego). Vacío = cualquiera. */
@@ -34,6 +36,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     maxPayload: toInt(env["MAX_PAYLOAD"], 1024),
     maxMessagesPerSecond: toInt(env["MAX_MESSAGES_PER_SECOND"], 120),
     heartbeatMs: toInt(env["HEARTBEAT_MS"], 15_000),
+    stallTimeoutMs: toInt(env["STALL_TIMEOUT_MS"], 15_000),
     databaseUrl: env["DATABASE_URL"] ?? "",
     allowedOrigins: (env["ALLOWED_ORIGINS"] ?? "")
       .split(",")
