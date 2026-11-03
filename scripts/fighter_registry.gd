@@ -92,6 +92,13 @@ static func get_by_id(fighter_id: StringName) -> FighterData:
 			return data
 	return all()[0] if not all().is_empty() else null
 
+## true si el id es de un luchador del plantel (get_by_id y index_of devuelven el primero si no existe).
+static func has(fighter_id: StringName) -> bool:
+	for data in all():
+		if data.id == fighter_id:
+			return true
+	return false
+
 static func index_of(fighter_id: StringName) -> int:
 	var list := all()
 	for i in list.size():

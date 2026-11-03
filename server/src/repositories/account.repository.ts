@@ -12,10 +12,11 @@ interface AccountRow {
   points: number;
   wins: number;
   losses: number;
+  avatar: string | null;
   created_at: Date | string;
 }
 
-const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, created_at";
+const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, avatar, created_at";
 
 function toAccount(r: AccountRow): Account {
   return {
@@ -27,6 +28,7 @@ function toAccount(r: AccountRow): Account {
     points: r.points,
     wins: r.wins,
     losses: r.losses,
+    avatar: r.avatar,
     createdAt: new Date(r.created_at),
   };
 }
@@ -113,10 +115,15 @@ export class AccountRepository {
     );
   }
 
+  /** Cambia (o quita, con null) el avatar de la cuenta. */
+  async setAvatar(id: string, avatar: string | null): Promise<void> {
+    await this.db.query("update players set avatar = $2 where id = $1", [id, avatar]);
+  }
+
   /** Los mejores jugadores: más puntos primero, y a igualdad más victorias. */
   async ranking(limit: number): Promise<RankingEntry[]> {
     const res = await this.db.query<RankingEntry>(
-      "select username, points, wins, losses from players order by points desc, wins desc, created_at asc limit $1",
+      "select username, points, wins, losses, avatar from players order by points desc, wins desc, created_at asc limit $1",
       [limit],
     );
     return res.rows;

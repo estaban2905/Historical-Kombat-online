@@ -42,6 +42,11 @@ func is_logged_in() -> bool:
 func username() -> String:
 	return str(profile.get("username", ""))
 
+## Id del luchador elegido como retrato ("" = ninguno).
+func avatar() -> String:
+	var a: Variant = profile.get("avatar")
+	return str(a) if a != null else ""
+
 func has_saved_session() -> bool:
 	return load_saved_refresh_token() != ""
 
@@ -116,7 +121,18 @@ func fetch_profile() -> bool:
 		return true
 	return false
 
-## Los mejores jugadores: [{username, points, wins, losses}]. Vacío si falla.
+## Elige el retrato de la cuenta ("" lo quita). Devuelve true si el servidor lo guardó.
+func set_avatar(fighter_id: String) -> bool:
+	if not is_logged_in():
+		return false
+	var r := await _request("PATCH", "/me", {"avatar": fighter_id if fighter_id != "" else null}, true)
+	if r.ok and r.data is Dictionary:
+		profile = r.data
+		session_changed.emit()
+		return true
+	return false
+
+## Los mejores jugadores: [{username, points, wins, losses, avatar}]. Vacío si falla.
 func fetch_ranking(limit: int = 10) -> Array:
 	var r := await _request("GET", "/leaderboard?limit=%d" % limit, null, false)
 	return r.data if r.ok and r.data is Array else []
@@ -281,6 +297,7 @@ func _request(method: String, path: String, body: Variant, use_token: bool,
 	match method:
 		"POST": verb = HTTPClient.METHOD_POST
 		"PUT": verb = HTTPClient.METHOD_PUT
+		"PATCH": verb = HTTPClient.METHOD_PATCH
 		"DELETE": verb = HTTPClient.METHOD_DELETE
 	var err := http.request(ServerConfig.http_url() + path, headers, verb, "" if body == null else JSON.stringify(body))
 	if err != OK:
