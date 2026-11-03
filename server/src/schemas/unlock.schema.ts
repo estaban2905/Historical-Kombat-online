@@ -12,6 +12,31 @@ const unlock = {
 
 const unlockList = { type: "array", items: unlock } as const;
 
+export const getAchievementsSchema = {
+  tags: ["unlocks"],
+  summary: "Mis logros",
+  description:
+    "Se calculan al momento con mis duelos y mis desbloqueos: no se guardan, así que no hay nada que sincronizar. " +
+    "El juego pone el nombre y la descripción de cada `key`.",
+  security: [{ bearerAuth: [] }],
+  response: {
+    200: {
+      type: "array",
+      items: {
+        type: "object",
+        required: ["key", "progress", "goal", "done"],
+        properties: {
+          key: { type: "string" },
+          progress: { type: "integer", description: "Lo que llevo (nunca más que la meta)" },
+          goal: { type: "integer" },
+          done: { type: "boolean" },
+        },
+      },
+    },
+    401: errorSchema,
+  },
+} as const;
+
 export const getUnlocksSchema = {
   tags: ["unlocks"],
   summary: "Lo que he desbloqueado",

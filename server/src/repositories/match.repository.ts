@@ -63,6 +63,19 @@ const PLAYER_MATCHES = `
 export class MatchRepository {
   constructor(private readonly db: Queryable) {}
 
+  /** Todos los duelos de un jugador, del más antiguo al más reciente, vistos desde su lado. */
+  async resultsOf(playerId: string): Promise<{ result: "win" | "loss" | "draw"; myRounds: number; opponentRounds: number }[]> {
+    const res = await this.db.query<{ result: "win" | "loss" | "draw"; my_rounds: number; opponent_rounds: number }>(
+      `select case when winner = 0 then 'draw' when (winner = 1) = (p1_id = $1) then 'win' else 'loss' end as result,
+              case when p1_id = $1 then p1_rounds else p2_rounds end as my_rounds,
+              case when p1_id = $1 then p2_rounds else p1_rounds end as opponent_rounds
+         from matches where p1_id = $1 or p2_id = $1
+        order by played_at, id`,
+      [playerId],
+    );
+    return res.rows.map((r) => ({ result: r.result, myRounds: r.my_rounds, opponentRounds: r.opponent_rounds }));
+  }
+
   /** Luchador favorito y racha de cada jugador de la lista (los que no han jugado salen con null y 0). */
   async statsFor(playerIds: string[]): Promise<Map<string, PlayerStats>> {
     const out = new Map<string, PlayerStats>(playerIds.map((id) => [id, { favoriteFighter: null, streak: 0 }]));

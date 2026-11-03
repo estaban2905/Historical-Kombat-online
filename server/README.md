@@ -27,6 +27,7 @@ npm run build && npm start
 | `GET /me` · `PATCH /me` · `GET /me/matches` | Mi perfil, cambiar mi avatar (id de un luchador) y/o mi nombre (una vez cada 7 días) y mi historial de duelos (con token) |
 | `POST /me/password` | Cambia mi contraseña (pide la actual y cierra las demás sesiones; no vale para cuentas de Google) |
 | `GET /me/unlocks` · `PUT /me/unlocks` | Lo que he desbloqueado (finales vistos, luchadores ganados, cosméticos). Solo se lee y se añade: desbloquear es para siempre |
+| `GET /me/achievements` | Mis logros (clave, progreso y meta), calculados al momento con mis duelos y desbloqueos: no se guardan. El juego pone los nombres |
 | `GET /leaderboard` · `GET /players/:nombre` | El ranking (con luchador favorito y racha) y el perfil público de cualquier jugador (puesto, favorito, racha y 10 últimos duelos; sin email) |
 | `GET` · `PUT` · `DELETE /me/story` | Partida guardada del modo Historia (con token): una por cuenta, para seguir desde otro dispositivo. `GET` da 404 si no hay |
 

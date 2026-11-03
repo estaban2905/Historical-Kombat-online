@@ -99,3 +99,49 @@ test("al borrar la cuenta se borran sus desbloqueos", async () => {
   const left = await db.query("select 1 from player_unlocks where key = 'rewrite'");
   assert.equal(left.rows.length, 0);
 });
+
+// ---- Logros ----
+
+const achievements = async (t: string) =>
+  (await app.inject({ method: "GET", url: "/me/achievements", headers: auth(t) })).json() as {
+    key: string; progress: number; goal: number; done: boolean;
+  }[];
+const byKey = (list: { key: string; done: boolean; progress: number }[], key: string) => list.find((a) => a.key === key)!;
+
+test("los logros exigen sesión", async () => {
+  assert.equal((await app.inject({ method: "GET", url: "/me/achievements" })).statusCode, 401);
+});
+
+test("una cuenta nueva no tiene ningún logro", async () => {
+  const t = await register("Logro_0");
+  assert.ok((await achievements(t)).every((a) => !a.done));
+});
+
+test("los logros salen de mis duelos y de mis desbloqueos", async () => {
+  const t = await register("Logro_1");
+  const other = await register("Logro_2");
+  const ids = await db.query<{ id: string; username: string }>("select id, username from players where username in ('Logro_1', 'Logro_2')");
+  const me = ids.rows.find((r) => r.username === "Logro_1")!.id;
+  const rival = ids.rows.find((r) => r.username === "Logro_2")!.id;
+  // Cinco victorias seguidas, la primera 2-0. Los contadores de la cuenta los lleva el servidor al jugar: aquí se fijan a mano.
+  for (let i = 0; i < 5; i++) {
+    await db.query(
+      `insert into matches (p1_id, p2_id, p1_fighter, p2_fighter, winner, p1_rounds, p2_rounds, p1_delta, p2_delta, played_at)
+       values ($1, $2, 'a', 'b', 1, 2, $3, 16, -16, now() + ($4 || ' minutes')::interval)`,
+      [me, rival, i === 0 ? 0 : 1, String(i)],
+    );
+  }
+  await db.query("update players set wins = 5 where id = $1", [me]);
+  await put(t, [{ kind: "ending", key: "free" }, { kind: "fighter", key: "napoleon" }]);
+  const list = await achievements(t);
+  assert.equal(byKey(list, "first_win").done, true);
+  assert.equal(byKey(list, "streak_5").done, true);
+  assert.equal(byKey(list, "flawless").done, true);
+  assert.equal(byKey(list, "wins_10").done, false);
+  assert.equal(byKey(list, "wins_10").progress, 5);
+  assert.equal(byKey(list, "story_done").done, true);
+  assert.equal(byKey(list, "hidden_ending").done, true);
+  assert.equal(byKey(list, "all_endings").progress, 1);
+  assert.equal(byKey(list, "collector").progress, 1);
+  assert.ok((await achievements(other)).every((a) => !a.done), "el rival no hereda nada");
+});
