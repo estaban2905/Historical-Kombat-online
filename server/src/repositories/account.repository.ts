@@ -13,10 +13,11 @@ interface AccountRow {
   wins: number;
   losses: number;
   avatar: string | null;
+  username_changed_at: Date | string | null;
   created_at: Date | string;
 }
 
-const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, avatar, created_at";
+const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, avatar, username_changed_at, created_at";
 
 function toAccount(r: AccountRow): Account {
   return {
@@ -29,6 +30,7 @@ function toAccount(r: AccountRow): Account {
     wins: r.wins,
     losses: r.losses,
     avatar: r.avatar,
+    usernameChangedAt: r.username_changed_at ? new Date(r.username_changed_at) : null,
     createdAt: new Date(r.created_at),
   };
 }
@@ -113,6 +115,29 @@ export class AccountRepository {
       "update players set points = $2, wins = wins + $3, losses = losses + $4 where id = $1",
       [id, points, outcome === "win" ? 1 : 0, outcome === "loss" ? 1 : 0],
     );
+  }
+
+  /**
+   * Cambia el nombre si ya pasaron `cooldownDays` desde el último cambio. false = todavía en espera.
+   * Lanza DuplicateAccountError si otro jugador ya tiene ese nombre.
+   */
+  async rename(id: string, username: string, cooldownDays: number): Promise<boolean> {
+    try {
+      const res = await this.db.query<{ id: string }>(
+        `update players set username = $2, username_changed_at = now()
+          where id = $1 and (username_changed_at is null or username_changed_at <= now() - $3::int * interval '1 day')
+          returning id`,
+        [id, username, cooldownDays],
+      );
+      return res.rows.length > 0;
+    } catch (err) {
+      if (isUniqueViolation(err)) throw new DuplicateAccountError("username");
+      throw err;
+    }
+  }
+
+  async setPasswordHash(id: string, passwordHash: string): Promise<void> {
+    await this.db.query("update players set password_hash = $2 where id = $1", [id, passwordHash]);
   }
 
   /** Busca por nombre sin distinguir mayúsculas. */

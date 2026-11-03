@@ -157,15 +157,33 @@ export const rankingSchema = {
 export const updateMeSchema = {
   tags: ["profile"],
   summary: "Editar mi perfil",
-  description: "Por ahora solo el avatar: el id de un luchador, o null para quitarlo.",
+  description:
+    "Avatar (el id de un luchador, o null para quitarlo) y/o nombre. El nombre solo se puede cambiar " +
+    "una vez cada 7 días (429 `username_cooldown`) y no puede estar en uso (409 `username_taken`).",
   security: [{ bearerAuth: [] }],
   body: {
     type: "object",
-    required: ["avatar"],
+    minProperties: 1,
     additionalProperties: false,
-    properties: { avatar: { type: ["string", "null"], pattern: "^[a-z0-9_]{1,40}$" } },
+    properties: { avatar: { type: ["string", "null"], pattern: "^[a-z0-9_]{1,40}$" }, username },
   },
-  response: { 200: profileSchema, 400: errors[400], 401: errors[401] },
+  response: { 200: profileSchema, 400: errors[400], 401: errors[401], 409: errors[409], 429: errors[429] },
+} as const;
+
+export const changePasswordSchema = {
+  tags: ["profile"],
+  summary: "Cambiar mi contraseña",
+  description:
+    "Pide la actual. Cierra las demás sesiones de la cuenta. Las cuentas de Google no tienen contraseña " +
+    "(400 `no_password`). 403 `wrong_password` si la actual no coincide.",
+  security: [{ bearerAuth: [] }],
+  body: {
+    type: "object",
+    required: ["current_password", "new_password"],
+    additionalProperties: false,
+    properties: { current_password: { type: "string", minLength: 1, maxLength: 128 }, new_password: password },
+  },
+  response: { 204: { type: "null" }, 400: errors[400], 401: errors[401], 403: errorSchema, 429: errors[429] },
 } as const;
 
 const matchItem = {

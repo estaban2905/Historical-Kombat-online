@@ -11,6 +11,8 @@ export interface Account {
   losses: number;
   /** Id del luchador elegido como retrato, o null. */
   avatar: string | null;
+  /** Última vez que cambió su nombre, o null si nunca. */
+  usernameChangedAt: Date | null;
   createdAt: Date;
 }
 

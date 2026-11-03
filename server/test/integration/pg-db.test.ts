@@ -31,7 +31,7 @@ after(async () => {
 });
 
 test("PgDb: migra y consulta con parámetros", async () => {
-  assert.deepEqual(await migrate(db), ["001_init.sql", "002_google.sql", "003_story_saves.sql", "004_avatar.sql"]);
+  assert.deepEqual(await migrate(db), ["001_init.sql", "002_google.sql", "003_story_saves.sql", "004_avatar.sql", "005_username_change.sql"]);
   assert.deepEqual(await migrate(db), []);
   const res = await db.query<{ n: number }>("select $1::int + 1 as n", [41]);
   assert.equal(res.rows[0]!.n, 42);

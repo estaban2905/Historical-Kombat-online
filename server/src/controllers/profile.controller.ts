@@ -1,8 +1,10 @@
 import type { FastifyRequest } from "fastify";
 import { AppError } from "../errors.js";
+import { bearerToken } from "../plugins/auth.js";
 import { toProfile } from "../models/account.js";
 import type { AccountRepository } from "../repositories/account.repository.js";
 import type { MatchHistoryEntry, MatchRepository } from "../repositories/match.repository.js";
+import type { AuthService } from "../services/auth.service.js";
 
 /** Un duelo en el formato público (snake_case). */
 const publicMatch = (m: MatchHistoryEntry) => ({
@@ -18,16 +20,31 @@ const publicMatch = (m: MatchHistoryEntry) => ({
   reason: m.reason,
 });
 
-export const profileController = (accounts: AccountRepository, matches: MatchRepository) => ({
+export interface UpdateMeBody {
+  avatar?: string | null;
+  username?: string;
+}
+
+export const profileController = (accounts: AccountRepository, matches: MatchRepository, auth: AuthService) => ({
   /** requireAuth ya dejó la cuenta en la petición. */
   me(req: FastifyRequest) {
     return toProfile(req.account!);
   },
 
-  /** Cambia el avatar y devuelve el perfil ya actualizado. */
-  async updateMe(req: FastifyRequest<{ Body: { avatar: string | null } }>) {
-    await accounts.setAvatar(req.account!.id, req.body.avatar);
-    return toProfile({ ...req.account!, avatar: req.body.avatar });
+  /** Cambia el avatar y/o el nombre, y devuelve el perfil ya actualizado. */
+  async updateMe(req: FastifyRequest<{ Body: UpdateMeBody }>) {
+    let account = req.account!;
+    // El nombre primero: si falla (ocupado o en espera) no se cambia nada del avatar.
+    if (req.body.username !== undefined) account = await auth.rename(account, req.body.username);
+    if (req.body.avatar !== undefined) {
+      await accounts.setAvatar(account.id, req.body.avatar);
+      account = { ...account, avatar: req.body.avatar };
+    }
+    return toProfile(account);
+  },
+
+  async changePassword(req: FastifyRequest<{ Body: { current_password: string; new_password: string } }>) {
+    await auth.changePassword(req.account!, bearerToken(req)!, req.body.current_password, req.body.new_password);
   },
 
   /** Mis últimos duelos, en el formato público (snake_case). */
