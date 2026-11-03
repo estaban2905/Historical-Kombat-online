@@ -1,6 +1,7 @@
 ## Selección de luchador para Versus local, Arcade y Duelo online.
-## Rejilla de 42 casillas: las de los personajes disponibles y el resto
-## bloqueadas ("?") como adelanto del roster completo.
+## Rejilla de 54 casillas: las de los personajes y el resto bloqueadas ("?") como adelanto del roster.
+## En el modo Historia y el versus local, los luchadores que aún no se han ganado también salen bloqueados
+## (ver Unlocks); en el duelo online con ranking están los 50 abiertos.
 ##   J1: A/D/W/S mover · U confirmar · J cancelar
 ##   J2: Flechas mover · Num1 (o Supr) confirmar · Num4 (o Insert) cancelar
 ##   ESC: volver al menú
@@ -52,8 +53,12 @@ func _ready() -> void:
 	roster = FighterRegistry.all()
 	cursor[1] = FighterRegistry.index_of(Game.p1_fighter_id)
 	cursor[2] = FighterRegistry.index_of(Game.p2_fighter_id)
+	cursor[1] = _first_unlocked(cursor[1])
+	cursor[2] = _first_unlocked(cursor[2])
 	if roster.size() > 1 and cursor[1] == cursor[2]:
-		cursor[2] = (cursor[1] + 1) % roster.size()
+		cursor[2] = _first_unlocked((cursor[1] + 1) % roster.size())
+		if cursor[2] == cursor[1]:
+			cursor[2] = (cursor[1] + 1) % roster.size()
 	_load_stage(roster[cursor[1]].id if cursor[1] < roster.size() else roster[0].id)
 	_build_cells()
 	_overlay = Control.new()
@@ -71,8 +76,24 @@ func _ready() -> void:
 	# La capa de cursores y del VS va la última para quedar encima de todo.
 	move_child(_overlay, -1)
 
+## ¿Esta casilla es un luchador que todavía no se puede usar? Solo en el modo Historia y el versus local.
+func _is_locked(i: int) -> bool:
+	if i >= roster.size() or not (Game.mode == Game.Mode.ARCADE or Game.mode == Game.Mode.VERSUS):
+		return false
+	return not Unlocks.fighter_unlocked(roster[i].id)
+
+## La primera casilla desde `from` (dando la vuelta) con un luchador utilizable.
+func _first_unlocked(from: int) -> int:
+	for k in roster.size():
+		var i := (from + k) % roster.size()
+		if not _is_locked(i):
+			return i
+	return from
+
 func _build_cells() -> void:
 	for i in roster.size():
+		if _is_locked(i):
+			continue
 		var cell := Control.new()
 		cell.clip_contents = true
 		cell.position = _cell_pos(i) + Vector2(1, 1)
@@ -93,7 +114,7 @@ func _cell_pos(i: int) -> Vector2:
 
 func _refresh_preview(p: int) -> void:
 	var r: FighterRenderer = _previews[p]
-	if cursor[p] < roster.size():
+	if cursor[p] < roster.size() and not _is_locked(cursor[p]):
 		r.visible = true
 		r.setup(roster[cursor[p]])
 		r.pose_name = &"victory" if confirmed[p] else &"idle"
@@ -162,12 +183,12 @@ func _handle_player(p: int) -> void:
 		if moved:
 			cursor[p] = c
 			Sfx.play(&"select")
-			if c < roster.size():
+			if c < roster.size() and not _is_locked(c):
 				_stage_pending = roster[c].id
 				_stage_wait = STAGE_DELAY
 			_refresh_preview(p)
 		if inp.just_pressed(&"punch_light"):
-			if cursor[p] < roster.size():
+			if cursor[p] < roster.size() and not _is_locked(cursor[p]):
 				confirmed[p] = true
 				Sfx.play(&"confirm")
 				_refresh_preview(p)
@@ -205,6 +226,9 @@ func _draw() -> void:
 	draw_rect(Rect2(0, 0, 426, 22), SHADE)
 	draw_rect(Rect2(0, 220, 426, 20), SHADE)
 	HKTheme.draw_text(self, Vector2(0, 15), "ELIGE TU LUCHADOR", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
+	if _any_locked():
+		HKTheme.draw_text(self, Vector2(0, 15), "%d/%d" % [Unlocks.fighters_unlocked(), roster.size()], 8,
+			HKTheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, 420, 1)
 	# Rejilla (fondo continuo para que no se vea el escenario entre casillas)
 	var grid := Rect2(GRID_ORIGIN - Vector2(2, 2), CELL * Vector2(COLS, ROWS) + Vector2(3, 3))
 	draw_rect(grid, HKTheme.INK)
@@ -212,8 +236,12 @@ func _draw() -> void:
 		var pos := _cell_pos(i)
 		var r := Rect2(pos, CELL - Vector2(1, 1))
 		draw_rect(r, HKTheme.INK)
-		if i < roster.size():
+		if i < roster.size() and not _is_locked(i):
 			draw_rect(r.grow(-1), Color("4a2a38"))
+		elif i < roster.size():
+			# Luchador por ganar: casilla oscura con el "?" más claro que las vacías.
+			draw_rect(r.grow(-1), Color("26162c"))
+			HKTheme.draw_text(self, pos + Vector2(0, 14), "?", 8, Color("8a6a7a"), HORIZONTAL_ALIGNMENT_CENTER, CELL.x - 1, 0)
 		else:
 			draw_rect(r.grow(-1), Color("1c1220"))
 			HKTheme.draw_text(self, pos + Vector2(0, 14), "?", 8, Color("4a3a48"), HORIZONTAL_ALIGNMENT_CENTER, CELL.x - 1, 0)
@@ -240,7 +268,9 @@ func _draw_plate(p: int) -> void:
 		lines = [["MODO HISTORIA", HKTheme.PAPER], [Game.difficulty_name(), HKTheme.GOLD]]
 	else:
 		var idx: int = cursor[p]
-		if idx < roster.size():
+		if idx < roster.size() and _is_locked(idx):
+			lines = [["BLOQUEADO", HKTheme.MUTED], ["VENCELO EN", HKTheme.PAPER], ["EL MODO", HKTheme.PAPER], ["HISTORIA", HKTheme.PAPER]]
+		elif idx < roster.size():
 			var d := roster[idx]
 			lines.append([d.short_name, HKTheme.PAPER])
 			for l in _wrap(d.country.to_upper(), PLATE_W - 8.0):
@@ -263,7 +293,7 @@ func _draw_plate(p: int) -> void:
 func _draw_quotes(top: float) -> void:
 	var entries: Array = []
 	for p in ([1] if _cpu else [1, 2]):
-		if cursor[p] < roster.size():
+		if cursor[p] < roster.size() and not _is_locked(cursor[p]):
 			var quote := "\"%s\"" % roster[cursor[p]].intro_quote
 			entries.append([_wrap(quote, 160.0), HKTheme.PAPER if p == 1 else Color("b8d0f0")])
 	if entries.is_empty():
@@ -301,6 +331,12 @@ func _wrap_lines(text: String, width: float) -> PackedStringArray:
 	if not line.is_empty():
 		lines.append(line)
 	return lines
+
+func _any_locked() -> bool:
+	for i in roster.size():
+		if _is_locked(i):
+			return true
+	return false
 
 func _draw_cursors() -> void:
 	# El VS va en esta capa para quedar por encima de la rejilla y de los retratos.
