@@ -87,6 +87,67 @@ test("borrar elimina la partida (y se puede repetir sin error)", async () => {
   assert.equal((await call("DELETE", t)).statusCode, 204);
 });
 
+const list = (token: string) =>
+  app.inject({ method: "GET", url: "/me/stories", headers: { authorization: `Bearer ${token}` } });
+const del = (token: string, query: string) =>
+  app.inject({ method: "DELETE", url: `/me/story${query}`, headers: { authorization: `Bearer ${token}` } });
+
+test("una partida por luchador: empezar con otro no borra la anterior", async () => {
+  const t = await register("Story_7");
+  await call("PUT", t, save({ fighter: "nikola_tesla", stage: 6, saved_at: 100 }));
+  await call("PUT", t, save({ fighter: "napoleon", stage: 2, saved_at: 200 }));
+  const all = (await list(t)).json();
+  assert.deepEqual(
+    all.map((s: { fighter: string; stage: number }) => [s.fighter, s.stage]),
+    [
+      ["napoleon", 2],
+      ["nikola_tesla", 6],
+    ],
+    "la más reciente primero",
+  );
+  // GET /me/story sigue dando la más reciente.
+  assert.equal((await call("GET", t)).json().fighter, "napoleon");
+});
+
+test("guardar a un luchador solo reemplaza la partida de ese luchador", async () => {
+  const t = await register("Story_8");
+  await call("PUT", t, save({ fighter: "nikola_tesla", stage: 6, saved_at: 100 }));
+  await call("PUT", t, save({ fighter: "napoleon", stage: 2, saved_at: 150 }));
+  await call("PUT", t, save({ fighter: "nikola_tesla", stage: 7, saved_at: 300 }));
+  const all = (await list(t)).json();
+  assert.equal(all.length, 2);
+  assert.equal(all[0].fighter, "nikola_tesla");
+  assert.equal(all[0].stage, 7);
+  assert.equal(all[1].stage, 2);
+});
+
+test("borrar con luchador quita solo esa partida; sin luchador, la más reciente", async () => {
+  const t = await register("Story_9");
+  await call("PUT", t, save({ fighter: "nikola_tesla", saved_at: 100 }));
+  await call("PUT", t, save({ fighter: "napoleon", saved_at: 200 }));
+  await call("PUT", t, save({ fighter: "cleopatra", saved_at: 300 }));
+  assert.equal((await del(t, "?fighter=nikola_tesla")).statusCode, 204);
+  assert.deepEqual(
+    (await list(t)).json().map((s: { fighter: string }) => s.fighter),
+    ["cleopatra", "napoleon"],
+  );
+  assert.equal((await del(t, "")).statusCode, 204);
+  assert.deepEqual(
+    (await list(t)).json().map((s: { fighter: string }) => s.fighter),
+    ["napoleon"],
+  );
+  assert.equal((await del(t, "?fighter=Mal Id!")).statusCode, 400);
+});
+
+test("una cuenta sin partidas ve una lista vacía y otra cuenta no ve las ajenas", async () => {
+  const a = await register("Story_10");
+  const b = await register("Story_11");
+  assert.deepEqual((await list(a)).json(), []);
+  await call("PUT", a, save());
+  assert.deepEqual((await list(b)).json(), []);
+  assert.equal((await list("")).statusCode, 401);
+});
+
 test("rechaza datos no válidos", async () => {
   const t = await register("Story_6");
   for (const bad of [

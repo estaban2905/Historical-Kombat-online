@@ -317,8 +317,8 @@ func _continue_story() -> void:
 		Game.goto(Game.SCENE_STORY)
 	else:
 		# La partida ya no sirve (versión distinta del juego): se descarta y se vuelve a empezar.
-		Backend.clear_story()
-		_show_saved_story({})
+		await Backend.clear_story(str(save.get("fighter", "")))
+		_show_saved_story(await Backend.load_story())
 
 func _go_select(mode: Game.Mode) -> void:
 	Game.mode = mode

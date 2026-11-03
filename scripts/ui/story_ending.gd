@@ -123,7 +123,7 @@ func _next() -> void:
 func _choose(ending: StringName) -> void:
 	Sfx.play(&"fight")
 	# La decisión cierra la historia: ya no hay partida que retomar.
-	Backend.clear_story()
+	Backend.clear_story(str(Game.p1_fighter_id))
 	Unlocks.add("ending", str(ending))
 	Cosmetics.grant_ending(ending)
 	_ending = ending

@@ -47,6 +47,15 @@ var _stage_wait: float = 0.0
 var _drawn_key: Array = []
 var _drawn_blink: int = -1
 var _wrap_cache: Dictionary = {}
+## Historia: las partidas guardadas por id de luchador. Se leen del equipo al abrir y, con sesión, se
+## completan con las de la cuenta; hasta entonces no se sabe si el luchador elegido ya tiene una.
+var _saves: Dictionary = {}
+var _saves_ready: bool = false
+signal saves_loaded
+## Mientras se espera a las partidas o se muestra el aviso, la selección no atiende los mandos.
+var _asking: bool = false
+var _dialog: Control
+var _dialog_first: Button
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -77,6 +86,22 @@ func _ready() -> void:
 			r.visible = false
 	# La capa de cursores y del VS va la última para quedar encima de todo.
 	move_child(_overlay, -1)
+	if _is_story():
+		_load_saves()
+
+## Modo Historia (contra la CPU, no el duelo online).
+func _is_story() -> bool:
+	return _cpu and not Game.is_online()
+
+func _load_saves() -> void:
+	_saves = Backend.stories_local()
+	if Backend.is_logged_in():
+		_saves = await Backend.load_stories()
+	if not is_inside_tree():
+		return
+	_saves_ready = true
+	_drawn_key = []   # que se redibuje con las marcas de partida guardada
+	saves_loaded.emit()
 
 ## ¿Esta casilla es un luchador que todavía no se puede usar? Solo en el modo Historia.
 func _is_locked(i: int) -> bool:
@@ -151,7 +176,7 @@ func _load_stage(fighter_id: StringName) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	if not _starting:
+	if not _starting and not _asking:
 		for p in ([1] if _cpu else [1, 2]):
 			_handle_player(p)
 	if _stage_pending != &"":
@@ -204,25 +229,105 @@ func _handle_player(p: int) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel") and not _starting:
-		Game.drop_challenge()
-		Game.goto(Game.SCENE_MENU)
+		if _dialog:
+			_cancel_dialog()
+		else:
+			Game.drop_challenge()
+			Game.goto(Game.SCENE_MENU)
 		get_viewport().set_input_as_handled()
 
 func _check_start() -> void:
-	if confirmed[1] and confirmed[2] and not _starting:
-		_starting = true
-		if Game.is_online():
-			Game.p1_fighter_id = roster[cursor[1]].id
-		elif _cpu:
+	if not (confirmed[1] and confirmed[2]) or _starting or _asking:
+		return
+	if _is_story():
+		_asking = true
+		if not _saves_ready:
+			await saves_loaded
+		var save: Dictionary = _saves.get(str(roster[cursor[1]].id), {})
+		if not save.is_empty():
+			# Esta partida se perdería al empezar de nuevo con el mismo luchador: se pregunta primero.
+			_open_dialog(roster[cursor[1]], save)
+			return
+	_begin()
+
+## Arranca el modo con lo elegido. Con `resume` (Historia) retoma esa partida en vez de empezar otra.
+func _begin(resume: Dictionary = {}) -> void:
+	_asking = false
+	_starting = true
+	if Game.is_online():
+		Game.p1_fighter_id = roster[cursor[1]].id
+	elif _cpu:
+		# Si la partida guardada ya no vale (otra versión del juego), se empieza una nueva.
+		if resume.is_empty() or not Game.story_resume(resume):
 			Game.start_story(roster[cursor[1]].id)
 			Game.story_autosave()
-		else:
-			Game.p1_fighter_id = roster[cursor[1]].id
-			Game.p2_fighter_id = roster[cursor[2]].id
-		Sfx.play(&"fight")
-		await get_tree().create_timer(1.0).timeout
-		if is_inside_tree():
-			Game.goto(Game.SCENE_LOBBY if Game.is_online() else (Game.SCENE_STORY if _cpu else Game.SCENE_FIGHT))
+	else:
+		Game.p1_fighter_id = roster[cursor[1]].id
+		Game.p2_fighter_id = roster[cursor[2]].id
+	Sfx.play(&"fight")
+	await get_tree().create_timer(1.0).timeout
+	if is_inside_tree():
+		Game.goto(Game.SCENE_LOBBY if Game.is_online() else (Game.SCENE_STORY if _cpu else Game.SCENE_FIGHT))
+
+## Aviso de que el luchador elegido ya tiene una partida: continuarla, empezar de nuevo (la pierde) o volver.
+func _open_dialog(d: FighterData, save: Dictionary) -> void:
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.7)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.theme = HKTheme.theme()
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.add_child(center)
+	var panel := PanelContainer.new()
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 5)
+	panel.add_child(box)
+	var diff := int(save["difficulty"])
+	var lines := [
+		["PARTIDA GUARDADA", 16, HKTheme.GOLD],
+		[d.short_name.to_upper(), 8, HKTheme.PAPER],
+		["COMBATE %d/%d · %s" % [int(save["stage"]) + 1, FighterRegistry.all().size(),
+			Game.DIFFICULTY_NAMES[diff] if diff >= 0 and diff < Game.DIFFICULTY_NAMES.size() else "?"], 8, HKTheme.PAPER],
+		["EMPEZAR DE NUEVO LA BORRA", 8, HKTheme.MUTED.lightened(0.25)],
+	]
+	for l in lines:
+		var label := Label.new()
+		label.text = HKTheme.fold(l[0])
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", l[1])
+		label.add_theme_color_override("font_color", l[2])
+		box.add_child(label)
+	_dialog_first = _dialog_button(box, "CONTINUAR PARTIDA", func(): _close_dialog(); _begin(save))
+	_dialog_button(box, "EMPEZAR DE NUEVO", func(): _close_dialog(); _begin())
+	_dialog_button(box, "CANCELAR", _cancel_dialog)
+	_dialog = dim
+	add_child(dim)
+	_dialog_first.grab_focus()
+
+func _dialog_button(parent: Control, text: String, cb: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(170, 16)
+	b.pressed.connect(func():
+		Sfx.play(&"confirm")
+		cb.call())
+	b.focus_entered.connect(func(): Sfx.play(&"select"))
+	parent.add_child(b)
+	return b
+
+func _close_dialog() -> void:
+	if _dialog:
+		_dialog.queue_free()
+		_dialog = null
+
+## Vuelve a la selección sin tocar la partida: el luchador queda sin confirmar para elegir otro.
+func _cancel_dialog() -> void:
+	_close_dialog()
+	_asking = false
+	confirmed[1] = false
+	Sfx.play(&"select")
+	_refresh_preview(1)
 
 func _draw() -> void:
 	# Franjas oscuras arriba y abajo para que el título y la ayuda se lean sobre cualquier escenario.
@@ -280,6 +385,8 @@ func _draw_plate(p: int) -> void:
 				lines.append([l, HKTheme.GOLD])
 			for l in _wrap(d.era, PLATE_W - 8.0):
 				lines.append([l, HKTheme.MUTED.lightened(0.25)])
+			if _is_story() and _saves.has(str(d.id)):
+				lines.append(["GUARDADA · COMBATE %d" % (int(_saves[str(d.id)]["stage"]) + 1), Color("60d060")])
 		else:
 			lines.append(["BLOQUEADO", HKTheme.MUTED])
 	var box := Rect2(x0, PLATE_Y, PLATE_W, 6.0 + (lines.size() + 1) * 10.0)
