@@ -1,7 +1,7 @@
 ## Rejilla con todos los luchadores y una casilla "?" delante. Según Game.picker_purpose sirve para:
 ##   "avatar"   elegir el retrato de la cuenta ("?" lo quita); se guarda en el servidor y vuelve al perfil.
 ##   "ranking"  filtrar el ranking por luchador ("?" = todos); vuelve al ranking.
-## Flechas para moverse, ENTER para elegir, ESC para volver sin cambiar nada.
+## Flechas o ratón para moverse, ENTER o clic para elegir, ESC o VOLVER para volver sin cambiar nada.
 extends Control
 
 const COLS := 9
@@ -14,6 +14,7 @@ var _saving: bool = false
 var _error_until: float = 0.0
 var _overlay: Control
 var _preview: AvatarFrame
+var _back: BackButton
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -28,6 +29,7 @@ func _ready() -> void:
 		cell.position = _cell_pos(i)
 		cell.set_fighter(_ids[i])
 		add_child(cell)
+	_back = BackButton.add_to(self, func(): if not _saving: Game.goto(_back_scene()))
 	_preview = AvatarFrame.new(Vector2(48, 48))
 	_preview.position = Vector2(46, 56)
 	add_child(_preview)
@@ -48,6 +50,31 @@ func _back_scene() -> String:
 
 func _cell_pos(i: int) -> Vector2:
 	return ORIGIN + Vector2(i % COLS, i / COLS) * CELL
+
+## La casilla bajo `pos` (-1 si no hay ninguna).
+func _cell_at(pos: Vector2) -> int:
+	var rel := pos - ORIGIN
+	if rel.x < 0.0 or rel.y < 0.0 or rel.x >= CELL.x * COLS:
+		return -1
+	var i := int(rel.y / CELL.y) * COLS + int(rel.x / CELL.x)
+	return i if i < _ids.size() else -1
+
+## Ratón: pasar por una casilla la señala y un clic izquierdo la elige.
+func _gui_input(event: InputEvent) -> void:
+	if _saving:
+		return
+	var click := event as InputEventMouseButton
+	if not event is InputEventMouseMotion and (click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT):
+		return
+	var c := _cell_at((event as InputEventMouse).position)
+	if c < 0:
+		return
+	if c != _cursor:
+		_cursor = c
+		_preview.set_fighter(_ids[_cursor])
+		Sfx.play(&"select")
+	if click != null:
+		_save()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _saving:
@@ -109,7 +136,7 @@ func _draw() -> void:
 	elif Time.get_ticks_msec() / 1000.0 < _error_until:
 		HKTheme.draw_text(self, Vector2(0, 208), "NO SE PUDO GUARDAR", 8, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	else:
-		HKTheme.draw_text(self, Vector2(0, 218), "ENTER: ELEGIR   ESC: VOLVER", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+		HKTheme.draw_text(self, Vector2(0, 218), "ENTER O CLIC: ELEGIR   ESC: VOLVER", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 
 func _draw_cursor() -> void:
 	var blink := int(Time.get_ticks_msec() / 160.0) % 2 == 0

@@ -35,11 +35,10 @@ func _ready() -> void:
 	if not Backend.is_logged_in():
 		Game.goto.call_deferred(Game.SCENE_MENU)
 		return
-	_back = _button("VOLVER", 14, 70)
+	_back = BackButton.add_to(self, func(): Game.goto(Game.SCENE_MENU))
 	_achievements_btn = _button("LOGROS", 90, 70)
 	_edit_btn = _button("EDITAR PERFIL", 166, 120)
 	_logout = _button(HKTheme.fold("CERRAR SESIÓN"), 292, 120)
-	_back.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
 	_edit_btn.pressed.connect(func(): Game.goto(Game.SCENE_EDIT_PROFILE))
 	_achievements_btn.pressed.connect(func(): Game.goto(Game.SCENE_ACHIEVEMENTS))
 	_logout.pressed.connect(_on_logout)
@@ -48,7 +47,7 @@ func _ready() -> void:
 	add_child(_portrait)
 	_portrait.set_fighter(Backend.avatar())
 	_portrait.set_frame(Backend.frame())
-	for b in [_back, _achievements_btn, _edit_btn, _logout]:
+	for b in [_achievements_btn, _edit_btn, _logout]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	_build_tabs()
@@ -148,7 +147,7 @@ func _continue_story() -> void:
 func _button(text: String, x: float, width: float = 100.0) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.position = Vector2(x, 212)
+	b.position = Vector2(x, BackButton.POS.y)
 	b.custom_minimum_size = Vector2(width, 14)
 	add_child(b)
 	# Con el tema ya aplicado: si se fija antes, el botón nace con la altura de la fuente por defecto.

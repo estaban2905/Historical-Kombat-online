@@ -30,13 +30,7 @@ func _ready() -> void:
 	bg.show_behind_parent = true
 	add_child(bg)
 	_build()
-	_btn_back = Button.new()
-	_btn_back.text = "VOLVER"
-	_btn_back.position = Vector2(176, 222)
-	_btn_back.custom_minimum_size = Vector2(74, 16)
-	_btn_back.pressed.connect(_close)
-	_btn_back.focus_entered.connect(func(): Sfx.play(&"select"))
-	add_child(_btn_back)
+	_btn_back = BackButton.add_to(self, _close)
 	_btn_back.grab_focus()
 
 func _build() -> void:
@@ -104,11 +98,11 @@ func _row_height(r: Array) -> float:
 	return ROW_H
 
 func _close() -> void:
-	Sfx.play(&"confirm")
 	Game.goto(Game.SCENE_MENU)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel") and not Game.is_changing_scene():
+		Sfx.play(&"confirm")
 		_close()
 		get_viewport().set_input_as_handled()
 

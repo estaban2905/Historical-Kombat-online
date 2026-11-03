@@ -108,12 +108,13 @@ static func theme() -> Theme:
 	t.default_font = font()
 	t.default_font_size = 8
 	t.set_stylebox("normal", "Button", _box(Color(0.12, 0.06, 0.1, 0.85), Color("4a2a30")))
-	t.set_stylebox("hover", "Button", _box(Color(0.35, 0.08, 0.1, 0.95), GOLD))
+	# El ratón mueve el foco (ver Game._on_node_added): hover igual que normal, así nunca hay dos botones resaltados.
+	t.set_stylebox("hover", "Button", _box(Color(0.12, 0.06, 0.1, 0.85), Color("4a2a30")))
 	t.set_stylebox("focus", "Button", _box(Color(0.45, 0.1, 0.1, 0.95), GOLD))
 	t.set_stylebox("pressed", "Button", _box(Color(0.6, 0.15, 0.1, 1), PAPER))
 	t.set_stylebox("disabled", "Button", _box(Color(0.08, 0.06, 0.08, 0.7), Color("2a2026")))
 	t.set_color("font_color", "Button", PAPER)
-	t.set_color("font_hover_color", "Button", GOLD)
+	t.set_color("font_hover_color", "Button", PAPER)
 	t.set_color("font_focus_color", "Button", GOLD)
 	t.set_color("font_pressed_color", "Button", Color.WHITE)
 	t.set_color("font_disabled_color", "Button", Color("5a4e50"))

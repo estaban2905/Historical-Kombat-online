@@ -5,7 +5,7 @@
 extends Control
 
 const SHOWN_MATCHES := 7
-const BUTTON_Y := 212.0
+const BUTTON_Y := 222.0
 
 var _data: Dictionary = {}
 var _loading: bool = true
@@ -17,8 +17,7 @@ var _portrait: AvatarFrame
 
 func _ready() -> void:
 	theme = HKTheme.theme()
-	_back = _make_button("VOLVER")
-	_back.pressed.connect(_go_back)
+	_back = BackButton.add_to(self, _go_back)
 	_layout_buttons()
 	_back.grab_focus()
 	_portrait = AvatarFrame.new(Vector2(40, 40))
@@ -68,16 +67,15 @@ func _refresh_actions() -> void:
 		_actions.append(b)
 	_layout_buttons()
 
-## VOLVER y las acciones en una fila centrada abajo, cada botón del ancho de su texto.
+## Las acciones en una fila centrada abajo (VOLVER va aparte, siempre en su esquina), cada botón del ancho
+## de su texto.
 func _layout_buttons() -> void:
-	var all: Array[Button] = [_back]
-	all.append_array(_actions)
 	var total := 0.0
-	for b in all:
+	for b in _actions:
 		total += maxf(HKTheme.text_width(b.text, 8) + 18.0, 70.0)
-	total += 6.0 * (all.size() - 1)
-	var x := (426.0 - total) * 0.5
-	for b in all:
+	total += 6.0 * maxi(_actions.size() - 1, 0)
+	var x := maxf((426.0 - total) * 0.5, BackButton.RIGHT_EDGE)
+	for b in _actions:
 		var w := maxf(HKTheme.text_width(b.text, 8) + 18.0, 70.0)
 		b.custom_minimum_size = Vector2(w, 14)
 		b.position = Vector2(x, BUTTON_Y)

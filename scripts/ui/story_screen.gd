@@ -4,7 +4,7 @@
 ##            rombo = jefe de la época, "?" = el Nexo, el combate final.
 ##   Centro   tu luchador y el rival sobre el escenario del rival, con su nombre y época.
 ##   Al empezar un capítulo nuevo se muestra primero su tarjeta de título.
-## COMBATIR (o ENTER) empieza el combate; ESC vuelve al menú.
+## COMBATIR (o ENTER) empieza el combate; ESC o VOLVER regresa a la selección de luchador (o al menú).
 extends Control
 
 const SHADE := Color(0.05, 0.02, 0.07, 0.78)
@@ -25,6 +25,7 @@ var _stage: Stage
 var _t: float = 0.0
 var _card: bool = false
 var _btn: Button
+var _back: BackButton
 ## Capa superior para la tarjeta de capítulo (debe tapar también a los luchadores).
 var _overlay: Control
 ## Animación en curso (mini-intro del Nexo y/o arranque de la época); mientras existe, la tarjeta
@@ -48,6 +49,7 @@ func _ready() -> void:
 		Game.goto(Game.SCENE_FIGHT))
 	_btn.focus_entered.connect(func(): Sfx.play(&"select"))
 	add_child(_btn)
+	_back = BackButton.add_to(self, _go_back)
 	_overlay = Control.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -55,6 +57,7 @@ func _ready() -> void:
 	_overlay.draw.connect(_draw_card)
 	_card = Game.story_chapter_start(Game.arcade_stage)
 	_btn.visible = not _card
+	_back.visible = _btn.visible
 	if not _card:
 		_btn.grab_focus()
 	if _card:
@@ -98,6 +101,10 @@ func _add_fighter(d: FighterData, x: float, facing: int) -> void:
 	r.scale = Vector2(s * facing, s)
 	r.position = Vector2(x, _stage.floor_y)
 
+## A la selección de luchador si se llegó desde ahí; si no (CONTINUAR), al menú.
+func _go_back() -> void:
+	Game.goto(Game.back_target())
+
 func _unhandled_input(event: InputEvent) -> void:
 	if Game.is_changing_scene():
 		return
@@ -108,7 +115,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_intro.skip()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"ui_cancel"):
-		Game.goto(Game.SCENE_MENU)
+		_go_back()
 		get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
@@ -118,6 +125,7 @@ func _process(delta: float) -> void:
 	if _card and _t >= CARD_TIME:
 		_card = false
 		_btn.visible = true
+		_back.visible = true
 		_btn.grab_focus()
 	queue_redraw()
 	_overlay.queue_redraw()

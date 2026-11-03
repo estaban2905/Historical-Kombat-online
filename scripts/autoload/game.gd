@@ -111,6 +111,21 @@ func _ready() -> void:
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fade_layer.add_child(_fade_rect)
+	get_tree().node_added.connect(_on_node_added)
+
+## El botón bajo el ratón recibe el foco: así solo hay uno resaltado, lo mueva el teclado, el mando o el ratón.
+func _on_node_added(node: Node) -> void:
+	var b := node as Button
+	if b != null:
+		b.mouse_entered.connect(_focus_hovered.bind(b))
+
+func _focus_hovered(b: Button) -> void:
+	if b.disabled or b.focus_mode == Control.FOCUS_NONE or b.has_focus() or not b.is_visible_in_tree():
+		return
+	# Escribiendo en un campo, pasar el ratón por un botón no debe quitarle el foco.
+	if get_viewport().gui_get_focus_owner() is LineEdit:
+		return
+	b.grab_focus()
 
 func _exit_tree() -> void:
 	# Las cachés estáticas retienen recursos; se liberan al salir.
@@ -180,13 +195,20 @@ func view_player(player_name: String, back_scene: String) -> void:
 	viewed_return = back_scene
 	goto(SCENE_PLAYER)
 
-## Cambia de escena con un fundido a negro.
+## A dónde vuelve VOLVER en la pantalla recién abierta: la que la abrió, si lo indicó en `goto` ("" = el menú).
+var back_scene: String = ""
+
+func back_target() -> String:
+	return back_scene if back_scene != "" else SCENE_MENU
+
+## Cambia de escena con un fundido a negro; `back_to` es la escena a la que vuelve su botón VOLVER.
 ## Una escena que redirige en cuanto carga (p. ej. el login sin cuentas, con el servidor
 ## local respondiendo en milisegundos) llama aquí durante el fundido de entrada: ese
 ## fundido se corta y se encadena el nuevo cambio en vez de ignorarlo.
-func goto(scene_path: String) -> void:
+func goto(scene_path: String, back_to: String = "") -> void:
 	if _fading_out:
 		return
+	back_scene = back_to
 	_changing = true
 	_fading_out = true
 	if _fade_in:

@@ -46,8 +46,8 @@ func _ready() -> void:
 	_show_fighter()
 
 	var row := HBoxContainer.new()
-	row.position = Vector2(14, 222)
-	row.size = Vector2(398, 16)
+	row.position = Vector2(BackButton.RIGHT_EDGE, BackButton.POS.y)
+	row.size = Vector2(426.0 - BackButton.RIGHT_EDGE - 12.0, BackButton.SIZE.y)
 	row.add_theme_constant_override("separation", 6)
 	add_child(row)
 	var prev := _add_button(row, "< ANTERIOR", 100)
@@ -56,15 +56,14 @@ func _ready() -> void:
 	_btn_page.pressed.connect(_toggle_page)
 	var next := _add_button(row, "SIGUIENTE >", 100)
 	next.pressed.connect(func(): _step(1))
-	var back := _add_button(row, "VOLVER", 72)
-	back.pressed.connect(_close)
+	var back := BackButton.add_to(self, _close)
 	_refresh_buttons()
 	back.grab_focus()
 
 func _add_button(parent: Control, text: String, width: float) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(width, 16)
+	b.custom_minimum_size = Vector2(width, BackButton.SIZE.y)
 	b.clip_text = true
 	b.focus_entered.connect(func(): Sfx.play(&"select"))
 	b.pressed.connect(func(): Sfx.play(&"confirm"))

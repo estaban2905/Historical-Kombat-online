@@ -1,6 +1,6 @@
 ## Sala de espera del duelo online: conecta con el servidor, hace cola hasta que
 ## otra persona busca partida y muestra el VS antes de empezar el combate.
-##   ESC: cancelar y volver a la selección · ENTER / U: reintentar tras un fallo
+##   ESC o VOLVER: cancelar y volver a la selección · ENTER / U o REINTENTAR: reintentar tras un fallo
 extends Control
 
 const VS_SECONDS := 1.6
@@ -12,6 +12,8 @@ var _error: String = ""
 var _matched: bool = false
 var _my_id: StringName
 var _previews: Array[FighterRenderer] = []
+var _back: BackButton
+var _retry: Button
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -19,6 +21,18 @@ func _ready() -> void:
 	_my_id = Game.p1_fighter_id
 	Online.matched.connect(_on_matched)
 	Online.failed.connect(_on_failed)
+	_back = BackButton.add_to(self, _cancel)
+	_retry = Button.new()
+	_retry.text = "REINTENTAR"
+	_retry.custom_minimum_size = Vector2(110, 16)
+	add_child(_retry)
+	_retry.position = Vector2(158, 176)
+	_retry.size = Vector2(110, 16)
+	_retry.visible = false
+	_retry.pressed.connect(func():
+		Sfx.play(&"confirm")
+		_search())
+	_retry.focus_entered.connect(func(): Sfx.play(&"select"))
 	_search()
 
 func _exit_tree() -> void:
@@ -77,13 +91,19 @@ func _show_versus() -> void:
 		r.scale.x = 1 if side == 1 else -1
 		_previews.append(r)
 
+## Deja la búsqueda y vuelve a la selección de luchador.
+func _cancel() -> void:
+	if _matched:
+		return
+	Online.cancel()
+	Game.drop_challenge()
+	Game.goto(Game.SCENE_SELECT)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _matched:
 		return
 	if event.is_action_pressed(&"ui_cancel"):
-		Online.cancel()
-		Game.drop_challenge()
-		Game.goto(Game.SCENE_SELECT)
+		_cancel()
 		get_viewport().set_input_as_handled()
 	elif _error != "" and (event.is_action_pressed(&"ui_accept") or event.is_action_pressed(&"p1_punch_light")):
 		_search()
@@ -91,6 +111,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	# Con el rival encontrado ya no se puede cancelar; si falla algo, aparece REINTENTAR.
+	_back.visible = not _matched
+	_retry.visible = _error != "" and not _matched
 	# Un reto que el amigo no contesta no se espera para siempre.
 	if Game.challenge_code != "" and not _matched and _error == "" and _t > CHALLENGE_WAIT:
 		Online.cancel()
@@ -115,7 +138,7 @@ func _draw() -> void:
 	if _error != "":
 		HKTheme.draw_text(self, Vector2(0, 84), "NO SE PUDO JUGAR ONLINE", 16, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
 		HKTheme.draw_text(self, Vector2(0, 116), _error, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
-		HKTheme.draw_text(self, Vector2(0, 150), "ENTER: REINTENTAR", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+		HKTheme.draw_text(self, Vector2(0, 150), "ENTER O CLIC: REINTENTAR", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 		HKTheme.draw_text(self, Vector2(0, 164), "ESC: VOLVER", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 		return
 	var dots := ".".repeat(int(_t * 2.0) % 4)
