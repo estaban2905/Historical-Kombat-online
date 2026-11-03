@@ -63,7 +63,12 @@ func _ready() -> void:
 	fx.z_index = 19
 	effects_root.add_child(fx)
 	p1 = _spawn_fighter(Game.p1_data(), 1)
-	p2 = _spawn_fighter(Game.p2_data(), 2)
+	# Las fases del Nexo cambian su ficha durante el combate: se usa una copia para que
+	# la ficha guardada en Game no arrastre el refuerzo a la revancha.
+	var p2_data := Game.p2_data()
+	if Game.is_story_nexo_fight():
+		p2_data = p2_data.duplicate() as FighterData
+	p2 = _spawn_fighter(p2_data, 2)
 	p1.opponent = p2
 	p2.opponent = p1
 	fighters = [p1, p2]

@@ -70,6 +70,7 @@ func _run() -> void:
 	await get_tree().physics_frame
 	remove_child(combat)
 	combat.free()
+	await _test_nexo_rematch()
 	print("\n=== RESULTADO: %d OK, %d FALLOS ===" % [passed, failed])
 	get_tree().quit(1 if failed > 0 else 0)
 
@@ -1065,3 +1066,30 @@ func _test_profiles() -> void:
 	check(with_level == FighterRegistry.all().size(), "todos tienen un golpe alto o bajo propio (faltan: %s)" % ", ".join(no_special_hit))
 	check(unique.size() >= FighterRegistry.all().size() - 6, "los golpes normales son distintos entre luchadores (%d perfiles distintos de %d)" % [unique.size(), FighterRegistry.all().size()])
 	check(startups.size() >= 8, "hay %d startups distintos entre los golpes normales" % startups.size())
+
+# --- Revancha contra el Nexo ---------------------------------------------------
+## Las fases del Nexo suben su fuerza durante el combate; perder y repetir no debe
+## arrastrar ese refuerzo: cada intento empieza con la misma fuerza.
+func _test_nexo_rematch() -> void:
+	print("\n# Revancha contra el Nexo")
+	Game.start_story(&"napoleon")
+	Game.arcade_stage = Game.arcade_ladder.size() - 1
+	Game.p2_fighter_id = Game.arcade_ladder[Game.arcade_stage]
+	var expected := FighterRegistry.get_by_id(Game.STORY_NEXO_ID).strength * Game.NEXO_BOOST[1]
+	var starts: Array[float] = []
+	var phase3 := 0.0
+	for attempt in 3:
+		var c := load(Game.SCENE_FIGHT).instantiate() as CombatManager
+		add_child(c)
+		await get_tree().physics_frame
+		starts.append(c.p2.data.strength)
+		# El Nexo cae a la fase III (menos del 33 % de vida).
+		c.p2.health = c.p2.data.max_health * 0.2
+		c._update_nexo_phase()
+		phase3 = c.p2.data.strength
+		remove_child(c)
+		c.free()
+	for i in starts.size():
+		check(is_equal_approx(starts[i], expected), "intento %d del Nexo empieza con su fuerza de siempre (%.2f de %.2f)" % [i + 1, starts[i], expected])
+	check(is_equal_approx(phase3, expected * CombatManager.NEXO_PHASES[1][2]), "la fase III sube la fuerza una sola vez (%.2f)" % phase3)
+	Game.mode = Game.Mode.VERSUS
