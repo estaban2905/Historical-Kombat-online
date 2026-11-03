@@ -45,7 +45,14 @@ const input = {
   required: ["t", "f", "m"],
   properties: {
     t: { const: "input" },
-    f: { type: "integer", minimum: 0, description: "Número de frame del input", examples: [120] },
+    f: {
+      type: "integer",
+      minimum: 0,
+      description:
+        "Número de frame del input. Estrictamente creciente por jugador y sin adelantarse más de 20 al último del rival; " +
+        "si no, el servidor lo ignora.",
+      examples: [120],
+    },
     m: { type: "integer", minimum: 0, maximum: 65535, description: "Máscara de bits de botones", examples: [5] },
     a: {
       type: "integer",
@@ -68,7 +75,8 @@ const sync = {
   },
   description:
     "Comprobación de sincronía, cada 60 ticks. Si el rival manda un resumen distinto para el mismo tick, " +
-    "el duelo se anula sin puntos y los dos reciben `desync`.",
+    "el duelo se anula sin puntos y los dos reciben `desync`. Si una cuenta acumula 3 anulaciones en 24 h y más que su rival, " +
+    "pierde por abandono.",
 } as const;
 
 const result = {
@@ -139,13 +147,20 @@ const timeout = {
     t: { const: "timeout" },
     loser: { type: "integer", enum: [0, 1, 2], description: "El que dejó de responder (iba por detrás); 0 = no se sabe y el duelo se anula" },
   },
-  description: "Nadie envió inputs durante un tiempo: el duelo se cierra. Pierde quien dejó de responder.",
+  description: "La pelea no avanzó durante un tiempo: el duelo se cierra. Pierde quien dejó de responder.",
 } as const;
 
 const desync = {
   type: "object",
   required: ["t"],
-  properties: { t: { const: "desync" } },
+  properties: {
+    t: { const: "desync" },
+    loser: {
+      type: "integer",
+      enum: [1, 2],
+      description: "Solo si una cuenta se repite en las anulaciones: es la que pierde por abandono. Si falta, el duelo se anula sin puntos",
+    },
+  },
   description: "Las dos peleas se separaron (resúmenes distintos para el mismo tick): el duelo se anula sin puntos.",
 } as const;
 
@@ -165,7 +180,7 @@ export const protocolSchema = {
   description:
     "Conéctate a `ws(s)://<host>/ws` y envía/recibe mensajes JSON de una línea. " +
     "Flujo: `find` → `queued` → `matched` → intercambio de `input` → `result` → `settled`. " +
-    "Si el rival se va: `opponent_left`. Si nadie manda inputs durante 15 s: `timeout`. Si las peleas se separan (`sync` distinto): `desync`.",
+    "Si el rival se va: `opponent_left`. Si la pelea no avanza durante 15 s: `timeout`. Si las peleas se separan (`sync` distinto): `desync`.",
   response: {
     200: {
       type: "object",

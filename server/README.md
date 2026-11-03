@@ -83,10 +83,13 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 - El servidor no simula la pelea. Al terminar, **cada cliente reporta** `result {winner, p1Rounds, p2Rounds}` según su simulación (idéntica a la del rival). Si los dos coinciden se guarda; si no, se descarta (`mismatch`).
 - Se descarta también si el duelo fue demasiado corto (`too_short`, menos de 300 inputs por jugador) o si el segundo reporte no llega en 30 s (`timeout`).
 - **Abandono:** quien se desconecta en plena pelea sin haber reportado pierde; gana el que se quedó (`reason: forfeit`). Irse antes de que empiece la pelea, o después de reportar, no es abandono.
+- **Pelea parada:** si en 15 s la pelea no avanza al menos 30 ticks (el lado más lento), el duelo se cierra y pierde por abandono quien iba por detrás en ticks (`timeout`); si van igualados se anula sin puntos (`stalled`). Cuenta el avance real, no los mensajes: un goteo de inputs sueltos no mantiene el duelo vivo. Hasta que los dos han mandado su primer input se da un margen de 60 s, porque cargar la pelea tarda mucho más en un navegador lento que en otro.
+- **Ticks de confianza limitada:** el tick `f` de cada `input` lo dice el cliente y decide quién pierde en una pelea parada, así que el servidor ignora los que repiten un tick o se adelantan más de 20 al último del rival. Un cliente que manda ticks imposibles se queda atrás y pierde la espera.
+- **Desincronización:** si los `sync` de los dos clientes difieren, el duelo se anula sin puntos (`desync`), porque el servidor no sabe quién tiene razón. Para que no sea una salida gratis, se cuentan las anulaciones por cuenta (en memoria, ventana de 24 h): quien llega a 3 y supera a su rival pierde por abandono. Los avisos quedan en el log (`cliente sospechoso en un duelo`).
 - **Puntos:** Elo con K=32 (empiezan en 1000, nunca bajan de 0; una victoria da al menos +1). Los puntos de los dos jugadores y la fila de `matches` se guardan en una sola transacción.
 - Cada jugador recibe `settled` con su `delta` y sus totales.
 
 ## Protocolo (resumen)
 
-`find` → `queued` → `matched` → intercambio de `input` → `result` → `settled` (o `opponent_left`, o `timeout` si nadie envía inputs durante 15 s, o `desync` si los `sync` de los dos clientes difieren).
+`find` → `queued` → `matched` → intercambio de `input` → `result` → `settled` (o `opponent_left`, o `timeout` si la pelea no avanza durante 15 s, o `desync` si los `sync` de los dos clientes difieren).
 Detalle completo en `GET /protocol` o en `/docs`.

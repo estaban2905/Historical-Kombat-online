@@ -59,9 +59,9 @@ export type ServerMessage =
   | SettledMessage
   | { t: "opponent_left" }
   /** Los resúmenes de estado de los dos clientes no coinciden: las peleas se separaron y el duelo se anula. */
-  | { t: "desync" }
+  | { t: "desync"; loser?: Side }
   /**
-   * Nadie envió inputs durante `stallTimeoutMs`: el duelo se cierra. `loser` es el que iba por detrás
+   * La pelea no avanzó durante `stallTimeoutMs`: el duelo se cierra. `loser` es el que iba por detrás
    * (el que dejó de responder); 0 = no se sabe quién, el duelo se anula.
    */
   | { t: "timeout"; loser: 0 | Side }
