@@ -10,6 +10,9 @@ const MAX_MATCHES := 50
 ## Filas que caben en la pestaña DUELOS.
 const SHOWN_MATCHES := 6
 const WIN_COLOR := MatchRow.WIN_COLOR
+## Pestaña HISTORIA: los dos paneles (finales y luchadores; partida guardada).
+const ENDINGS_PANEL := Rect2(20, 118, 190, 88)
+const STORY_PANEL := Rect2(216, 118, 190, 88)
 
 var _matches: Array = []
 var _story: Dictionary = {}
@@ -24,6 +27,8 @@ var _logout: Button
 var _continue_btn: Button
 var _tab_buttons: Array[Button] = []
 var _portrait: AvatarFrame
+## Pestaña HISTORIA: retrato del luchador de la partida guardada.
+var _story_portrait: AvatarFrame
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -48,9 +53,13 @@ func _ready() -> void:
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	_build_tabs()
 	_continue_btn = _button("CONTINUAR HISTORIA", 150)
-	_continue_btn.position = Vector2(256, 166)
-	_continue_btn.size.x = 152
+	_continue_btn.position = Vector2(STORY_PANEL.position.x + 8, STORY_PANEL.end.y - 20)
+	_continue_btn.size.x = STORY_PANEL.size.x - 16
 	_continue_btn.visible = false
+	_story_portrait = AvatarFrame.new(Vector2(30, 30))
+	_story_portrait.position = STORY_PANEL.position + Vector2(8, 15)
+	_story_portrait.visible = false
+	add_child(_story_portrait)
 	_continue_btn.pressed.connect(_continue_story)
 	_continue_btn.focus_entered.connect(func(): Sfx.play(&"select"))
 	_continue_btn.pressed.connect(func(): Sfx.play(&"confirm"))
@@ -61,6 +70,8 @@ func _ready() -> void:
 	_portrait.set_frame(Backend.frame())
 	_matches = await Backend.fetch_matches(MAX_MATCHES)
 	_story = await Backend.load_story()
+	if _story_is_valid():
+		_story_portrait.set_fighter(str(_story["fighter"]))
 	_loading = false
 	_select_tab(_tab)
 
@@ -82,6 +93,7 @@ func _select_tab(tab: int) -> void:
 	_tab = tab
 	_sel = -1
 	_continue_btn.visible = tab == Tab.HISTORIA and not _loading and _story_is_valid()
+	_story_portrait.visible = _continue_btn.visible
 	queue_redraw()
 
 func _shown_duels() -> int:
@@ -264,33 +276,69 @@ func _draw_points() -> void:
 		draw_rect(Rect2(pts[i] - Vector2(1, 1), Vector2(3, 3)), color)
 	HKTheme.draw_text(self, Vector2(0, 206), "TUS ÚLTIMOS %d DUELOS" % shown, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 
-## El progreso del modo Historia: finales vistos, luchadores desbloqueados y la partida guardada
-## (la misma que ofrece CONTINUAR HISTORIA en el menú).
+## El progreso del modo Historia en dos paneles: a la izquierda los finales vistos y los luchadores ganados; a la
+## derecha la partida guardada (la misma que ofrece CONTINUAR HISTORIA en el menú), con su botón.
 func _draw_story() -> void:
+	_draw_panel(ENDINGS_PANEL, "FINALES")
 	var seen := Unlocks.endings_seen()
-	_draw_pair(130.0, "FINALES %d/%d" % [seen.size(), Unlocks.ENDINGS.size()], "", HKTheme.MUTED)
-	var x := 160.0
+	var left := ENDINGS_PANEL.position.x + 8
+	var right := ENDINGS_PANEL.end.x - 8
+	HKTheme.draw_text(self, Vector2(left, ENDINGS_PANEL.position.y + 11), "%d/%d" % [seen.size(), Unlocks.ENDINGS.size()], 8,
+		HKTheme.PAPER, HORIZONTAL_ALIGNMENT_RIGHT, right - left, 1)
+	var y := ENDINGS_PANEL.position.y + 25
 	for e in Unlocks.ENDINGS:
 		var known := seen.has(e)
 		# El final oculto no dice ni cómo se llama hasta que se ha visto.
 		var text: String = Unlocks.ENDING_NAMES[e] if known or e != Unlocks.HIDDEN_ENDING else "???"
-		HKTheme.draw_text(self, Vector2(x, 130), text, 8, HKTheme.GOLD if known else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-		x += HKTheme.text_width(text, 8) + 12.0
-	_draw_pair(142.0, "LUCHADORES", "%d / %d" % [Unlocks.fighters_unlocked(), FighterRegistry.all().size()], HKTheme.PAPER)
+		var mark := Rect2(left, y - 6, 5, 5)
+		if known:
+			draw_rect(mark, HKTheme.GOLD)
+		else:
+			draw_rect(mark, HKTheme.MUTED, false, 1.0)
+		HKTheme.draw_text(self, Vector2(left + 9, y), text, 8, HKTheme.GOLD if known else HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		HKTheme.draw_text(self, Vector2(left, y), "VISTO" if known else "SIN VER", 8, Color("60d060") if known else HKTheme.MUTED,
+			HORIZONTAL_ALIGNMENT_RIGHT, right - left, 1)
+		y += 11.0
+	# Luchadores ganados en la Historia, con su barra.
+	var total := FighterRegistry.all().size()
+	var unlocked := Unlocks.fighters_unlocked()
+	y += 6.0
+	HKTheme.draw_text(self, Vector2(left, y), "LUCHADORES", 8, HKTheme.GOLD_DARK.lightened(0.3), HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(left, y), "%d/%d" % [unlocked, total], 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_RIGHT, right - left, 1)
+	var bar := Rect2(left, y + 4, right - left, 4)
+	draw_rect(bar, Color(1, 1, 1, 0.10))
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * unlocked / maxf(total, 1.0), bar.size.y)), HKTheme.GOLD)
+
+	_draw_panel(STORY_PANEL, "PARTIDA GUARDADA")
+	var sx := STORY_PANEL.position.x + 8
+	var sw := STORY_PANEL.size.x - 16
 	if not _story_is_valid():
-		HKTheme.draw_text(self, Vector2(0, 176), "NO TIENES UNA PARTIDA DEL MODO HISTORIA", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+		HKTheme.draw_text(self, Vector2(sx, STORY_PANEL.position.y + 40), "NINGUNA", 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, sw, 1)
+		HKTheme.draw_text(self, Vector2(sx, STORY_PANEL.position.y + 56), "EMPIEZA UNA DESDE", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, sw, 1)
+		HKTheme.draw_text(self, Vector2(sx, STORY_PANEL.position.y + 67), "MODO HISTORIA", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, sw, 1)
 		return
 	var fighter := FighterRegistry.get_by_id(StringName(str(_story["fighter"])))
 	var diff := clampi(int(_story.get("difficulty", 1)), 0, Game.DIFFICULTY_NAMES.size() - 1)
-	_draw_pair(158.0, "LUCHADOR", fighter.display_name.to_upper().left(20), HKTheme.PAPER)
-	_draw_pair(170.0, "COMBATE", "%d / %d" % [int(_story["stage"]) + 1, FighterRegistry.all().size()], HKTheme.PAPER)
-	_draw_pair(182.0, "DIFICULTAD", Game.DIFFICULTY_NAMES[diff], HKTheme.PAPER)
-	_draw_pair(194.0, "REVANCHAS", "%d (USADAS: %d)" % [int(_story.get("continues", 0)), int(_story.get("continues_used", 0))], HKTheme.PAPER)
+	var stage := int(_story["stage"]) + 1
+	# A la derecha del retrato: el luchador y por qué combate va, con su barra.
+	var tx := sx + 36
+	var tw := sw - 36
+	HKTheme.draw_text(self, Vector2(tx, STORY_PANEL.position.y + 25), fighter.short_name.to_upper().left(13), 8, HKTheme.PAPER,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(tx, STORY_PANEL.position.y + 37), "COMBATE %d/%d" % [stage, total], 8, HKTheme.GOLD,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	var progress := Rect2(tx, STORY_PANEL.position.y + 41, tw, 3)
+	draw_rect(progress, Color(1, 1, 1, 0.10))
+	draw_rect(Rect2(progress.position, Vector2(progress.size.x * (stage - 1) / maxf(total, 1.0), progress.size.y)), HKTheme.GOLD)
+	var continues := int(_story.get("continues", 0))
+	HKTheme.draw_text(self, Vector2(sx, STORY_PANEL.position.y + 58), "%s · %d %s" % [Game.DIFFICULTY_NAMES[diff], continues,
+		"REVANCHA" if continues == 1 else "REVANCHAS"], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, sw, 1)
 
-func _draw_pair(y: float, label: String, value: String, value_color: Color) -> void:
-	HKTheme.draw_text(self, Vector2(60, y), label, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	if value != "":
-		HKTheme.draw_text(self, Vector2(160, y), value, 8, value_color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+## Recuadro con su título arriba a la izquierda.
+func _draw_panel(r: Rect2, title: String) -> void:
+	draw_rect(r, Color(1, 1, 1, 0.04))
+	draw_rect(r, HKTheme.GOLD_DARK.darkened(0.2), false, 1.0)
+	HKTheme.draw_text(self, r.position + Vector2(8, 11), title, 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 
 ## Barra de progreso hacia la siguiente liga, con lo que falta a la derecha.
 func _draw_league_bar(league: Dictionary) -> void:

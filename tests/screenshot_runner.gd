@@ -135,6 +135,27 @@ func _run() -> void:
 		menu._show_season_end({"season": "2026-10", "rank": 2, "league": "gold"})
 	await frames(10)
 	await shot("17_season_end.png")
+	# Perfil, pestaña HISTORIA: con partida guardada y sin ella (sin servidor: los datos se ponen a mano).
+	ServerConfig.override_ws = "ws://127.0.0.1:1/ws"
+	Backend.profile = {"username": "MaxDevelop", "points": 1000}
+	get_tree().change_scene_to_file(Game.SCENE_PROFILE)
+	await frames(5)
+	var profile := get_tree().current_scene
+	for i in 600:
+		if not profile._loading:
+			break
+		await frames(1)
+	profile._loading = false
+	profile._story = {"fighter": "moctezuma_ii", "stage": 5, "continues": 3, "continues_used": 0, "difficulty": 1}
+	profile._story_portrait.set_fighter("moctezuma_ii")
+	profile._select_tab(3)
+	await frames(10)
+	await shot("18_profile_story.png")
+	profile._story = {}
+	profile._select_tab(3)
+	await frames(10)
+	await shot("19_profile_no_story.png")
+	ServerConfig.override_ws = ""
 	Backend.access_token = ""
 	Backend.profile = {}
 	get_tree().quit()
