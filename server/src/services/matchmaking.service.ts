@@ -25,6 +25,8 @@ const DEFAULT_SETTLE_TIMEOUT_MS = 30_000;
 const DEFAULT_MIN_INPUTS = 300;
 /** Un tirón de red no llega a tanto; una pestaña oculta o un cliente colgado, sí. */
 const DEFAULT_STALL_TIMEOUT_MS = 15_000;
+/** Comprobaciones de sincronía que se guardan esperando al otro jugador (a una por segundo, ~1 min de margen). */
+const MAX_PENDING_SYNCS = 64;
 
 /**
  * Cola de emparejamiento, salas de dos jugadores y cierre de los duelos.
@@ -74,6 +76,9 @@ export class MatchmakingService {
         break;
       case "input":
         this.relayInput(peer, msg.f, msg.m, msg.a);
+        break;
+      case "sync":
+        this.receiveSync(peer, msg.f, msg.c, msg.v);
         break;
       case "result":
         this.receiveResult(peer, { winner: msg.winner, p1Rounds: msg.p1Rounds, p2Rounds: msg.p2Rounds });
@@ -206,6 +211,40 @@ export class MatchmakingService {
       return;
     }
     void this.settle(room, mine.winner, mine.p1Rounds, mine.p2Rounds, "normal");
+  }
+
+  // =========================================================================
+  //  Sincronía
+  // =========================================================================
+  /**
+   * Cada cliente manda de vez en cuando un resumen de su pelea. Si el del otro para el mismo tick es distinto,
+   * las simulaciones se separaron: cada uno vería una pelea diferente y daría un ganador distinto. No se sabe
+   * quién tiene razón, así que el duelo se anula sin puntos.
+   */
+  private receiveSync(peer: Peer, f: number, c: number, v: number): void {
+    const player = this.players.get(peer);
+    const room = player?.room;
+    if (!player || !room || room.closed || room.settled) return;
+    const side = sideOf(room, player);
+    const entry = room.syncs.get(f) ?? {};
+    if (entry[side] !== undefined) return; // vale el primero de cada jugador
+    const other = entry[side === 1 ? 2 : 1];
+    if (other === undefined) {
+      entry[side] = { c, v };
+      room.syncs.set(f, entry);
+      // Si uno manda y el otro no, no crece sin límite: se olvidan los más antiguos.
+      while (room.syncs.size > MAX_PENDING_SYNCS) room.syncs.delete(room.syncs.keys().next().value as number);
+      return;
+    }
+    room.syncs.delete(f);
+    // Dos versiones distintas del resumen no son comparables (p. ej. una pestaña con el juego antiguo).
+    if (other.v !== v || other.c === c) return;
+    room.closed = true;
+    if (room.ranked) this.discard(room, "desync");
+    this.clearStall(room);
+    const msg: ServerMessage = { t: "desync" };
+    room.p1.peer.send(msg);
+    room.p2.peer.send(msg);
   }
 
   // =========================================================================

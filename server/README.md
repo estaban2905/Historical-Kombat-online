@@ -88,5 +88,5 @@ Regla: las dependencias van de fuera hacia dentro (`routes → controllers → s
 
 ## Protocolo (resumen)
 
-`find` → `queued` → `matched` → intercambio de `input` → `result` → `settled` (o `opponent_left`, o `timeout` si nadie envía inputs durante 15 s).
+`find` → `queued` → `matched` → intercambio de `input` → `result` → `settled` (o `opponent_left`, o `timeout` si nadie envía inputs durante 15 s, o `desync` si los `sync` de los dos clientes difieren).
 Detalle completo en `GET /protocol` o en `/docs`.
