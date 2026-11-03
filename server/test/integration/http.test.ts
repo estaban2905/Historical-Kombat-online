@@ -16,7 +16,7 @@ test("/protocol lista los mensajes del cliente y del servidor", async (t) => {
   const body = (await app.inject({ method: "GET", url: "/protocol" })).json();
   assert.equal(body.endpoint, "/ws");
   assert.deepEqual(Object.keys(body.client).sort(), ["cancel", "find", "input", "leave", "result"]);
-  assert.deepEqual(Object.keys(body.server).sort(), ["error", "input", "matched", "opponent_left", "queued", "settled"]);
+  assert.deepEqual(Object.keys(body.server).sort(), ["error", "input", "matched", "opponent_left", "queued", "settled", "timeout"]);
 });
 
 test("Swagger publica el OpenAPI con /health y /protocol (y oculta /ws)", async (t) => {

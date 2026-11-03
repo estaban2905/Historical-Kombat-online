@@ -118,6 +118,16 @@ const opponentLeft = {
   description: "El rival se desconectó.",
 } as const;
 
+const timeout = {
+  type: "object",
+  required: ["t", "loser"],
+  properties: {
+    t: { const: "timeout" },
+    loser: { type: "integer", enum: [0, 1, 2], description: "El que dejó de responder (iba por detrás); 0 = no se sabe y el duelo se anula" },
+  },
+  description: "Nadie envió inputs durante un tiempo: el duelo se cierra. Pierde quien dejó de responder.",
+} as const;
+
 const error = {
   type: "object",
   required: ["t", "msg"],
@@ -126,7 +136,7 @@ const error = {
 } as const;
 
 export const clientMessages = { find, cancel, leave, input, result } as const;
-export const serverMessages = { queued, matched, input, settled, opponent_left: opponentLeft, error } as const;
+export const serverMessages = { queued, matched, input, settled, opponent_left: opponentLeft, timeout, error } as const;
 
 export const protocolSchema = {
   tags: ["protocol"],
@@ -134,7 +144,7 @@ export const protocolSchema = {
   description:
     "Conéctate a `ws(s)://<host>/ws` y envía/recibe mensajes JSON de una línea. " +
     "Flujo: `find` → `queued` → `matched` → intercambio de `input` → `result` → `settled`. " +
-    "Si el rival se va: `opponent_left`.",
+    "Si el rival se va: `opponent_left`. Si nadie manda inputs durante 15 s: `timeout`.",
   response: {
     200: {
       type: "object",

@@ -24,6 +24,12 @@ export interface Room {
   settled: boolean;
   /** Espera del segundo resultado. */
   timer: ReturnType<typeof setTimeout> | null;
+  /** Último tick recibido de cada lado: el que va por detrás es el que dejó de responder. */
+  lastFrame: { 1: number; 2: number };
+  /** Cuándo llegó el último input de cualquiera de los dos (ms). */
+  lastInputAt: number;
+  /** Vigila que sigan llegando inputs mientras dura la pelea. */
+  stallTimer: ReturnType<typeof setTimeout> | null;
 }
 
 /** El rival de `player` dentro de la sala. */
@@ -46,5 +52,8 @@ export function newRoom(p1: Player, p2: Player, ranked: boolean): Room {
     reports: { 1: null, 2: null },
     settled: false,
     timer: null,
+    lastFrame: { 1: -1, 2: -1 },
+    lastInputAt: 0,
+    stallTimer: null,
   };
 }
