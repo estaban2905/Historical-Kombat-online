@@ -20,8 +20,11 @@ const OUTCOME: SettleOutcome = {
 };
 const STALL_MS = 40;
 
-/** Dos cuentas emparejadas; la espera del rival se agota a los 40 ms. */
-function ranked() {
+/**
+ * Dos cuentas emparejadas; la espera se agota a los 40 ms. Por defecto basta que la pelea avance un tick para
+ * reiniciarla: así estas pruebas no dependen del ritmo mínimo real (60 ticks), que se prueba aparte.
+ */
+function ranked(stallMinTicks = 1) {
   const calls: SettleRequest[] = [];
   const mm = new MatchmakingService(() => 1, {
     settler: async (req) => {
@@ -30,6 +33,7 @@ function ranked() {
     },
     minInputs: 3,
     stallTimeoutMs: STALL_MS,
+    stallMinTicks,
   });
   const a = fakePeer();
   const b = fakePeer();
@@ -92,6 +96,34 @@ test("mientras lleguen inputs de cualquiera de los dos no se agota la espera", a
   assert.equal(calls.length, 0);
   await sleep(STALL_MS * 3); // ahora sí: silencio
   assert.notEqual(timeoutOf(a), undefined);
+});
+
+test("un goteo de inputs sueltos no mantiene vivo el duelo: cuenta lo que avanza la pelea, no los mensajes", async () => {
+  const { mm, a, b, calls } = ranked(20); // la pelea debe avanzar 20 ticks por espera
+  send(mm, a, 0, 5); // P1 se congela...
+  send(mm, b, 0, 9);
+  // ...y solo suelta un input cada 15 ms (menos que los 40 ms de espera). P2, honesto, responde cada uno.
+  for (let i = 6; i < 14; i++) {
+    mm.handle(a, { t: "input", f: i, m: 1 });
+    mm.handle(b, { t: "input", f: i + 4, m: 1 });
+    await sleep(15);
+  }
+  assert.deepEqual(timeoutOf(a), { t: "timeout", loser: 1 });
+  assert.equal(calls[0]?.winner, 2);
+  assert.equal(calls[0]?.reason, "forfeit");
+});
+
+test("si la pelea avanza al ritmo mínimo, el goteo no se confunde con una congelación", async () => {
+  const { mm, a, b } = ranked(2); // basta con 2 ticks por espera
+  for (let t = 0; t < 8; t++) {
+    mm.handle(a, { t: "input", f: t * 2, m: 1 });
+    mm.handle(a, { t: "input", f: t * 2 + 1, m: 1 });
+    mm.handle(b, { t: "input", f: t * 2, m: 1 });
+    mm.handle(b, { t: "input", f: t * 2 + 1, m: 1 });
+    await sleep(STALL_MS / 4);
+  }
+  assert.equal(timeoutOf(a), undefined);
+  assert.equal(timeoutOf(b), undefined);
 });
 
 test("una pelea cortísima congelada no regala la victoria", async () => {

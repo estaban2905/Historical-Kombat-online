@@ -24,11 +24,18 @@ export interface Room {
   settled: boolean;
   /** Espera del segundo resultado. */
   timer: ReturnType<typeof setTimeout> | null;
-  /** Último tick recibido de cada lado: el que va por detrás es el que dejó de responder. */
+  /** Último tick aceptado de cada lado: el que va por detrás es el que dejó de responder. */
   lastFrame: { 1: number; 2: number };
-  /** Cuándo llegó el último input de cualquiera de los dos (ms). */
-  lastInputAt: number;
-  /** Vigila que sigan llegando inputs mientras dura la pelea. */
+  /** Inputs descartados por traer un tick imposible, por lado (solo se avisa del primero). */
+  rejected: { 1: number; 2: number };
+  /** Cuándo avanzó la pelea por última vez (ms): ver `progressFrame`. */
+  lastProgressAt: number;
+  /**
+   * Tick común (el del lado más lento) en el último avance contado. La pelea solo avanza al ritmo del que va
+   * más despacio, así que un goteo de inputs sueltos no la hace avanzar de verdad.
+   */
+  progressFrame: number;
+  /** Vigila que la pelea siga avanzando mientras dura. */
   stallTimer: ReturnType<typeof setTimeout> | null;
   /** Resúmenes de estado por tick, a la espera de que llegue el del otro jugador. */
   syncs: Map<number, { 1?: SyncEntry; 2?: SyncEntry }>;
@@ -61,7 +68,9 @@ export function newRoom(p1: Player, p2: Player, ranked: boolean): Room {
     settled: false,
     timer: null,
     lastFrame: { 1: -1, 2: -1 },
-    lastInputAt: 0,
+    rejected: { 1: 0, 2: 0 },
+    lastProgressAt: 0,
+    progressFrame: -1,
     stallTimer: null,
     syncs: new Map(),
   };

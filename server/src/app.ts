@@ -59,6 +59,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     new MatchmakingService(undefined, {
       settler: matches?.settle,
       stallTimeoutMs: config.stallTimeoutMs,
+      onSuspicious: (event) => app.log.warn({ event }, "cliente sospechoso en un duelo"),
       onError: (err) => app.log.error(err),
     });
   registerServices(app, config, matchmaking, options.db !== undefined);
