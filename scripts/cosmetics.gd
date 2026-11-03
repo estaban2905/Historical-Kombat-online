@@ -64,7 +64,19 @@ static func grant_ending(ending: StringName) -> void:
 		Unlocks.add("cosmetic", str(key))
 
 ## Da el título de cada logro cumplido ({key, done} como los devuelve Backend.fetch_achievements).
-static func grant_achievements(list: Array) -> void:
+## Devuelve los títulos que no se tenían (para anunciarlos).
+static func grant_achievements(list: Array) -> Array[String]:
+	var fresh: Array[String] = []
 	for a in list:
 		if bool(a.get("done", false)) and ACHIEVEMENT_REWARDS.has(str(a.get("key", ""))):
-			Unlocks.add("cosmetic", str(ACHIEVEMENT_REWARDS[str(a["key"])]))
+			var key := str(ACHIEVEMENT_REWARDS[str(a["key"])])
+			if Unlocks.add("cosmetic", key):
+				fresh.append(key)
+	return fresh
+
+## Pide los logros a la cuenta y da los títulos que se hayan cumplido. Devuelve los nuevos ([] sin sesión o sin red).
+static func refresh_achievements() -> Array[String]:
+	var list: Variant = await Backend.fetch_achievements()
+	if list == null:
+		return [] as Array[String]
+	return grant_achievements(list)

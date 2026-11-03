@@ -23,6 +23,8 @@ var _online_note: String = ""
 ## Momento (_t) en que llegaron los puntos, para animarlos, y si ya sonó el aviso de cambio de liga.
 var _settled_t: float = 0.0
 var _league_sounded: bool = false
+## Títulos de logros ganados con este duelo (se anuncian arriba).
+var _new_titles: Array[String] = []
 ## Online con cuenta: qué hace el botón de revancha: "challenge" (reto de nuevo), "accept" (el rival ya me retó),
 ## "add" (todavía no somos amigos) o "" (no se ofrece).
 var _rematch_mode: String = ""
@@ -180,6 +182,10 @@ func _on_settled(msg: Dictionary) -> void:
 	_settled_t = _t
 	Backend.apply_settled(msg)
 	Online.disconnect_from_server()
+	if Backend.is_logged_in() and msg.get("ranked", false) and msg.get("ok", false):
+		var fresh := await Cosmetics.refresh_achievements()
+		if is_inside_tree():
+			_new_titles = fresh
 
 func _add_figure(d: FighterData, pos: Vector2, s: int, pose: StringName) -> void:
 	var r := FighterRenderer.new()
@@ -222,6 +228,10 @@ func _draw() -> void:
 			HKTheme.draw_text(self, Vector2(x0, 150 + i * 11), epilogue[i], 8, Color("fff0a0"), HORIZONTAL_ALIGNMENT_CENTER, w, 1)
 	if Game.is_online():
 		_draw_online_points(x0, w)
+		if not _new_titles.is_empty():
+			var names := _new_titles.map(func(k): return Cosmetics.title_name(k))
+			HKTheme.draw_text(self, Vector2(0, 14), "¡TÍTULO NUEVO! %s" % " · ".join(PackedStringArray(names)), 8,
+				HKTheme.GOLD.lerp(Color.WHITE, 0.3 + 0.3 * sin(_t * 6.0)), HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
 
 ## Puntos del duelo online: pendiente, no registrado o amistoso; o los puntos ganados/perdidos contándose,
 ## la barra de liga avanzando desde los puntos de antes y, al acabar, el aviso si se cambió de liga.

@@ -240,8 +240,10 @@ func _test_profile_helpers() -> void:
 	check(Cosmetics.owned_frames().is_empty() and Cosmetics.owned_titles().is_empty(), "al principio no se tiene ningún cosmético")
 	Cosmetics.grant_ending(&"repair")
 	check(Cosmetics.owned_frames() == ["frame_gold"] and Cosmetics.owned_titles() == ["title_guardian"], "ver un final da su marco y su título")
-	Cosmetics.grant_achievements([{"key": "first_win", "done": true}, {"key": "wins_50", "done": false}, {"key": "streak_5", "done": true}, {"key": "otro", "done": true}])
+	var fresh := Cosmetics.grant_achievements([{"key": "first_win", "done": true}, {"key": "wins_50", "done": false}, {"key": "streak_5", "done": true}, {"key": "otro", "done": true}])
 	check(Cosmetics.owned_titles().has("title_first_blood") and Cosmetics.owned_titles().has("title_unstoppable"), "los logros cumplidos dan su título")
+	check(fresh == ["title_first_blood", "title_unstoppable"], "devuelve los títulos nuevos para anunciarlos")
+	check(Cosmetics.grant_achievements([{"key": "first_win", "done": true}]).is_empty(), "uno que ya se tenía no se anuncia otra vez")
 	check(not Cosmetics.owned_titles().has("title_legend"), "un logro sin cumplir no da nada")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Unlocks.path = old_cosm_path

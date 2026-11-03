@@ -89,6 +89,7 @@ func _run() -> void:
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
 	await frames(30)
 	await shot("12_results_online_counting.png")
+	(get_tree().current_scene as Control).set("_new_titles", ["title_first_blood"] as Array[String])
 	await frames(60)
 	await shot("13_results_online_up.png")
 	Game.set_match_result(2, 1, 2)

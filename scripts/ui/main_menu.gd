@@ -67,6 +67,8 @@ func _ready() -> void:
 		# La partida de la cuenta puede ser más nueva que la de este equipo (otro PC).
 		_show_saved_story(await Backend.load_story())
 		await Backend.sync_unlocks()
+		# Títulos de logros cumplidos en otro equipo (los de aquí se dan al terminar el duelo).
+		await Cosmetics.refresh_achievements()
 		await _refresh_friends_badge()
 
 ## Un solo botón resaltado: pasar el ratón por encima le da el foco, y el estilo "hover"
