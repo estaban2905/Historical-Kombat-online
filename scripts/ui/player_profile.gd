@@ -27,6 +27,8 @@ func _ready() -> void:
 	_data = await Backend.fetch_player(Game.viewed_player)
 	var avatar: Variant = _data.get("avatar")
 	_portrait.set_fighter(str(avatar) if avatar != null else "")
+	var frame: Variant = _data.get("frame")
+	_portrait.set_frame(str(frame) if frame != null else "")
 	_loading = false
 
 func _go_back() -> void:
@@ -50,7 +52,11 @@ func _draw() -> void:
 		HKTheme.draw_text(self, Vector2(0, 120), "NO SE PUDO CARGAR A %s" % Game.viewed_player.to_upper().left(16), 8,
 			HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 		return
-	HKTheme.draw_text(self, Vector2(0, 48), str(_data.get("username", "")).to_upper(), 16, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+	HKTheme.draw_text(self, Vector2(0, 44), str(_data.get("username", "")).to_upper(), 16, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+	var title_key: Variant = _data.get("title")
+	var title := Cosmetics.title_name(str(title_key)) if title_key != null else ""
+	if title != "":
+		HKTheme.draw_text(self, Vector2(0, 57), title, 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	var points := int(_data.get("points", 0))
 	var league := League.info(points)
 	HKTheme.draw_text(self, Vector2(0, 68), "%d PUNTOS · %s" % [points, league["name"]], 8,

@@ -46,6 +46,15 @@ func username() -> String:
 func is_google_account() -> bool:
 	return bool(profile.get("google_account", false))
 
+## Marco y título que lleva puestos ("" = ninguno).
+func frame() -> String:
+	var f: Variant = profile.get("frame")
+	return str(f) if f != null else ""
+
+func title() -> String:
+	var t: Variant = profile.get("title")
+	return str(t) if t != null else ""
+
 ## Id del luchador elegido como retrato ("" = ninguno).
 func avatar() -> String:
 	var a: Variant = profile.get("avatar")
@@ -135,6 +144,29 @@ func set_avatar(fighter_id: String) -> bool:
 		session_changed.emit()
 		return true
 	return false
+
+## Pone o quita el marco y/o el título: {"frame": "frame_gold"} o {"title": ""} (vacío = quitar). Solo los
+## desbloqueados. Devuelve {ok: bool, error: String}.
+func set_cosmetics(change: Dictionary) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var body := {}
+	for k in ["frame", "title"]:
+		if change.has(k):
+			body[k] = change[k] if str(change[k]) != "" else null
+	var r := await _request("PATCH", "/me", body, true)
+	if not r.ok or not r.data is Dictionary:
+		return {"ok": false, "error": _error_text(r)}
+	profile = r.data
+	session_changed.emit()
+	return {"ok": true, "error": ""}
+
+## Mis logros ([{key, progress, goal, done}]). null si falla (para no confundirlo con "ninguno").
+func fetch_achievements() -> Variant:
+	if not is_logged_in():
+		return null
+	var r := await _request("GET", "/me/achievements", null, true)
+	return r.data if r.ok and r.data is Array else null
 
 ## Cambia mi nombre (una vez cada 7 días). Devuelve {ok: bool, error: String}.
 func set_username(new_name: String) -> Dictionary:
@@ -387,6 +419,7 @@ func _error_text(r: Dictionary) -> String:
 		"wrong_password": return "LA CONTRASEÑA ACTUAL NO ES CORRECTA"
 		"no_password": return "TU CUENTA ENTRA CON GOOGLE: NO TIENE CONTRASEÑA"
 		"player_not_found": return "JUGADOR NO ENCONTRADO"
+		"not_unlocked": return "TODAVÍA NO HAS DESBLOQUEADO ESO"
 	return "ERROR DEL SERVIDOR (%d)" % r.code
 
 ## Valida los datos del formulario antes de enviarlos. "" = correcto.

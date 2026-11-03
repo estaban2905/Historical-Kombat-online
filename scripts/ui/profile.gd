@@ -19,6 +19,7 @@ var _sel: int = -1
 var _loading: bool = true
 var _back: Button
 var _edit_btn: Button
+var _achievements_btn: Button
 var _logout: Button
 var _continue_btn: Button
 var _tab_buttons: Array[Button] = []
@@ -29,17 +30,20 @@ func _ready() -> void:
 	if not Backend.is_logged_in():
 		Game.goto.call_deferred(Game.SCENE_MENU)
 		return
-	_back = _button("VOLVER", 40)
-	_edit_btn = _button("EDITAR PERFIL", 150)
-	_logout = _button(HKTheme.fold("CERRAR SESIÓN"), 272)
+	_back = _button("VOLVER", 14, 70)
+	_achievements_btn = _button("LOGROS", 90, 70)
+	_edit_btn = _button("EDITAR PERFIL", 166, 120)
+	_logout = _button(HKTheme.fold("CERRAR SESIÓN"), 292, 120)
 	_back.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
 	_edit_btn.pressed.connect(func(): Game.goto(Game.SCENE_EDIT_PROFILE))
+	_achievements_btn.pressed.connect(func(): Game.goto(Game.SCENE_ACHIEVEMENTS))
 	_logout.pressed.connect(_on_logout)
 	_portrait = AvatarFrame.new(Vector2(40, 40))
 	_portrait.position = Vector2(46, 30)
 	add_child(_portrait)
 	_portrait.set_fighter(Backend.avatar())
-	for b in [_back, _edit_btn, _logout]:
+	_portrait.set_frame(Backend.frame())
+	for b in [_back, _achievements_btn, _edit_btn, _logout]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	_build_tabs()
@@ -54,6 +58,7 @@ func _ready() -> void:
 	Backend.session_changed.connect(queue_redraw)
 	await Backend.fetch_profile()
 	_portrait.set_fighter(Backend.avatar())
+	_portrait.set_frame(Backend.frame())
 	_matches = await Backend.fetch_matches(MAX_MATCHES)
 	_story = await Backend.load_story()
 	_loading = false
@@ -128,14 +133,14 @@ func _continue_story() -> void:
 	if Game.story_resume(_story):
 		Game.goto(Game.SCENE_STORY)
 
-func _button(text: String, x: float) -> Button:
+func _button(text: String, x: float, width: float = 100.0) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.position = Vector2(x, 212)
-	b.custom_minimum_size = Vector2(100, 14)
+	b.custom_minimum_size = Vector2(width, 14)
 	add_child(b)
 	# Con el tema ya aplicado: si se fija antes, el botón nace con la altura de la fuente por defecto.
-	b.size = Vector2(100, 14)
+	b.size = Vector2(width, 14)
 	return b
 
 func _on_logout() -> void:
@@ -158,7 +163,10 @@ func _draw() -> void:
 	HKTheme.draw_text(self, Vector2(0, 24), "PERFIL", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
 	var wins := int(Backend.profile.get("wins", 0))
 	var losses := int(Backend.profile.get("losses", 0))
-	HKTheme.draw_text(self, Vector2(0, 48), Backend.username().to_upper(), 16, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+	HKTheme.draw_text(self, Vector2(0, 44), Backend.username().to_upper(), 16, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+	var title := Cosmetics.title_name(Backend.title())
+	if title != "":
+		HKTheme.draw_text(self, Vector2(0, 57), title, 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	var points := int(Backend.profile.get("points", 0))
 	var league := League.info(points)
 	HKTheme.draw_text(self, Vector2(0, 68), "%d PUNTOS · %s" % [points, league["name"]], 8,

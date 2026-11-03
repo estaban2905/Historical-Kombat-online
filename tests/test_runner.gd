@@ -210,6 +210,49 @@ func _test_profile_helpers() -> void:
 	Game.mode = old_mode
 	Game.p2_fighter_id = old_p2
 
+	# Cosméticos y logros
+	var frames_ok := true
+	for k in Cosmetics.FRAMES:
+		frames_ok = frames_ok and str(k).begins_with("frame_") and Cosmetics.frame_name(str(k)) != ""
+	var titles_ok := true
+	for k in Cosmetics.TITLES:
+		titles_ok = titles_ok and str(k).begins_with("title_") and Cosmetics.title_name(str(k)) != ""
+	check(frames_ok and titles_ok, "todos los marcos y títulos tienen nombre y su prefijo")
+	var rewards_exist := true
+	for e in Cosmetics.ENDING_REWARDS:
+		check(Unlocks.ENDINGS.has(e), "la recompensa del final %s es de un final que existe" % e)
+		for k in Cosmetics.ENDING_REWARDS[e]:
+			rewards_exist = rewards_exist and (Cosmetics.FRAMES.has(k) or Cosmetics.TITLES.has(k))
+	for k in Cosmetics.ACHIEVEMENT_REWARDS:
+		rewards_exist = rewards_exist and Cosmetics.TITLES.has(Cosmetics.ACHIEVEMENT_REWARDS[k])
+	check(rewards_exist, "cada recompensa apunta a un marco o título del catálogo")
+	check(Cosmetics.frame_name("frame_inventado") == "" and Cosmetics.title_name("title_inventado") == "", "lo que no conoce no tiene nombre (no se muestra)")
+	check(Cosmetics.frame_color("frame_inventado") == HKTheme.GOLD_DARK, "un marco desconocido usa el borde normal")
+	var old_cosm_path := Unlocks.path
+	var old_cosm_user := Backend.user_id
+	Unlocks.path = "user://unlocks_cosm_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Backend.user_id = ""
+	check(Cosmetics.owned_frames().is_empty() and Cosmetics.owned_titles().is_empty(), "al principio no se tiene ningún cosmético")
+	Cosmetics.grant_ending(&"repair")
+	check(Cosmetics.owned_frames() == ["frame_gold"] and Cosmetics.owned_titles() == ["title_guardian"], "ver un final da su marco y su título")
+	Cosmetics.grant_achievements([{"key": "first_win", "done": true}, {"key": "wins_50", "done": false}, {"key": "streak_5", "done": true}, {"key": "otro", "done": true}])
+	check(Cosmetics.owned_titles().has("title_first_blood") and Cosmetics.owned_titles().has("title_unstoppable"), "los logros cumplidos dan su título")
+	check(not Cosmetics.owned_titles().has("title_legend"), "un logro sin cumplir no da nada")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = old_cosm_path
+	Backend.user_id = old_cosm_user
+	var merged := Achievements.merge([{"key": "first_win", "progress": 1, "goal": 1, "done": true}, {"key": "wins_10", "progress": 4, "goal": 10, "done": false}])
+	check(merged.size() == Achievements.LIST.size() and merged[0]["name"] == "PRIMERA SANGRE" and merged[0]["done"], "merge: respeta el orden y marca lo cumplido")
+	check(merged[1]["progress"] == 4 and merged[1]["goal"] == 10 and not merged[1]["done"], "merge: trae el progreso del servidor")
+	check(merged[2]["progress"] == 0 and merged[2]["goal"] >= 1, "merge: lo que el servidor no manda sale a 0")
+	check(Achievements.done_count(merged) == 1, "done_count cuenta los cumplidos")
+	var hidden: Dictionary = merged[Achievements.LIST.map(func(e): return e[0]).find(Achievements.HIDDEN)]
+	check(hidden["name"] == "???" and hidden["desc"] != "", "el logro oculto no dice su nombre hasta cumplirlo")
+	var shown := Achievements.merge([{"key": Achievements.HIDDEN, "progress": 1, "goal": 1, "done": true}])
+	check(shown[Achievements.LIST.map(func(e): return e[0]).find(Achievements.HIDDEN)]["name"] == "EL TIEMPO LIBRE", "cumplido, ya se muestra")
+	check(Achievements.merge([]).size() == Achievements.LIST.size(), "sin respuesta del servidor salen todos a 0")
+
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
 	# La selección bloquea a quien aún no se ha ganado: esta prueba elige a Trump (el luchador por defecto),
