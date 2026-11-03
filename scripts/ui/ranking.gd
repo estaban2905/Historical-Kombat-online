@@ -46,8 +46,9 @@ func _draw() -> void:
 		return
 	HKTheme.draw_text(self, Vector2(60, 46), "#", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(90, 46), "JUGADOR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(230, 46), "PUNTOS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(304, 46), "VICT/DERR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(230, 46), "PTS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(268, 46), "LIGA", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(312, 46), "VICT/DERR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(390, 46), "%", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var me := Backend.username().to_lower() if Backend.is_logged_in() else ""
 	var my_index := -1
@@ -61,6 +62,14 @@ func _draw() -> void:
 	# Fuera de las primeras filas: tu puesto queda fijo debajo de la lista.
 	if my_index >= ROWS:
 		_draw_row(my_index, _players[my_index], 204.0, true)
+	elif my_index >= 0:
+		# Dentro de las filas visibles: en el hueco de abajo va lo que te falta para subir de liga.
+		var league := League.info(int(_players[my_index].get("points", 0)))
+		var next_name := str(league["next_name"])
+		var text := "ERES EL PUESTO %d · %s" % [my_index + 1, league["name"]]
+		if next_name != "":
+			text += " · %d PARA %s" % [int(league["to_next"]), next_name]
+		HKTheme.draw_text(self, Vector2(0, 204), text, 8, league["color"], HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	elif me != "" and my_index < 0:
 		HKTheme.draw_text(self, Vector2(60, 204), "%s: FUERA DEL TOP %d" % [me.to_upper().left(16), FETCH], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 
@@ -77,7 +86,10 @@ func _draw_row(i: int, p: Dictionary, y: float, mine: bool) -> void:
 		draw_rect(Rect2(52, y - 9, 362, 12), Color(1, 1, 1, 0.08))
 	HKTheme.draw_text(self, Vector2(60, y), str(i + 1), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(90, y), str(p.get("username", "")).to_upper().left(16), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(230, y), str(int(p.get("points", 0))), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(304, y), "%d / %d" % [wins, losses], 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	var points := int(p.get("points", 0))
+	HKTheme.draw_text(self, Vector2(230, y), str(points), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	var league := League.info(points)
+	HKTheme.draw_text(self, Vector2(268, y), str(league["name"]).left(3), 8, league["color"] if played > 0 else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(312, y), "%d / %d" % [wins, losses], 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var rate := "%d%%" % roundi(100.0 * wins / played) if played > 0 else "-"
 	HKTheme.draw_text(self, Vector2(390, y), rate, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
