@@ -12,10 +12,17 @@ signal hit_landed(attacker: Fighter, defender: Fighter, attack: AttackData, resu
 signal fighter_knocked_out(fighter: Fighter)
 ## Al final de cada tick de combate (tras incrementar tick_count).
 signal ticked
+## Punto de control de la sincronía online: cada SYNC_EVERY ticks, con el resumen del estado (ver state_checksum).
+signal sync_point(tick: int, checksum: int, version: int)
 
 const FIGHTER_SCENE := preload("res://scenes/fighters/Fighter.tscn")
 ## Cinemática del ultimate: todo se congela estos frames (zoom sobre quien lo lanza y
 ## su nombre en pantalla) antes de que empiece el ataque.
+## Cada cuántos ticks se comprueba que las dos peleas online siguen iguales (1 s).
+const SYNC_EVERY := 60
+## Versión del contenido de state_snapshot: súbela si cambias qué recoge, para que el servidor no
+## compare el resumen de un juego antiguo con el de uno nuevo.
+const SNAPSHOT_VERSION := 1
 const ULT_CINEMATIC_FRAMES := 48
 const ULT_ZOOM := 1.45
 
@@ -41,6 +48,8 @@ var _shake: float = 0.0
 var fx: ParticleFX
 ## Ticks de combate transcurridos (un tick = un frame de física a 60 Hz).
 var tick_count: int = 0
+## true en el duelo online: emite sync_point cada SYNC_EVERY ticks.
+var sync_enabled: bool = false
 var _input_source: Callable
 ## Frames que quedan de la cinemática de un ultimate (0 = no hay). Mientras dura no
 ## avanza nada del combate ni del reloj de la ronda.
@@ -191,6 +200,8 @@ func _physics_process(delta: float) -> void:
 	_update_shake(delta)
 	_update_fx()
 	tick_count += 1
+	if sync_enabled and tick_count % SYNC_EVERY == 0:
+		sync_point.emit(tick_count, state_checksum(), SNAPSHOT_VERSION)
 	ticked.emit()
 
 ## El Nexo se endurece al perder vida: más fuerza y velocidad en cada fase (se reinicia cada ronda).
@@ -235,8 +246,11 @@ var _waiting_label: Label
 func _start_online() -> void:
 	set_input_source(Online.input_source)
 	Online.begin_fight()
+	sync_enabled = true
+	sync_point.connect(Online.send_sync)
 	Online.opponent_left.connect(_on_online_opponent_left, CONNECT_ONE_SHOT)
 	Online.timed_out.connect(_on_online_timed_out, CONNECT_ONE_SHOT)
+	Online.desynced.connect(_on_online_desynced, CONNECT_ONE_SHOT)
 	Online.failed.connect(_on_online_failed, CONNECT_ONE_SHOT)
 	var layer := CanvasLayer.new()
 	layer.layer = 40
@@ -261,10 +275,7 @@ func _set_waiting(waiting: bool) -> void:
 
 ## El rival se desconectó en plena pelea: la partida se da por ganada.
 func _on_online_opponent_left() -> void:
-	if Online.failed.is_connected(_on_online_failed):
-		Online.failed.disconnect(_on_online_failed)
-	if Online.timed_out.is_connected(_on_online_timed_out):
-		Online.timed_out.disconnect(_on_online_timed_out)
+	_stop_listening_online()
 	hud.show_message("RIVAL DESCONECTADO", 2.0, HKTheme.GOLD)
 	round_manager.abort()
 	await get_tree().create_timer(2.0).timeout
@@ -273,13 +284,30 @@ func _on_online_opponent_left() -> void:
 	Game.set_match_result(Online.side, round_manager.wins[1], round_manager.wins[2])
 	Game.goto(Game.SCENE_RESULTS)
 
+## Los resúmenes de las dos peleas no coinciden: cada uno estaría viendo una pelea distinta.
+## No se sabe quién tiene razón, así que el duelo se anula y se vuelve al menú.
+func _on_online_desynced() -> void:
+	_stop_listening_online()
+	sync_enabled = false
+	hud.show_message("SIN SINCRONÍA · DUELO ANULADO", 2.0, HKTheme.BLOOD)
+	round_manager.abort()
+	await get_tree().create_timer(2.0).timeout
+	if is_inside_tree():
+		Game.goto(Game.SCENE_MENU)
+
+## Deja de escuchar los avisos de la red: ya se decidió cómo termina el duelo.
+func _stop_listening_online() -> void:
+	for pair in [[Online.opponent_left, _on_online_opponent_left], [Online.timed_out, _on_online_timed_out],
+			[Online.desynced, _on_online_desynced], [Online.failed, _on_online_failed]]:
+		var sig: Signal = pair[0]
+		var handler: Callable = pair[1]
+		if sig.is_connected(handler):
+			sig.disconnect(handler)
+
 ## El servidor cerró el duelo porque nadie respondía: pierde quien iba por detrás.
 ## Si no se sabe quién fue (loser = 0), el duelo se anula y se vuelve al menú.
 func _on_online_timed_out(loser: int) -> void:
-	if Online.opponent_left.is_connected(_on_online_opponent_left):
-		Online.opponent_left.disconnect(_on_online_opponent_left)
-	if Online.failed.is_connected(_on_online_failed):
-		Online.failed.disconnect(_on_online_failed)
+	_stop_listening_online()
 	if loser == 0:
 		hud.show_message("SIN RESPUESTA · DUELO ANULADO", 2.0, HKTheme.BLOOD)
 	elif loser == Online.side:
@@ -298,10 +326,7 @@ func _on_online_timed_out(loser: int) -> void:
 
 ## Se perdió MI conexión: no hay ganador, se vuelve al menú.
 func _on_online_failed(message: String) -> void:
-	if Online.opponent_left.is_connected(_on_online_opponent_left):
-		Online.opponent_left.disconnect(_on_online_opponent_left)
-	if Online.timed_out.is_connected(_on_online_timed_out):
-		Online.timed_out.disconnect(_on_online_timed_out)
+	_stop_listening_online()
 	hud.show_message(message, 2.0, HKTheme.BLOOD)
 	round_manager.abort()
 	await get_tree().create_timer(2.0).timeout

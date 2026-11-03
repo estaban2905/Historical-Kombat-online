@@ -47,6 +47,8 @@ func _run() -> void:
 	await _case_opponent_gone()
 	await _case_timeout_message()
 	await _case_timeout_ends_the_fight()
+	await _case_sync_points()
+	await _case_desync_ends_the_fight()
 	print("\n=== RESULTADO: %d fallos ===" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -322,6 +324,59 @@ func _case_timeout_ends_the_fight() -> void:
 	check(Game.last_winner == 1, "pierde quien dejó de responder: gana P1 (ganador %d)" % Game.last_winner)
 	# Game.goto ya está cambiando a Resultados: se deja terminar y se limpia.
 	await get_tree().create_timer(0.6).timeout
+	if get_tree().current_scene != null:
+		get_tree().current_scene.queue_free()
+		get_tree().current_scene = null
+	if is_instance_valid(combat):
+		combat.queue_free()
+	Online.disconnect_from_server()
+	Game.mode = old_mode
+	await get_tree().physics_frame
+
+## Cada segundo de pelea el combate online emite un punto de control con el resumen del estado (NET-01).
+func _case_sync_points() -> void:
+	Game.mode = Game.Mode.VERSUS
+	var combat := _new_combat()
+	var points: Array = []
+	combat.sync_point.connect(func(tick: int, checksum: int, version: int) -> void: points.append([tick, checksum, version]))
+	for i in 130:
+		await get_tree().physics_frame
+	check(points.is_empty(), "fuera del online no se emiten puntos de control")
+	combat.sync_enabled = true
+	var start := combat.tick_count
+	while combat.tick_count < start + 130:
+		await get_tree().physics_frame
+	var ticks: Array = points.map(func(p: Array) -> int: return p[0])
+	var expected: Array = []
+	for t in range(start + 1, combat.tick_count + 1):
+		if t % CombatManager.SYNC_EVERY == 0:
+			expected.append(t)
+	check(not ticks.is_empty() and ticks == expected, "emite uno cada %d ticks (%s de %s)" % [CombatManager.SYNC_EVERY, str(ticks), str(expected)])
+	check(points[0][2] == CombatManager.SNAPSHOT_VERSION, "lleva la versión del resumen")
+	combat.queue_free()
+	await get_tree().physics_frame
+
+## Si el servidor avisa de que las peleas se separaron, el duelo se anula y se vuelve al menú.
+func _case_desync_ends_the_fight() -> void:
+	var count := [0]
+	var on_desync := func() -> void: count[0] += 1
+	Online.desynced.connect(on_desync)
+	Online._on_message('{"t":"desync"}')
+	check(count[0] == 0, "fuera de una pelea se ignora el aviso de desincronización")
+	Online.begin_fight()
+	Online._on_message('{"t":"desync"}')
+	check(count[0] == 1, "en plena pelea el aviso de desincronización llega al combate")
+	Online.desynced.disconnect(on_desync)
+	Online.disconnect_from_server()
+	var old_mode := Game.mode
+	Game.mode = Game.Mode.ONLINE
+	Online.side = 1
+	Online._session = LockstepSession.new(1, func() -> int: return 0, func(_f: int, _m: int, _a: int): pass)
+	var combat := _new_combat()
+	await get_tree().physics_frame
+	Online._on_message('{"t":"desync"}')
+	check(combat.round_manager.phase == RoundManager.Phase.MATCH_END, "al anularse por desincronización la pelea se detiene")
+	await get_tree().create_timer(2.6).timeout
 	if get_tree().current_scene != null:
 		get_tree().current_scene.queue_free()
 		get_tree().current_scene = null

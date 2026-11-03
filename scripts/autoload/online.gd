@@ -16,6 +16,8 @@ signal opponent_left
 ## Nadie mandó botones durante un rato y el servidor cerró el duelo. `loser` es quien dejó de
 ## responder (1 o 2); 0 = no se sabe quién y el duelo se anula.
 signal timed_out(loser: int)
+## Los resúmenes de las dos peleas no coinciden: el servidor anuló el duelo (ver CombatManager.sync_point).
+signal desynced
 ## El servidor cerró el duelo: puntos ganados o perdidos (ver `last_settled`).
 signal settled(msg: Dictionary)
 ## Fallo de conexión (mensaje legible para mostrar en pantalla).
@@ -107,6 +109,10 @@ func disconnect_from_server() -> void:
 	_opponent_gone = false
 	_left_emitted = false
 	_set_state(State.IDLE)
+
+## Resumen del estado de MI pelea en el tick `tick`; el servidor lo compara con el del rival.
+func send_sync(tick: int, checksum: int, version: int) -> void:
+	_send({"t": "sync", "f": tick, "c": checksum, "v": version})
 
 ## Al terminar la pelea, dice al servidor quién ganó según ESTA simulación. En un duelo
 ## entre cuentas solo cuenta si el rival reporta lo mismo. Devuelve false si no se pudo enviar.
@@ -214,6 +220,9 @@ func _on_message(text: String) -> void:
 			if state == State.FIGHTING:
 				var loser := int(data.get("loser", 0))
 				timed_out.emit(loser if loser == 1 or loser == 2 else 0)
+		"desync":
+			if state == State.FIGHTING:
+				desynced.emit()
 		"settled":
 			last_settled = data
 			settled.emit(data)
