@@ -63,10 +63,10 @@ func _ready() -> void:
 	_cursor_layer.draw.connect(_draw_cursor)
 	add_child(_cursor_layer)
 	btn_play.grab_focus()
-	_show_saved_story(Backend.story_local())
+	_show_saved_story(Backend.stories_local())
 	if Backend.is_logged_in():
-		# La partida de la cuenta puede ser más nueva que la de este equipo (otro PC).
-		_show_saved_story(await Backend.load_story())
+		# Las partidas de la cuenta pueden ser más nuevas que las de este equipo (otro PC).
+		_show_saved_story(await Backend.load_stories())
 		await Backend.sync_unlocks()
 		# Títulos de logros cumplidos en otro equipo (los de aquí se dan al terminar el duelo).
 		await Cosmetics.refresh_achievements()
@@ -289,36 +289,38 @@ func _spawn_duel() -> void:
 	add_child(duel)
 	move_child(duel, 1)
 
-## Muestra CONTINUAR HISTORIA si hay una partida guardada válida ({} = no hay).
-func _show_saved_story(save: Dictionary) -> void:
+## Partidas válidas de la lista (la más reciente primero); decide qué hace CONTINUAR.
+var _saves: Array = []
+
+## Muestra CONTINUAR si hay partidas guardadas válidas ({} = no hay). Con una sola, la retoma; con varias,
+## abre la lista para elegir cuál.
+func _show_saved_story(saves: Dictionary) -> void:
 	if not is_inside_tree():
 		return
-	var valid := _story_is_valid(save)
+	_saves = StorySavesScreen.sorted_saves(saves)
+	var valid := not _saves.is_empty()
 	btn_continue.visible = valid
 	btn_play.text = "NUEVA HISTORIA" if valid else "MODO HISTORIA"
 	if not valid:
 		return
-	btn_continue.text = "CONTINUAR · COMBATE %d/%d" % [int(save["stage"]) + 1, FighterRegistry.all().size()]
+	if _saves.size() == 1:
+		btn_continue.text = "CONTINUAR · COMBATE %d/%d" % [int(_saves[0]["stage"]) + 1, FighterRegistry.all().size()]
+	else:
+		btn_continue.text = "PARTIDAS GUARDADAS (%d)" % _saves.size()
 	if not btn_continue.has_focus() and get_viewport().gui_get_focus_owner() == btn_play:
 		btn_continue.grab_focus()
 
-func _story_is_valid(save: Dictionary) -> bool:
-	if save.is_empty():
-		return false
-	for d in FighterRegistry.all():
-		if str(d.id) == str(save.get("fighter", "")):
-			# Un combate por rival y el Nexo al final.
-			return int(save.get("stage", -1)) >= 0 and int(save["stage"]) < FighterRegistry.all().size()
-	return false
-
 func _continue_story() -> void:
-	var save := Backend.story_local() if not Backend.is_logged_in() else await Backend.load_story()
+	if _saves.size() > 1:
+		Game.goto(Game.SCENE_STORY_SAVES)
+		return
+	var save: Dictionary = _saves[0] if not _saves.is_empty() else {}
 	if Game.story_resume(save):
 		Game.goto(Game.SCENE_STORY)
 	else:
 		# La partida ya no sirve (versión distinta del juego): se descarta y se vuelve a empezar.
 		await Backend.clear_story(str(save.get("fighter", "")))
-		_show_saved_story(await Backend.load_story())
+		_show_saved_story(await Backend.load_stories())
 
 func _go_select(mode: Game.Mode) -> void:
 	Game.mode = mode
