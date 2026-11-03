@@ -13,6 +13,8 @@ extends Node2D
 ## Pide sacudir la cámara cuando la entidad se arma tras su retardo (lo conecta quien la crea).
 signal shake_requested(amount: float)
 
+const TICKS_PER_SECOND := 60.0
+
 var owner_fighter: Fighter
 var attack: AttackData
 var direction: int = 1
@@ -20,7 +22,9 @@ var speed: float = 200.0
 ## Velocidad vertical (px/s, negativa = hacia arriba) y su aceleración.
 var vy: float = 0.0
 var accel_y: float = 0.0
-var life: float = 2.0
+## Todos los tiempos de la entidad van en frames (ticks de combate a 60 Hz), igual que los golpes.
+## Frames que le quedan de vida (cuenta también el retardo).
+var life_frames: int = 120
 var alive: bool = true
 
 ## Estilo gráfico de PowerArt. Vacío = estilo clásico (attack.projectile_style).
@@ -38,8 +42,8 @@ var harmless: bool = false
 var clashable: bool = true
 ## true: el empuje va hacia fuera del centro (ondas expansivas).
 var radial: bool = false
-## Segundos hasta que el efecto "se activa" (antes no golpea ni se mueve).
-var delay: float = 0.0
+## Frames hasta que el efecto "se activa" (antes no golpea ni se mueve).
+var delay_frames: int = 0
 ## Si true se dibuja ya durante el retardo (muro que sube, mono que salta...).
 var show_before_arm: bool = false
 var shake_on_arm: float = 0.0
@@ -55,7 +59,11 @@ var combo_instance: int = -1
 ## Visual que acompaña al lanzador mientras tiene el escudo activo.
 var follow: bool = false
 
-var _t: float = 0.0
+## Frames transcurridos desde que se creó.
+var age: int = 0
+## Segundos desde que se creó. Solo para dibujar y animar: la lógica usa `age`.
+var _t: float:
+	get: return age / TICKS_PER_SECOND
 var _armed: bool = true
 var _trail: Array[Vector2] = []
 ## objetivo -> [golpes, frames hasta poder repetir]
@@ -68,7 +76,7 @@ func setup(p_owner: Fighter, p_attack: AttackData, spawn_position: Vector2) -> v
 	combo_instance = p_owner.attack_instance
 	direction = p_owner.facing
 	speed = p_attack.projectile_speed
-	life = p_attack.projectile_lifetime
+	life_frames = maxi(roundi(p_attack.projectile_lifetime * TICKS_PER_SECOND), 1)
 	position = spawn_position
 	box = p_attack.hitbox_size
 
@@ -81,8 +89,8 @@ func configure(d: Dictionary) -> void:
 	speed = d.get("speed", 0.0)
 	vy = d.get("vy", 0.0)
 	accel_y = d.get("accel_y", 0.0)
-	delay = float(d.get("delay", 0)) / 60.0
-	life = float(d.get("life", 1.5)) + delay
+	delay_frames = int(d.get("delay", 0))
+	life_frames = int(d.get("life", 90)) + delay_frames
 	pierce = d.get("pierce", false)
 	rehit_frames = d.get("rehit", 0)
 	max_hits = d.get("max_hits", 1)
@@ -94,7 +102,7 @@ func configure(d: Dictionary) -> void:
 	boom = d.get("boom", false)
 	pull = d.get("pull", false)
 	clashable = d.get("clash", art == &"")
-	_armed = delay <= 0.0
+	_armed = delay_frames <= 0
 	visible = _armed or show_before_arm
 
 ## Entidad solo visual (humo, cañón, guardia, explosión...).
@@ -110,9 +118,9 @@ static func make_visual(p_owner: Fighter, pos: Vector2, d: Dictionary) -> Projec
 	p.box = d.get("box", Vector2(20, 20))
 	p.speed = d.get("speed", 0.0)
 	p.vy = d.get("vy", 0.0)
-	p.delay = float(d.get("delay", 0)) / 60.0
-	p.life = float(d.get("life", 0.5)) + p.delay
-	p._armed = p.delay <= 0.0
+	p.delay_frames = int(d.get("delay", 0))
+	p.life_frames = int(d.get("life", 30)) + p.delay_frames
+	p._armed = p.delay_frames <= 0
 	p.visible = p._armed or d.get("show", false)
 	p.show_before_arm = d.get("show", false)
 	p.follow = d.get("follow", false)
@@ -128,10 +136,14 @@ func get_rect() -> Rect2:
 func tick(delta: float) -> void:
 	if not alive:
 		return
-	_t += delta
-	life -= delta
+	# Tiempo lento: la entidad de un luchador ralentizado avanza solo uno de cada dos frames,
+	# igual que él (ver Fighter.tick).
+	if owner_fighter != null and owner_fighter.slow_frames > 0 and owner_fighter.frame_counter % 2 == 0:
+		return
+	age += 1
+	life_frames -= 1
 	if follow:
-		if owner_fighter == null or owner_fighter.shield_frames <= 0 or life <= 0.0:
+		if owner_fighter == null or owner_fighter.shield_frames <= 0 or life_frames <= 0:
 			destroy()
 			return
 		position = owner_fighter.position + Vector2(0, -36)
@@ -140,9 +152,9 @@ func tick(delta: float) -> void:
 	for target in _hit_log:
 		_hit_log[target][1] = maxi(_hit_log[target][1] - 1, 0)
 	if not _armed:
-		if _t >= delay:
+		if age >= delay_frames:
 			_arm()
-		if life <= 0.0:
+		if life_frames <= 0:
 			destroy()
 		queue_redraw()
 		return
@@ -151,7 +163,7 @@ func tick(delta: float) -> void:
 		_trail.pop_back()
 	vy += accel_y * delta
 	position += Vector2(direction * speed, vy) * delta
-	if life <= 0.0 or position.x < -80.0 or position.x > 506.0 or position.y > 280.0:
+	if life_frames <= 0 or position.x < -80.0 or position.x > 506.0 or position.y > 280.0:
 		destroy()
 	elif floor_y > 0.0 and position.y >= floor_y:
 		if boom:
@@ -194,7 +206,7 @@ func _spawn_boom() -> void:
 	if parent == null:
 		return
 	var b := Projectile.make_visual(owner_fighter, position, {"art": &"boom", "box": Vector2(40, 40),
-		"life": 0.35, "color": art_color if art_color != Color.WHITE else Color("ffd060")})
+		"life": 21, "color": art_color if art_color != Color.WHITE else Color("ffd060")})
 	parent.add_child(b)
 	Sfx.play(&"cannon")
 
@@ -206,8 +218,8 @@ func destroy() -> void:
 
 func _draw() -> void:
 	if art != &"":
-		PowerArt.draw(self, art, _t, clampf(_t / maxf(delay, 0.001), 0.0, 1.0) if not _armed else 1.0,
-			maxf(_t - delay, 0.0), direction, box, art_color)
+		PowerArt.draw(self, art, _t, clampf(float(age) / maxf(delay_frames, 1), 0.0, 1.0) if not _armed else 1.0,
+			maxf(_t - delay_frames / TICKS_PER_SECOND, 0.0), direction, box, art_color)
 		return
 	match attack.projectile_style if attack else &"ball":
 		&"soundwave":
