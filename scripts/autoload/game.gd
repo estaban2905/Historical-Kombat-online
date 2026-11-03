@@ -351,6 +351,11 @@ func start_story(player_id: StringName) -> void:
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
 
+## Vencer a un rival en el modo Historia lo desbloquea para siempre (el Nexo no: es el final).
+func story_record_win() -> void:
+	if mode == Mode.ARCADE and p2_fighter_id != STORY_NEXO_ID:
+		Unlocks.add("fighter", str(p2_fighter_id))
+
 ## Lo mínimo para retomar la partida (la escalera se recalcula con start_story al restaurar).
 func story_snapshot() -> Dictionary:
 	return {

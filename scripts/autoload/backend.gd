@@ -160,6 +160,33 @@ func fetch_player(player_name: String) -> Dictionary:
 	var r := await _request("GET", "/players/%s" % player_name.uri_encode(), null, false)
 	return r.data if r.ok and r.data is Dictionary else {}
 
+## Lo desbloqueado en la cuenta ([{kind, key}]). null si falla (para no confundir "sin conexión" con "nada").
+func fetch_unlocks() -> Variant:
+	if not is_logged_in():
+		return null
+	var r := await _request("GET", "/me/unlocks", null, true)
+	return r.data if r.ok and r.data is Array else null
+
+## Añade desbloqueos a la cuenta. true si el servidor los guardó. Si falla (sin red), quedan en el equipo
+## y la próxima sync_unlocks los sube.
+func push_unlocks(items: Array) -> bool:
+	if not is_logged_in() or items.is_empty():
+		return false
+	var r := await _request("PUT", "/me/unlocks", {"items": items}, true)
+	return r.ok
+
+## Une los desbloqueos del equipo con los de la cuenta (solo se añade): lo que falte en cada lado se copia al otro.
+func sync_unlocks() -> void:
+	var remote: Variant = await fetch_unlocks()
+	if remote == null:
+		return
+	Unlocks.merge(remote)
+	var known := {}
+	for u in remote:
+		known["%s:%s" % [str(u.get("kind", "")), str(u.get("key", ""))]] = true
+	var missing := Unlocks.as_dicts().filter(func(u: Dictionary) -> bool: return not known.has("%s:%s" % [u["kind"], u["key"]]))
+	await push_unlocks(missing)
+
 ## Los mejores jugadores: [{username, points, wins, losses, avatar, favorite_fighter, streak}]. Vacío si falla.
 func fetch_ranking(limit: int = 10) -> Array:
 	var r := await _request("GET", "/leaderboard?limit=%d" % limit, null, false)

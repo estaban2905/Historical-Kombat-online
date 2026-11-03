@@ -167,6 +167,49 @@ func _test_profile_helpers() -> void:
 	Settings.master = old_master
 	Settings.effects = old_effects
 
+	# Desbloqueos
+	var old_unlocks_path := Unlocks.path
+	var old_user := Backend.user_id
+	var old_mode := Game.mode
+	var old_p2 := Game.p2_fighter_id
+	Unlocks.path = "user://unlocks_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Backend.user_id = ""
+	var starters_exist := true
+	for id in Unlocks.STARTERS:
+		starters_exist = starters_exist and FighterRegistry.has(id)
+	check(Unlocks.STARTERS.size() == 12 and starters_exist, "se empieza con 12 luchadores y todos existen en el plantel")
+	check(Unlocks.fighters_unlocked() == 12, "al principio hay 12 desbloqueados")
+	check(Unlocks.fighter_unlocked(&"nikola_tesla") and not Unlocks.fighter_unlocked(&"donald_trump"), "Tesla es inicial y Trump no")
+	check(Unlocks.add("fighter", "donald_trump") and not Unlocks.add("fighter", "donald_trump"), "añadir devuelve true solo la primera vez")
+	check(Unlocks.fighter_unlocked(&"donald_trump") and Unlocks.fighters_unlocked() == 13, "lo ganado cuenta como desbloqueado")
+	Backend.user_id = "cuenta-a"
+	check(not Unlocks.fighter_unlocked(&"donald_trump"), "otra cuenta no hereda lo del invitado")
+	Unlocks.add("ending", "repair")
+	check(Unlocks.endings_seen().size() == 1 and Unlocks.endings_seen()[0] == &"repair", "se anota el final visto")
+	check(Unlocks.merge([{"kind": "ending", "key": "rewrite"}, {"kind": "ending", "key": "repair"}]) and Unlocks.endings_seen().size() == 2,
+		"merge añade lo nuevo de la cuenta y no duplica")
+	check(not Unlocks.merge([{"kind": "ending", "key": "rewrite"}]), "merge sin novedades no cambia nada")
+	check(Unlocks.as_dicts().size() == 2 and Unlocks.as_dicts()[0].has("kind"), "as_dicts da el formato del servidor")
+	Backend.user_id = ""
+	check(Unlocks.fighter_unlocked(&"donald_trump"), "volver al invitado: sus desbloqueos siguen")
+	Game.mode = Game.Mode.ARCADE
+	Game.p2_fighter_id = &"hernan_cortes"
+	Game.story_record_win()
+	check(Unlocks.fighter_unlocked(&"hernan_cortes"), "vencer a un rival en la historia lo desbloquea")
+	Game.p2_fighter_id = Game.STORY_NEXO_ID
+	Game.story_record_win()
+	check(not Unlocks.has("fighter", "el_nexo"), "vencer al Nexo no lo desbloquea como luchador")
+	Game.mode = Game.Mode.VERSUS
+	Game.p2_fighter_id = &"boudica"
+	Game.story_record_win()
+	check(not Unlocks.fighter_unlocked(&"boudica"), "fuera de la historia no se desbloquea nada")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = old_unlocks_path
+	Backend.user_id = old_user
+	Game.mode = old_mode
+	Game.p2_fighter_id = old_p2
+
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
 	get_tree().change_scene_to_file(Game.SCENE_MENU)

@@ -58,6 +58,7 @@ func _setup_buttons() -> void:
 		&"next":
 			# Se guarda ya, al ganar: si se recarga aquí, se retoma en el combate siguiente.
 			Game.story_autosave_next()
+			Game.story_record_win()
 			btn_rematch.text = "SIGUIENTE COMBATE"
 			btn_rematch.pressed.connect(func():
 				Game.arcade_advance()

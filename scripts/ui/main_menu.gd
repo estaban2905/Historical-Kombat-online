@@ -62,6 +62,7 @@ func _ready() -> void:
 	if Backend.is_logged_in():
 		# La partida de la cuenta puede ser más nueva que la de este equipo (otro PC).
 		_show_saved_story(await Backend.load_story())
+		await Backend.sync_unlocks()
 
 ## Un solo botón resaltado: pasar el ratón por encima le da el foco, y el estilo "hover"
 ## es el normal, así nunca hay dos botones con marco dorado a la vez.
