@@ -15,6 +15,8 @@ const SCENE_PROFILE := "res://scenes/Profile.tscn"
 const SCENE_RANKING := "res://scenes/Ranking.tscn"
 const SCENE_AVATAR := "res://scenes/AvatarPicker.tscn"
 const SCENE_SETTINGS := "res://scenes/Settings.tscn"
+const SCENE_PLAYER := "res://scenes/PlayerProfile.tscn"
+const SCENE_EDIT_PROFILE := "res://scenes/EditProfile.tscn"
 const SCENE_ROSTER := "res://scenes/Roster.tscn"
 const SCENE_CREDITS := "res://scenes/Credits.tscn"
 const SCENE_STORY := "res://scenes/Story.tscn"
@@ -243,6 +245,16 @@ func stage_owner(round_number: int) -> StringName:
 	if mode == Mode.ARCADE:
 		return p2_fighter_id
 	return p1_fighter_id if round_number % 2 == 1 else p2_fighter_id
+
+## Perfil de otro jugador que se está viendo y escena a la que vuelve VOLVER.
+var viewed_player: String = ""
+var viewed_return: String = SCENE_RANKING
+
+## Abre el perfil de un jugador; VOLVER regresa a `back_scene`.
+func view_player(player_name: String, back_scene: String) -> void:
+	viewed_player = player_name
+	viewed_return = back_scene
+	goto(SCENE_PLAYER)
 
 ## Cambia de escena con un fundido a negro.
 ## Una escena que redirige en cuanto carga (p. ej. el login sin cuentas, con el servidor

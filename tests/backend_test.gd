@@ -157,6 +157,31 @@ func _run() -> void:
 		"un combate fuera de la escalera se rechaza")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Backend.story_path))
 
+	print("
+# Perfil público y editar perfil")
+	var pub := await Backend.fetch_player(name)
+	check(pub.get("username", "") == name and int(pub.get("rank", 0)) >= 1, "perfil público de un jugador (puesto %s)" % str(pub.get("rank")))
+	check(not pub.has("email") and not pub.has("id") and pub.get("recent", null) is Array, "no trae email ni id, y sí la lista de duelos")
+	check((await Backend.fetch_player("Nadie_" + suffix)).is_empty(), "un jugador que no existe devuelve vacío")
+	check(not Backend.is_google_account(), "una cuenta con email no es de Google")
+	var new_name := "N" + suffix
+	r = await Backend.set_username(new_name)
+	check(r.ok and Backend.username() == new_name, "cambiar el nombre: " + str(r.error))
+	check((await Backend.fetch_player(name)).is_empty() and not (await Backend.fetch_player(new_name)).is_empty(),
+		"el nombre viejo ya no existe y el nuevo sí")
+	r = await Backend.set_username("Z" + suffix)
+	check(not r.ok and "7 DÍAS" in r.error, "otro cambio seguido: en espera (" + str(r.error) + ")")
+	r = await Backend.change_password("mala-clave", "nueva-clave")
+	check(not r.ok and "ACTUAL" in r.error, "contraseña actual incorrecta: " + str(r.error))
+	r = await Backend.change_password("secreto1", "nueva-clave")
+	check(r.ok, "cambiar la contraseña: " + str(r.error))
+	check(Backend.is_logged_in() and await Backend.fetch_profile(), "la sesión que la cambió sigue abierta")
+	await Backend.sign_out()
+	r = await Backend.sign_in(email, "secreto1")
+	check(not r.ok, "la contraseña vieja ya no sirve")
+	r = await Backend.sign_in(email, "nueva-clave")
+	check(r.ok and Backend.username() == new_name, "la nueva sí sirve y trae el nombre nuevo")
+
 	await Backend.sign_out()
 	Backend._forget_session()
 	ServerConfig.override_ws = ""

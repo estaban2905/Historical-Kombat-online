@@ -42,6 +42,10 @@ func is_logged_in() -> bool:
 func username() -> String:
 	return str(profile.get("username", ""))
 
+## true si la cuenta entra con Google: no tiene contraseña que cambiar.
+func is_google_account() -> bool:
+	return bool(profile.get("google_account", false))
+
 ## Id del luchador elegido como retrato ("" = ninguno).
 func avatar() -> String:
 	var a: Variant = profile.get("avatar")
@@ -132,7 +136,31 @@ func set_avatar(fighter_id: String) -> bool:
 		return true
 	return false
 
-## Los mejores jugadores: [{username, points, wins, losses, avatar}]. Vacío si falla.
+## Cambia mi nombre (una vez cada 7 días). Devuelve {ok: bool, error: String}.
+func set_username(new_name: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var r := await _request("PATCH", "/me", {"username": new_name}, true)
+	if not r.ok or not r.data is Dictionary:
+		return {"ok": false, "error": _error_text(r)}
+	profile = r.data
+	session_changed.emit()
+	return {"ok": true, "error": ""}
+
+## Cambia mi contraseña (pide la actual; cierra las sesiones de otros equipos). Devuelve {ok, error}.
+func change_password(current: String, new_password: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var r := await _request("POST", "/me/password", {"current_password": current, "new_password": new_password}, true)
+	return {"ok": r.ok, "error": "" if r.ok else _error_text(r)}
+
+## Perfil público de un jugador por su nombre: {username, points, wins, losses, avatar, rank,
+## favorite_fighter, streak, recent}. {} si no existe o no hay conexión.
+func fetch_player(player_name: String) -> Dictionary:
+	var r := await _request("GET", "/players/%s" % player_name.uri_encode(), null, false)
+	return r.data if r.ok and r.data is Dictionary else {}
+
+## Los mejores jugadores: [{username, points, wins, losses, avatar, favorite_fighter, streak}]. Vacío si falla.
 func fetch_ranking(limit: int = 10) -> Array:
 	var r := await _request("GET", "/leaderboard?limit=%d" % limit, null, false)
 	return r.data if r.ok and r.data is Array else []
@@ -328,6 +356,10 @@ func _error_text(r: Dictionary) -> String:
 		"invalid_request": return "DATOS NO VÁLIDOS"
 		"rate_limited": return "DEMASIADOS INTENTOS, ESPERA UN POCO"
 		"invalid_token": return "SESIÓN CADUCADA, ENTRA DE NUEVO"
+		"username_cooldown": return "SOLO PUEDES CAMBIAR EL NOMBRE UNA VEZ CADA 7 DÍAS"
+		"wrong_password": return "LA CONTRASEÑA ACTUAL NO ES CORRECTA"
+		"no_password": return "TU CUENTA ENTRA CON GOOGLE: NO TIENE CONTRASEÑA"
+		"player_not_found": return "JUGADOR NO ENCONTRADO"
 	return "ERROR DEL SERVIDOR (%d)" % r.code
 
 ## Valida los datos del formulario antes de enviarlos. "" = correcto.

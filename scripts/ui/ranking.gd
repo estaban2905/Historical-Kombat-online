@@ -1,5 +1,6 @@
-## Ranking de jugadores: los mejores por puntos. Tu fila sale resaltada.
-## ESC o VOLVER regresa al menú.
+## Ranking de jugadores: los mejores por puntos. Tu fila sale resaltada, con tu puesto fijo debajo si no
+## entras en las primeras. Flecha arriba para entrar en la lista, arriba/abajo para moverte y ENTER (o un
+## clic) para ver el perfil de ese jugador; abajo desde la última fila vuelve a VOLVER. ESC regresa al menú.
 extends Control
 
 const ROWS := 10
@@ -7,10 +8,17 @@ const ROWS := 10
 const FETCH := 100
 ## Oro, plata y bronce para los tres primeros.
 const PODIUM: Array[Color] = [Color("f0c040"), Color("c8ccd8"), Color("d08850")]
+## Desde cuántas victorias seguidas se marca la racha junto al nombre.
+const STREAK_MARK := 3
+const STREAK_COLOR := Color("ff9030")
+const FIRST_ROW_Y := 62.0
+const ROW_STEP := 13.0
 
 var _players: Array = []
 var _loading: bool = true
 var _back: Button
+## Fila elegida con el cursor (-1 = ninguna: el foco está en VOLVER).
+var _sel: int = -1
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -26,6 +34,45 @@ func _ready() -> void:
 	_back.grab_focus()
 	_players = await Backend.fetch_ranking(FETCH)
 	_loading = false
+
+func _shown() -> int:
+	return mini(_players.size(), ROWS)
+
+## _input y no _unhandled_input: los botones se quedan las flechas y ENTER antes de que lleguen a _unhandled_input.
+func _input(event: InputEvent) -> void:
+	if _loading or _shown() == 0:
+		return
+	if event.is_action_pressed(&"ui_up") and _sel != 0:
+		if _sel == -1:
+			_sel = _shown() - 1
+			_back.release_focus()
+		else:
+			_sel -= 1
+		Sfx.play(&"select")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_down") and _sel >= 0:
+		if _sel < _shown() - 1:
+			_sel += 1
+		else:
+			_sel = -1
+			_back.grab_focus()
+		Sfx.play(&"select")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_accept") and _sel >= 0:
+		_open(_sel)
+		get_viewport().set_input_as_handled()
+
+func _gui_input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT or _loading:
+		return
+	var i := int(floor((click.position.y - FIRST_ROW_Y + 9.0) / ROW_STEP))
+	if i >= 0 and i < _shown() and click.position.x >= 52.0 and click.position.x <= 414.0:
+		_open(i)
+
+func _open(i: int) -> void:
+	Sfx.play(&"confirm")
+	Game.view_player(str(_players[i].get("username", "")), Game.SCENE_RANKING)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel"):
@@ -55,12 +102,28 @@ func _draw() -> void:
 	for i in _players.size():
 		if str(_players[i].get("username", "")).to_lower() == me:
 			my_index = i
-	var y := 62.0
-	for i in mini(_players.size(), ROWS):
+	var y := FIRST_ROW_Y
+	for i in _shown():
 		_draw_row(i, _players[i], y, i == my_index)
-		y += 13.0
-	# Fuera de las primeras filas: tu puesto queda fijo debajo de la lista.
-	if my_index >= ROWS:
+		if i == _sel:
+			draw_rect(Rect2(51, y - 10, 364, 13), HKTheme.GOLD, false, 1.0)
+		y += ROW_STEP
+	_draw_footer(my_index, me)
+
+## Debajo de la lista: lo del jugador elegido; si no hay ninguno, tu puesto (fijo si no entras en las filas) o lo que te falta.
+func _draw_footer(my_index: int, me: String) -> void:
+	if _sel >= 0:
+		var p: Dictionary = _players[_sel]
+		var parts: Array[String] = []
+		var fav := MatchRow.fighter_name(str(p.get("favorite_fighter", "")))
+		if fav != "":
+			parts.append("MÁS USADO %s" % fav)
+		if int(p.get("streak", 0)) > 0:
+			parts.append("RACHA %d" % int(p.get("streak", 0)))
+		parts.append("ENTER: VER PERFIL")
+		HKTheme.draw_text(self, Vector2(0, 204), " · ".join(parts), 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+	elif my_index >= ROWS:
+		# Fuera de las primeras filas: tu puesto queda fijo debajo de la lista.
 		_draw_row(my_index, _players[my_index], 204.0, true)
 	elif my_index >= 0:
 		# Dentro de las filas visibles: en el hueco de abajo va lo que te falta para subir de liga.
@@ -70,7 +133,7 @@ func _draw() -> void:
 		if next_name != "":
 			text += " · %d PARA %s" % [int(league["to_next"]), next_name]
 		HKTheme.draw_text(self, Vector2(0, 204), text, 8, league["color"], HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
-	elif me != "" and my_index < 0:
+	elif me != "":
 		HKTheme.draw_text(self, Vector2(60, 204), "%s: FUERA DEL TOP %d" % [me.to_upper().left(16), FETCH], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 
 func _draw_row(i: int, p: Dictionary, y: float, mine: bool) -> void:
@@ -85,7 +148,10 @@ func _draw_row(i: int, p: Dictionary, y: float, mine: bool) -> void:
 	if mine:
 		draw_rect(Rect2(52, y - 9, 362, 12), Color(1, 1, 1, 0.08))
 	HKTheme.draw_text(self, Vector2(60, y), str(i + 1), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(90, y), str(p.get("username", "")).to_upper().left(16), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(90, y), str(p.get("username", "")).to_upper().left(12), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	var streak := int(p.get("streak", 0))
+	if streak >= STREAK_MARK:
+		HKTheme.draw_text(self, Vector2(190, y), "x%d" % streak, 8, STREAK_COLOR, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var points := int(p.get("points", 0))
 	HKTheme.draw_text(self, Vector2(230, y), str(points), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var league := League.info(points)

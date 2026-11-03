@@ -8,15 +8,17 @@ const TAB_NAMES: Array[String] = ["DUELOS", "PERSONAJES", "PUNTOS", "HISTORIA"]
 ## El servidor devuelve como mucho 50 duelos; con todos se calculan las estadísticas.
 const MAX_MATCHES := 50
 ## Filas que caben en la pestaña DUELOS.
-const SHOWN_MATCHES := 7
-const WIN_COLOR := Color("60d060")
+const SHOWN_MATCHES := 6
+const WIN_COLOR := MatchRow.WIN_COLOR
 
 var _matches: Array = []
 var _story: Dictionary = {}
 var _tab: int = Tab.DUELOS
+## Duelo elegido con el cursor en la pestaña DUELOS (-1 = ninguno): ENTER abre el perfil de ese rival.
+var _sel: int = -1
 var _loading: bool = true
 var _back: Button
-var _avatar_btn: Button
+var _edit_btn: Button
 var _logout: Button
 var _continue_btn: Button
 var _tab_buttons: Array[Button] = []
@@ -28,16 +30,16 @@ func _ready() -> void:
 		Game.goto.call_deferred(Game.SCENE_MENU)
 		return
 	_back = _button("VOLVER", 40)
-	_avatar_btn = _button("AVATAR", 150)
-	_logout = _button(HKTheme.fold("CERRAR SESIÓN"), 260)
+	_edit_btn = _button("EDITAR PERFIL", 150)
+	_logout = _button(HKTheme.fold("CERRAR SESIÓN"), 272)
 	_back.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
-	_avatar_btn.pressed.connect(func(): Game.goto(Game.SCENE_AVATAR))
+	_edit_btn.pressed.connect(func(): Game.goto(Game.SCENE_EDIT_PROFILE))
 	_logout.pressed.connect(_on_logout)
 	_portrait = AvatarFrame.new(Vector2(40, 40))
 	_portrait.position = Vector2(46, 30)
 	add_child(_portrait)
 	_portrait.set_fighter(Backend.avatar())
-	for b in [_back, _avatar_btn, _logout]:
+	for b in [_back, _edit_btn, _logout]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	_build_tabs()
@@ -73,8 +75,49 @@ func _build_tabs() -> void:
 
 func _select_tab(tab: int) -> void:
 	_tab = tab
+	_sel = -1
 	_continue_btn.visible = tab == Tab.HISTORIA and not _loading and _story_is_valid()
 	queue_redraw()
+
+func _shown_duels() -> int:
+	return mini(_matches.size(), SHOWN_MATCHES)
+
+## Flecha abajo desde las pestañas entra en la lista de duelos; arriba/abajo se mueve; ENTER abre el perfil del
+## rival; abajo desde el último pasa a VOLVER y arriba desde el primero a la pestaña. _input y no
+## _unhandled_input: los botones se quedan las flechas y ENTER antes de que lleguen allí.
+func _input(event: InputEvent) -> void:
+	if _loading or _tab != Tab.DUELOS or _shown_duels() == 0:
+		return
+	var on_tabs := get_viewport().gui_get_focus_owner() in _tab_buttons
+	if _sel == -1:
+		if on_tabs and event.is_action_pressed(&"ui_down"):
+			_sel = 0
+			get_viewport().gui_release_focus()
+			Sfx.play(&"select")
+			get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(&"ui_down"):
+		if _sel < _shown_duels() - 1:
+			_sel += 1
+		else:
+			_sel = -1
+			_back.grab_focus()
+		Sfx.play(&"select")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_up"):
+		if _sel > 0:
+			_sel -= 1
+		else:
+			_sel = -1
+			_tab_buttons[_tab].grab_focus()
+		Sfx.play(&"select")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"ui_accept"):
+		var rival := str(_matches[_sel].get("opponent", ""))
+		if rival != "":
+			Sfx.play(&"confirm")
+			Game.view_player(rival, Game.SCENE_PROFILE)
+		get_viewport().set_input_as_handled()
 
 func _story_is_valid() -> bool:
 	var stage := int(_story.get("stage", -1))
@@ -146,9 +189,14 @@ func _draw_duels() -> void:
 		_draw_empty("TODAVÍA NO HAS JUGADO NINGÚN DUELO CON RANKING")
 		return
 	var y := 126.0
-	for m in _matches.slice(0, SHOWN_MATCHES):
-		_draw_match(m, y)
+	for i in _shown_duels():
+		MatchRow.draw(self, _matches[i], y)
+		if i == _sel:
+			MatchRow.draw_cursor(self, y)
 		y += 12.0
+	if _sel >= 0:
+		HKTheme.draw_text(self, Vector2(0, 207), "ENTER: VER A %s" % str(_matches[_sel].get("opponent", "")).to_upper().left(16),
+			8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 
 ## Con qué luchadores gano (barra verde = victorias, roja = derrotas) y contra cuáles me va mejor y peor.
 func _draw_fighters() -> void:
@@ -232,25 +280,6 @@ func _draw_story() -> void:
 	draw_rect(bar, Color(1, 1, 1, 0.10))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(stage + 1) / float(total), bar.size.y)), HKTheme.GOLD)
 
-func _draw_match(m: Dictionary, y: float) -> void:
-	var result := str(m.get("result", ""))
-	var delta := int(m.get("delta", 0))
-	var color := WIN_COLOR if result == "win" else (HKTheme.BLOOD if result == "loss" else HKTheme.PAPER)
-	var label := {"win": "VICTORIA", "loss": "DERROTA", "draw": "EMPATE"}.get(result, "?") as String
-	if str(m.get("reason", "")) == "forfeit":
-		label += "*"
-	draw_rect(Rect2(34, y - 9, 384, 11), Color(color.r, color.g, color.b, 0.10))
-	HKTheme.draw_text(self, Vector2(40, y), label, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(112, y), "%+d" % delta, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(150, y), "VS %s" % str(m.get("opponent", "")).to_upper().left(10), 8,
-		HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(262, y), format_ago(str(m.get("played_at", ""))), 8,
-		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(306, y), _fighter_name(str(m.get("my_fighter", ""))), 8,
-		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(390, y), "%d-%d" % [int(m.get("my_rounds", 0)), int(m.get("opponent_rounds", 0))], 8,
-		HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-
 ## Barra de progreso hacia la siguiente liga, con lo que falta a la derecha.
 func _draw_league_bar(league: Dictionary) -> void:
 	var bar := Rect2(143, 86, 140, 4)
@@ -260,26 +289,5 @@ func _draw_league_bar(league: Dictionary) -> void:
 	HKTheme.draw_text(self, Vector2(290, 91), "%d PARA %s" % [int(league["to_next"]), next_name] if next_name != "" else "LIGA MÁXIMA",
 		8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 
-## "AHORA", "15M", "3H", "2D", "3SEM" o "2MES": hace cuánto se jugó (played_at es ISO en UTC).
-## "" si la fecha no se entiende. now_unix permite probarlo con una hora fija.
-static func format_ago(played_at: String, now_unix: float = -1.0) -> String:
-	if played_at.length() < 19:
-		return ""
-	var then := Time.get_unix_time_from_datetime_string(played_at.left(19))
-	var secs := int((now_unix if now_unix >= 0.0 else Time.get_unix_time_from_system()) - then)
-	if secs < 60:
-		return "AHORA"
-	if secs < 3600:
-		return "%dM" % (secs / 60)
-	if secs < 86400:
-		return "%dH" % (secs / 3600)
-	if secs < 7 * 86400:
-		return "%dD" % (secs / 86400)
-	if secs < 30 * 86400:
-		return "%dSEM" % (secs / (7 * 86400))
-	return "%dMES" % (secs / (30 * 86400))
-
 func _fighter_name(id: String) -> String:
-	if not FighterRegistry.has(StringName(id)):
-		return ""
-	return FighterRegistry.get_by_id(StringName(id)).short_name.left(10)
+	return MatchRow.fighter_name(id)
