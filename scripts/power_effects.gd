@@ -644,6 +644,7 @@ static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary
 	var p := Projectile.new()
 	p.setup(f, a, base + Vector2(off.x * f.facing, off.y))
 	p.configure(d)
+	p.shake_requested.connect(cm.shake)
 	cm.projectiles_root.add_child(p)
 	if p.is_armed():
 		if p.shake_on_arm > 0.0:
@@ -655,5 +656,6 @@ static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary
 ## Crea una entidad solo de decorado (cañón, guardia, humo, avión...).
 static func _visual(cm: CombatManager, f: Fighter, pos: Vector2, d: Dictionary) -> Projectile:
 	var p := Projectile.make_visual(f, pos, d)
+	p.shake_requested.connect(cm.shake)
 	cm.projectiles_root.add_child(p)
 	return p
