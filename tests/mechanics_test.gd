@@ -67,6 +67,7 @@ func _run() -> void:
 	_test_profiles()
 	_test_balance()
 	await _test_simultaneous_sweeps()
+	await _test_snapshot_coverage()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -1116,3 +1117,42 @@ func _test_simultaneous_sweeps() -> void:
 	_masks = [0, 0]
 	await _ticks(60)
 	_set_fighters(&"napoleon", &"donald_trump")
+
+# --- Cobertura del snapshot ----------------------------------------------------
+## Todo lo que condiciona el siguiente tick debe estar en el snapshot: si un campo cambia y el
+## checksum no, dos PCs podrían divergir sin que la comprobación online lo note.
+func _test_snapshot_coverage() -> void:
+	print("\n# Cobertura del snapshot")
+	await _place(80.0)
+	var fighter_fields := {
+		"jump_buffer": 3, "air_attack_used": true, "running": true, "crouch_blocking": true,
+		"block_age": 12, "input_history": [{"slot": &"lp", "frame": 5, "chained": false}],
+		"attack_crouching": true, "attack_airborne": true, "guard_is_broken": true, "wake_invuln": 4,
+		"invert_grace": 5, "_prev_jump_held": true, "_prev_block_held": true, "_prev_h": 1,
+		"_tap_dir": 1, "_tap_timer": 6, "throw_ready": true, "current_slot": &"hp",
+		"projectile_spawned": true, "combo_claimed": 2, "frame_counter": 99,
+		"health": 50.0,   # control: ya estaba en el snapshot
+	}
+	for fname in fighter_fields:
+		var f: Fighter = combat.p1
+		var old: Variant = f.get(fname)
+		var before := combat.state_checksum()
+		f.set(fname, fighter_fields[fname])
+		var changed := combat.state_checksum() != before
+		f.set(fname, old)
+		check(changed, "el snapshot del luchador recoge %s" % fname)
+	var p := Projectile.new()
+	combat.projectiles_root.add_child(p)
+	var proj_fields := {"vy": 40.0, "_t": 0.5, "delay": 0.3, "_armed": false}
+	for fname in proj_fields:
+		var old: Variant = p.get(fname)
+		var before := combat.state_checksum()
+		p.set(fname, proj_fields[fname])
+		var changed := combat.state_checksum() != before
+		p.set(fname, old)
+		check(changed, "el snapshot del proyectil recoge %s" % fname)
+	var before_hits := combat.state_checksum()
+	p._hit_log[combat.p2] = [1, 8]
+	check(combat.state_checksum() != before_hits, "el snapshot del proyectil recoge el registro de golpes")
+	combat.projectiles_root.remove_child(p)
+	p.free()
