@@ -5,6 +5,7 @@
 ##   J1: A/D/W/S mover · U confirmar · J cancelar
 ##   J2: Flechas mover · Num1 (o Supr) confirmar · Num4 (o Insert) cancelar
 ##   ESC: volver al menú
+class_name CharacterSelect
 extends Control
 
 const COLS := 9
@@ -50,7 +51,11 @@ func _ready() -> void:
 	theme = HKTheme.theme()
 	_cpu = Game.is_vs_cpu() or Game.is_online()
 	confirmed[2] = _cpu
-	roster = FighterRegistry.all()
+	roster = FighterRegistry.all().duplicate()
+	# El Nexo se juega solo en el versus local y una vez visto el final oculto (con sus estadísticas normales:
+	# el refuerzo de jefe es solo del modo Historia). Ni el online ni la Historia lo ofrecen.
+	if nexo_playable():
+		roster.append(FighterRegistry.get_by_id(FighterRegistry.NEXO_ID))
 	cursor[1] = FighterRegistry.index_of(Game.p1_fighter_id)
 	cursor[2] = FighterRegistry.index_of(Game.p2_fighter_id)
 	cursor[1] = _first_unlocked(cursor[1])
@@ -76,9 +81,16 @@ func _ready() -> void:
 	# La capa de cursores y del VS va la última para quedar encima de todo.
 	move_child(_overlay, -1)
 
+## ¿Se ofrece el Nexo como luchador? Solo en el versus local y con el final oculto visto.
+static func nexo_playable() -> bool:
+	return Game.mode == Game.Mode.VERSUS and Unlocks.has("ending", str(Unlocks.HIDDEN_ENDING))
+
 ## ¿Esta casilla es un luchador que todavía no se puede usar? Solo en el modo Historia y el versus local.
 func _is_locked(i: int) -> bool:
 	if i >= roster.size() or not (Game.mode == Game.Mode.ARCADE or Game.mode == Game.Mode.VERSUS):
+		return false
+	# El Nexo solo está en la lista si ya se desbloqueó.
+	if roster[i].id == FighterRegistry.NEXO_ID:
 		return false
 	return not Unlocks.fighter_unlocked(roster[i].id)
 
@@ -227,7 +239,7 @@ func _draw() -> void:
 	draw_rect(Rect2(0, 220, 426, 20), SHADE)
 	HKTheme.draw_text(self, Vector2(0, 15), "ELIGE TU LUCHADOR", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
 	if _any_locked():
-		HKTheme.draw_text(self, Vector2(0, 15), "%d/%d" % [Unlocks.fighters_unlocked(), roster.size()], 8,
+		HKTheme.draw_text(self, Vector2(0, 15), "%d/%d" % [Unlocks.fighters_unlocked(), FighterRegistry.all().size()], 8,
 			HKTheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, 420, 1)
 	# Rejilla (fondo continuo para que no se vea el escenario entre casillas)
 	var grid := Rect2(GRID_ORIGIN - Vector2(2, 2), CELL * Vector2(COLS, ROWS) + Vector2(3, 3))
@@ -275,7 +287,8 @@ func _draw_plate(p: int) -> void:
 			lines.append([d.short_name, HKTheme.PAPER])
 			for l in _wrap(d.country.to_upper(), PLATE_W - 8.0):
 				lines.append([l, HKTheme.GOLD])
-			lines.append([d.era, HKTheme.MUTED.lightened(0.25)])
+			for l in _wrap(d.era, PLATE_W - 8.0):
+				lines.append([l, HKTheme.MUTED.lightened(0.25)])
 		else:
 			lines.append(["BLOQUEADO", HKTheme.MUTED])
 	var box := Rect2(x0, PLATE_Y, PLATE_W, 6.0 + (lines.size() + 1) * 10.0)
@@ -295,7 +308,7 @@ func _draw_quotes(top: float) -> void:
 	for p in ([1] if _cpu else [1, 2]):
 		if cursor[p] < roster.size() and not _is_locked(cursor[p]):
 			var quote := "\"%s\"" % roster[cursor[p]].intro_quote
-			entries.append([_wrap(quote, 160.0), HKTheme.PAPER if p == 1 else Color("b8d0f0")])
+			entries.append([_clip_lines(_wrap(quote, 160.0), 3), HKTheme.PAPER if p == 1 else Color("b8d0f0")])
 	if entries.is_empty():
 		return
 	var rows := 0
@@ -310,6 +323,14 @@ func _draw_quotes(top: float) -> void:
 			HKTheme.draw_text(self, Vector2(GRID_ORIGIN.x + 4, y), line, 8, e[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 			y += 10.0
 		y += 4.0
+
+## Como mucho `max_lines` líneas: si sobran, la última acaba en "..." (una frase larga no debe tapar la ayuda de abajo).
+func _clip_lines(lines: PackedStringArray, max_lines: int) -> PackedStringArray:
+	if lines.size() <= max_lines:
+		return lines
+	var out := lines.slice(0, max_lines)
+	out[max_lines - 1] = out[max_lines - 1].left(maxi(out[max_lines - 1].length() - 3, 1)) + "..."
+	return out
 
 ## Texto de 8 px partido en líneas de un ancho máximo.
 func _wrap(text: String, width: float) -> PackedStringArray:

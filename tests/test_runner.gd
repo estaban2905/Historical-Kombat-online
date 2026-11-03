@@ -253,6 +253,33 @@ func _test_profile_helpers() -> void:
 	check(shown[Achievements.LIST.map(func(e): return e[0]).find(Achievements.HIDDEN)]["name"] == "EL TIEMPO LIBRE", "cumplido, ya se muestra")
 	check(Achievements.merge([]).size() == Achievements.LIST.size(), "sin respuesta del servidor salen todos a 0")
 
+	# El Nexo jugable
+	var nexo_path := Unlocks.path
+	var nexo_user := Backend.user_id
+	var nexo_mode := Game.mode
+	Unlocks.path = "user://unlocks_nexo_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Backend.user_id = ""
+	Game.mode = Game.Mode.VERSUS
+	check(not CharacterSelect.nexo_playable(), "sin el final oculto el Nexo no se ofrece")
+	Unlocks.add("ending", "repair")
+	check(not CharacterSelect.nexo_playable(), "otro final no lo desbloquea")
+	Unlocks.add("ending", "free")
+	check(CharacterSelect.nexo_playable(), "con el final oculto visto, el Nexo se ofrece en el versus local")
+	Game.mode = Game.Mode.ONLINE
+	check(not CharacterSelect.nexo_playable(), "online nunca se ofrece")
+	Game.mode = Game.Mode.ARCADE
+	check(not CharacterSelect.nexo_playable(), "en la Historia tampoco (es el jefe final)")
+	var nexo_data := FighterRegistry.get_by_id(FighterRegistry.NEXO_ID)
+	Game.mode = Game.Mode.VERSUS
+	Game.p1_fighter_id = FighterRegistry.NEXO_ID
+	check(Game.p1_data() == nexo_data and Game.p1_data().max_health == nexo_data.max_health, "jugado por una persona usa su ficha normal, sin el refuerzo de jefe")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = nexo_path
+	Backend.user_id = nexo_user
+	Game.mode = nexo_mode
+	Game.p1_fighter_id = &"donald_trump"
+
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
 	# La selección bloquea a quien aún no se ha ganado: esta prueba elige a Trump (el luchador por defecto),
