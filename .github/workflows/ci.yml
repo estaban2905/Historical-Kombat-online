@@ -108,6 +108,9 @@ jobs:
       # Sin referencias de Linux solo avisa (hay que generarlas en esa plataforma con --update).
       - name: Checksum dorado
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/GoldenTest.tscn
+      # Solo registra µs por tick de la simulación (sin dibujar): línea base para ver regresiones. No falla.
+      - name: Benchmark de la simulación
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/BenchmarkTest.tscn
       # Dos PCs simulados con lag: las peleas deben quedar idénticas.
       - name: Online (sincronización con lag)
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn
