@@ -110,13 +110,32 @@ func _run() -> void:
 	Backend.access_token = "captura"
 	Backend.profile = {"username": "Jugador_12"}
 	get_tree().change_scene_to_file(Game.SCENE_RANKING)
-	await frames(5)
-	var ranking := get_tree().current_scene
-	ranking._global = fake
+	var ranking := await _ranking_loaded()
 	ranking._players = fake
-	ranking._loading = false
 	await frames(10)
 	await shot("15_ranking.png")
+	# Con filtros (7 días y un luchador): la columna de puntos es lo ganado, en verde o rojo.
+	Game.ranking_week = true
+	Game.ranking_fighter = "napoleon"
+	for i in fake.size():
+		fake[i]["gained"] = 64 - i * 16
+	get_tree().change_scene_to_file(Game.SCENE_RANKING)
+	ranking = await _ranking_loaded()
+	ranking._players = fake.slice(0, 7)
+	await frames(10)
+	await shot("16_ranking_filtered.png")
+	Game.ranking_week = false
+	Game.ranking_fighter = ""
 	Backend.access_token = ""
 	Backend.profile = {}
 	get_tree().quit()
+
+## Espera a que el ranking termine de pedir su lista (para poner luego los datos de ejemplo encima).
+func _ranking_loaded() -> Node:
+	await frames(5)
+	var ranking := get_tree().current_scene
+	for i in 600:
+		if not ranking._loading:
+			break
+		await frames(1)
+	return ranking

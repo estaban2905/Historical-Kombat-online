@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { leaderboard, type RankingQuery } from "../controllers/profile.controller.js";
 import { AppError } from "../errors.js";
 import { MAX_FRIENDS } from "../repositories/friend.repository.js";
 import { friendsRankingSchema, listFriendsSchema, removeFriendSchema, requestFriendSchema } from "../schemas/friend.schema.js";
@@ -35,19 +36,13 @@ export async function friendRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  app.get("/me/friends/leaderboard", { schema: friendsRankingSchema, preHandler: app.requireAuth }, async (req) => {
-    const me = req.account!.id;
-    const ids = [me, ...(await friends.friendIds(me))];
-    const rows = await app.accounts.ranking(ids.length, ids);
-    const stats = await app.matchHistory.statsFor(rows.map((r) => r.id));
-    return rows.map((r) => ({
-      username: r.username,
-      points: r.points,
-      wins: r.wins,
-      losses: r.losses,
-      avatar: r.avatar,
-      favorite_fighter: stats.get(r.id)!.favoriteFighter,
-      streak: stats.get(r.id)!.streak,
-    }));
-  });
+  app.get<{ Querystring: RankingQuery }>(
+    "/me/friends/leaderboard",
+    { schema: friendsRankingSchema, preHandler: app.requireAuth },
+    async (req) => {
+      const me = req.account!.id;
+      const ids = [me, ...(await friends.friendIds(me))];
+      return leaderboard(app.accounts, app.matchHistory, { ...req.query, limit: ids.length }, ids);
+    },
+  );
 }

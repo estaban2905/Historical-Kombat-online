@@ -66,7 +66,9 @@ func _ready() -> void:
 		_new_pass.text_submitted.connect(func(_t: String): _on_save_password())
 	_back = _button("VOLVER")
 	buttons.append(_back)
-	_avatar_btn.pressed.connect(func(): Game.goto(Game.SCENE_AVATAR))
+	_avatar_btn.pressed.connect(func():
+		Game.picker_purpose = "avatar"
+		Game.goto(Game.SCENE_AVATAR))
 	_frame_btn.gui_input.connect(_on_cosmetic_input.bind(_frame_btn, "frame"))
 	_title_btn.gui_input.connect(_on_cosmetic_input.bind(_title_btn, "title"))
 	_frame_btn.pressed.connect(_cycle.bind("frame", 1))

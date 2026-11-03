@@ -261,12 +261,23 @@ func remove_friend(player_name: String) -> bool:
 	var r := await _request("DELETE", "/me/friends/%s" % player_name.uri_encode(), null, true)
 	return r.ok
 
-## Ranking entre mis amigos y yo (mismo formato que fetch_ranking). Vacío si falla.
-func fetch_friends_ranking() -> Array:
+## Ranking entre mis amigos y yo (mismo formato y filtros que fetch_ranking). Vacío si falla.
+func fetch_friends_ranking(week: bool = false, fighter: String = "") -> Array:
 	if not is_logged_in():
 		return []
-	var r := await _request("GET", "/me/friends/leaderboard", null, true)
+	var r := await _request("GET", "/me/friends/leaderboard" + _ranking_query(week, fighter), null, true)
 	return r.data if r.ok and r.data is Array else []
+
+## "?period=week&fighter=x" según los filtros ("" sin filtros).
+static func _ranking_query(week: bool, fighter: String, limit: int = 0) -> String:
+	var parts := PackedStringArray()
+	if limit > 0:
+		parts.append("limit=%d" % limit)
+	if week:
+		parts.append("period=week")
+	if fighter != "":
+		parts.append("fighter=%s" % fighter.uri_encode())
+	return "?" + "&".join(parts) if not parts.is_empty() else ""
 
 ## Reta a un amigo: abre una sala privada de unos 2 minutos. Devuelve {ok, code, expires_in, error}.
 func create_challenge(player_name: String) -> Dictionary:
@@ -292,8 +303,10 @@ func cancel_challenge(code: String) -> bool:
 	return r.ok
 
 ## Los mejores jugadores: [{username, points, wins, losses, avatar, favorite_fighter, streak}]. Vacío si falla.
-func fetch_ranking(limit: int = 10) -> Array:
-	var r := await _request("GET", "/leaderboard?limit=%d" % limit, null, false)
+## Con week, solo los duelos de los últimos 7 días; con fighter, solo los jugados con ese luchador. Con algún
+## filtro cada fila trae además "gained" (puntos ganados con esos duelos) y salen solo quienes jugaron alguno.
+func fetch_ranking(limit: int = 10, week: bool = false, fighter: String = "") -> Array:
+	var r := await _request("GET", "/leaderboard" + _ranking_query(week, fighter, limit), null, false)
 	return r.data if r.ok and r.data is Array else []
 
 ## Mis últimos duelos (solo con sesión). Vacío si falla.

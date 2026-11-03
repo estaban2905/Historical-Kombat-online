@@ -56,6 +56,7 @@ func _run() -> void:
 	_test_resources()
 	_test_profile_helpers()
 	await _test_locked_select()
+	await _test_ranking_filters()
 	await _test_menu_to_fight()
 	await _test_fight()
 	await _test_powers()
@@ -340,6 +341,49 @@ func _test_locked_select() -> void:
 	Unlocks.path = old_path
 	Backend.user_id = old_user
 	Game.mode = old_mode
+
+func _test_ranking_filters() -> void:
+	print("\n# Ranking: filtros de 7 días y por luchador")
+	check(Backend._ranking_query(false, "") == "" and Backend._ranking_query(false, "", 100) == "?limit=100", "sin filtros no se añade nada")
+	check(Backend._ranking_query(true, "napoleon", 100) == "?limit=100&period=week&fighter=napoleon", "con los dos filtros")
+	# Sin servidor: la lista sale vacía al momento y se prueban solo los botones.
+	ServerConfig.override_ws = "ws://127.0.0.1:1/ws"
+	Game.ranking_week = false
+	Game.ranking_fighter = ""
+	get_tree().change_scene_to_file(Game.SCENE_RANKING)
+	check(await wait_scene("Ranking"), "abre el ranking")
+	await frames(3)
+	var back := get_viewport().gui_get_focus_owner() as Button
+	check(back != null and back.text == "VOLVER", "empieza con VOLVER elegido")
+	await tap(KEY_LEFT)
+	await tap(KEY_LEFT)
+	var period := get_viewport().gui_get_focus_owner() as Button
+	check(period != null and period.text == "SIEMPRE", "izquierda lleva a los otros botones (sin sesión no hay GLOBAL/AMIGOS)")
+	await tap(KEY_ENTER)
+	check(Game.ranking_week and period.text == "7 DIAS", "ENTER cambia a los últimos 7 días")
+	await tap(KEY_RIGHT)
+	await tap(KEY_ENTER)
+	check(await wait_scene("AvatarPicker"), "LUCHADOR abre la rejilla de luchadores")
+	await frames(3)
+	await tap(KEY_RIGHT)
+	await tap(KEY_ENTER)
+	check(await wait_scene("Ranking"), "elegir uno vuelve al ranking")
+	var first := str(FighterRegistry.all()[0].id)
+	check(Game.ranking_fighter == first and Game.ranking_week, "con el filtro puesto (%s) y sin perder el de 7 días" % Game.ranking_fighter)
+	await frames(3)
+	var fighter_btn := get_viewport().gui_get_focus_owner() as Button
+	check(fighter_btn != null and fighter_btn.text == HKTheme.fold(FighterRegistry.all()[0].short_name.to_upper().left(12)),
+		"el foco vuelve al botón del luchador, que lo nombra")
+	await tap(KEY_ENTER)
+	check(await wait_scene("AvatarPicker"), "se vuelve a abrir")
+	await frames(3)
+	await tap(KEY_LEFT)
+	await tap(KEY_ENTER)
+	check(await wait_scene("Ranking") and Game.ranking_fighter == "", "la casilla \"?\" quita el filtro")
+	await tap(KEY_ESCAPE)
+	check(await wait_scene("MainMenu"), "ESC vuelve al menú")
+	Game.ranking_week = false
+	ServerConfig.override_ws = ""
 
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")

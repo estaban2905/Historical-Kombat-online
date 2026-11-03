@@ -1,6 +1,9 @@
-## Ranking de jugadores: los mejores por puntos. Con sesión, izquierda/derecha (con VOLVER elegido) alterna
-## entre GLOBAL y AMIGOS. Tu fila sale resaltada, con tu puesto fijo debajo si no entras en las primeras. Flecha arriba para entrar en la lista, arriba/abajo para moverte y ENTER (o un
-## clic) para ver el perfil de ese jugador; abajo desde la última fila vuelve a VOLVER. ESC regresa al menú.
+## Ranking de jugadores: los mejores por puntos. Abajo, una fila de botones (izquierda/derecha para moverse,
+## ENTER o clic para usarlos): GLOBAL/AMIGOS (con sesión), SIEMPRE/7 DÍAS, LUCHADOR (abre la rejilla para
+## filtrar por uno) y VOLVER. Con un filtro solo cuentan esos duelos y la columna de puntos dice lo ganado con
+## ellos. Tu fila sale resaltada, con tu puesto fijo debajo si no entras en las primeras. Flecha arriba para
+## entrar en la lista, arriba/abajo para moverte y ENTER (o un clic) para ver el perfil de ese jugador; abajo
+## desde la última fila vuelve a los botones. ESC regresa al menú.
 extends Control
 
 const ROWS := 10
@@ -20,16 +23,23 @@ const ICON_ZOOM := 0.55
 const AVATAR_X := 77.0
 const FAVORITE_X := 214.0
 const NAME_X := 92.0
+## Fila de botones de abajo.
+const BUTTON_SIZE := Vector2(96, 14)
+const BUTTON_GAP := 6.0
+const BUTTONS_Y := 212.0
 
 var _players: Array = []
-## Lo que se muestra: GLOBAL (los mejores de todos) o AMIGOS (mis amigos y yo). Cada lista se pide una vez.
-var _scope: int = 0
-var _global: Array = []
-var _friends_list: Array = []
-var _friends_loaded: bool = false
+## Listas ya pedidas, por filtro ("amigos|semana|luchador"): cambiar de filtro y volver no repite la petición.
+var _cache: Dictionary = {}
 var _loading: bool = true
 var _back: Button
-## Fila elegida con el cursor (-1 = ninguna: el foco está en VOLVER).
+var _scope_btn: Button
+var _period_btn: Button
+var _fighter_btn: Button
+var _buttons: Array[Button] = []
+## Botón que tenía el foco al entrar en la lista (al salir de ella por abajo vuelve a él).
+var _last_button: Button
+## Fila elegida con el cursor (-1 = ninguna: el foco está en los botones).
 var _sel: int = -1
 ## [avatar, más usado] por fila; la última pareja es la de tu fila fija abajo.
 var _icons: Array = []
@@ -38,37 +48,100 @@ func _ready() -> void:
 	theme = HKTheme.theme()
 	for i in ROWS + 1:
 		_icons.append([_new_icon(), _new_icon()])
-	_back = Button.new()
+	if not Backend.is_logged_in():
+		Game.ranking_friends = false
+	if Backend.is_logged_in():
+		_scope_btn = _button(func(): _set_filter(not Game.ranking_friends, Game.ranking_week, Game.ranking_fighter))
+	_period_btn = _button(func(): _set_filter(Game.ranking_friends, not Game.ranking_week, Game.ranking_fighter))
+	_fighter_btn = _button(func():
+		Game.picker_purpose = "ranking"
+		Game.goto(Game.SCENE_AVATAR))
+	_back = _button(func(): Game.goto(Game.SCENE_MENU))
 	_back.text = "VOLVER"
-	_back.position = Vector2(163, 212)
-	_back.custom_minimum_size = Vector2(100, 14)
-	add_child(_back)
-	_back.size = Vector2(100, 14)   # tras añadirlo: ya tiene el tema (ver profile.gd)
-	_back.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
-	_back.focus_entered.connect(func(): Sfx.play(&"select"))
-	_back.pressed.connect(func(): Sfx.play(&"confirm"))
-	_back.grab_focus()
-	_global = await Backend.fetch_ranking(FETCH)
-	_players = _global
-	_loading = false
+	_layout_buttons()
+	_refresh_labels()
+	# Al volver de elegir luchador, el foco sigue en LUCHADOR.
+	(_fighter_btn if Game.picker_purpose == "ranking" else _back).grab_focus()
+	Game.picker_purpose = "avatar"
+	await _load()
+
+func _button(on_press: Callable) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = BUTTON_SIZE
+	add_child(b)
+	b.size = BUTTON_SIZE   # tras añadirlo: ya tiene el tema (ver profile.gd)
+	b.pressed.connect(func():
+		Sfx.play(&"confirm")
+		on_press.call())
+	b.focus_entered.connect(func():
+		_last_button = b
+		Sfx.play(&"select"))
+	_buttons.append(b)
+	return b
+
+## Los botones centrados en una fila; izquierda/derecha pasa de uno a otro (y da la vuelta).
+func _layout_buttons() -> void:
+	var total := _buttons.size() * BUTTON_SIZE.x + (_buttons.size() - 1) * BUTTON_GAP
+	var x := (426.0 - total) * 0.5
+	for i in _buttons.size():
+		var b := _buttons[i]
+		b.position = Vector2(x, BUTTONS_Y)
+		x += BUTTON_SIZE.x + BUTTON_GAP
+		b.focus_neighbor_left = _buttons[posmod(i - 1, _buttons.size())].get_path()
+		b.focus_neighbor_right = _buttons[posmod(i + 1, _buttons.size())].get_path()
+		# Arriba/abajo los maneja _input (entrar y salir de la lista).
+		b.focus_neighbor_top = b.get_path()
+		b.focus_neighbor_bottom = b.get_path()
+
+func _refresh_labels() -> void:
+	if _scope_btn:
+		_scope_btn.text = "AMIGOS" if Game.ranking_friends else "GLOBAL"
+	_period_btn.text = HKTheme.fold("7 DÍAS" if Game.ranking_week else "SIEMPRE")
+	var f := Game.ranking_fighter
+	_fighter_btn.text = HKTheme.fold(FighterRegistry.get_by_id(StringName(f)).short_name.to_upper().left(12)) 		if f != "" and FighterRegistry.has(StringName(f)) else "LUCHADOR"
+
+## ¿Hay algún filtro de duelos (semana o luchador)? Entonces la columna de puntos es lo ganado con ellos.
+static func filtered() -> bool:
+	return Game.ranking_week or Game.ranking_fighter != ""
+
+func _set_filter(friends: bool, week: bool, fighter: String) -> void:
+	Game.ranking_friends = friends and Backend.is_logged_in()
+	Game.ranking_week = week
+	Game.ranking_fighter = fighter
+	_refresh_labels()
+	await _load()
+
+## Pide (o saca de la caché) la lista con los filtros actuales.
+func _load() -> void:
+	var key := "%s|%s|%s" % [Game.ranking_friends, Game.ranking_week, Game.ranking_fighter]
+	_sel = -1
+	if not _cache.has(key):
+		_loading = true
+		if Game.ranking_friends:
+			_cache[key] = await Backend.fetch_friends_ranking(Game.ranking_week, Game.ranking_fighter)
+		else:
+			_cache[key] = await Backend.fetch_ranking(FETCH, Game.ranking_week, Game.ranking_fighter)
+		if not is_inside_tree():
+			return
+	# Si mientras tanto se cambió de filtro, manda el último.
+	if key == "%s|%s|%s" % [Game.ranking_friends, Game.ranking_week, Game.ranking_fighter]:
+		_players = _cache[key]
+		_loading = false
 
 func _shown() -> int:
 	return mini(_players.size(), ROWS)
 
 ## _input y no _unhandled_input: los botones se quedan las flechas y ENTER antes de que lleguen a _unhandled_input.
 func _input(event: InputEvent) -> void:
-	if _loading:
-		return
-	if _sel == -1 and Backend.is_logged_in() and (event.is_action_pressed(&"ui_left") or event.is_action_pressed(&"ui_right")):
-		_set_scope(0 if event.is_action_pressed(&"ui_left") else 1)
-		get_viewport().set_input_as_handled()
-		return
-	if _shown() == 0:
+	if _loading or _shown() == 0:
 		return
 	if event.is_action_pressed(&"ui_up") and _sel != 0:
 		if _sel == -1:
 			_sel = _shown() - 1
-			_back.release_focus()
+			var f := get_viewport().gui_get_focus_owner()
+			if f is Button:
+				_last_button = f
+				f.release_focus()
 		else:
 			_sel -= 1
 		Sfx.play(&"select")
@@ -78,25 +151,12 @@ func _input(event: InputEvent) -> void:
 			_sel += 1
 		else:
 			_sel = -1
-			_back.grab_focus()
+			_last_button.grab_focus()
 		Sfx.play(&"select")
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"ui_accept") and _sel >= 0:
 		_open(_sel)
 		get_viewport().set_input_as_handled()
-
-func _set_scope(scope: int) -> void:
-	if scope == _scope:
-		return
-	_scope = scope
-	_sel = -1
-	Sfx.play(&"select")
-	if scope == 1 and not _friends_loaded:
-		_loading = true
-		_friends_list = await Backend.fetch_friends_ranking()
-		_friends_loaded = true
-		_loading = false
-	_players = _friends_list if _scope == 1 else _global
 
 func _gui_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
@@ -167,13 +227,15 @@ func _draw() -> void:
 	if _loading:
 		HKTheme.draw_text(self, Vector2(0, 110), "CARGANDO...", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 		return
-	if _players.is_empty():
-		HKTheme.draw_text(self, Vector2(0, 110), "TODAVÍA NO HAY JUGADORES", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
-		return
 	_draw_scope_tabs()
+	if _players.is_empty():
+		var empty := "NADIE HA JUGADO CON ESTOS FILTROS" if filtered() else "TODAVÍA NO HAY JUGADORES"
+		HKTheme.draw_text(self, Vector2(0, 110), empty, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+		return
 	HKTheme.draw_text(self, Vector2(60, 46), "#", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(NAME_X, 46), "JUGADOR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-	HKTheme.draw_text(self, Vector2(230, 46), "PTS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	# Con filtros, la columna de puntos es lo ganado con esos duelos.
+	HKTheme.draw_text(self, Vector2(230, 46), "+PTS" if filtered() else "PTS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(268, 46), "LIGA", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(312, 46), "VICT/DERR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(390, 46), "%", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
@@ -195,8 +257,9 @@ func _draw_scope_tabs() -> void:
 	var x := 213.0 - (HKTheme.text_width("GLOBAL", 8) + HKTheme.text_width("AMIGOS", 8) + 24.0) * 0.5
 	for i in 2:
 		var w := HKTheme.text_width(names[i], 8)
-		HKTheme.draw_text(self, Vector2(x, 33), names[i], 8, HKTheme.GOLD if i == _scope else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
-		if i == _scope:
+		var on := i == int(Game.ranking_friends)
+		HKTheme.draw_text(self, Vector2(x, 33), names[i], 8, HKTheme.GOLD if on else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		if on:
 			draw_rect(Rect2(x, 35, w, 1), HKTheme.GOLD)
 		x += w + 24.0
 
@@ -224,7 +287,8 @@ func _draw_footer(my_index: int, me: String) -> void:
 			text += " · %d PARA %s" % [int(league["to_next"]), next_name]
 		HKTheme.draw_text(self, Vector2(0, 204), text, 8, league["color"], HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	elif me != "":
-		HKTheme.draw_text(self, Vector2(60, 204), "%s: FUERA DEL TOP %d" % [me.to_upper().left(16), FETCH], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		var why := "SIN DUELOS CON ESTOS FILTROS" if filtered() else "FUERA DEL TOP %d" % FETCH
+		HKTheme.draw_text(self, Vector2(60, 204), "%s: %s" % [me.to_upper().left(16), why], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 
 func _draw_row(i: int, p: Dictionary, y: float, mine: bool) -> void:
 	var wins := int(p.get("wins", 0))
@@ -243,7 +307,12 @@ func _draw_row(i: int, p: Dictionary, y: float, mine: bool) -> void:
 	if streak >= STREAK_MARK:
 		HKTheme.draw_text(self, Vector2(190, y), "x%d" % streak, 8, STREAK_COLOR, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var points := int(p.get("points", 0))
-	HKTheme.draw_text(self, Vector2(230, y), str(points), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	if filtered():
+		var gained := int(p.get("gained", 0))
+		var gc := Color("60d060") if gained > 0 else (HKTheme.BLOOD if gained < 0 else color)
+		HKTheme.draw_text(self, Vector2(230, y), "%+d" % gained, 8, gc, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	else:
+		HKTheme.draw_text(self, Vector2(230, y), str(points), 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	var league := League.info(points)
 	HKTheme.draw_text(self, Vector2(268, y), str(league["name"]).left(3), 8, league["color"] if played > 0 else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(312, y), "%d / %d" % [wins, losses], 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)

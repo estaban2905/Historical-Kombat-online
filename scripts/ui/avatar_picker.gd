@@ -1,4 +1,6 @@
-## Elegir el retrato de la cuenta: rejilla con todos los luchadores y una casilla "?" para quitarlo.
+## Rejilla con todos los luchadores y una casilla "?" delante. Según Game.picker_purpose sirve para:
+##   "avatar"   elegir el retrato de la cuenta ("?" lo quita); se guarda en el servidor y vuelve al perfil.
+##   "ranking"  filtrar el ranking por luchador ("?" = todos); vuelve al ranking.
 ## Flechas para moverse, ENTER para elegir, ESC para volver sin cambiar nada.
 extends Control
 
@@ -15,12 +17,12 @@ var _preview: AvatarFrame
 
 func _ready() -> void:
 	theme = HKTheme.theme()
-	if not Backend.is_logged_in():
+	if not _for_ranking() and not Backend.is_logged_in():
 		Game.goto.call_deferred(Game.SCENE_MENU)
 		return
 	for d in FighterRegistry.all():
 		_ids.append(str(d.id))
-	_cursor = maxi(_ids.find(Backend.avatar()), 0)
+	_cursor = maxi(_ids.find(Game.ranking_fighter if _for_ranking() else Backend.avatar()), 0)
 	for i in _ids.size():
 		var cell := AvatarFrame.new(CELL)
 		cell.position = _cell_pos(i)
@@ -37,6 +39,13 @@ func _ready() -> void:
 	_overlay.draw.connect(_draw_cursor)
 	add_child(_overlay)
 
+func _for_ranking() -> bool:
+	return Game.picker_purpose == "ranking"
+
+## A dónde se vuelve: al ranking o al perfil.
+func _back_scene() -> String:
+	return Game.SCENE_RANKING if _for_ranking() else Game.SCENE_PROFILE
+
 func _cell_pos(i: int) -> Vector2:
 	return ORIGIN + Vector2(i % COLS, i / COLS) * CELL
 
@@ -44,7 +53,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _saving:
 		return
 	if event.is_action_pressed(&"ui_cancel"):
-		Game.goto(Game.SCENE_PROFILE)
+		Game.goto(_back_scene())
 		get_viewport().set_input_as_handled()
 		return
 	var step := Vector2i.ZERO
@@ -63,6 +72,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_save()
 
 func _save() -> void:
+	if _for_ranking():
+		Game.ranking_fighter = _ids[_cursor]
+		Sfx.play(&"confirm")
+		Game.goto(Game.SCENE_RANKING)
+		return
 	_saving = true
 	if await Backend.set_avatar(_ids[_cursor]):
 		Sfx.play(&"confirm")
@@ -79,9 +93,10 @@ func _process(_delta: float) -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, 426, 240), HKTheme.INK)
-	HKTheme.draw_text(self, Vector2(0, 24), "TU AVATAR", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+	HKTheme.draw_text(self, Vector2(0, 24), "FILTRAR POR LUCHADOR" if _for_ranking() else "TU AVATAR", 16, HKTheme.GOLD,
+		HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
 	var id := _ids[_cursor]
-	var label := "SIN AVATAR"
+	var label := "TODOS LOS LUCHADORES" if _for_ranking() else "SIN AVATAR"
 	var detail := ""
 	if id != "":
 		var d := FighterRegistry.get_by_id(StringName(id))

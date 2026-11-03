@@ -128,15 +128,24 @@ export const meSchema = {
   response: { 200: profileSchema, 401: errors[401] },
 } as const;
 
+/** Filtros del ranking (global y de amigos). */
+export const rankingQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    limit: { type: "integer", minimum: 1, maximum: 100 },
+    period: { type: "string", enum: ["all", "week"], default: "all" },
+    fighter: { type: "string", pattern: "^[a-z0-9_]{1,40}$" },
+  },
+} as const;
+
 export const rankingSchema = {
   tags: ["profile"],
   summary: "Ranking de jugadores",
-  description: "Más puntos primero; a igualdad, más victorias.",
-  querystring: {
-    type: "object",
-    additionalProperties: false,
-    properties: { limit: { type: "integer", minimum: 1, maximum: 100, default: 20 } },
-  },
+  description:
+    "Más puntos primero; a igualdad, más victorias. Con period=week (últimos 7 días) y/o fighter (un luchador) solo " +
+    "cuentan esos duelos: salen quienes jugaron alguno, ordenados por los puntos ganados con ellos (gained).",
+  querystring: rankingQuerySchema,
   response: {
     200: {
       type: "array",
@@ -148,6 +157,7 @@ export const rankingSchema = {
           points: { type: "integer" },
           wins: { type: "integer" },
           losses: { type: "integer" },
+          gained: { type: "integer", description: "Solo con filtros: puntos ganados con esos duelos" },
           avatar: { type: ["string", "null"] },
           favorite_fighter: { type: ["string", "null"], description: "El luchador con el que más ha jugado" },
           streak: { type: "integer", description: "Victorias seguidas hasta hoy" },
