@@ -4,6 +4,7 @@ import { bearerToken } from "../plugins/auth.js";
 import { toProfile } from "../models/account.js";
 import type { AccountRepository } from "../repositories/account.repository.js";
 import type { MatchHistoryEntry, MatchRepository } from "../repositories/match.repository.js";
+import type { UnlockRepository } from "../repositories/unlock.repository.js";
 import type { AuthService } from "../services/auth.service.js";
 
 /** Un duelo en el formato público (snake_case). */
@@ -23,9 +24,18 @@ const publicMatch = (m: MatchHistoryEntry) => ({
 export interface UpdateMeBody {
   avatar?: string | null;
   username?: string;
+  frame?: string | null;
+  title?: string | null;
 }
 
-export const profileController = (accounts: AccountRepository, matches: MatchRepository, auth: AuthService) => ({
+const NOT_UNLOCKED = new AppError(403, "not_unlocked", "TODAVÍA NO HAS DESBLOQUEADO ESO");
+
+export const profileController = (
+  accounts: AccountRepository,
+  matches: MatchRepository,
+  auth: AuthService,
+  unlocks: UnlockRepository,
+) => ({
   /** requireAuth ya dejó la cuenta en la petición. */
   me(req: FastifyRequest) {
     return toProfile(req.account!);
@@ -34,8 +44,17 @@ export const profileController = (accounts: AccountRepository, matches: MatchRep
   /** Cambia el avatar y/o el nombre, y devuelve el perfil ya actualizado. */
   async updateMe(req: FastifyRequest<{ Body: UpdateMeBody }>) {
     let account = req.account!;
+    const { frame, title } = req.body;
+    // Se comprueba todo lo que puede fallar antes de cambiar nada: o se aplica el cambio entero o ninguno.
+    for (const key of [frame, title]) {
+      if (key && !(await unlocks.has(account.id, "cosmetic", key))) throw NOT_UNLOCKED;
+    }
     // El nombre primero: si falla (ocupado o en espera) no se cambia nada del avatar.
     if (req.body.username !== undefined) account = await auth.rename(account, req.body.username);
+    if (frame !== undefined || title !== undefined) {
+      await accounts.setCosmetics(account.id, { frame, title });
+      account = { ...account, frame: frame !== undefined ? frame : account.frame, title: title !== undefined ? title : account.title };
+    }
     if (req.body.avatar !== undefined) {
       await accounts.setAvatar(account.id, req.body.avatar);
       account = { ...account, avatar: req.body.avatar };
@@ -81,6 +100,8 @@ export const profileController = (accounts: AccountRepository, matches: MatchRep
       wins: a.wins,
       losses: a.losses,
       avatar: a.avatar,
+      frame: a.frame,
+      title: a.title,
       rank,
       favorite_fighter: stats.favoriteFighter,
       streak: stats.streak,

@@ -3,7 +3,7 @@ import { profileController, type UpdateMeBody } from "../controllers/profile.con
 import { changePasswordSchema, matchesSchema, meSchema, publicProfileSchema, rankingSchema, updateMeSchema } from "../schemas/auth.schema.js";
 
 export async function profileRoutes(app: FastifyInstance): Promise<void> {
-  const c = profileController(app.accounts, app.matchHistory, app.auth);
+  const c = profileController(app.accounts, app.matchHistory, app.auth, app.unlocks);
   // Probar contraseñas a ciegas: el mismo freno por IP que el inicio de sesión.
   const rateLimit = { rateLimit: { max: app.appConfig.authRateLimitPerMinute, timeWindow: "1 minute" } };
   app.get("/me", { schema: meSchema, preHandler: app.requireAuth }, async (req) => c.me(req));

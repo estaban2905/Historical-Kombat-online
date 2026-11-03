@@ -14,10 +14,12 @@ interface AccountRow {
   losses: number;
   avatar: string | null;
   username_changed_at: Date | string | null;
+  frame: string | null;
+  title: string | null;
   created_at: Date | string;
 }
 
-const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, avatar, username_changed_at, created_at";
+const COLUMNS = "id, username, email, password_hash, google_sub, points, wins, losses, avatar, username_changed_at, frame, title, created_at";
 
 function toAccount(r: AccountRow): Account {
   return {
@@ -31,6 +33,8 @@ function toAccount(r: AccountRow): Account {
     losses: r.losses,
     avatar: r.avatar,
     usernameChangedAt: r.username_changed_at ? new Date(r.username_changed_at) : null,
+    frame: r.frame,
+    title: r.title,
     createdAt: new Date(r.created_at),
   };
 }
@@ -156,6 +160,12 @@ export class AccountRepository {
       [a.points, a.wins, a.createdAt.toISOString()],
     );
     return res.rows[0]!.rank;
+  }
+
+  /** Pone (o quita, con null) el marco y/o el título. Lo que no se pasa se deja como está. */
+  async setCosmetics(id: string, change: { frame?: string | null; title?: string | null }): Promise<void> {
+    if (change.frame !== undefined) await this.db.query("update players set frame = $2 where id = $1", [id, change.frame]);
+    if (change.title !== undefined) await this.db.query("update players set title = $2 where id = $1", [id, change.title]);
   }
 
   /** Cambia (o quita, con null) el avatar de la cuenta. */

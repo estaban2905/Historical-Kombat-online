@@ -27,6 +27,15 @@ export class UnlockRepository {
     return res.rows.map((r) => ({ kind: r.kind, key: r.key, unlockedAt: new Date(r.unlocked_at) }));
   }
 
+  /** ¿Tiene este desbloqueo? */
+  async has(playerId: string, kind: UnlockKind, key: string): Promise<boolean> {
+    const res = await this.db.query(
+      "select 1 from player_unlocks where player_id = $1 and kind = $2 and key = $3",
+      [playerId, kind, key],
+    );
+    return res.rows.length > 0;
+  }
+
   /** Añade lo que falte; lo que ya estaba se deja como está (no hay error ni se cambia la fecha). */
   async addMany(playerId: string, items: { kind: UnlockKind; key: string }[]): Promise<void> {
     if (items.length === 0) return;

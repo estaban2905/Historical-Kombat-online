@@ -27,6 +27,8 @@ export const profileSchema = {
     wins: { type: "integer" },
     losses: { type: "integer" },
     avatar: { type: ["string", "null"], description: "Id del luchador elegido como retrato" },
+    frame: { type: ["string", "null"], description: "Marco del retrato que lleva puesto" },
+    title: { type: ["string", "null"], description: "Título bajo el nombre que lleva puesto" },
     google_account: { type: "boolean", description: "true si entra con Google (no tiene contraseña que cambiar)" },
   },
 } as const;
@@ -159,16 +161,22 @@ export const updateMeSchema = {
   tags: ["profile"],
   summary: "Editar mi perfil",
   description:
-    "Avatar (el id de un luchador, o null para quitarlo) y/o nombre. El nombre solo se puede cambiar " +
-    "una vez cada 7 días (429 `username_cooldown`) y no puede estar en uso (409 `username_taken`).",
+    "Avatar (el id de un luchador, o null para quitarlo), nombre, marco y título. El nombre solo se puede cambiar " +
+    "una vez cada 7 días (429 `username_cooldown`) y no puede estar en uso (409 `username_taken`). El marco y el " +
+    "título solo se pueden poner si están desbloqueados como cosmético (403 `not_unlocked`); null los quita.",
   security: [{ bearerAuth: [] }],
   body: {
     type: "object",
     minProperties: 1,
     additionalProperties: false,
-    properties: { avatar: { type: ["string", "null"], pattern: "^[a-z0-9_]{1,40}$" }, username },
+    properties: {
+      avatar: { type: ["string", "null"], pattern: "^[a-z0-9_]{1,40}$" },
+      username,
+      frame: { type: ["string", "null"], pattern: "^[a-z0-9_]{1,40}$" },
+      title: { type: ["string", "null"], pattern: "^[a-z0-9_]{1,40}$" },
+    },
   },
-  response: { 200: profileSchema, 400: errors[400], 401: errors[401], 409: errors[409], 429: errors[429] },
+  response: { 200: profileSchema, 400: errors[400], 401: errors[401], 403: errorSchema, 409: errors[409], 429: errors[429] },
 } as const;
 
 export const changePasswordSchema = {
@@ -241,6 +249,8 @@ export const publicProfileSchema = {
         wins: { type: "integer" },
         losses: { type: "integer" },
         avatar: { type: ["string", "null"] },
+        frame: { type: ["string", "null"] },
+        title: { type: ["string", "null"] },
         rank: { type: "integer", description: "Puesto en el ranking (1 = el mejor)" },
         favorite_fighter: { type: ["string", "null"] },
         streak: { type: "integer" },

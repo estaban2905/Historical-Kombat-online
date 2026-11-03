@@ -24,7 +24,7 @@ npm run build && npm start
 | `GET /docs` | Swagger UI (`/docs/json` es el OpenAPI) |
 | `WS /ws` | Conexión de juego |
 | `POST /auth/register` · `/auth/login` · `/auth/google` · `/auth/refresh` · `/auth/logout` | Cuentas y sesiones (solo con base de datos) |
-| `GET /me` · `PATCH /me` · `GET /me/matches` | Mi perfil, cambiar mi avatar (id de un luchador) y/o mi nombre (una vez cada 7 días) y mi historial de duelos (con token) |
+| `GET /me` · `PATCH /me` · `GET /me/matches` | Mi perfil, cambiar mi avatar (id de un luchador), mi nombre (una vez cada 7 días) y el marco y título que llevo puestos (solo los desbloqueados como `cosmetic`) y mi historial de duelos (con token) |
 | `POST /me/password` | Cambia mi contraseña (pide la actual y cierra las demás sesiones; no vale para cuentas de Google) |
 | `GET /me/unlocks` · `PUT /me/unlocks` | Lo que he desbloqueado (finales vistos, luchadores ganados, cosméticos). Solo se lee y se añade: desbloquear es para siempre |
 | `GET /me/achievements` | Mis logros (clave, progreso y meta), calculados al momento con mis duelos y desbloqueos: no se guardan. El juego pone los nombres |
