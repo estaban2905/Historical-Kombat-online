@@ -66,6 +66,7 @@ func _run() -> void:
 	await _test_new_powers()
 	_test_profiles()
 	_test_balance()
+	await _test_simultaneous_sweeps()
 
 	await get_tree().physics_frame
 	remove_child(combat)
@@ -1093,3 +1094,25 @@ func _test_nexo_rematch() -> void:
 		check(is_equal_approx(starts[i], expected), "intento %d del Nexo empieza con su fuerza de siempre (%.2f de %.2f)" % [i + 1, starts[i], expected])
 	check(is_equal_approx(phase3, expected * CombatManager.NEXO_PHASES[1][2]), "la fase III sube la fuerza una sola vez (%.2f)" % phase3)
 	Game.mode = Game.Mode.VERSUS
+
+# --- Barridos simultáneos --------------------------------------------------------
+## Si dos patadas agachadas conectan en el mismo tick, las dos derriban: el resultado
+## no puede depender de quién se procesa primero (P1 o P2).
+func _test_simultaneous_sweeps() -> void:
+	print("
+# Barridos simultáneos")
+	_set_fighters(&"napoleon", &"napoleon")
+	var crouch := 1 << BIT_CROUCH
+	await _place(34.0, crouch)
+	_masks[0] = crouch
+	await _ticks(4)
+	_masks = [crouch | (1 << BIT_LK), crouch | (1 << BIT_LK)]
+	await combat.ticked
+	_masks = [crouch, crouch]
+	var traded := await _until(func(): return _hits.size() >= 2, 60)
+	check(traded, "los dos barridos conectan en el mismo intercambio (%d impactos)" % _hits.size())
+	check(combat.p1.knockdown_pending and combat.p2.knockdown_pending,
+		"el barrido de P1 y el de P2 derriban (P1: %s, P2: %s)" % [combat.p1.knockdown_pending, combat.p2.knockdown_pending])
+	_masks = [0, 0]
+	await _ticks(60)
+	_set_fighters(&"napoleon", &"donald_trump")

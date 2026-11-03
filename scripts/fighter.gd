@@ -843,6 +843,10 @@ func current_hit_level() -> AttackData.HitLevel:
 		return AttackData.HitLevel.LOW
 	return current_attack.hit_level
 
+## ¿El ataque en curso es un barrido (patada agachada)? Derriba al conectar.
+func is_sweep_attack() -> bool:
+	return attack_crouching and current_attack != null and current_attack.kind == AttackData.Kind.KICK
+
 ## true si nuestra guardia actual (de pie o agachada) para un golpe de ese nivel.
 func guards_against(level: AttackData.HitLevel) -> bool:
 	match level:
@@ -947,8 +951,10 @@ func _clear_throw() -> void:
 ## `level`: alto/medio/bajo (decide si la guardia actual lo para).
 ## Devuelve {blocked: bool, damage: float, ko: bool}.
 ## `bonus`: daño extra de un combo con nombre completado (solo si el golpe entra).
+## `sweep_hint`: el golpe era un barrido al recoger los impactos; en un intercambio el golpe del otro
+## puede haber terminado ya el ataque del atacante, así que no se lee de su estado actual.
 func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
-		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0) -> Dictionary:
+		level: AttackData.HitLevel = AttackData.HitLevel.MID, bonus: float = 0.0, sweep_hint: bool = false) -> Dictionary:
 	var result := {"blocked": false, "damage": 0.0, "ko": false, "guard_break": false, "counter": false, "perfect": false, "absorbed": false}
 	if shield_frames > 0 and state != State.KO:
 		shield_frames = 0
@@ -999,8 +1005,8 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		if not is_on_ground():
 			juggle_hits += 1
 		# ¿Este golpe derriba? Lanzamientos, agarres y barridos (patada agachada).
-		var sweep := attacker.attack_crouching and attacker.current_attack == atk \
-			and atk.kind == AttackData.Kind.KICK
+		var sweep := sweep_hint or (attacker.attack_crouching and attacker.current_attack == atk \
+			and atk.kind == AttackData.Kind.KICK)
 		if atk.launch != 0.0 or atk.kind == AttackData.Kind.GRAB or sweep:
 			knockdown_pending = true
 		_end_attack()

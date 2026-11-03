@@ -333,11 +333,11 @@ func _resolve_melee_hits() -> void:
 	# Primero se recogen TODOS los impactos y luego se aplican: así un
 	# intercambio simultáneo de golpes afecta a los dos luchadores.
 	var hits: Array = []
-	# El nivel se guarda ya: si hay intercambio, el primer impacto termina el
-	# ataque del otro antes de aplicar el suyo.
+	# El nivel y si es un barrido se guardan ya: si hay intercambio, el primer impacto
+	# termina el ataque del otro antes de aplicar el suyo.
 	for f in fighters:
 		for target in f.get_hit_candidates():
-			hits.append([f, target, f.current_attack, f.current_hit_level(), f.attack_combo])
+			hits.append([f, target, f.current_attack, f.current_hit_level(), f.attack_combo, f.is_sweep_attack()])
 	for h in hits:
 		(h[0] as Fighter).register_hit(h[1])
 	var grabs: Array = []
@@ -349,7 +349,7 @@ func _resolve_melee_hits() -> void:
 			grabs.append(h)
 			continue
 		var point := _contact_point(attacker.hitbox_shape.global_position, target)
-		_apply_hit(attacker, target, atk, attacker.facing, point, false, h[3], h[4])
+		_apply_hit(attacker, target, atk, attacker.facing, point, false, h[3], h[4], h[5])
 		# Golpe dado o bloqueado: ya se puede cancelar en otro.
 		if attacker.state == Fighter.State.ATTACK and attacker.current_attack == atk:
 			attacker.on_attack_connected()
@@ -430,8 +430,8 @@ func _contact_point(from: Vector2, target: Fighter) -> Vector2:
 
 func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: int,
 		point: Vector2, from_projectile: bool, level: AttackData.HitLevel = AttackData.HitLevel.MID,
-		combo: ComboData = null) -> void:
-	var result := target.receive_hit(attacker, atk, direction, level, combo.bonus_damage if combo else 0.0)
+		combo: ComboData = null, sweep: bool = false) -> void:
+	var result := target.receive_hit(attacker, atk, direction, level, combo.bonus_damage if combo else 0.0, sweep)
 	if result.absorbed:
 		HitEffect.spawn(effects_root, point, HitEffect.Type.CLASH, 1.6)
 		Sfx.play(&"block")
