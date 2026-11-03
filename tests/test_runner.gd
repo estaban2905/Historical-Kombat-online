@@ -118,6 +118,17 @@ func _test_profile_helpers() -> void:
 	check(League.change_text(1105, 1089) == "BAJASTE A BRONCE", "y la bajada")
 	check(League.change_text(1000, 1016) == "" and League.change_text(1600, 1584) == "", "sin cambio de liga no hay aviso")
 
+	# Fuente: las mayúsculas acentuadas usan el glifo sin tilde; las minúsculas conservan la suya.
+	var font := HKTheme.font() as FontFile
+	var raw := load(HKTheme.FONT_PATH) as FontFile
+	var glyph := func(f: FontFile, ch: String) -> int: return f.get_glyph_index(8, ch.unicode_at(0), 0)
+	var plain_ok := true
+	for accented in HKTheme.PLAIN_CAPITALS:
+		plain_ok = plain_ok and glyph.call(font, accented) == glyph.call(font, HKTheme.PLAIN_CAPITALS[accented])
+	check(plain_ok, "Á É Í Ó Ú Ü se dibujan como A E I O U")
+	check(glyph.call(font, "ó") != glyph.call(font, "o") and glyph.call(font, "Ñ") != glyph.call(font, "N"), "ó y Ñ no se tocan")
+	check(glyph.call(raw, "Ó") != glyph.call(raw, "O"), "el archivo de la fuente sigue igual (el cambio es en memoria)")
+
 	# Temporadas
 	check(Season.name_of("2026-11") == "NOVIEMBRE 2026" and Season.name_of("2027-01") == "ENERO 2027", "nombre de la temporada")
 	check(Season.name_of("") == "" and Season.name_of("2026-13") == "" and Season.name_of("x-y") == "", "un id raro no tiene nombre")
