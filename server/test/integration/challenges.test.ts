@@ -173,3 +173,50 @@ test("un invitado no puede usar una sala (el mensaje ni siquiera es válido)", a
   assert.equal((await c.next("error")).msg, "mensaje no válido");
   c.ws.close();
 });
+
+const httpUrl = () => wsUrl.replace("ws://", "http://").replace(/\/ws$/, "");
+
+test("espera larga: la petición con ?wait responde en cuanto llega el reto", async () => {
+  const a = await register("Reto_Espera_A");
+  const b = await register("Reto_Espera_B");
+  await befriend(a, "Reto_Espera_A", b, "Reto_Espera_B");
+  const started = Date.now();
+  const waiting = fetch(`${httpUrl()}/me/challenges?wait=20`, { headers: auth(b) });
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(app.challenges.waitingCount() >= 1, true, "B está esperando");
+  const sent = await challenge(a, "Reto_Espera_B");
+  const res = await waiting;
+  const list = (await res.json()) as { code: string; from: string }[];
+  assert.equal(res.status, 200);
+  assert.deepEqual(list.map((c) => [c.code, c.from]), [[sent.json().code, "Reto_Espera_A"]]);
+  assert.ok(Date.now() - started < 5000, "llega al momento, no a los 20 s");
+});
+
+test("espera larga: sin retos responde vacío al acabar el plazo, y con uno ya hecho no espera", async () => {
+  const a = await register("Reto_Plazo_A");
+  const b = await register("Reto_Plazo_B");
+  await befriend(a, "Reto_Plazo_A", b, "Reto_Plazo_B");
+  const started = Date.now();
+  const empty = await app.inject({ method: "GET", url: "/me/challenges?wait=1", headers: auth(b) });
+  assert.deepEqual(empty.json(), []);
+  assert.ok(Date.now() - started >= 900, "esperó el plazo");
+  await challenge(a, "Reto_Plazo_B");
+  const started2 = Date.now();
+  const now = await app.inject({ method: "GET", url: "/me/challenges?wait=20", headers: auth(b) });
+  assert.equal(now.json().length, 1);
+  assert.ok(Date.now() - started2 < 1000, "ya había uno: contesta sin esperar");
+  assert.equal((await app.inject({ method: "GET", url: "/me/challenges?wait=26", headers: auth(b) })).statusCode, 400, "más de 25 s no");
+});
+
+test("espera larga: si el juego corta la conexión se deja de esperar", async () => {
+  const b = await register("Reto_Corte_B");
+  const before = app.challenges.waitingCount();
+  const abort = new AbortController();
+  const req = fetch(`${httpUrl()}/me/challenges?wait=20`, { headers: auth(b), signal: abort.signal }).catch(() => null);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(app.challenges.waitingCount(), before + 1);
+  abort.abort();
+  await req;
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(app.challenges.waitingCount(), before, "no queda nadie esperando");
+});

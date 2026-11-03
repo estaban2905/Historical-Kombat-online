@@ -214,13 +214,26 @@ func _run() -> void:
 	await Backend.sign_out()
 	r = await Backend.sign_in(other_email, "secreto1")
 	check(r.ok, "entro como el retado")
-	var retos := await Backend.fetch_challenges()
+	var asked := Time.get_ticks_msec()
+	var retos := await Backend.fetch_challenges(Backend.CHALLENGE_WAIT)
+	check(Time.get_ticks_msec() - asked < 3000, "con espera larga y un reto ya hecho, contesta sin esperar")
 	check(retos.size() == 1 and retos[0].get("from", "") == new_name and retos[0].get("code", "") == ch.code, "el retado ve el reto de " + new_name)
 	check(await Backend.cancel_challenge(ch.code), "rechazar el reto")
 	check((await Backend.fetch_challenges()).is_empty(), "ya no hay retos")
+	asked = Time.get_ticks_msec()
+	check((await Backend.fetch_challenges(1)).is_empty() and Time.get_ticks_msec() - asked >= 900,
+		"sin retos, la espera larga contesta vacío al acabar el plazo")
 	check(await Backend.remove_friend(new_name), "quitar al amigo")
 	await Backend.fetch_friends()
 	check(Backend.friend_status(new_name) == "", "ya no somos amigos")
+
+	print("\n# Temporadas")
+	var season := await Backend.fetch_season()
+	var month := Time.get_datetime_string_from_system(true).left(7)
+	check(str(season.get("id", "")) == month and Season.days_left(str(season.get("ends_at", ""))) >= 1,
+		"la temporada en curso es este mes (%s, %s)" % [season.get("id"), Season.time_left_text(str(season.get("ends_at", "")))])
+	var my_seasons: Variant = await Backend.fetch_my_seasons()
+	check(my_seasons is Array and (my_seasons as Array).is_empty(), "una cuenta nueva no tiene temporadas terminadas")
 
 	print("\n# Desbloqueos de invitado, marcos y títulos")
 	var real_unlocks := Unlocks.path

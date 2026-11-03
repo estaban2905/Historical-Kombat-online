@@ -1,6 +1,6 @@
 ## Cosméticos del perfil: el marco del retrato y el título bajo el nombre. Se ganan al ver un final del modo
-## Historia o al cumplir ciertos logros, se guardan como desbloqueos (Unlocks, tipo "cosmetic") y se ponen
-## desde EDITAR PERFIL. El servidor solo deja ponerse los que se tienen.
+## Historia, al cumplir ciertos logros o al acabar una temporada del ranking (ver Season), se guardan como
+## desbloqueos (Unlocks, tipo "cosmetic") y se ponen desde EDITAR PERFIL. El servidor solo deja ponerse los que se tienen.
 class_name Cosmetics
 extends RefCounted
 
@@ -8,6 +8,10 @@ const FRAMES := {
 	&"frame_gold": {"name": "DORADO", "color": Color("f0c040")},
 	&"frame_red": {"name": "ROJO", "color": Color("e83a3a")},
 	&"frame_cyan": {"name": "CIAN", "color": Color("35e6ff")},
+	# Recompensas de temporada (las da el servidor al cerrarla, según la liga máxima alcanzada).
+	&"frame_season_silver": {"name": "PLATA DE TEMPORADA", "color": Color("dfe6f5")},
+	&"frame_season_gold": {"name": "ORO DE TEMPORADA", "color": Color("ffb020")},
+	&"frame_season_diamond": {"name": "DIAMANTE DE TEMPORADA", "color": Color("70d0f0")},
 }
 
 const TITLES := {
@@ -17,6 +21,8 @@ const TITLES := {
 	&"title_first_blood": "PRIMERA SANGRE",
 	&"title_unstoppable": "IMPARABLE",
 	&"title_legend": "LEYENDA",
+	&"title_season_champion": "CAMPEÓN DE TEMPORADA",
+	&"title_season_podium": "PODIO DE TEMPORADA",
 }
 
 ## Qué se gana al ver cada final del modo Historia.
@@ -64,7 +70,19 @@ static func grant_ending(ending: StringName) -> void:
 		Unlocks.add("cosmetic", str(key))
 
 ## Da el título de cada logro cumplido ({key, done} como los devuelve Backend.fetch_achievements).
-static func grant_achievements(list: Array) -> void:
+## Devuelve los títulos que no se tenían (para anunciarlos).
+static func grant_achievements(list: Array) -> Array[String]:
+	var fresh: Array[String] = []
 	for a in list:
 		if bool(a.get("done", false)) and ACHIEVEMENT_REWARDS.has(str(a.get("key", ""))):
-			Unlocks.add("cosmetic", str(ACHIEVEMENT_REWARDS[str(a["key"])]))
+			var key := str(ACHIEVEMENT_REWARDS[str(a["key"])])
+			if Unlocks.add("cosmetic", key):
+				fresh.append(key)
+	return fresh
+
+## Pide los logros a la cuenta y da los títulos que se hayan cumplido. Devuelve los nuevos ([] sin sesión o sin red).
+static func refresh_achievements() -> Array[String]:
+	var list: Variant = await Backend.fetch_achievements()
+	if list == null:
+		return [] as Array[String]
+	return grant_achievements(list)

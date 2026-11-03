@@ -15,6 +15,8 @@ var session_path: String = "user://session.cfg"
 ## Copia local de la partida de Historia, una sección por cuenta ("guest" sin sesión).
 var story_path: String = "user://story_save.cfg"
 const REQUEST_TIMEOUT := 10.0
+## Cuánto se deja esperando la petición de retos (espera larga: el aviso llega al momento).
+const CHALLENGE_WAIT := 20
 ## Respuesta rápida: no se espera 10 s para saber que el servidor no está.
 const HEALTH_TIMEOUT := 4.0
 ## Se renueva el token si le quedan menos de 60 s de vida.
@@ -261,12 +263,23 @@ func remove_friend(player_name: String) -> bool:
 	var r := await _request("DELETE", "/me/friends/%s" % player_name.uri_encode(), null, true)
 	return r.ok
 
-## Ranking entre mis amigos y yo (mismo formato que fetch_ranking). Vacío si falla.
-func fetch_friends_ranking() -> Array:
+## Ranking entre mis amigos y yo (mismo formato y filtros que fetch_ranking). Vacío si falla.
+func fetch_friends_ranking(week: bool = false, fighter: String = "") -> Array:
 	if not is_logged_in():
 		return []
-	var r := await _request("GET", "/me/friends/leaderboard", null, true)
+	var r := await _request("GET", "/me/friends/leaderboard" + _ranking_query(week, fighter), null, true)
 	return r.data if r.ok and r.data is Array else []
+
+## "?period=week&fighter=x" según los filtros ("" sin filtros).
+static func _ranking_query(week: bool, fighter: String, limit: int = 0) -> String:
+	var parts := PackedStringArray()
+	if limit > 0:
+		parts.append("limit=%d" % limit)
+	if week:
+		parts.append("period=week")
+	if fighter != "":
+		parts.append("fighter=%s" % fighter.uri_encode())
+	return "?" + "&".join(parts) if not parts.is_empty() else ""
 
 ## Reta a un amigo: abre una sala privada de unos 2 minutos. Devuelve {ok, code, expires_in, error}.
 func create_challenge(player_name: String) -> Dictionary:
@@ -278,10 +291,12 @@ func create_challenge(player_name: String) -> Dictionary:
 	return {"ok": true, "code": str(r.data.get("code", "")), "expires_in": int(r.data.get("expires_in", 0)), "error": ""}
 
 ## Los retos que me han hecho ([{code, from, expires_in}]). Vacío si no hay o falla.
-func fetch_challenges() -> Array:
+## Con `wait` (segundos), si no hay ninguno el servidor espera hasta entonces y contesta en cuanto alguien me reta.
+func fetch_challenges(wait: int = 0) -> Array:
 	if not is_logged_in():
 		return []
-	var r := await _request("GET", "/me/challenges", null, true)
+	var path := "/me/challenges" + ("?wait=%d" % wait if wait > 0 else "")
+	var r := await _request("GET", path, null, true, true, REQUEST_TIMEOUT + wait)
 	return r.data if r.ok and r.data is Array else []
 
 ## Cancela mi reto o rechaza el que me hicieron.
@@ -292,9 +307,30 @@ func cancel_challenge(code: String) -> bool:
 	return r.ok
 
 ## Los mejores jugadores: [{username, points, wins, losses, avatar, favorite_fighter, streak}]. Vacío si falla.
-func fetch_ranking(limit: int = 10) -> Array:
-	var r := await _request("GET", "/leaderboard?limit=%d" % limit, null, false)
+## Con week, solo los duelos de los últimos 7 días; con fighter, solo los jugados con ese luchador. Con algún
+## filtro cada fila trae además "gained" (puntos ganados con esos duelos) y salen solo quienes jugaron alguno.
+func fetch_ranking(limit: int = 10, week: bool = false, fighter: String = "") -> Array:
+	var r := await _request("GET", "/leaderboard" + _ranking_query(week, fighter, limit), null, false)
 	return r.data if r.ok and r.data is Array else []
+
+## La temporada en curso: {id: "2026-11", ends_at: fecha ISO}. {} si falla. Se pide una vez por ejecución
+## (salvo que ya haya terminado).
+var _season: Dictionary = {}
+
+func fetch_season() -> Dictionary:
+	if not _season.is_empty() and Season.days_left(str(_season.get("ends_at", ""))) > 0:
+		return _season
+	var r := await _request("GET", "/season", null, false)
+	_season = r.data if r.ok and r.data is Dictionary else {}
+	return _season
+
+## Cómo acabé cada temporada, la más reciente primero ([{season, rank, points, peak_points, league, wins, losses}]).
+## null si falla.
+func fetch_my_seasons() -> Variant:
+	if not is_logged_in():
+		return null
+	var r := await _request("GET", "/me/seasons", null, true)
+	return r.data if r.ok and r.data is Array else null
 
 ## Mis últimos duelos (solo con sesión). Vacío si falla.
 func fetch_matches(limit: int = 8) -> Array:

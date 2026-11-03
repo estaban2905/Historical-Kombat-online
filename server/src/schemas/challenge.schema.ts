@@ -1,3 +1,4 @@
+import { MAX_WAIT_S } from "../services/challenge.service.js";
 import { errorSchema } from "./auth.schema.js";
 
 const secured = { security: [{ bearerAuth: [] }] } as const;
@@ -33,7 +34,15 @@ export const createChallengeSchema = {
 export const listChallengesSchema = {
   tags: ["friends"],
   summary: "Retos que me han hecho",
+  description:
+    "Con wait=N (1-25 s), si no hay ninguno la respuesta espera hasta N segundos y llega en cuanto alguien me reta " +
+    "(espera larga, para avisar al momento).",
   ...secured,
+  querystring: {
+    type: "object",
+    additionalProperties: false,
+    properties: { wait: { type: "integer", minimum: 0, maximum: MAX_WAIT_S } },
+  },
   response: {
     200: {
       type: "array",

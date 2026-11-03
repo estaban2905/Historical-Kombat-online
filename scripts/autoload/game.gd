@@ -263,6 +263,12 @@ func drop_challenge() -> void:
 ## Perfil de otro jugador que se está viendo y escena a la que vuelve VOLVER.
 var viewed_player: String = ""
 var viewed_return: String = SCENE_RANKING
+## Filtros del ranking (se conservan al abrir un perfil o elegir luchador y volver): AMIGOS, últimos 7 días y luchador.
+var ranking_friends: bool = false
+var ranking_week: bool = false
+var ranking_fighter: String = ""
+## Para qué se abre la rejilla de luchadores (AvatarPicker): "avatar" o "ranking" (filtro por luchador).
+var picker_purpose: String = "avatar"
 
 ## Abre el perfil de un jugador; VOLVER regresa a `back_scene`.
 func view_player(player_name: String, back_scene: String) -> void:

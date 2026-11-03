@@ -13,6 +13,8 @@ export interface Challenge {
 
 /** Cuánto vive un reto sin que el otro entre. */
 export const CHALLENGE_TTL_MS = 120_000;
+/** Lo más que se deja esperando una petición de retos (GET /me/challenges?wait=). */
+export const MAX_WAIT_S = 25;
 
 /** Sin 0/O ni 1/I: el código se puede leer y copiar sin confundirse. */
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -27,6 +29,8 @@ export function randomCode(length = 8): string {
  */
 export class ChallengeService {
   private readonly byCode = new Map<string, Challenge>();
+  /** Quién está esperando un reto (espera larga): por jugador, las funciones que lo despiertan. */
+  private readonly waiting = new Map<string, Set<() => void>>();
 
   constructor(
     private readonly now: () => number = Date.now,
@@ -42,7 +46,34 @@ export class ChallengeService {
     while (this.byCode.has(code)) code = this.newCode();
     const challenge: Challenge = { code, fromId: from.id, fromName: from.name, toId, expiresAt: this.now() + this.ttlMs, joined: new Set() };
     this.byCode.set(code, challenge);
+    for (const wake of this.waiting.get(toId) ?? []) wake();
     return challenge;
+  }
+
+  /**
+   * Espera hasta `ms` a que a `toId` le llegue un reto (o hasta que `cancelled` se cumpla, p. ej. si el cliente
+   * corta la conexión). No dice cuál: después se mira incoming().
+   */
+  waitForIncoming(toId: string, ms: number, cancelled?: Promise<void>): Promise<void> {
+    return new Promise((resolve) => {
+      const set = this.waiting.get(toId) ?? new Set<() => void>();
+      this.waiting.set(toId, set);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const done = () => {
+        clearTimeout(timer);
+        set.delete(done);
+        if (set.size === 0) this.waiting.delete(toId);
+        resolve();
+      };
+      set.add(done);
+      timer = setTimeout(done, ms);
+      void cancelled?.then(done);
+    });
+  }
+
+  /** Cuántos jugadores tienen una espera abierta (para las pruebas). */
+  waitingCount(): number {
+    return this.waiting.size;
   }
 
   /** Los retos que me han hecho y siguen vivos. */

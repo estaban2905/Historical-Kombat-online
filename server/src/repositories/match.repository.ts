@@ -49,6 +49,25 @@ export interface PlayerStats {
   streak: number;
 }
 
+/** Qué duelos cuentan para un ranking filtrado: desde una fecha y/o con un luchador; opcionalmente solo unos jugadores. */
+export interface BoardFilter {
+  since?: Date;
+  fighter?: string;
+  onlyIds?: string[];
+  limit: number;
+}
+
+/** Una fila del ranking filtrado: victorias, derrotas y puntos ganados (gained) con esos duelos; points es el total. */
+export interface BoardEntry {
+  id: string;
+  username: string;
+  points: number;
+  avatar: string | null;
+  wins: number;
+  losses: number;
+  gained: number;
+}
+
 /** Cada duelo visto desde cada lado: una fila por jugador y duelo. */
 const PLAYER_MATCHES = `
   select p1_id as pid, p1_fighter as fighter, played_at, id,
@@ -103,6 +122,31 @@ export class MatchRepository {
     );
     for (const r of streaks.rows) out.get(r.pid)!.streak = r.streak;
     return out;
+  }
+
+  /**
+   * Ranking con solo los duelos que pasan el filtro (la semana, un luchador): primero quien más puntos ganó con
+   * ellos, luego más victorias. Solo salen los jugadores con algún duelo que cuente.
+   */
+  async board(f: BoardFilter): Promise<BoardEntry[]> {
+    const res = await this.db.query<BoardEntry>(
+      `with pm as (
+         select p1_id as pid, p1_fighter as fighter, played_at, p1_delta as delta,
+                (winner = 1)::int as w, (winner = 2)::int as l from matches
+         union all
+         select p2_id, p2_fighter, played_at, p2_delta, (winner = 2)::int, (winner = 1)::int from matches)
+       select p.id, p.username, p.points, p.avatar,
+              sum(pm.w)::int as wins, sum(pm.l)::int as losses, sum(pm.delta)::int as gained
+         from pm join players p on p.id = pm.pid
+        where ($1::timestamptz is null or pm.played_at >= $1)
+          and ($2::text is null or pm.fighter = $2)
+          and ($3::uuid[] is null or p.id = any($3::uuid[]))
+        group by p.id
+        order by gained desc, wins desc, p.created_at asc
+        limit $4`,
+      [f.since?.toISOString() ?? null, f.fighter ?? null, f.onlyIds ?? null, f.limit],
+    );
+    return res.rows;
   }
 
   async insert(m: NewMatch): Promise<void> {

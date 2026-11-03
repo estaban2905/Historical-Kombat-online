@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { profileController, type UpdateMeBody } from "../controllers/profile.controller.js";
+import { profileController, type RankingQuery, type UpdateMeBody } from "../controllers/profile.controller.js";
 import { changePasswordSchema, matchesSchema, meSchema, publicProfileSchema, rankingSchema, updateMeSchema } from "../schemas/auth.schema.js";
 
 export async function profileRoutes(app: FastifyInstance): Promise<void> {
@@ -26,5 +26,5 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
     async (req) => c.myMatches(req),
   );
   app.get<{ Params: { username: string } }>("/players/:username", { schema: publicProfileSchema }, async (req) => c.publicProfile(req));
-  app.get<{ Querystring: { limit?: number } }>("/leaderboard", { schema: rankingSchema }, async (req) => c.ranking(req));
+  app.get<{ Querystring: RankingQuery }>("/leaderboard", { schema: rankingSchema }, async (req) => c.ranking(req));
 }

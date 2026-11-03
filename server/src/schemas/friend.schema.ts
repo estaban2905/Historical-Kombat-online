@@ -1,4 +1,4 @@
-import { errorSchema } from "./auth.schema.js";
+import { errorSchema, rankingQuerySchema } from "./auth.schema.js";
 
 const username = { type: "string", pattern: "^[A-Za-z0-9_]{3,16}$" } as const;
 
@@ -58,7 +58,9 @@ export const removeFriendSchema = {
 export const friendsRankingSchema = {
   tags: ["friends"],
   summary: "Ranking entre mis amigos y yo",
+  description: "Con los mismos filtros que /leaderboard (period, fighter).",
   ...secured,
+  querystring: rankingQuerySchema,
   response: {
     200: {
       type: "array",
@@ -70,6 +72,7 @@ export const friendsRankingSchema = {
           points: { type: "integer" },
           wins: { type: "integer" },
           losses: { type: "integer" },
+          gained: { type: "integer" },
           avatar: { type: ["string", "null"] },
           favorite_fighter: { type: ["string", "null"] },
           streak: { type: "integer" },

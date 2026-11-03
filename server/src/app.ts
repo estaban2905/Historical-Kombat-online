@@ -16,9 +16,20 @@ import { friendRoutes } from "./routes/friend.routes.js";
 import { storyRoutes } from "./routes/story.routes.js";
 import { unlockRoutes } from "./routes/unlock.routes.js";
 import { systemRoutes } from "./routes/system.routes.js";
+import { seasonRoutes } from "./routes/season.routes.js";
 import { MatchService } from "./services/match.service.js";
 import { createGoogleVerifier, type GoogleVerifier } from "./services/google-verifier.js";
 import { MatchmakingService } from "./services/matchmaking.service.js";
+import { SeasonService } from "./services/season.service.js";
+
+declare module "fastify" {
+  interface FastifyInstance {
+    seasons: SeasonService;
+  }
+}
+
+/** Cada cuánto se mira si cambió el mes (y hay que cerrar la temporada). */
+const SEASON_CHECK_MS = 10 * 60 * 1000;
 
 export interface BuildOptions {
   config?: Partial<AppConfig>;
@@ -27,6 +38,8 @@ export interface BuildOptions {
   db?: Db;
   /** Para pruebas: reemplaza la verificación real contra Google. */
   googleVerifier?: GoogleVerifier;
+  /** Para pruebas: el reloj de las temporadas. */
+  now?: () => Date;
 }
 
 /** Arma la aplicación: plugins, servicios y rutas. No abre ningún puerto. */
@@ -69,6 +82,18 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     await app.register(friendRoutes);
     await app.register(challengeRoutes);
     await app.register(unlockRoutes);
+    // Temporadas: se cierra la del mes pasado al arrancar y, después, al cambiar de mes.
+    const seasons = new SeasonService(options.db, options.now);
+    app.decorate("seasons", seasons);
+    await app.register(seasonRoutes);
+    const checkSeason = () => seasons.rollover().then(
+      (closed) => closed && app.log.info({ season: closed }, "temporada cerrada"),
+      (err) => app.log.error(err),
+    );
+    await checkSeason();
+    const timer = setInterval(checkSeason, SEASON_CHECK_MS);
+    timer.unref();
+    app.addHook("onClose", async () => clearInterval(timer));
   }
   return app;
 }

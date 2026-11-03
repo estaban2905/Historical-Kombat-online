@@ -8,6 +8,10 @@ extends Control
 
 ## Segundos que se espera la confirmación de puntos antes de rendirse.
 const SETTLE_WAIT := 40.0
+## Online: lo que tardan en contarse los puntos y en avanzar la barra de liga.
+const COUNT_TIME := 1.0
+## Online: los botones bajan para dejar sitio a los puntos y la liga.
+const ONLINE_BUTTONS_Y := 192.0
 
 var _t: float = 0.0
 var _winner_data: FighterData
@@ -16,6 +20,11 @@ var _arcade: StringName = &""
 ## Online: lo que confirmó el servidor ({} mientras espera) y un aviso si no llegó.
 var _settled: Dictionary = {}
 var _online_note: String = ""
+## Momento (_t) en que llegaron los puntos, para animarlos, y si ya sonó el aviso de cambio de liga.
+var _settled_t: float = 0.0
+var _league_sounded: bool = false
+## Títulos de logros ganados con este duelo (se anuncian arriba).
+var _new_titles: Array[String] = []
 ## Online con cuenta: qué hace el botón de revancha: "challenge" (reto de nuevo), "accept" (el rival ya me retó),
 ## "add" (todavía no somos amigos) o "" (no se ofrece).
 var _rematch_mode: String = ""
@@ -30,9 +39,11 @@ func _ready() -> void:
 		_arcade = Game.arcade_outcome()
 	_setup_buttons()
 	if Game.is_online():
+		$Buttons.position.y = ONLINE_BUTTONS_Y
 		_finish_online()
 		_setup_online_rematch()
 	for b in [btn_rematch, btn_select, btn_menu]:
+		b.text = HKTheme.fold(b.text)   # "MENÚ PRINCIPAL": la fuente no tiene la Ú mayúscula
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	if Game.last_winner == 0:
@@ -153,12 +164,14 @@ func _enter_challenge(code: String, rival: String) -> void:
 	Game.mode = Game.Mode.ONLINE
 	Game.goto(Game.SCENE_SELECT)
 
-## Cada pocos segundos mira si el rival ya me ha retado a la revancha.
+## Mira si el rival ya me ha retado a la revancha (con espera larga: el botón cambia en cuanto me reta).
 func _check_rematch_challenge() -> void:
 	_polling = true
-	var list := await Backend.fetch_challenges()
+	var list := await Backend.fetch_challenges(Backend.CHALLENGE_WAIT)
+	if not is_inside_tree():
+		return
 	_polling = false
-	if not is_inside_tree() or _rematch_mode != "challenge":
+	if _rematch_mode != "challenge":
 		return
 	for c in list:
 		if str(c.get("from", "")).to_lower() == Online.opponent_name.to_lower():
@@ -168,8 +181,13 @@ func _check_rematch_challenge() -> void:
 
 func _on_settled(msg: Dictionary) -> void:
 	_settled = msg
+	_settled_t = _t
 	Backend.apply_settled(msg)
 	Online.disconnect_from_server()
+	if Backend.is_logged_in() and msg.get("ranked", false) and msg.get("ok", false):
+		var fresh := await Cosmetics.refresh_achievements()
+		if is_inside_tree():
+			_new_titles = fresh
 
 func _add_figure(d: FighterData, pos: Vector2, s: int, pose: StringName) -> void:
 	var r := FighterRenderer.new()
@@ -212,10 +230,15 @@ func _draw() -> void:
 			HKTheme.draw_text(self, Vector2(x0, 150 + i * 11), epilogue[i], 8, Color("fff0a0"), HORIZONTAL_ALIGNMENT_CENTER, w, 1)
 	if Game.is_online():
 		_draw_online_points(x0, w)
+		if not _new_titles.is_empty():
+			var names := _new_titles.map(func(k): return Cosmetics.title_name(k))
+			HKTheme.draw_text(self, Vector2(0, 14), "¡TÍTULO NUEVO! %s" % " · ".join(PackedStringArray(names)), 8,
+				HKTheme.GOLD.lerp(Color.WHITE, 0.3 + 0.3 * sin(_t * 6.0)), HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
 
-## Línea de puntos del duelo online: pendiente, ganados/perdidos, no registrado o amistoso.
+## Puntos del duelo online: pendiente, no registrado o amistoso; o los puntos ganados/perdidos contándose,
+## la barra de liga avanzando desde los puntos de antes y, al acabar, el aviso si se cambió de liga.
 func _draw_online_points(x0: float, w: float) -> void:
-	var y := 150.0
+	var y := 136.0
 	if _settled.is_empty():
 		var text := _online_note if _online_note != "" else "GUARDANDO RESULTADO..."
 		HKTheme.draw_text(self, Vector2(x0, y), text, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
@@ -229,12 +252,36 @@ func _draw_online_points(x0: float, w: float) -> void:
 			HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
 		return
 	var delta := int(_settled.get("delta", 0))
+	var points := int(_settled.get("points", 0))
+	var k := clampf((_t - _settled_t) / COUNT_TIME, 0.0, 1.0)
+	var shown := roundi(delta * k)
+	var now := points - delta + shown
 	var color := Color("60d060") if delta > 0 else (HKTheme.BLOOD if delta < 0 else HKTheme.PAPER)
-	HKTheme.draw_text(self, Vector2(x0, y), "%+d PUNTOS" % delta, 16, color, HORIZONTAL_ALIGNMENT_CENTER, w, 3)
-	HKTheme.draw_text(self, Vector2(x0, y + 22), "TOTAL %d · %dV %dD" % [int(_settled.get("points", 0)),
-		int(_settled.get("wins", 0)), int(_settled.get("losses", 0))], 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+	HKTheme.draw_text(self, Vector2(x0, y), "%+d PUNTOS" % shown, 16, color, HORIZONTAL_ALIGNMENT_CENTER, w, 3)
+	# Por abandono, el aviso ocupa el sitio del récord (los dos no caben en una línea).
+	var record := "%dV %dD" % [int(_settled.get("wins", 0)), int(_settled.get("losses", 0))]
 	if _settled.get("reason", "") == "forfeit":
-		HKTheme.draw_text(self, Vector2(x0, y + 34), "POR ABANDONO", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+		record = "POR ABANDONO"
+	HKTheme.draw_text(self, Vector2(x0, y + 13), "TOTAL %d · %s" % [now, record], 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+	# Barra de liga con los puntos que se van contando.
+	var league := League.info(now)
+	var bar := Rect2(x0 + 16, y + 26, w - 32, 4)
+	draw_rect(bar, HKTheme.INK)
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(league["progress"]), bar.size.y)), league["color"])
+	HKTheme.draw_text(self, Vector2(bar.position.x, y + 40), league["name"], 8, league["color"], HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	var next_name := str(league["next_name"])
+	HKTheme.draw_text(self, Vector2(bar.position.x, y + 40), "%d PARA %s" % [int(league["to_next"]), next_name] if next_name != "" else "LIGA MÁXIMA",
+		8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, bar.size.x, 1)
+	# Al terminar de contar: el aviso de cambio de liga, que late si se sube.
+	var change := League.change_text(points - delta, points)
+	if k < 1.0 or change == "":
+		return
+	if not _league_sounded:
+		_league_sounded = true
+		Sfx.play(&"round" if delta > 0 else &"denied")
+	var up := delta > 0
+	var c: Color = league["color"].lerp(Color.WHITE, 0.35 + 0.35 * sin(_t * 6.0)) if up else HKTheme.MUTED
+	HKTheme.draw_text(self, Vector2(x0, y + 52), change, 8, c, HORIZONTAL_ALIGNMENT_CENTER, w, 2)
 
 func _not_saved_reason(reason: String) -> String:
 	match reason:

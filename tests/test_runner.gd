@@ -56,6 +56,7 @@ func _run() -> void:
 	_test_resources()
 	_test_profile_helpers()
 	await _test_locked_select()
+	await _test_ranking_filters()
 	await _test_menu_to_fight()
 	await _test_fight()
 	await _test_powers()
@@ -113,6 +114,43 @@ func _test_profile_helpers() -> void:
 	check(League.info(1500)["name"] == "DIAMANTE" and League.info(5000)["next_name"] == "", "Diamante es la última liga")
 	check(League.info(1000)["to_next"] == 100 and is_equal_approx(League.info(1200)["progress"], 0.5), "faltan 100 para Plata y a 1200 va a la mitad hacia Oro")
 	check(League.info(-50)["progress"] == 0.0, "con puntos negativos la barra no va por debajo de 0")
+	check(League.change_text(1090, 1106) == "¡SUBISTE A PLATA!" and League.change_text(1290, 1500) == "¡SUBISTE A DIAMANTE!", "al cruzar el límite se avisa la subida")
+	check(League.change_text(1105, 1089) == "BAJASTE A BRONCE", "y la bajada")
+	check(League.change_text(1000, 1016) == "" and League.change_text(1600, 1584) == "", "sin cambio de liga no hay aviso")
+
+	# Fuente: las mayúsculas acentuadas usan el glifo sin tilde; las minúsculas conservan la suya.
+	var font := HKTheme.font() as FontFile
+	var raw := load(HKTheme.FONT_PATH) as FontFile
+	var glyph := func(f: FontFile, ch: String) -> int: return f.get_glyph_index(8, ch.unicode_at(0), 0)
+	var plain_ok := true
+	for accented in HKTheme.PLAIN_CAPITALS:
+		plain_ok = plain_ok and glyph.call(font, accented) == glyph.call(font, HKTheme.PLAIN_CAPITALS[accented])
+	check(plain_ok, "Á É Í Ó Ú Ü se dibujan como A E I O U")
+	check(glyph.call(font, "ó") != glyph.call(font, "o") and glyph.call(font, "Ñ") != glyph.call(font, "N"), "ó y Ñ no se tocan")
+	check(glyph.call(raw, "Ó") != glyph.call(raw, "O"), "el archivo de la fuente sigue igual (el cambio es en memoria)")
+
+	# Temporadas
+	check(Season.name_of("2026-11") == "NOVIEMBRE 2026" and Season.name_of("2027-01") == "ENERO 2027", "nombre de la temporada")
+	check(Season.name_of("") == "" and Season.name_of("2026-13") == "" and Season.name_of("x-y") == "", "un id raro no tiene nombre")
+	var t0 := Time.get_unix_time_from_datetime_string("2026-11-20T12:00:00")
+	check(Season.days_left("2026-12-01T00:00:00.000Z", t0) == 11, "faltan 11 días (redondeando hacia arriba)")
+	check(Season.time_left_text("2026-12-01T00:00:00.000Z", t0) == "QUEDAN 11 DÍAS", "texto de lo que queda")
+	check(Season.time_left_text("2026-12-01T00:00:00.000Z", t0 + 9.0 * 86400.0) == "QUEDAN 2 DÍAS", "día y medio: 2 días")
+	check(Season.time_left_text("2026-12-01T00:00:00.000Z", t0 + 10.0 * 86400.0) == "ÚLTIMAS HORAS", "el último día")
+	check(Season.days_left("2026-12-01T00:00:00.000Z", t0 + 30.0 * 86400.0) == 0, "terminada: 0, no negativo")
+	check(Season.summary({"rank": 1, "league": "diamond"}) == PackedStringArray(["PUESTO 1 · LIGA DIAMANTE",
+		"MARCO DIAMANTE DE TEMPORADA", "TÍTULO CAMPEÓN DE TEMPORADA"]), "aviso del campeón: liga, marco y título")
+	check(Season.summary({"rank": 3, "league": "gold"})[2] == "TÍTULO PODIO DE TEMPORADA", "el tercero gana el título del podio")
+	check(Season.summary({"rank": 8, "league": "bronze"}).size() == 2 and Season.summary({"rank": 8, "league": "bronze"})[1].begins_with("SIN PREMIO"),
+		"en Bronce no hay premio")
+	var old_seen := Season.seen_path
+	Season.seen_path = "user://seasons_seen_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Season.seen_path))
+	check(Season.last_seen("cuenta-a") == "", "al principio no se ha visto ninguna")
+	Season.mark_seen("cuenta-a", "2026-11")
+	check(Season.last_seen("cuenta-a") == "2026-11" and Season.last_seen("cuenta-b") == "", "se recuerda por cuenta")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Season.seen_path))
+	Season.seen_path = old_seen
 	var now := Time.get_unix_time_from_datetime_string("2026-11-02T12:00:00")
 	check(MatchRow.format_ago("2026-11-02T11:59:30.000Z", now) == "AHORA", "hace 30 s: AHORA")
 	check(MatchRow.format_ago("2026-11-02T11:45:00.000Z", now) == "15M", "hace 15 min: 15M")
@@ -237,8 +275,10 @@ func _test_profile_helpers() -> void:
 	check(Cosmetics.owned_frames().is_empty() and Cosmetics.owned_titles().is_empty(), "al principio no se tiene ningún cosmético")
 	Cosmetics.grant_ending(&"repair")
 	check(Cosmetics.owned_frames() == ["frame_gold"] and Cosmetics.owned_titles() == ["title_guardian"], "ver un final da su marco y su título")
-	Cosmetics.grant_achievements([{"key": "first_win", "done": true}, {"key": "wins_50", "done": false}, {"key": "streak_5", "done": true}, {"key": "otro", "done": true}])
+	var fresh := Cosmetics.grant_achievements([{"key": "first_win", "done": true}, {"key": "wins_50", "done": false}, {"key": "streak_5", "done": true}, {"key": "otro", "done": true}])
 	check(Cosmetics.owned_titles().has("title_first_blood") and Cosmetics.owned_titles().has("title_unstoppable"), "los logros cumplidos dan su título")
+	check(fresh == ["title_first_blood", "title_unstoppable"], "devuelve los títulos nuevos para anunciarlos")
+	check(Cosmetics.grant_achievements([{"key": "first_win", "done": true}]).is_empty(), "uno que ya se tenía no se anuncia otra vez")
 	check(not Cosmetics.owned_titles().has("title_legend"), "un logro sin cumplir no da nada")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Unlocks.path = old_cosm_path
@@ -335,6 +375,49 @@ func _test_locked_select() -> void:
 	Unlocks.path = old_path
 	Backend.user_id = old_user
 	Game.mode = old_mode
+
+func _test_ranking_filters() -> void:
+	print("\n# Ranking: filtros de 7 días y por luchador")
+	check(Backend._ranking_query(false, "") == "" and Backend._ranking_query(false, "", 100) == "?limit=100", "sin filtros no se añade nada")
+	check(Backend._ranking_query(true, "napoleon", 100) == "?limit=100&period=week&fighter=napoleon", "con los dos filtros")
+	# Sin servidor: la lista sale vacía al momento y se prueban solo los botones.
+	ServerConfig.override_ws = "ws://127.0.0.1:1/ws"
+	Game.ranking_week = false
+	Game.ranking_fighter = ""
+	get_tree().change_scene_to_file(Game.SCENE_RANKING)
+	check(await wait_scene("Ranking"), "abre el ranking")
+	await frames(3)
+	var back := get_viewport().gui_get_focus_owner() as Button
+	check(back != null and back.text == "VOLVER", "empieza con VOLVER elegido")
+	await tap(KEY_LEFT)
+	await tap(KEY_LEFT)
+	var period := get_viewport().gui_get_focus_owner() as Button
+	check(period != null and period.text == "SIEMPRE", "izquierda lleva a los otros botones (sin sesión no hay GLOBAL/AMIGOS)")
+	await tap(KEY_ENTER)
+	check(Game.ranking_week and period.text == "7 DIAS", "ENTER cambia a los últimos 7 días")
+	await tap(KEY_RIGHT)
+	await tap(KEY_ENTER)
+	check(await wait_scene("AvatarPicker"), "LUCHADOR abre la rejilla de luchadores")
+	await frames(3)
+	await tap(KEY_RIGHT)
+	await tap(KEY_ENTER)
+	check(await wait_scene("Ranking"), "elegir uno vuelve al ranking")
+	var first := str(FighterRegistry.all()[0].id)
+	check(Game.ranking_fighter == first and Game.ranking_week, "con el filtro puesto (%s) y sin perder el de 7 días" % Game.ranking_fighter)
+	await frames(3)
+	var fighter_btn := get_viewport().gui_get_focus_owner() as Button
+	check(fighter_btn != null and fighter_btn.text == HKTheme.fold(FighterRegistry.all()[0].short_name.to_upper().left(12)),
+		"el foco vuelve al botón del luchador, que lo nombra")
+	await tap(KEY_ENTER)
+	check(await wait_scene("AvatarPicker"), "se vuelve a abrir")
+	await frames(3)
+	await tap(KEY_LEFT)
+	await tap(KEY_ENTER)
+	check(await wait_scene("Ranking") and Game.ranking_fighter == "", "la casilla \"?\" quita el filtro")
+	await tap(KEY_ESCAPE)
+	check(await wait_scene("MainMenu"), "ESC vuelve al menú")
+	Game.ranking_week = false
+	ServerConfig.override_ws = ""
 
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
