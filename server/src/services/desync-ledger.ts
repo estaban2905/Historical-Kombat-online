@@ -1,3 +1,11 @@
+/** Dónde se anotan las desincronizaciones de cada cuenta: la base de datos en producción, la memoria si no hay. */
+export interface DesyncStore {
+  /** Anota una anulación de esta cuenta y devuelve cuántas lleva dentro de la ventana (la nueva incluida). */
+  record(accountId: string): Promise<number>;
+  /** Anulaciones de esta cuenta dentro de la ventana. */
+  count(accountId: string): Promise<number>;
+}
+
 /** Cuentas distintas que se vigilan a la vez; pasado esto se barren las entradas caducadas. */
 const MAX_TRACKED_ACCOUNTS = 10_000;
 
@@ -9,9 +17,10 @@ const MAX_TRACKED_ACCOUNTS = 10_000;
  * librarse de la derrota. Lo que sí se ve es el patrón: el tramposo aparece en todas sus anulaciones y sus
  * rivales, solo en la suya. Por eso se lleva la cuenta y quien se repite deja de salir gratis.
  *
- * Vive en memoria: un reinicio del servidor la vacía. Es una defensa contra el abuso repetido, no un registro.
+ * Esta versión vive en memoria: es la que se usa sin base de datos y en las pruebas. Con base de datos se usa
+ * `DesyncRepository`, que sobrevive a los reinicios.
  */
-export class DesyncLedger {
+export class DesyncLedger implements DesyncStore {
   private readonly strikes = new Map<string, number[]>();
 
   constructor(
@@ -19,8 +28,7 @@ export class DesyncLedger {
     private readonly now: () => number = Date.now,
   ) {}
 
-  /** Anota una anulación de esta cuenta y devuelve cuántas lleva dentro de la ventana (la nueva incluida). */
-  record(accountId: string): number {
+  async record(accountId: string): Promise<number> {
     const at = this.now();
     const recent = this.recentOf(accountId, at);
     recent.push(at);
@@ -29,8 +37,7 @@ export class DesyncLedger {
     return recent.length;
   }
 
-  /** Anulaciones de esta cuenta dentro de la ventana. */
-  count(accountId: string): number {
+  async count(accountId: string): Promise<number> {
     return this.recentOf(accountId, this.now()).length;
   }
 

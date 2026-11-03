@@ -1,7 +1,7 @@
 import type { ClientMessage, ServerMessage, SettledMessage, Side, Winner } from "../models/messages.js";
 import type { Peer, Player } from "../models/player.js";
 import { newRoom, opponentOf, sideOf, type Report, type Room } from "../models/room.js";
-import { DesyncLedger } from "./desync-ledger.js";
+import { DesyncLedger, type DesyncStore } from "./desync-ledger.js";
 import type { SettleOutcome, Settler } from "./match.service.js";
 
 /** Algo que el servidor descartó o vigila porque un cliente no se comporta como el juego. */
@@ -24,12 +24,16 @@ export interface MatchmakingOptions {
   minInputs?: number;
   /** Tiempo sin que la pelea avance tras el que se cierra el duelo y pierde quien iba por detrás. */
   stallTimeoutMs?: number;
+  /** Margen para que el segundo jugador empiece a mandar inputs (carga de la pelea) antes de contar la espera normal. */
+  stallStartGraceMs?: number;
   /** Ticks que debe avanzar la pelea (el lado más lento) para contar como progreso y reiniciar la espera. */
   stallMinTicks?: number;
   /** Duelos anulados por desincronización, dentro de la ventana, a partir de los cuales una cuenta deja de salir gratis. */
   desyncStrikeLimit?: number;
-  /** Ventana en la que se cuentan las desincronizaciones de una cuenta. */
+  /** Ventana en la que se cuentan las desincronizaciones de una cuenta (si no se da `desyncStore`). */
   desyncWindowMs?: number;
+  /** Dónde se anotan las desincronizaciones por cuenta. Por defecto, en memoria; con base de datos, `DesyncRepository`. */
+  desyncStore?: DesyncStore;
   /** Aviso de comportamiento sospechoso de un cliente (para registrarlo; no cambia el resultado). */
   onSuspicious?: (event: SuspiciousEvent) => void;
   onError?: (err: unknown) => void;
@@ -40,11 +44,16 @@ const DEFAULT_SETTLE_TIMEOUT_MS = 30_000;
 const DEFAULT_MIN_INPUTS = 300;
 /** Un tirón de red no llega a tanto; una pestaña oculta o un cliente colgado, sí. */
 const DEFAULT_STALL_TIMEOUT_MS = 15_000;
-/** 60 ticks cada 15 s son 4 por segundo: la pelea a 1/15 de velocidad. Por debajo ya no se está jugando. */
-const DEFAULT_STALL_MIN_TICKS = 60;
+/** Cargar la escena de pelea en un navegador lento puede tardar bastante más que en otro equipo. */
+const DEFAULT_STALL_START_GRACE_MS = 60_000;
+/**
+ * 30 ticks cada 15 s son 2 por segundo: la pelea a 1/30 de velocidad. Por debajo ya no se está jugando.
+ * Medido: un Chrome con render por software movió la pelea a ~8 ticks/s, así que hay margen.
+ */
+const DEFAULT_STALL_MIN_TICKS = 30;
 /** Dos anulaciones pueden ser mala suerte o un fallo del juego; a la tercera en un día ya es un patrón. */
 const DEFAULT_DESYNC_STRIKE_LIMIT = 3;
-const DEFAULT_DESYNC_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const DEFAULT_DESYNC_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Del protocolo del cliente (scripts/lockstep_session.gd). Un cliente honesto manda los ticks de uno en uno,
 // sin repetir ni saltarse ninguno, empezando por INITIAL_DELAY, y con un retraso que nunca pasa de MAX_DELAY.
@@ -77,7 +86,8 @@ export class MatchmakingService {
   private readonly minInputs: number;
   private readonly stallTimeoutMs: number;
   private readonly stallMinTicks: number;
-  private readonly desyncs: DesyncLedger;
+  private readonly stallStartGraceMs: number;
+  private readonly desyncs: DesyncStore;
   private readonly desyncStrikeLimit: number;
   private readonly onSuspicious: (event: SuspiciousEvent) => void;
   private readonly onError: (err: unknown) => void;
@@ -89,7 +99,8 @@ export class MatchmakingService {
     this.minInputs = options.minInputs ?? DEFAULT_MIN_INPUTS;
     this.stallTimeoutMs = options.stallTimeoutMs ?? DEFAULT_STALL_TIMEOUT_MS;
     this.stallMinTicks = options.stallMinTicks ?? DEFAULT_STALL_MIN_TICKS;
-    this.desyncs = new DesyncLedger(options.desyncWindowMs ?? DEFAULT_DESYNC_WINDOW_MS);
+    this.stallStartGraceMs = options.stallStartGraceMs ?? DEFAULT_STALL_START_GRACE_MS;
+    this.desyncs = options.desyncStore ?? new DesyncLedger(options.desyncWindowMs ?? DEFAULT_DESYNC_WINDOW_MS);
     this.desyncStrikeLimit = options.desyncStrikeLimit ?? DEFAULT_DESYNC_STRIKE_LIMIT;
     this.onSuspicious = options.onSuspicious ?? (() => undefined);
     this.onError = options.onError ?? (() => undefined);
@@ -217,10 +228,16 @@ export class MatchmakingService {
 
     room.fightStarted = true;
     room.inputs[side]++;
+    const joined = room.lastFrame[side] < 0; // su primer input: la pelea de este lado ya cargó
     room.lastFrame[side] = f;
     const now = Date.now();
     if (room.stallTimer === null) {
       room.lastProgressAt = now;
+      this.watchStall(room, this.stallLimitMs(room));
+    } else if (joined && room.lastFrame[side === 1 ? 2 : 1] >= 0) {
+      // Ya están los dos: la espera normal cuenta desde aquí, no desde el primero.
+      room.lastProgressAt = now;
+      this.clearStall(room);
       this.watchStall(room, this.stallTimeoutMs);
     }
     // Que lleguen mensajes no es que la pelea avance: un goteo de inputs sueltos dejaría al rival casi parado
@@ -239,7 +256,7 @@ export class MatchmakingService {
   private receiveResult(peer: Peer, report: Report): void {
     const player = this.players.get(peer);
     const room = player?.room;
-    if (!player || !room || room.settled) return;
+    if (!player || !room || room.settled || room.desynced) return;
     const side = sideOf(room, player);
     if (room.reports[side] !== null) return; // un solo reporte por jugador
     this.clearStall(room); // la pelea terminó: ya no hay inputs que esperar
@@ -299,11 +316,9 @@ export class MatchmakingService {
     // Dos versiones distintas del resumen no son comparables (p. ej. una pestaña con el juego antiguo).
     if (other.v !== v || other.c === c) return;
     room.closed = true;
+    room.desynced = true; // mientras se decide, ningún resultado puede cerrar el duelo por otro camino
     this.clearStall(room);
-    if (room.ranked) this.resolveDesync(room);
-    const msg: ServerMessage = { t: "desync" };
-    room.p1.peer.send(msg);
-    room.p2.peer.send(msg);
+    void this.resolveDesync(room);
   }
 
   /**
@@ -311,16 +326,35 @@ export class MatchmakingService {
    * Pero eso sería una salida gratis para quien va perdiendo (basta mandar un resumen falso), así que se anota
    * la anulación en las dos cuentas. Si una acumula `desyncStrikeLimit` dentro de la ventana y más que su rival,
    * es la que se repite en todas: pierde por abandono. El rival, que solo aparece en la suya, no sale perjudicado.
+   *
+   * Los dos reciben `desync`; `loser` dice quién pierde, o falta si el duelo se anuló.
    */
-  private resolveDesync(room: Room): void {
+  private async resolveDesync(room: Room): Promise<void> {
+    let loser: 0 | Side = 0;
+    if (room.ranked) {
+      try {
+        loser = await this.punishRepeatedDesync(room);
+      } catch (err) {
+        // Sin poder consultar el historial no se castiga a nadie: se anula sin puntos, como la primera vez.
+        this.onError(err);
+        this.discard(room, "desync");
+      }
+    }
+    const msg: ServerMessage = loser === 0 ? { t: "desync" } : { t: "desync", loser };
+    room.p1.peer.send(msg);
+    room.p2.peer.send(msg);
+  }
+
+  /** Anota la anulación en las dos cuentas y decide el duelo. Devuelve quién pierde (0 = se anula). */
+  private async punishRepeatedDesync(room: Room): Promise<0 | Side> {
     const id1 = room.p1.accountId;
     const id2 = room.p2.accountId;
     if (!id1 || !id2) {
       this.discard(room, "desync");
-      return;
+      return 0;
     }
-    const strikes1 = this.desyncs.record(id1);
-    const strikes2 = this.desyncs.record(id2);
+    const strikes1 = await this.desyncs.record(id1);
+    const strikes2 = await this.desyncs.record(id2);
     this.onSuspicious({ kind: "desync_strike", accountId: id1, strikes: strikes1 });
     this.onSuspicious({ kind: "desync_strike", accountId: id2, strikes: strikes2 });
 
@@ -328,10 +362,11 @@ export class MatchmakingService {
     const offender: 0 | Side = strikes1 >= limit && strikes1 > strikes2 ? 1 : strikes2 >= limit && strikes2 > strikes1 ? 2 : 0;
     if (offender === 0) {
       this.discard(room, "desync");
-      return;
+      return 0;
     }
     this.onSuspicious({ kind: "desync_forfeit", accountId: offender === 1 ? id1 : id2, strikes: offender === 1 ? strikes1 : strikes2 });
-    this.forfeit(room, offender === 1 ? 2 : 1);
+    // Si el duelo era demasiado corto, forfeit() lo anula sin puntos y nadie pierde.
+    return this.forfeit(room, offender === 1 ? 2 : 1) ? offender : 0;
   }
 
   // =========================================================================
@@ -346,13 +381,24 @@ export class MatchmakingService {
     room.stallTimer = setTimeout(() => {
       room.stallTimer = null;
       const idle = Date.now() - room.lastProgressAt;
-      if (idle < this.stallTimeoutMs) {
-        this.watchStall(room, this.stallTimeoutMs - idle);
+      const limit = this.stallLimitMs(room);
+      if (idle < limit) {
+        this.watchStall(room, limit - idle);
         return;
       }
       this.resolveStall(room);
     }, ms);
     room.stallTimer.unref?.();
+  }
+
+  /**
+   * Cuánto silencio se aguanta. Mientras solo uno ha mandado inputs, el otro puede estar todavía cargando la
+   * pelea (en un navegador lento tarda más que en uno rápido): se le da un margen largo antes de darlo por
+   * perdido. Cuando ya están los dos, vale la espera normal.
+   */
+  private stallLimitMs(room: Room): number {
+    const bothStarted = room.lastFrame[1] >= 0 && room.lastFrame[2] >= 0;
+    return bothStarted ? this.stallTimeoutMs : Math.max(this.stallTimeoutMs, this.stallStartGraceMs);
   }
 
   /**
@@ -377,14 +423,15 @@ export class MatchmakingService {
     room.stallTimer = null;
   }
 
-  /** El rival se fue sin dar su resultado: gana el que se quedó. */
-  private forfeit(room: Room, winner: Side): void {
+  /** El rival se fue sin dar su resultado: gana el que se quedó. Devuelve false si el duelo era muy corto y se anuló. */
+  private forfeit(room: Room, winner: Side): boolean {
     if (Math.max(room.inputs[1], room.inputs[2]) < this.minInputs) {
       this.discard(room, "too_short");
-      return;
+      return false;
     }
     const stayed = room.reports[winner];
     void this.settle(room, winner, stayed?.p1Rounds ?? 0, stayed?.p2Rounds ?? 0, "forfeit");
+    return true;
   }
 
   /** Guarda el duelo y avisa a los dos del resultado. */

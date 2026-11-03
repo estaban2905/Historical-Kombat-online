@@ -17,9 +17,10 @@ import { storyRoutes } from "./routes/story.routes.js";
 import { unlockRoutes } from "./routes/unlock.routes.js";
 import { systemRoutes } from "./routes/system.routes.js";
 import { seasonRoutes } from "./routes/season.routes.js";
+import { DesyncRepository } from "./repositories/desync.repository.js";
 import { MatchService } from "./services/match.service.js";
 import { createGoogleVerifier, type GoogleVerifier } from "./services/google-verifier.js";
-import { MatchmakingService } from "./services/matchmaking.service.js";
+import { DEFAULT_DESYNC_WINDOW_MS, MatchmakingService } from "./services/matchmaking.service.js";
 import { SeasonService } from "./services/season.service.js";
 
 declare module "fastify" {
@@ -58,6 +59,7 @@ export async function buildApp(options: BuildOptions = {}): Promise<FastifyInsta
     options.matchmaking ??
     new MatchmakingService(undefined, {
       settler: matches?.settle,
+      desyncStore: options.db ? new DesyncRepository(options.db, DEFAULT_DESYNC_WINDOW_MS) : undefined,
       stallTimeoutMs: config.stallTimeoutMs,
       onSuspicious: (event) => app.log.warn({ event }, "cliente sospechoso en un duelo"),
       onError: (err) => app.log.error(err),

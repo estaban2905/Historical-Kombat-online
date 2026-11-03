@@ -153,7 +153,14 @@ const timeout = {
 const desync = {
   type: "object",
   required: ["t"],
-  properties: { t: { const: "desync" } },
+  properties: {
+    t: { const: "desync" },
+    loser: {
+      type: "integer",
+      enum: [1, 2],
+      description: "Solo si una cuenta se repite en las anulaciones: es la que pierde por abandono. Si falta, el duelo se anula sin puntos",
+    },
+  },
   description: "Las dos peleas se separaron (resúmenes distintos para el mismo tick): el duelo se anula sin puntos.",
 } as const;
 

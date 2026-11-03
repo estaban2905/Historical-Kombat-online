@@ -67,6 +67,7 @@ test("el orden de llegada no importa: el segundo en llegar detecta la diferencia
   const { mm, a, b } = ranked();
   mm.handle(b, sync(120, 5));
   mm.handle(a, sync(120, 6));
+  await sleep(5);
   assert.notEqual(desyncOf(a), undefined);
   assert.notEqual(desyncOf(b), undefined);
 });
@@ -172,7 +173,7 @@ function strikeLab(limit = 3) {
     onSuspicious: (e) => events.push(e),
   });
   /** `first` espera antes y es P1. Devuelve los dos clientes tras desincronizarlos. */
-  const duel = (first: string, second: string) => {
+  const duel = async (first: string, second: string) => {
     const p1 = fakePeer();
     const p2 = fakePeer();
     mm.handle(p1, { t: "find", fighter: "napoleon" }, first);
@@ -183,6 +184,7 @@ function strikeLab(limit = 3) {
     }
     mm.handle(p1, sync(60, 111));
     mm.handle(p2, sync(60, 222));
+    await sleep(5); // el servidor consulta y anota las anulaciones antes de decidir
     return { p1, p2 };
   };
   return { mm, calls, events, duel };
@@ -191,7 +193,7 @@ function strikeLab(limit = 3) {
 test("las primeras desincronizaciones de una cuenta se anulan sin puntos", async () => {
   const { calls, duel } = strikeLab();
   for (const rival of ["acc-b", "acc-c"]) {
-    const { p1 } = duel("acc-a", rival);
+    const { p1 } = await duel("acc-a", rival);
     await sleep(5);
     assert.equal(settledOf(p1)?.ok, false);
     assert.equal(settledOf(p1)?.reason, "desync");
@@ -201,9 +203,9 @@ test("las primeras desincronizaciones de una cuenta se anulan sin puntos", async
 
 test("quien se repite en las anulaciones pierde por abandono al llegar al límite; su rival no sale perjudicado", async () => {
   const { calls, events, duel } = strikeLab();
-  duel("acc-a", "acc-b");
-  duel("acc-c", "acc-a");
-  const { p1, p2 } = duel("acc-a", "acc-d"); // la tercera de acc-a, con 1 solo de acc-d
+  await duel("acc-a", "acc-b");
+  await duel("acc-c", "acc-a");
+  const { p1, p2 } = await duel("acc-a", "acc-d"); // la tercera de acc-a, con 1 solo de acc-d
   await sleep(5);
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.winner, 2, "gana acc-d, que es P2");
@@ -211,13 +213,15 @@ test("quien se repite en las anulaciones pierde por abandono al llegar al límit
   assert.equal(settledOf(p2)?.ok, true);
   assert.equal(settledOf(p1)?.reason, "forfeit");
   assert.deepEqual(events.filter((e) => e.kind === "desync_forfeit"), [{ kind: "desync_forfeit", accountId: "acc-a", strikes: 3 }]);
+  assert.deepEqual(desyncOf(p1), { t: "desync", loser: 1 }, "los dos saben quién pierde, para mostrarlo");
+  assert.deepEqual(desyncOf(p2), { t: "desync", loser: 1 });
 });
 
 test("el castigo es para la cuenta que se repite, sea P1 o P2", async () => {
   const { calls, duel } = strikeLab();
-  duel("acc-b", "acc-a");
-  duel("acc-c", "acc-a");
-  duel("acc-d", "acc-a"); // acc-a es P2
+  await duel("acc-b", "acc-a");
+  await duel("acc-c", "acc-a");
+  await duel("acc-d", "acc-a"); // acc-a es P2
   await sleep(5);
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.winner, 1);
@@ -225,17 +229,17 @@ test("el castigo es para la cuenta que se repite, sea P1 o P2", async () => {
 
 test("si las dos cuentas acumulan lo mismo no se sabe cuál miente: se anula sin puntos", async () => {
   const { calls, duel } = strikeLab(2);
-  duel("acc-a", "acc-b");
-  const { p1 } = duel("acc-a", "acc-b"); // las dos, con 2
+  await duel("acc-a", "acc-b");
+  const { p1 } = await duel("acc-a", "acc-b"); // las dos, con 2
   await sleep(5);
   assert.equal(calls.length, 0);
   assert.equal(settledOf(p1)?.reason, "desync");
 });
 
-test("cada anulación queda anotada en el aviso, con las veces que lleva cada cuenta", () => {
+test("cada anulación queda anotada en el aviso, con las veces que lleva cada cuenta", async () => {
   const { events, duel } = strikeLab();
-  duel("acc-a", "acc-b");
-  duel("acc-a", "acc-c");
+  await duel("acc-a", "acc-b");
+  await duel("acc-a", "acc-c");
   assert.deepEqual(events, [
     { kind: "desync_strike", accountId: "acc-a", strikes: 1 },
     { kind: "desync_strike", accountId: "acc-b", strikes: 1 },
@@ -246,21 +250,88 @@ test("cada anulación queda anotada en el aviso, con las veces que lleva cada cu
 
 test("si el duelo es demasiado corto para contar, ni siquiera el reincidente da puntos", async () => {
   const { mm, calls } = strikeLab();
-  const run = () => {
+  const run = async () => {
     const p1 = fakePeer();
     const p2 = fakePeer();
     mm.handle(p1, { t: "find", fighter: "x" }, "acc-a");
     mm.handle(p2, { t: "find", fighter: "y" }, `acc-${Math.random()}`);
     mm.handle(p1, sync(60, 1));
     mm.handle(p2, sync(60, 2)); // sin inputs: no hubo pelea
+    await sleep(5);
     return p1;
   };
-  run();
-  run();
-  const p1 = run();
-  await sleep(5);
+  await run();
+  await run();
+  const p1 = await run();
   assert.equal(calls.length, 0);
   assert.equal(settledOf(p1)?.reason, "too_short");
+  assert.deepEqual(desyncOf(p1), { t: "desync" }, "no hubo castigo: sin `loser`");
+});
+
+test("si no se puede consultar el historial, no se castiga a nadie: se anula sin puntos", async () => {
+  const calls: SettleRequest[] = [];
+  const errors: unknown[] = [];
+  const mm = new MatchmakingService(() => 1, {
+    settler: async (req) => {
+      calls.push(req);
+      return OUTCOME;
+    },
+    minInputs: 3,
+    desyncStrikeLimit: 1, // castigaría a la primera si pudiera consultar
+    desyncStore: {
+      record: async () => {
+        throw new Error("base de datos caída");
+      },
+      count: async () => 0,
+    },
+    onError: (e) => errors.push(e),
+  });
+  const a = fakePeer();
+  const b = fakePeer();
+  mm.handle(a, { t: "find", fighter: "x" }, "acc-a");
+  mm.handle(b, { t: "find", fighter: "y" }, "acc-b");
+  for (let f = 4; f < 9; f++) {
+    mm.handle(a, { t: "input", f, m: 1 });
+    mm.handle(b, { t: "input", f, m: 1 });
+  }
+  mm.handle(a, sync(60, 1));
+  mm.handle(b, sync(60, 2));
+  await sleep(5);
+  assert.equal(errors.length, 1);
+  assert.equal(calls.length, 0);
+  assert.equal(settledOf(a)?.reason, "desync");
+  assert.deepEqual(desyncOf(a), { t: "desync" });
+});
+
+test("mientras se decide una desincronización no se acepta ningún resultado", async () => {
+  const calls: SettleRequest[] = [];
+  let release: () => void = () => undefined;
+  const mm = new MatchmakingService(() => 1, {
+    settler: async (req) => {
+      calls.push(req);
+      return OUTCOME;
+    },
+    minInputs: 3,
+    desyncStore: {
+      record: () => new Promise((r) => (release = () => r(1))), // la consulta tarda
+      count: async () => 0,
+    },
+  });
+  const a = fakePeer();
+  const b = fakePeer();
+  mm.handle(a, { t: "find", fighter: "x" }, "acc-a");
+  mm.handle(b, { t: "find", fighter: "y" }, "acc-b");
+  for (let f = 4; f < 9; f++) {
+    mm.handle(a, { t: "input", f, m: 1 });
+    mm.handle(b, { t: "input", f, m: 1 });
+  }
+  mm.handle(a, sync(60, 1));
+  mm.handle(b, sync(60, 2));
+  mm.handle(a, { t: "result", winner: 1, p1Rounds: 2, p2Rounds: 0 });
+  mm.handle(b, { t: "result", winner: 1, p1Rounds: 2, p2Rounds: 0 });
+  await sleep(5);
+  assert.equal(calls.length, 0, "los resultados coincidían, pero el duelo ya se estaba decidiendo");
+  release();
 });
 
 test("en un duelo sin ranking las anulaciones no se cuentan", () => {
