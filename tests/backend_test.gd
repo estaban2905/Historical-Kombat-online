@@ -222,6 +222,38 @@ func _run() -> void:
 	await Backend.fetch_friends()
 	check(Backend.friend_status(new_name) == "", "ya no somos amigos")
 
+	print("\n# Desbloqueos de invitado, marcos y títulos")
+	var real_unlocks := Unlocks.path
+	Unlocks.path = "user://unlocks_backend_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	await Backend.sign_out()
+	Unlocks.add("ending", "repair")
+	Cosmetics.grant_ending(&"repair")
+	check(Cosmetics.owned_frames() == ["frame_gold"], "sin cuenta se gana el marco dorado al ver un final")
+	r = await Backend.sign_in(other_email, "secreto1")
+	check(r.ok, "entro en la cuenta tras jugar sin ella")
+	r = await Backend.set_cosmetics({"frame": "frame_gold"})
+	check(not r.ok, "antes de sincronizar, el servidor no deja ponerse el marco: " + str(r.error))
+	await Backend.sync_unlocks()
+	var remote: Variant = await Backend.fetch_unlocks()
+	var remote_items: Array = (remote as Array).map(func(u): return "%s:%s" % [u["kind"], u["key"]]) if remote is Array else []
+	check(remote_items.has("ending:repair") and remote_items.has("cosmetic:frame_gold") and remote_items.has("cosmetic:title_guardian"),
+		"lo ganado sin cuenta ya está en la cuenta del servidor (%s)" % str(remote_items))
+	r = await Backend.set_cosmetics({"frame": "frame_gold", "title": "title_guardian"})
+	check(r.ok and Backend.frame() == "frame_gold" and Backend.title() == "title_guardian", "ponerse marco y título: " + str(r.error))
+	pub = await Backend.fetch_player(other_name)
+	check(pub.get("frame") == "frame_gold" and pub.get("title") == "title_guardian", "los demás ven el marco y el título en mi perfil")
+	r = await Backend.set_cosmetics({"frame": "frame_red"})
+	check(not r.ok and Backend.frame() == "frame_gold", "un marco no ganado se rechaza y no cambia nada: " + str(r.error))
+	r = await Backend.set_cosmetics({"title": ""})
+	check(r.ok and Backend.title() == "" and Backend.frame() == "frame_gold", "quitar el título deja el marco")
+	await Backend.sign_out()
+	r = await Backend.sign_in(email, "nueva-clave")
+	await Backend.sync_unlocks()
+	check(r.ok and not Unlocks.has("ending", "repair"), "lo del invitado no pasa también a otra cuenta")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = real_unlocks
+
 	await Backend.sign_out()
 	Backend._forget_session()
 	ServerConfig.override_ws = ""

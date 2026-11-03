@@ -12,7 +12,7 @@ PORT="${PORT:-$((19000 + RANDOM % 900))}"   # al azar: un servidor viejo no pued
 OUT="$(mktemp -d)"
 cd "$(dirname "$0")/.."
 
-(cd server && PORT="$PORT" LOG=false DEV_DATA_DIR=memory node --import tsx src/dev.ts > "$OUT/server.log" 2>&1) &
+(cd server && PORT="$PORT" LOG=false DEV_DATA_DIR=memory exec node --import tsx src/dev.ts > "$OUT/server.log" 2>&1) &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null' EXIT
 for _ in $(seq 1 100); do
