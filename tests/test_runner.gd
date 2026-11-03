@@ -117,6 +117,29 @@ func _test_profile_helpers() -> void:
 	check(League.change_text(1090, 1106) == "¡SUBISTE A PLATA!" and League.change_text(1290, 1500) == "¡SUBISTE A DIAMANTE!", "al cruzar el límite se avisa la subida")
 	check(League.change_text(1105, 1089) == "BAJASTE A BRONCE", "y la bajada")
 	check(League.change_text(1000, 1016) == "" and League.change_text(1600, 1584) == "", "sin cambio de liga no hay aviso")
+
+	# Temporadas
+	check(Season.name_of("2026-11") == "NOVIEMBRE 2026" and Season.name_of("2027-01") == "ENERO 2027", "nombre de la temporada")
+	check(Season.name_of("") == "" and Season.name_of("2026-13") == "" and Season.name_of("x-y") == "", "un id raro no tiene nombre")
+	var t0 := Time.get_unix_time_from_datetime_string("2026-11-20T12:00:00")
+	check(Season.days_left("2026-12-01T00:00:00.000Z", t0) == 11, "faltan 11 días (redondeando hacia arriba)")
+	check(Season.time_left_text("2026-12-01T00:00:00.000Z", t0) == "QUEDAN 11 DÍAS", "texto de lo que queda")
+	check(Season.time_left_text("2026-12-01T00:00:00.000Z", t0 + 9.0 * 86400.0) == "QUEDAN 2 DÍAS", "día y medio: 2 días")
+	check(Season.time_left_text("2026-12-01T00:00:00.000Z", t0 + 10.0 * 86400.0) == "ÚLTIMAS HORAS", "el último día")
+	check(Season.days_left("2026-12-01T00:00:00.000Z", t0 + 30.0 * 86400.0) == 0, "terminada: 0, no negativo")
+	check(Season.summary({"rank": 1, "league": "diamond"}) == PackedStringArray(["PUESTO 1 · LIGA DIAMANTE",
+		"MARCO DIAMANTE DE TEMPORADA", "TÍTULO CAMPEÓN DE TEMPORADA"]), "aviso del campeón: liga, marco y título")
+	check(Season.summary({"rank": 3, "league": "gold"})[2] == "TÍTULO PODIO DE TEMPORADA", "el tercero gana el título del podio")
+	check(Season.summary({"rank": 8, "league": "bronze"}).size() == 2 and Season.summary({"rank": 8, "league": "bronze"})[1].begins_with("SIN PREMIO"),
+		"en Bronce no hay premio")
+	var old_seen := Season.seen_path
+	Season.seen_path = "user://seasons_seen_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Season.seen_path))
+	check(Season.last_seen("cuenta-a") == "", "al principio no se ha visto ninguna")
+	Season.mark_seen("cuenta-a", "2026-11")
+	check(Season.last_seen("cuenta-a") == "2026-11" and Season.last_seen("cuenta-b") == "", "se recuerda por cuenta")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Season.seen_path))
+	Season.seen_path = old_seen
 	var now := Time.get_unix_time_from_datetime_string("2026-11-02T12:00:00")
 	check(MatchRow.format_ago("2026-11-02T11:59:30.000Z", now) == "AHORA", "hace 30 s: AHORA")
 	check(MatchRow.format_ago("2026-11-02T11:45:00.000Z", now) == "15M", "hace 15 min: 15M")

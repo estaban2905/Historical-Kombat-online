@@ -112,6 +112,7 @@ func _run() -> void:
 	get_tree().change_scene_to_file(Game.SCENE_RANKING)
 	var ranking := await _ranking_loaded()
 	ranking._players = fake
+	ranking._season = {"id": "2026-11", "ends_at": Time.get_datetime_string_from_unix_time(int(Time.get_unix_time_from_system()) + 12 * 86400)}
 	await frames(10)
 	await shot("15_ranking.png")
 	# Con filtros (7 días y un luchador): la columna de puntos es lo ganado, en verde o rojo.
@@ -126,6 +127,14 @@ func _run() -> void:
 	await shot("16_ranking_filtered.png")
 	Game.ranking_week = false
 	Game.ranking_fighter = ""
+	# Aviso de fin de temporada en el menú.
+	get_tree().change_scene_to_file(Game.SCENE_MENU)
+	await frames(30)
+	var menu := get_tree().current_scene
+	if menu._challenge_box == null:
+		menu._show_season_end({"season": "2026-10", "rank": 2, "league": "gold"})
+	await frames(10)
+	await shot("17_season_end.png")
 	Backend.access_token = ""
 	Backend.profile = {}
 	get_tree().quit()

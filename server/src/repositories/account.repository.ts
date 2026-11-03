@@ -113,10 +113,11 @@ export class AccountRepository {
     return new Map(res.rows.map((r) => [r.id, toAccount(r)]));
   }
 
-  /** Aplica el resultado de un duelo: puntos nuevos y una victoria o derrota más. */
+  /** Aplica el resultado de un duelo: puntos nuevos (y el máximo de la temporada) y una victoria o derrota más. */
   async applyResult(id: string, points: number, outcome: "win" | "loss" | "draw"): Promise<void> {
     await this.db.query(
-      "update players set points = $2, wins = wins + $3, losses = losses + $4 where id = $1",
+      `update players set points = $2, season_peak = greatest(season_peak, $2), wins = wins + $3, losses = losses + $4
+        where id = $1`,
       [id, points, outcome === "win" ? 1 : 0, outcome === "loss" ? 1 : 0],
     );
   }

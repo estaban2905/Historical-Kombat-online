@@ -32,6 +32,7 @@ npm run build && npm start
 | `GET /me/friends/leaderboard` | Ranking entre mis amigos y yo (mismos filtros que `/leaderboard`) |
 | `GET /me/achievements` | Mis logros (clave, progreso y meta), calculados al momento con mis duelos y desbloqueos: no se guardan. El juego pone los nombres |
 | `GET /leaderboard` · `GET /players/:nombre` | El ranking (con luchador favorito y racha; `period=week` y/o `fighter=id` cuentan solo esos duelos y añaden `gained`) y el perfil público de cualquier jugador (puesto, favorito, racha y 10 últimos duelos; sin email) |
+| `GET /season` · `GET /me/seasons` | La temporada en curso (`AAAA-MM`, un mes en UTC) y cuándo termina; cómo acabé cada una (puesto, liga máxima, puntos). Al cambiar de mes se cierra sola: marco según la liga máxima, título al top 3 y los puntos se acercan a 1000 a la mitad |
 | `GET` · `PUT` · `DELETE /me/story` | Partida guardada del modo Historia (con token): una por cuenta, para seguir desde otro dispositivo. `GET` da 404 si no hay |
 
 ## Estructura

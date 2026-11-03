@@ -69,6 +69,7 @@ func _ready() -> void:
 		await Backend.sync_unlocks()
 		# Títulos de logros cumplidos en otro equipo (los de aquí se dan al terminar el duelo).
 		await Cosmetics.refresh_achievements()
+		await _check_season_end()
 		await _refresh_friends_badge()
 
 ## Un solo botón resaltado: pasar el ratón por encima le da el foco, y el estilo "hover"
@@ -157,26 +158,7 @@ func _check_challenges() -> void:
 
 ## Caja sobre el menú: "ANA TE RETA" con ACEPTAR y RECHAZAR. El menú de debajo se apaga mientras tanto.
 func _show_challenge(c: Dictionary) -> void:
-	$Buttons.process_mode = Node.PROCESS_MODE_DISABLED
-	_challenge_until = _t + float(c.get("expires_in", 60))
-	_challenge_box = Control.new()
-	_challenge_box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_challenge_box)
-	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.75)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_challenge_box.add_child(dim)
-	# Un recuadro sólido para que el menú de detrás no se mezcle con el texto.
-	var border := ColorRect.new()
-	border.color = HKTheme.GOLD_DARK
-	border.position = Vector2(79, 83)
-	border.size = Vector2(268, 78)
-	_challenge_box.add_child(border)
-	var inner := ColorRect.new()
-	inner.color = HKTheme.INK
-	inner.position = Vector2(80, 84)
-	inner.size = Vector2(266, 76)
-	_challenge_box.add_child(inner)
+	_open_box(78.0, float(c.get("expires_in", 60)))
 	var who := str(c.get("from", "")).to_upper()
 	_box_label("%s TE RETA A UN DUELO" % who, 94, HKTheme.GOLD)
 	_box_label("AMISTOSO: NO MUEVE PUNTOS", 110, HKTheme.MUTED)
@@ -193,9 +175,58 @@ func _show_challenge(c: Dictionary) -> void:
 	Sfx.play(&"confirm")
 	accept.grab_focus()
 
+## Si terminó una temporada desde la última vez, avisa de cómo acabaste y lo que ganaste (una vez por cuenta).
+func _check_season_end() -> void:
+	var list: Variant = await Backend.fetch_my_seasons()
+	if not list is Array or (list as Array).is_empty() or not is_inside_tree() or _challenge_box != null:
+		return
+	var last: Dictionary = list[0]
+	var season := str(last.get("season", ""))
+	# "AAAA-MM" se ordena bien como texto.
+	if season <= Season.last_seen(Backend.user_id):
+		return
+	Season.mark_seen(Backend.user_id, season)
+	_show_season_end(last)
+
+func _show_season_end(r: Dictionary) -> void:
+	_open_box(96.0, 3600.0)
+	_box_label("TEMPORADA %s TERMINADA" % Season.name_of(str(r.get("season", ""))), 94, HKTheme.GOLD)
+	var y := 107.0
+	for line in Season.summary(r):
+		_box_label(line, y, HKTheme.PAPER)
+		y += 12.0
+	_box_label("TUS PUNTOS SE ACERCAN A 1000", 143, HKTheme.MUTED)
+	var ok := _box_button("ACEPTAR", Vector2(163, 158))
+	ok.pressed.connect(_close_challenge)
+	Sfx.play(&"round")
+	ok.grab_focus()
+
+## Abre la caja (alto `height`) sobre el menú, que se apaga mientras tanto; se cierra sola a los `seconds`.
+func _open_box(height: float, seconds: float) -> void:
+	$Buttons.process_mode = Node.PROCESS_MODE_DISABLED
+	_challenge_until = _t + seconds
+	_challenge_box = Control.new()
+	_challenge_box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_challenge_box)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.75)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_challenge_box.add_child(dim)
+	# Un recuadro sólido para que el menú de detrás no se mezcle con el texto.
+	var border := ColorRect.new()
+	border.color = HKTheme.GOLD_DARK
+	border.position = Vector2(79, 83)
+	border.size = Vector2(268, height)
+	_challenge_box.add_child(border)
+	var inner := ColorRect.new()
+	inner.color = HKTheme.INK
+	inner.position = Vector2(80, 84)
+	inner.size = Vector2(266, height - 2.0)
+	_challenge_box.add_child(inner)
+
 func _box_label(text: String, y: float, color: Color) -> void:
 	var l := Label.new()
-	l.text = text
+	l.text = HKTheme.fold(text)   # la fuente no tiene mayúsculas acentuadas
 	l.position = Vector2(0, y)
 	l.size = Vector2(426, 12)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

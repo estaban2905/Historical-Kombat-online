@@ -1,6 +1,6 @@
 ## Cosméticos del perfil: el marco del retrato y el título bajo el nombre. Se ganan al ver un final del modo
-## Historia o al cumplir ciertos logros, se guardan como desbloqueos (Unlocks, tipo "cosmetic") y se ponen
-## desde EDITAR PERFIL. El servidor solo deja ponerse los que se tienen.
+## Historia, al cumplir ciertos logros o al acabar una temporada del ranking (ver Season), se guardan como
+## desbloqueos (Unlocks, tipo "cosmetic") y se ponen desde EDITAR PERFIL. El servidor solo deja ponerse los que se tienen.
 class_name Cosmetics
 extends RefCounted
 
@@ -8,6 +8,10 @@ const FRAMES := {
 	&"frame_gold": {"name": "DORADO", "color": Color("f0c040")},
 	&"frame_red": {"name": "ROJO", "color": Color("e83a3a")},
 	&"frame_cyan": {"name": "CIAN", "color": Color("35e6ff")},
+	# Recompensas de temporada (las da el servidor al cerrarla, según la liga máxima alcanzada).
+	&"frame_season_silver": {"name": "PLATA DE TEMPORADA", "color": Color("dfe6f5")},
+	&"frame_season_gold": {"name": "ORO DE TEMPORADA", "color": Color("ffb020")},
+	&"frame_season_diamond": {"name": "DIAMANTE DE TEMPORADA", "color": Color("70d0f0")},
 }
 
 const TITLES := {
@@ -17,6 +21,8 @@ const TITLES := {
 	&"title_first_blood": "PRIMERA SANGRE",
 	&"title_unstoppable": "IMPARABLE",
 	&"title_legend": "LEYENDA",
+	&"title_season_champion": "CAMPEÓN DE TEMPORADA",
+	&"title_season_podium": "PODIO DE TEMPORADA",
 }
 
 ## Qué se gana al ver cada final del modo Historia.

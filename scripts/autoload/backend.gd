@@ -309,6 +309,25 @@ func fetch_ranking(limit: int = 10, week: bool = false, fighter: String = "") ->
 	var r := await _request("GET", "/leaderboard" + _ranking_query(week, fighter, limit), null, false)
 	return r.data if r.ok and r.data is Array else []
 
+## La temporada en curso: {id: "2026-11", ends_at: fecha ISO}. {} si falla. Se pide una vez por ejecución
+## (salvo que ya haya terminado).
+var _season: Dictionary = {}
+
+func fetch_season() -> Dictionary:
+	if not _season.is_empty() and Season.days_left(str(_season.get("ends_at", ""))) > 0:
+		return _season
+	var r := await _request("GET", "/season", null, false)
+	_season = r.data if r.ok and r.data is Dictionary else {}
+	return _season
+
+## Cómo acabé cada temporada, la más reciente primero ([{season, rank, points, peak_points, league, wins, losses}]).
+## null si falla.
+func fetch_my_seasons() -> Variant:
+	if not is_logged_in():
+		return null
+	var r := await _request("GET", "/me/seasons", null, true)
+	return r.data if r.ok and r.data is Array else null
+
 ## Mis últimos duelos (solo con sesión). Vacío si falla.
 func fetch_matches(limit: int = 8) -> Array:
 	if not is_logged_in():

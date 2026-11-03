@@ -43,6 +43,8 @@ var _last_button: Button
 var _sel: int = -1
 ## [avatar, más usado] por fila; la última pareja es la de tu fila fija abajo.
 var _icons: Array = []
+## La temporada en curso ({id, ends_at}; {} hasta que llegue o si no hay servidor).
+var _season: Dictionary = {}
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -63,7 +65,13 @@ func _ready() -> void:
 	# Al volver de elegir luchador, el foco sigue en LUCHADOR.
 	(_fighter_btn if Game.picker_purpose == "ranking" else _back).grab_focus()
 	Game.picker_purpose = "avatar"
+	_load_season()
 	await _load()
+
+func _load_season() -> void:
+	var s := await Backend.fetch_season()
+	if is_inside_tree():
+		_season = s
 
 func _button(on_press: Callable) -> Button:
 	var b := Button.new()
@@ -228,6 +236,7 @@ func _draw() -> void:
 		HKTheme.draw_text(self, Vector2(0, 110), "CARGANDO...", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 		return
 	_draw_scope_tabs()
+	_draw_season()
 	if _players.is_empty():
 		var empty := "NADIE HA JUGADO CON ESTOS FILTROS" if filtered() else "TODAVÍA NO HAY JUGADORES"
 		HKTheme.draw_text(self, Vector2(0, 110), empty, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
@@ -248,6 +257,17 @@ func _draw() -> void:
 			draw_rect(Rect2(51, y - 10, 364, 13), HKTheme.GOLD, false, 1.0)
 		y += ROW_STEP
 	_draw_footer(my_index, me)
+
+## A los lados de GLOBAL/AMIGOS: la temporada y lo que le queda (los puntos se reinician a medias al acabar).
+func _draw_season() -> void:
+	if _season.is_empty():
+		return
+	var season_name := Season.name_of(str(_season.get("id", "")))
+	if season_name == "":
+		return
+	HKTheme.draw_text(self, Vector2(8, 33), season_name, 8, HKTheme.GOLD_DARK.lightened(0.3), HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(0, 33), Season.time_left_text(str(_season.get("ends_at", ""))), 8, HKTheme.MUTED,
+		HORIZONTAL_ALIGNMENT_RIGHT, 418, 1)
 
 ## GLOBAL y AMIGOS bajo el título (solo con sesión): el elegido en dorado y subrayado.
 func _draw_scope_tabs() -> void:

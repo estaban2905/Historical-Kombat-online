@@ -222,6 +222,14 @@ func _run() -> void:
 	await Backend.fetch_friends()
 	check(Backend.friend_status(new_name) == "", "ya no somos amigos")
 
+	print("\n# Temporadas")
+	var season := await Backend.fetch_season()
+	var month := Time.get_datetime_string_from_system(true).left(7)
+	check(str(season.get("id", "")) == month and Season.days_left(str(season.get("ends_at", ""))) >= 1,
+		"la temporada en curso es este mes (%s, %s)" % [season.get("id"), Season.time_left_text(str(season.get("ends_at", "")))])
+	var my_seasons: Variant = await Backend.fetch_my_seasons()
+	check(my_seasons is Array and (my_seasons as Array).is_empty(), "una cuenta nueva no tiene temporadas terminadas")
+
 	print("\n# Desbloqueos de invitado, marcos y títulos")
 	var real_unlocks := Unlocks.path
 	Unlocks.path = "user://unlocks_backend_test.cfg"
