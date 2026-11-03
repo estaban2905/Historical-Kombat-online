@@ -174,10 +174,12 @@ export class AccountRepository {
   }
 
   /** Los mejores jugadores: más puntos primero, y a igualdad más victorias. */
-  async ranking(limit: number): Promise<RankingEntry[]> {
+  async ranking(limit: number, onlyIds?: string[]): Promise<RankingEntry[]> {
     const res = await this.db.query<RankingEntry>(
-      "select id, username, points, wins, losses, avatar from players order by points desc, wins desc, created_at asc limit $1",
-      [limit],
+      `select id, username, points, wins, losses, avatar from players
+        where $2::uuid[] is null or id = any($2::uuid[])
+        order by points desc, wins desc, created_at asc limit $1`,
+      [limit, onlyIds ?? null],
     );
     return res.rows;
   }
