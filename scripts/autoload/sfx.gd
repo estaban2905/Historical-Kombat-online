@@ -26,6 +26,8 @@ var _next: int = 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	Settings.load_settings()
+	Settings.apply()
 	for key in SOUNDS:
 		var stream := load(SOUNDS[key]) as AudioStream
 		if stream:

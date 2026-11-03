@@ -146,6 +146,28 @@ func _test_profile_helpers() -> void:
 	check(ProfileStats.points_series(ms, 1000, 2).size() == 3, "max_matches limita la serie")
 	check(ProfileStats.points_series([], 1000).size() == 1, "sin duelos la serie es solo el valor actual")
 
+	# Ajustes de volumen
+	check(is_equal_approx(Settings.step_to_db(Settings.STEPS), 0.0), "volumen al máximo: 0 dB (sin cambio)")
+	check(Settings.step_to_db(0) <= -80.0 and Settings.step_to_db(5) < Settings.step_to_db(6), "volumen 0 es silencio y sube con cada paso")
+	check(Settings.step_to_db(99) == 0.0 and Settings.step_to_db(-3) <= -80.0, "los pasos fuera de rango se recortan")
+	var old_path := Settings.path
+	var old_master := Settings.master
+	var old_effects := Settings.effects
+	Settings.path = "user://settings_test.cfg"
+	Settings.master = 3
+	Settings.effects = 7
+	Settings.save()
+	Settings.master = 10
+	Settings.effects = 10
+	Settings.load_settings()
+	check(Settings.master == 3 and Settings.effects == 7, "los ajustes guardados se recuperan")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Settings.path))
+	Settings.load_settings()
+	check(Settings.master == Settings.STEPS and Settings.effects == Settings.STEPS, "sin archivo: volumen al máximo")
+	Settings.path = old_path
+	Settings.master = old_master
+	Settings.effects = old_effects
+
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
 	get_tree().change_scene_to_file(Game.SCENE_MENU)

@@ -1,6 +1,6 @@
 ## Menú principal en dos niveles:
 ##   arriba, grandes  MODO HISTORIA, VERSUS LOCAL, DUELO ONLINE, ENTRENAMIENTO y el selector DIFICULTAD < > ;
-##   abajo, en fila   PERSONAJES · CONTROLES · CRÉDITOS.
+##   abajo, en fila   PERSONAJES · CONTROLES · AJUSTES · CRÉDITOS.
 ## MODO HISTORIA (1 jugador contra la CPU, de hoy al origen), VERSUS LOCAL (2 jugadores) y DUELO ONLINE
 ## (contra otra persona por internet) llevan a la selección de luchador. DIFICULTAD se cambia con
 ## izquierda/derecha (o pulsándolo). VERSUS LOCAL y ENTRENAMIENTO solo aparecen en el editor (desarrollo).
@@ -16,6 +16,7 @@ extends Control
 @onready var btn_difficulty: Button = $Buttons/Difficulty
 @onready var btn_roster: Button = $Buttons/Extras/Roster
 @onready var btn_controls: Button = $Buttons/Extras/Controls
+@onready var btn_settings: Button = $Buttons/Extras/Settings
 @onready var btn_credits: Button = $Buttons/Extras/Credits
 @onready var footer: Label = $Footer
 
@@ -38,13 +39,15 @@ func _ready() -> void:
 	btn_difficulty.pressed.connect(_cycle_difficulty)
 	btn_roster.pressed.connect(_show_roster)
 	btn_controls.pressed.connect(func(): Game.goto(Game.SCENE_CONTROLS))
+	btn_settings.pressed.connect(func(): Game.goto(Game.SCENE_SETTINGS))
 	btn_credits.pressed.connect(_show_credits)
+	btn_credits.text = HKTheme.fold(btn_credits.text)   # la fuente no tiene la É mayúscula
 	_refresh_difficulty()
 	# VERSUS LOCAL y ENTRENAMIENTO son herramientas de desarrollo: solo se ven al correr desde el editor.
 	var dev := OS.has_feature("editor")
 	btn_versus.visible = dev
 	btn_training.visible = dev
-	for b in [btn_continue, btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_credits]:
+	for b in [btn_continue, btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_settings, btn_credits]:
 		_single_highlight(b)
 	btn_difficulty.gui_input.connect(_on_difficulty_input)
 	_spawn_duel()

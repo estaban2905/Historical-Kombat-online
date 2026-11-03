@@ -92,6 +92,11 @@ custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 text = "CONTROLES"
 
+[node name="Settings" type="Button" parent="Buttons/Extras" unique_id=1649250001]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+text = "AJUSTES"
+
 [node name="Credits" type="Button" parent="Buttons/Extras" unique_id=597305843]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
