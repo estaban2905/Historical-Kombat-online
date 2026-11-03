@@ -139,13 +139,15 @@ export const rankingSchema = {
       type: "array",
       items: {
         type: "object",
-        required: ["username", "points", "wins", "losses"],
+        required: ["username", "points", "wins", "losses", "streak"],
         properties: {
           username: { type: "string" },
           points: { type: "integer" },
           wins: { type: "integer" },
           losses: { type: "integer" },
           avatar: { type: ["string", "null"] },
+          favorite_fighter: { type: ["string", "null"], description: "El luchador con el que más ha jugado" },
+          streak: { type: "integer", description: "Victorias seguidas hasta hoy" },
         },
       },
     },
@@ -166,6 +168,23 @@ export const updateMeSchema = {
   response: { 200: profileSchema, 400: errors[400], 401: errors[401] },
 } as const;
 
+const matchItem = {
+  type: "object",
+  required: ["id", "played_at", "opponent", "my_fighter", "opponent_fighter", "result", "delta", "my_rounds", "opponent_rounds", "reason"],
+  properties: {
+    id: { type: "string", format: "uuid" },
+    played_at: { type: "string", format: "date-time" },
+    opponent: { type: "string" },
+    my_fighter: { type: "string" },
+    opponent_fighter: { type: "string" },
+    result: { type: "string", enum: ["win", "loss", "draw"] },
+    delta: { type: "integer", description: "Puntos ganados o perdidos" },
+    my_rounds: { type: "integer" },
+    opponent_rounds: { type: "integer" },
+    reason: { type: "string", enum: ["normal", "forfeit"], description: "forfeit = terminó por abandono" },
+  },
+} as const;
+
 export const matchesSchema = {
   tags: ["profile"],
   summary: "Mis últimos duelos",
@@ -178,23 +197,38 @@ export const matchesSchema = {
   response: {
     200: {
       type: "array",
-      items: {
-        type: "object",
-        required: ["id", "played_at", "opponent", "my_fighter", "opponent_fighter", "result", "delta", "my_rounds", "opponent_rounds", "reason"],
-        properties: {
-          id: { type: "string", format: "uuid" },
-          played_at: { type: "string", format: "date-time" },
-          opponent: { type: "string" },
-          my_fighter: { type: "string" },
-          opponent_fighter: { type: "string" },
-          result: { type: "string", enum: ["win", "loss", "draw"] },
-          delta: { type: "integer", description: "Puntos ganados o perdidos" },
-          my_rounds: { type: "integer" },
-          opponent_rounds: { type: "integer" },
-          reason: { type: "string", enum: ["normal", "forfeit"], description: "forfeit = terminó por abandono" },
-        },
-      },
+      items: matchItem,
     },
     401: errorSchema,
+  },
+} as const;
+
+export const publicProfileSchema = {
+  tags: ["profile"],
+  summary: "Perfil de un jugador",
+  description: "Público: sin email ni id. 404 `player_not_found` si no existe.",
+  params: {
+    type: "object",
+    required: ["username"],
+    properties: { username },
+  },
+  response: {
+    200: {
+      type: "object",
+      required: ["username", "points", "wins", "losses", "rank", "streak", "recent"],
+      properties: {
+        username: { type: "string" },
+        points: { type: "integer" },
+        wins: { type: "integer" },
+        losses: { type: "integer" },
+        avatar: { type: ["string", "null"] },
+        rank: { type: "integer", description: "Puesto en el ranking (1 = el mejor)" },
+        favorite_fighter: { type: ["string", "null"] },
+        streak: { type: "integer" },
+        recent: { type: "array", items: matchItem },
+      },
+    },
+    400: errorSchema,
+    404: errorSchema,
   },
 } as const;

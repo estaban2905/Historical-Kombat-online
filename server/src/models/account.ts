@@ -24,7 +24,9 @@ export interface Profile {
   avatar: string | null;
 }
 
+/** Una fila del ranking. El id es interno: sirve para pedir sus estadísticas y no sale por la API. */
 export interface RankingEntry {
+  id: string;
   username: string;
   points: number;
   wins: number;

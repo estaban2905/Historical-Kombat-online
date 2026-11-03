@@ -115,6 +115,24 @@ export class AccountRepository {
     );
   }
 
+  /** Busca por nombre sin distinguir mayúsculas. */
+  async findByUsername(username: string): Promise<Account | null> {
+    const res = await this.db.query<AccountRow>(`select ${COLUMNS} from players where lower(username) = lower($1)`, [username]);
+    return res.rows[0] ? toAccount(res.rows[0]) : null;
+  }
+
+  /** Puesto en el ranking (1 = el mejor), con el mismo orden que ranking(). */
+  async rankOf(a: Account): Promise<number> {
+    const res = await this.db.query<{ rank: number }>(
+      `select (count(*) + 1)::int as rank from players
+        where points > $1
+           or (points = $1 and wins > $2)
+           or (points = $1 and wins = $2 and created_at < $3)`,
+      [a.points, a.wins, a.createdAt.toISOString()],
+    );
+    return res.rows[0]!.rank;
+  }
+
   /** Cambia (o quita, con null) el avatar de la cuenta. */
   async setAvatar(id: string, avatar: string | null): Promise<void> {
     await this.db.query("update players set avatar = $2 where id = $1", [id, avatar]);
@@ -123,7 +141,7 @@ export class AccountRepository {
   /** Los mejores jugadores: más puntos primero, y a igualdad más victorias. */
   async ranking(limit: number): Promise<RankingEntry[]> {
     const res = await this.db.query<RankingEntry>(
-      "select username, points, wins, losses, avatar from players order by points desc, wins desc, created_at asc limit $1",
+      "select id, username, points, wins, losses, avatar from players order by points desc, wins desc, created_at asc limit $1",
       [limit],
     );
     return res.rows;

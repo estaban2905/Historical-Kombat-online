@@ -41,9 +41,56 @@ interface HistoryRow {
   opponent_rounds: number;
 }
 
+/** Lo que se deduce de los duelos de un jugador. */
+export interface PlayerStats {
+  /** El luchador con el que más ha jugado (a igualdad, el primero por id), o null sin duelos. */
+  favoriteFighter: string | null;
+  /** Victorias seguidas hasta hoy: un empate o una derrota la cortan. */
+  streak: number;
+}
+
+/** Cada duelo visto desde cada lado: una fila por jugador y duelo. */
+const PLAYER_MATCHES = `
+  select p1_id as pid, p1_fighter as fighter, played_at, id,
+         case winner when 0 then 'draw' when 1 then 'win' else 'loss' end as result
+    from matches
+  union all
+  select p2_id, p2_fighter, played_at, id,
+         case winner when 0 then 'draw' when 2 then 'win' else 'loss' end
+    from matches`;
+
 /** Todo el SQL de la tabla matches. */
 export class MatchRepository {
   constructor(private readonly db: Queryable) {}
+
+  /** Luchador favorito y racha de cada jugador de la lista (los que no han jugado salen con null y 0). */
+  async statsFor(playerIds: string[]): Promise<Map<string, PlayerStats>> {
+    const out = new Map<string, PlayerStats>(playerIds.map((id) => [id, { favoriteFighter: null, streak: 0 }]));
+    if (playerIds.length === 0) return out;
+    const fighters = await this.db.query<{ pid: string; fighter: string; n: number }>(
+      `with pm as (${PLAYER_MATCHES})
+       select pid, fighter, count(*)::int as n from pm where pid = any($1::uuid[]) group by pid, fighter`,
+      [playerIds],
+    );
+    const best = new Map<string, { fighter: string; n: number }>();
+    for (const r of fighters.rows) {
+      const cur = best.get(r.pid);
+      if (!cur || r.n > cur.n || (r.n === cur.n && r.fighter < cur.fighter)) best.set(r.pid, { fighter: r.fighter, n: r.n });
+    }
+    for (const [pid, b] of best) out.get(pid)!.favoriteFighter = b.fighter;
+    // La racha son las victorias antes de la primera que no lo es, contando desde el duelo más reciente.
+    const streaks = await this.db.query<{ pid: string; streak: number }>(
+      `with pm as (${PLAYER_MATCHES}),
+            ranked as (
+              select pid, result, row_number() over (partition by pid order by played_at desc, id) as rn
+                from pm where pid = any($1::uuid[]))
+       select pid, coalesce(min(rn) filter (where result <> 'win') - 1, count(*))::int as streak
+         from ranked group by pid`,
+      [playerIds],
+    );
+    for (const r of streaks.rows) out.get(r.pid)!.streak = r.streak;
+    return out;
+  }
 
   async insert(m: NewMatch): Promise<void> {
     await this.db.query(
