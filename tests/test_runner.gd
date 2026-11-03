@@ -55,6 +55,7 @@ func _run() -> void:
 	print("\n=== HISTORY COMBAT · PRUEBAS AUTOMÁTICAS ===")
 	_test_resources()
 	_test_profile_helpers()
+	await _test_locked_select()
 	await _test_menu_to_fight()
 	await _test_fight()
 	await _test_powers()
@@ -298,6 +299,42 @@ func _test_profile_helpers() -> void:
 	Game.challenge_opponent = "Ana"
 	Game.drop_challenge()
 	check(Game.challenge_code == "" and Game.challenge_opponent == "", "soltar el reto lo limpia")
+
+func _test_locked_select() -> void:
+	print("\n# Selección: un luchador bloqueado no se confirma con el teclado")
+	var old_path := Unlocks.path
+	var old_user := Backend.user_id
+	var old_mode := Game.mode
+	Unlocks.path = "user://unlocks_select_test.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Backend.user_id = ""
+	Game.mode = Game.Mode.ARCADE
+	get_tree().change_scene_to_file(Game.SCENE_SELECT)
+	check(await wait_scene("CharacterSelect"), "la selección del modo Historia abre")
+	var sel := scene() as CharacterSelect
+	await frames(3)
+	check(Unlocks.fighter_unlocked(sel.roster[sel.cursor[1]].id), "el cursor empieza en un luchador desbloqueado (Trump está bloqueado)")
+	sel.cursor[1] = FighterRegistry.index_of(&"donald_trump")
+	await tap(KEY_U)
+	check(not sel.confirmed[1] and is_instance_valid(sel) and scene() == sel, "con U sobre un bloqueado no se confirma ni empieza la historia")
+	# Recorre toda la rejilla con D pulsando U en cada bloqueado: ninguno se confirma.
+	var tried := 0
+	for i in CharacterSelect.COLS * CharacterSelect.ROWS:
+		await tap(KEY_D)
+		var c: int = sel.cursor[1]
+		if c < sel.roster.size() and not Unlocks.fighter_unlocked(sel.roster[c].id):
+			await tap(KEY_U)
+			tried += 1
+			if sel.confirmed[1]:
+				break
+	check(tried == FighterRegistry.all().size() - Unlocks.STARTERS.size() and not sel.confirmed[1],
+		"ninguno de los %d bloqueados se confirma con el teclado" % tried)
+	await tap(KEY_ESCAPE)
+	check(await wait_scene("MainMenu"), "ESC vuelve al menú")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
+	Unlocks.path = old_path
+	Backend.user_id = old_user
+	Game.mode = old_mode
 
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
