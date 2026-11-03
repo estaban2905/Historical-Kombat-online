@@ -122,6 +122,30 @@ func _test_profile_helpers() -> void:
 	check(profile.format_ago("2026-08-01T12:00:00.000Z", now) == "3MES", "hace ~3 meses: 3MES")
 	check(profile.format_ago("", now) == "" and profile.format_ago("ayer", now) == "", "fecha vacía o rara: sin texto")
 
+	# Estadísticas con mis duelos (el más reciente primero)
+	var ms := [
+		{"result": "win", "delta": 16, "my_fighter": "tesla", "opponent_fighter": "napoleon"},
+		{"result": "win", "delta": 14, "my_fighter": "tesla", "opponent_fighter": "napoleon"},
+		{"result": "loss", "delta": -15, "my_fighter": "tesla", "opponent_fighter": "rasputin"},
+		{"result": "loss", "delta": -17, "my_fighter": "tesla", "opponent_fighter": "rasputin"},
+		{"result": "loss", "delta": -16, "my_fighter": "einstein", "opponent_fighter": "hitler"},
+	]
+	var mine := ProfileStats.by_fighter(ms)
+	check(mine.size() == 2 and mine[0]["id"] == "tesla" and mine[0]["total"] == 4 and mine[0]["wins"] == 2 and mine[0]["losses"] == 2, "por luchador: Tesla 2-2 va primero")
+	check(mine[1]["id"] == "einstein" and ProfileStats.win_rate(mine[1]) == 0.0, "Einstein 0-1: porcentaje 0")
+	var bw := ProfileStats.best_and_worst(ProfileStats.by_fighter(ms, "opponent_fighter"))
+	check(bw["best"]["id"] == "napoleon" and bw["worst"]["id"] == "rasputin", "mejor rival Napoleón (2-0) y peor Rasputín (0-2)")
+	check(bw["best"]["total"] == 2, "Hitler (1 duelo) no cuenta: se piden al menos 2")
+	check(ProfileStats.best_and_worst([])["best"].is_empty(), "sin duelos no hay mejor ni peor rival")
+	var one := ProfileStats.best_and_worst(ProfileStats.by_fighter(ms.slice(0, 2), "opponent_fighter"))
+	check(not one["best"].is_empty() and one["worst"].is_empty(), "con un solo rival no es a la vez el mejor y el peor")
+	check(ProfileStats.by_fighter([{"result": "win"}]).is_empty(), "un duelo sin luchador se ignora")
+	var series := ProfileStats.points_series(ms, 1000)
+	check(series.size() == 6 and series[5] == 1000, "la serie termina en los puntos actuales (%s)" % str(series))
+	check(series[0] == 1000 - 16 - 14 + 15 + 17 + 16 and series[4] == 984, "la serie se reconstruye restando los deltas hacia atrás")
+	check(ProfileStats.points_series(ms, 1000, 2).size() == 3, "max_matches limita la serie")
+	check(ProfileStats.points_series([], 1000).size() == 1, "sin duelos la serie es solo el valor actual")
+
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
 	get_tree().change_scene_to_file(Game.SCENE_MENU)
