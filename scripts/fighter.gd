@@ -1097,7 +1097,7 @@ func _tick_status() -> void:
 	if modulate != tint:
 		modulate = tint
 
-## status: slow (tiempo lento) | invert (izquierda/derecha cambiadas) | float (flota y cae)
+## status: slow (tiempo lento) | invert (izquierda/derecha cambiadas) | float (flota y cae) | root (no puede caminar ni saltar)
 func apply_status(status: StringName, frames: int) -> void:
 	match status:
 		&"slow": slow_frames = frames

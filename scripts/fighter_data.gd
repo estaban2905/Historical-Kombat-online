@@ -48,7 +48,7 @@ const ATTACK_SLOTS: Array[StringName] = [
 @export var special_1: AttackData
 ## Poder especial 2 (botón L / Numpad 6).
 @export var special_2: AttackData
-## Ataque definitivo: definido en los datos, se activará en versiones futuras.
+## Ataque definitivo: Especial 1 + Especial 2 a la vez con la energía al 100 (ver PowerEffects._cast_ultimate).
 @export var ultimate: AttackData
 ## Agarre (puño débil + patada débil a la vez). Vacío = agarre común (default_grab).
 @export var grab: AttackData

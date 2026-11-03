@@ -80,7 +80,7 @@ enum HitLevel { MID, LOW, OVERHEAD }
 ## Si no está vacío, el ataque no usa hitbox propia: al acabar el startup se
 ## invoca PowerEffects.cast() con este identificador (ver power_effects.gd).
 @export var power: StringName = &""
-## Estado que se aplica al rival al impactar: slow | invert | float
+## Estado que se aplica al rival al impactar: slow | invert | float | root
 @export var status: StringName = &""
 @export var status_frames: int = 0
 ## Energía que recupera el atacante cuando el golpe conecta (sin bloqueo).

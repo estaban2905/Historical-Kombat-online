@@ -4,7 +4,7 @@
 
 ## 1. Qué es
 
-**History Combat** es un juego de lucha arcade 2D, uno contra uno, en pixel art, donde personajes históricos de distintas épocas se enfrentan en un torneo ficticio de tono caricaturesco y exagerado. Está hecho con **Godot 4** y **GDScript**, pensado para jugarse en el **navegador** con dos jugadores en el mismo teclado.
+**History Combat** es un juego de lucha arcade 2D, uno contra uno, en pixel art, donde personajes históricos de distintas épocas se enfrentan en un torneo ficticio de tono caricaturesco y exagerado. Está hecho con **Godot 4** y **GDScript**, pensado para jugarse en el **navegador**: modo Historia contra la CPU, entrenamiento y duelo online contra otra persona.
 
 Todo el contenido visual y sonoro de esta versión es original y se genera por código (personajes, escenario, efectos y sonidos). No se usa ningún recurso de otros juegos.
 
@@ -35,7 +35,7 @@ Incluye:
 
 ## 3. Instalar y abrir el proyecto
 
-1. Descarga **Godot 4.3** (o superior 4.x), versión estándar (no hace falta la versión .NET): https://godotengine.org/download
+1. Descarga **Godot 4.7** (el proyecto está hecho con esa versión), versión estándar (no hace falta la versión .NET): https://godotengine.org/download
 2. Abre Godot → **Importar** → selecciona el archivo `project.godot` de esta carpeta.
 3. La primera vez Godot importará los recursos (unos segundos).
 
@@ -191,7 +191,7 @@ Los PNG pueden ir en `assets/sprites/<personaje>/`. Importa siempre con filtro *
 1. Crea una escena cuya raíz sea un `Node2D` con el script `scripts/stage.gd` (clase `Stage`), por ejemplo `stages/versalles/Versalles.tscn`.
 2. Configura en el Inspector: `display_name`, `floor_y` (altura de los pies), `left_bound` / `right_bound` (límites) y `p1_spawn_x` / `p2_spawn_x`.
 3. Añade como hijos los fondos: `Sprite2D`/`TextureRect` con imágenes o nodos que dibujen por código (ver `stages/colosseum/colosseum_layer.gd`). No hacen falta colisiones: los luchadores solo usan `floor_y` y los límites.
-4. Para usarlo, asigna su ruta a `Game.stage_scene` (en `scripts/autoload/game.gd`). Un selector de escenarios está pendiente.
+4. Para usarlo, enlázalo en `StageRegistry` (`stages/stage_registry.gd`): `scene_for(fighter_id)` decide qué escena carga cada luchador (hoy el Coliseo es de Julio César, ver `COLOSSEUM_OWNER`; el resto usa `ThemedStage` con una definición de dibujo de `stages/stage_defs_a.gd` … `stage_defs_d.gd`). Un selector de escenarios está pendiente.
 
 La resolución del juego es 426 × 240.
 
@@ -346,10 +346,8 @@ Menú principal → **DUELO ONLINE** → eliges luchador → *buscando rival* �
 
 - Equilibrar a los 30 luchadores con partidas reales (las estadísticas actuales son una primera propuesta por arquetipo).
 - Sprites definitivos dibujados a mano y retratos (el sistema ya los admite).
-- Ataque definitivo (los datos ya existen en cada ficha; falta asignarle entrada y animación).
 - Retocar con partidas reales los perfiles de cada luchador (ver `docs/PERFILES.md`).
 - Movimientos especiales con secuencias de joystick (↓↘→ + botón).
-- Agarres / llaves.
 - Más escenarios y selector de escenario.
 - Menú de opciones: reasignar teclas, volumen, número de rondas y tiempo.
 - Música.
