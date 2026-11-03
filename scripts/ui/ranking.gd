@@ -26,7 +26,7 @@ const NAME_X := 92.0
 ## Fila de botones de abajo.
 const BUTTON_SIZE := Vector2(96, 14)
 const BUTTON_GAP := 6.0
-const BUTTONS_Y := 212.0
+const BUTTONS_Y := 222.0
 
 var _players: Array = []
 ## Listas ya pedidas, por filtro ("amigos|semana|luchador"): cambiar de filtro y volver no repite la petición.
@@ -58,8 +58,10 @@ func _ready() -> void:
 	_fighter_btn = _button(func():
 		Game.picker_purpose = "ranking"
 		Game.goto(Game.SCENE_AVATAR))
-	_back = _button(func(): Game.goto(Game.SCENE_MENU))
-	_back.text = "VOLVER"
+	_back = BackButton.add_to(self, func(): Game.goto(Game.SCENE_MENU))
+	_back.focus_entered.connect(func(): _last_button = _back)
+	# Primero en el anillo de foco: derecha desde VOLVER va a GLOBAL / SIEMPRE y izquierda da la vuelta a LUCHADOR.
+	_buttons.push_front(_back)
 	_layout_buttons()
 	_refresh_labels()
 	# Al volver de elegir luchador, el foco sigue en LUCHADOR.
@@ -87,14 +89,17 @@ func _button(on_press: Callable) -> Button:
 	_buttons.append(b)
 	return b
 
-## Los botones centrados en una fila; izquierda/derecha pasa de uno a otro (y da la vuelta).
+## Los botones de filtro centrados en una fila (VOLVER va aparte, en su esquina); izquierda/derecha pasa de uno
+## a otro, VOLVER incluido (y da la vuelta).
 func _layout_buttons() -> void:
-	var total := _buttons.size() * BUTTON_SIZE.x + (_buttons.size() - 1) * BUTTON_GAP
-	var x := (426.0 - total) * 0.5
+	var row := _buttons.size() - 1
+	var total := row * BUTTON_SIZE.x + (row - 1) * BUTTON_GAP
+	var x := maxf((426.0 - total) * 0.5, BackButton.RIGHT_EDGE)
 	for i in _buttons.size():
 		var b := _buttons[i]
-		b.position = Vector2(x, BUTTONS_Y)
-		x += BUTTON_SIZE.x + BUTTON_GAP
+		if b != _back:
+			b.position = Vector2(x, BUTTONS_Y)
+			x += BUTTON_SIZE.x + BUTTON_GAP
 		b.focus_neighbor_left = _buttons[posmod(i - 1, _buttons.size())].get_path()
 		b.focus_neighbor_right = _buttons[posmod(i + 1, _buttons.size())].get_path()
 		# Arriba/abajo los maneja _input (entrar y salir de la lista).

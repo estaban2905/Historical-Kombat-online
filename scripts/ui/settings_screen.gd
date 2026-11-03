@@ -12,17 +12,18 @@ func _ready() -> void:
 	_master = _button("", 70)
 	_effects = _button("", 92)
 	_controls = _button("CONTROLES", 124)
-	_back = _button("VOLVER", 158)
+	_back = BackButton.add_to(self, func(): Game.goto(Game.SCENE_MENU))
 	_master.gui_input.connect(_on_volume_input.bind(_master, "master"))
 	_effects.gui_input.connect(_on_volume_input.bind(_effects, "effects"))
 	_master.pressed.connect(_cycle.bind("master"))
 	_effects.pressed.connect(_cycle.bind("effects"))
-	_controls.pressed.connect(func(): Game.goto(Game.SCENE_CONTROLS))
-	_back.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
-	for b in [_master, _effects, _controls, _back]:
+	_controls.pressed.connect(func(): Game.goto(Game.SCENE_CONTROLS, Game.SCENE_SETTINGS))
+	for b in [_master, _effects, _controls]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 	_controls.pressed.connect(func(): Sfx.play(&"confirm"))
-	_back.pressed.connect(func(): Sfx.play(&"confirm"))
+	# VOLVER está lejos de la lista (esquina): abajo desde CONTROLES llega a él y arriba desde él vuelve.
+	_controls.focus_neighbor_bottom = _back.get_path()
+	_back.focus_neighbor_top = _controls.get_path()
 	_refresh()
 	_master.grab_focus()
 

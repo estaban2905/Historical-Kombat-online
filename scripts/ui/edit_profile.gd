@@ -64,8 +64,10 @@ func _ready() -> void:
 		buttons.append(_save_pass)
 		_save_pass.pressed.connect(_on_save_password)
 		_new_pass.text_submitted.connect(func(_t: String): _on_save_password())
-	_back = _button("VOLVER")
-	buttons.append(_back)
+	_back = BackButton.add_to(self, func(): Game.goto(Game.SCENE_PROFILE))
+	# VOLVER está en su esquina, fuera del formulario: abajo desde el último botón llega a él.
+	buttons[-1].focus_neighbor_bottom = _back.get_path()
+	_back.focus_neighbor_top = buttons[-1].get_path()
 	_avatar_btn.pressed.connect(func():
 		Game.picker_purpose = "avatar"
 		Game.goto(Game.SCENE_AVATAR))
@@ -75,7 +77,6 @@ func _ready() -> void:
 	_title_btn.pressed.connect(_cycle.bind("title", 1))
 	_save_name.pressed.connect(_on_save_name)
 	_name.text_submitted.connect(func(_t: String): _on_save_name())
-	_back.pressed.connect(func(): Game.goto(Game.SCENE_PROFILE))
 	for b in buttons:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))

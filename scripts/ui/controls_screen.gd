@@ -4,8 +4,7 @@
 ##   MOVIMIENTOS  cómo se hacen los movimientos (correr, backdash, salto, barrido,
 ##                ataque aéreo, antiaéreo, especiales).
 ##   DEFENSA      bloqueo de pie y agachado, guardia, combos, counter-hit, agarre.
-## Las teclas se leen del Input Map, así que siempre coinciden con el juego, y
-## se pueden ver las del jugador 1 o las del 2.
+## Las teclas se leen del Input Map, así que siempre coinciden con el juego.
 ## Se abre desde el menú principal (escena) o desde la pausa (overlay = true).
 extends Control
 
@@ -76,10 +75,7 @@ const PAGE_NAMES: Array[String] = ["TECLAS", "MOVIMIENTOS", "DEFENSA"]
 var overlay: bool = false
 
 var _page: Page = Page.KEYS
-## Jugador cuyas teclas se muestran y que maneja la demo (1 o 2).
-var _player: int = 1
 var _btn_page: Button
-var _btn_player: Button
 var _btn_fighter: Button
 var _btn_back: Button
 var _fighter: FighterRenderer
@@ -134,25 +130,22 @@ func _ready() -> void:
 	add_child(_fx)
 
 	var row := HBoxContainer.new()
-	row.position = Vector2(14, 222)
-	row.size = Vector2(398, 16)
+	row.position = Vector2(BackButton.RIGHT_EDGE, BackButton.POS.y)
+	row.size = Vector2(426.0 - BackButton.RIGHT_EDGE - 12.0, BackButton.SIZE.y)
 	row.add_theme_constant_override("separation", 6)
 	add_child(row)
 	_btn_page = _add_button(row, "", 124)
 	_btn_page.pressed.connect(_toggle_page)
-	_btn_player = _add_button(row, "", 84)
-	_btn_player.pressed.connect(_toggle_player)
 	_btn_fighter = _add_button(row, "", 104)
 	_btn_fighter.pressed.connect(_next_fighter)
-	_btn_back = _add_button(row, "VOLVER", 72)
-	_btn_back.pressed.connect(_close)
+	_btn_back = BackButton.add_to(self, _close)
 	_refresh()
 	_btn_back.grab_focus()
 
 func _add_button(parent: Control, text: String, width: float) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(width, 16)
+	b.custom_minimum_size = Vector2(width, BackButton.SIZE.y)
 	b.clip_text = true
 	b.focus_entered.connect(func(): Sfx.play(&"select"))
 	b.pressed.connect(func(): Sfx.play(&"confirm"))
@@ -161,11 +154,6 @@ func _add_button(parent: Control, text: String, width: float) -> Button:
 
 func _toggle_page() -> void:
 	_page = ((int(_page) + 1) % PAGE_NAMES.size()) as Page
-	_refresh()
-
-func _toggle_player() -> void:
-	_player = 2 if _player == 1 else 1
-	_reset_demo()
 	_refresh()
 
 func _next_fighter() -> void:
@@ -185,7 +173,6 @@ func _reset_demo() -> void:
 func _refresh() -> void:
 	# El botón nombra la página a la que lleva.
 	_btn_page.text = PAGE_NAMES[(int(_page) + 1) % PAGE_NAMES.size()]
-	_btn_player.text = "JUGADOR %d" % _player
 	_btn_fighter.text = "< %s >" % _roster[_roster_idx].short_name.to_upper()
 	# El luchador de prueba y sus partículas solo están en la página de teclas.
 	_fighter.visible = _page == Page.KEYS
@@ -196,7 +183,7 @@ func _close() -> void:
 		closed.emit()
 		queue_free()
 	else:
-		Game.goto(Game.SCENE_MENU)
+		Game.goto(Game.back_target())
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel") and not Game.is_changing_scene():
@@ -222,8 +209,6 @@ func _input(event: InputEvent) -> void:
 			_on_attack_key(action)
 			get_viewport().set_input_as_handled()
 			return
-	# Las flechas del jugador 2 también mueven el foco de los botones: no se consumen.
-	var consume := not ARROWS.has(code)
 	if code == _key_for(&"jump") and _jump_t < 0.0:
 		_jump_t = 0.0
 	elif code == _key_for(&"left") or code == _key_for(&"right"):
@@ -248,8 +233,7 @@ func _input(event: InputEvent) -> void:
 			_tap_msec = now
 	elif not code in [_key_for(&"crouch"), _key_for(&"block")]:
 		return
-	if consume:
-		get_viewport().set_input_as_handled()
+	get_viewport().set_input_as_handled()
 
 func _held(action: StringName) -> bool:
 	var code := _key_for(action)
@@ -431,9 +415,9 @@ func _update_fighter(delta: float) -> void:
 # =========================================================================
 #  Datos de las teclas
 # =========================================================================
-## Código físico de la tecla de una acción del jugador mostrado.
+## Código físico de la tecla de una acción del jugador.
 func _key_for(action: StringName) -> int:
-	return _key_of("p%d_%s" % [_player, action])
+	return _key_of("p1_%s" % action)
 
 func _key_of(action_name: String) -> int:
 	if not InputMap.has_action(action_name):
@@ -491,7 +475,7 @@ func _draw_panel(x: float, w: float, title: String) -> void:
 
 # --- Página TECLAS ------------------------------------------------------------
 func _draw_keys_page() -> void:
-	_draw_panel(KEYS_X, KEYS_W, "TECLAS · JUGADOR %d" % _player)
+	_draw_panel(KEYS_X, KEYS_W, "TECLAS")
 	var y := PANEL_Y + 20.0
 	for row in KEY_ROWS:
 		var parts: Array = []
@@ -528,7 +512,7 @@ func _draw_stage() -> void:
 		_caption_at(Vector2(cx, FLOOR_Y + 28), _hint.left(20), _hint_color)
 
 # --- Página MOVIMIENTOS -------------------------------------------------------
-## Teclas del jugador mostrado, para armar las filas de las tablas.
+## Teclas del jugador, para armar las filas de las tablas.
 func _row_keys() -> Dictionary:
 	var keys := {}
 	for action in [&"jump", &"crouch", &"left", &"right", &"block", &"punch_light", &"punch_heavy",
@@ -574,7 +558,7 @@ func _energy_note(atk: AttackData) -> String:
 	return "GASTA %d DE ENERGÍA" % int(atk.energy_cost)
 
 func _draw_rows_page(title: String, rows: Array) -> void:
-	_draw_panel(MOVES_X, MOVES_W, "%s · JUGADOR %d" % [title, _player])
+	_draw_panel(MOVES_X, MOVES_W, title)
 	var name_x := MOVES_X + 8.0
 	var keys_x := MOVES_X + 152.0
 	var y := PANEL_Y + 19.0

@@ -5,6 +5,7 @@
 ## en el duelo online con ranking están los 50 abiertos.
 ##   J1: A/D/W/S mover · U confirmar · J cancelar
 ##   J2: Flechas mover · Num1 (o Supr) confirmar · Num4 (o Insert) cancelar
+##   Ratón: pasar por una casilla la señala, clic izquierdo elige y VOLVER (o clic derecho) vuelve
 ##   ESC: volver al menú
 class_name CharacterSelect
 extends Control
@@ -56,6 +57,7 @@ signal saves_loaded
 var _asking: bool = false
 var _dialog: Control
 var _dialog_first: Button
+var _back: BackButton
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -72,6 +74,7 @@ func _ready() -> void:
 			cursor[2] = (cursor[1] + 1) % roster.size()
 	_load_stage(roster[cursor[1]].id if cursor[1] < roster.size() else roster[0].id)
 	_build_cells()
+	_back = BackButton.add_to(self, _on_back)
 	_overlay = Control.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -208,24 +211,60 @@ func _handle_player(p: int) -> void:
 		elif inp.just_pressed(&"crouch"):
 			c = (c + COLS) % (COLS * ROWS); moved = true
 		if moved:
-			cursor[p] = c
-			Sfx.play(&"select")
-			if c < roster.size() and not _is_locked(c):
-				_stage_pending = roster[c].id
-				_stage_wait = STAGE_DELAY
-			_refresh_preview(p)
+			_move_cursor(p, c)
 		if inp.just_pressed(&"punch_light"):
-			if cursor[p] < roster.size() and not _is_locked(cursor[p]):
-				confirmed[p] = true
-				Sfx.play(&"confirm")
-				_refresh_preview(p)
-				_check_start()
-			else:
-				Sfx.play(&"denied")
+			_confirm(p)
 	elif inp.just_pressed(&"kick_light"):
 		confirmed[p] = false
 		Sfx.play(&"select")
 		_refresh_preview(p)
+
+func _move_cursor(p: int, c: int) -> void:
+	cursor[p] = c
+	Sfx.play(&"select")
+	if c < roster.size() and not _is_locked(c):
+		_stage_pending = roster[c].id
+		_stage_wait = STAGE_DELAY
+	_refresh_preview(p)
+
+func _confirm(p: int) -> void:
+	if cursor[p] < roster.size() and not _is_locked(cursor[p]):
+		confirmed[p] = true
+		Sfx.play(&"confirm")
+		_refresh_preview(p)
+		_check_start()
+	else:
+		Sfx.play(&"denied")
+
+## La casilla bajo `pos` (-1 si está fuera de la rejilla).
+func _cell_at(pos: Vector2) -> int:
+	var rel := pos - GRID_ORIGIN
+	if rel.x < 0.0 or rel.y < 0.0:
+		return -1
+	var col := int(rel.x / CELL.x)
+	var row := int(rel.y / CELL.y)
+	return row * COLS + col if col < COLS and row < ROWS else -1
+
+## Ratón: pasar por una casilla mueve el cursor de J1 y un clic izquierdo lo elige.
+func _gui_input(event: InputEvent) -> void:
+	if _starting or _asking or _dialog != null or confirmed[1]:
+		return
+	var click := event as InputEventMouseButton
+	if not event is InputEventMouseMotion and (click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT):
+		return
+	var c := _cell_at((event as InputEventMouse).position)
+	if c < 0:
+		return
+	if c != cursor[1]:
+		_move_cursor(1, c)
+	if click != null:
+		_confirm(1)
+
+func _on_back() -> void:
+	if _starting:
+		return
+	Game.drop_challenge()
+	Game.goto(Game.SCENE_MENU)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel") and not _starting:
@@ -267,7 +306,8 @@ func _begin(resume: Dictionary = {}) -> void:
 	Sfx.play(&"fight")
 	await get_tree().create_timer(1.0).timeout
 	if is_inside_tree():
-		Game.goto(Game.SCENE_LOBBY if Game.is_online() else (Game.SCENE_STORY if _cpu else Game.SCENE_FIGHT))
+		Game.goto(Game.SCENE_LOBBY if Game.is_online() else (Game.SCENE_STORY if _cpu else Game.SCENE_FIGHT),
+			Game.SCENE_SELECT)
 
 ## Aviso de que el luchador elegido ya tiene una partida: continuarla, empezar de nuevo (la pierde) o volver.
 func _open_dialog(d: FighterData, save: Dictionary) -> void:
@@ -302,6 +342,7 @@ func _open_dialog(d: FighterData, save: Dictionary) -> void:
 	_dialog_button(box, "EMPEZAR DE NUEVO", func(): _close_dialog(); _begin())
 	_dialog_button(box, "CANCELAR", _cancel_dialog)
 	_dialog = dim
+	_back.disabled = true   # con el aviso abierto, el clic derecho no debe sacarte de la pantalla
 	add_child(dim)
 	_dialog_first.grab_focus()
 
@@ -320,6 +361,7 @@ func _close_dialog() -> void:
 	if _dialog:
 		_dialog.queue_free()
 		_dialog = null
+		_back.disabled = false
 
 ## Vuelve a la selección sin tocar la partida: el luchador queda sin confirmar para elegir otro.
 func _cancel_dialog() -> void:

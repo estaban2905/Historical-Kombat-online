@@ -36,15 +36,7 @@ func _ready() -> void:
 	add_child(_name)
 	_name.size = Vector2(200, 15)
 	_name.text_submitted.connect(_on_add)
-	_back = Button.new()
-	_back.text = "VOLVER"
-	_back.position = Vector2(163, 212)
-	_back.custom_minimum_size = Vector2(100, 14)
-	add_child(_back)
-	_back.size = Vector2(100, 14)   # tras añadirlo: ya tiene el tema (ver profile.gd)
-	_back.pressed.connect(func(): Game.goto(Game.SCENE_MENU))
-	_back.focus_entered.connect(func(): Sfx.play(&"select"))
-	_back.pressed.connect(func(): Sfx.play(&"confirm"))
+	_back = BackButton.add_to(self, func(): Game.goto(Game.SCENE_MENU))
 	_back.grab_focus()
 	await _reload()
 
