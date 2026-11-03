@@ -340,38 +340,70 @@ func fetch_matches(limit: int = 8) -> Array:
 	return r.data if r.ok and r.data is Array else []
 
 # =========================================================================
-#  Partida guardada del modo Historia
+#  Partidas guardadas del modo Historia (una por luchador)
 # =========================================================================
 ## Campos de la partida: fighter, stage, continues, continues_used, difficulty, saved_at.
 const STORY_KEYS: Array[String] = ["fighter", "stage", "continues", "continues_used", "difficulty", "saved_at"]
 
-func _story_section() -> String:
-	return user_id if user_id != "" else "guest"
+## Sección del archivo local: "<cuenta>|<luchador>". Sin luchador es la sección antigua (una sola partida por
+## cuenta), que se sigue leyendo.
+func _story_section(fighter: String = "") -> String:
+	var account := user_id if user_id != "" else "guest"
+	return account if fighter == "" else "%s|%s" % [account, fighter]
 
-## La copia local de esta cuenta, o {} si no hay.
-func story_local() -> Dictionary:
+## Las copias locales de esta cuenta, por id de luchador.
+func stories_local() -> Dictionary:
 	var cfg := ConfigFile.new()
-	if cfg.load(story_path) != OK or not cfg.has_section(_story_section()):
+	if cfg.load(story_path) != OK:
 		return {}
-	var d := {}
-	for k in STORY_KEYS:
-		if not cfg.has_section_key(_story_section(), k):
-			return {}
-		d[k] = cfg.get_value(_story_section(), k)
-	return d
+	var out := {}
+	for section in cfg.get_sections():
+		if section != _story_section() and not section.begins_with(_story_section() + "|"):
+			continue
+		var d := {}
+		for k in STORY_KEYS:
+			if cfg.has_section_key(section, k):
+				d[k] = cfg.get_value(section, k)
+		var s := _clean_story(d)
+		if s.is_empty():
+			continue
+		if not out.has(s["fighter"]) or int(s["saved_at"]) > int(out[s["fighter"]]["saved_at"]):
+			out[s["fighter"]] = s
+	return out
+
+## La partida local más reciente de esta cuenta, o {} si no hay.
+func story_local() -> Dictionary:
+	return _latest_story(stories_local())
+
+func _latest_story(stories: Dictionary) -> Dictionary:
+	var best := {}
+	for f in stories:
+		if best.is_empty() or int(stories[f]["saved_at"]) > int(best["saved_at"]):
+			best = stories[f]
+	return best
 
 func _write_story_local(data: Dictionary) -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(story_path)   # conserva las secciones de otras cuentas
-	if data.is_empty():
-		if cfg.has_section(_story_section()):
-			cfg.erase_section(_story_section())
-	else:
-		for k in STORY_KEYS:
-			cfg.set_value(_story_section(), k, data[k])
+	_drop_legacy_section(cfg, str(data["fighter"]))
+	for k in STORY_KEYS:
+		cfg.set_value(_story_section(str(data["fighter"])), k, data[k])
 	cfg.save(story_path)
 
-## Guarda la partida: primero en este equipo y, con sesión, en la cuenta. Devuelve true si
+func _erase_story_local(fighter: String) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(story_path)
+	_drop_legacy_section(cfg, fighter)
+	if cfg.has_section(_story_section(fighter)):
+		cfg.erase_section(_story_section(fighter))
+	cfg.save(story_path)
+
+## Quita la sección antigua de la cuenta si era la partida de ese luchador (la nueva ya la sustituye).
+func _drop_legacy_section(cfg: ConfigFile, fighter: String) -> void:
+	if cfg.has_section(_story_section()) and str(cfg.get_value(_story_section(), "fighter", "")) == fighter:
+		cfg.erase_section(_story_section())
+
+## Guarda la partida de ese luchador: primero en este equipo y, con sesión, en la cuenta. Devuelve true si
 ## quedó también en el servidor (o si no hay sesión y no hacía falta).
 func save_story(data: Dictionary) -> bool:
 	data["saved_at"] = int(Time.get_unix_time_from_system())
@@ -381,32 +413,39 @@ func save_story(data: Dictionary) -> bool:
 	var r := await _request("PUT", "/me/story", data, true)
 	return r.ok
 
-## La partida a retomar: la más reciente entre la de este equipo y la de la cuenta.
-## Si una está más atrasada que la otra, se actualiza. {} si no hay ninguna.
-func load_story() -> Dictionary:
-	var local := story_local()
+## Todas las partidas (por id de luchador): en cada luchador gana la más reciente entre la de este equipo
+## y la de la cuenta, y la que vaya atrasada se actualiza. {} si no hay ninguna.
+func load_stories() -> Dictionary:
+	var local := stories_local()
 	if not is_logged_in():
 		return local
-	var r := await _request("GET", "/me/story", null, true)
-	if not r.ok or not r.data is Dictionary:
-		# 404 = la cuenta no tiene partida; otro error (p. ej. sin red) = se usa la local.
-		if r.code == 404 and not local.is_empty():
-			await _request("PUT", "/me/story", local, true)
-		return local
-	var remote := _clean_story(r.data)
-	if remote.is_empty():
-		return local
-	if local.is_empty() or int(remote["saved_at"]) >= int(local["saved_at"]):
-		_write_story_local(remote)
-		return remote
-	await _request("PUT", "/me/story", local, true)
-	return local
+	var r := await _request("GET", "/me/stories", null, true)
+	if not r.ok or not r.data is Array:
+		return local   # sin red u otro error: se usa la local
+	var remote := {}
+	for item in r.data:
+		var s := _clean_story(item) if item is Dictionary else {}
+		if not s.is_empty():
+			remote[s["fighter"]] = s
+	var merged := local.duplicate()
+	for f in remote:
+		if not local.has(f) or int(remote[f]["saved_at"]) > int(local[f]["saved_at"]):
+			_write_story_local(remote[f])
+			merged[f] = remote[f]
+	for f in local:
+		if not remote.has(f) or int(local[f]["saved_at"]) > int(remote[f]["saved_at"]):
+			await _request("PUT", "/me/story", local[f], true)
+	return merged
 
-## Borra la partida (al terminar la historia o quedarse sin revanchas).
-func clear_story() -> void:
-	_write_story_local({})
+## La partida a retomar: la más reciente de todas. {} si no hay ninguna.
+func load_story() -> Dictionary:
+	return _latest_story(await load_stories())
+
+## Borra la partida de ese luchador (al terminar la historia o quedarse sin revanchas). Las de los demás se quedan.
+func clear_story(fighter: String) -> void:
+	_erase_story_local(fighter)
 	if is_logged_in():
-		await _request("DELETE", "/me/story", null, true)
+		await _request("DELETE", "/me/story?fighter=" + fighter.uri_encode(), null, true)
 
 ## Deja solo los campos esperados, con su tipo. {} si falta alguno.
 func _clean_story(d: Dictionary) -> Dictionary:

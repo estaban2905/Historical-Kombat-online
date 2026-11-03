@@ -93,7 +93,7 @@ func _setup_buttons() -> void:
 				Game.goto(Game.SCENE_FIGHT))
 		_:
 			# Sin revanchas: la historia terminó, no queda nada que retomar.
-			Backend.clear_story()
+			Backend.clear_story(str(Game.p1_fighter_id))
 			btn_rematch.visible = false
 
 ## Duelo online: dice al servidor cómo terminó y espera a que confirme los puntos.

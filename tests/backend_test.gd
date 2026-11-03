@@ -143,8 +143,24 @@ func _run() -> void:
 	ServerConfig.override_ws = "ws://127.0.0.1:1/ws"
 	check(int((await Backend.load_story()).get("stage", -1)) == 9, "sin conexión se usa la copia local")
 	ServerConfig.override_ws = url
-	await Backend.clear_story()
+	await Backend.clear_story("nikola_tesla")
 	check(Backend.story_local().is_empty() and (await Backend.load_story()).is_empty(), "borrar quita la partida de equipo y cuenta")
+	# Una partida por luchador: empezar con otro no borra la anterior.
+	var other := save.duplicate()
+	other["fighter"] = "napoleon"
+	other["stage"] = 2
+	await Backend.save_story(save.duplicate())
+	await Backend.save_story(other)
+	var stories := await Backend.load_stories()
+	check(stories.size() == 2 and int(stories["nikola_tesla"]["stage"]) == 7 and int(stories["napoleon"]["stage"]) == 2,
+		"guardar con otro luchador no borra la partida del primero")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Backend.story_path))
+	check((await Backend.load_stories()).size() == 2, "otro equipo: se recuperan las dos desde la cuenta")
+	await Backend.clear_story("napoleon")
+	stories = await Backend.load_stories()
+	check(stories.size() == 1 and stories.has("nikola_tesla"), "borrar la de un luchador deja la del otro")
+	await Backend.clear_story("nikola_tesla")
+	check((await Backend.load_stories()).is_empty(), "y al borrar la última no queda ninguna")
 	# Reanudar en el juego.
 	check(Game.story_resume({"fighter": "nikola_tesla", "stage": 5, "continues": 1, "continues_used": 2, "difficulty": 1}),
 		"Game.story_resume acepta una partida válida")
