@@ -288,6 +288,7 @@ func _not_saved_reason(reason: String) -> String:
 		"mismatch": return "LOS RESULTADOS NO COINCIDEN"
 		"timeout": return "EL RIVAL NO CONFIRMÓ A TIEMPO"
 		"too_short": return "DUELO DEMASIADO CORTO"
+		"stalled": return "NADIE RESPONDIÓ: DUELO ANULADO"
 	return "ERROR DEL SERVIDOR"
 
 ## Líneas finales al ganar el último combate del modo Historia.

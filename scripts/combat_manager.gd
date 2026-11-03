@@ -236,6 +236,7 @@ func _start_online() -> void:
 	set_input_source(Online.input_source)
 	Online.begin_fight()
 	Online.opponent_left.connect(_on_online_opponent_left, CONNECT_ONE_SHOT)
+	Online.timed_out.connect(_on_online_timed_out, CONNECT_ONE_SHOT)
 	Online.failed.connect(_on_online_failed, CONNECT_ONE_SHOT)
 	var layer := CanvasLayer.new()
 	layer.layer = 40
@@ -249,15 +250,21 @@ func _start_online() -> void:
 	_waiting_label.visible = false
 	layer.add_child(_waiting_label)
 
-## Muestra el aviso solo si la espera ya se nota (más de ~6 frames seguidos).
+## Muestra el aviso solo si la espera ya se nota (más de ~6 frames seguidos), con los segundos
+## que quedan antes de que el servidor cierre el duelo.
 func _set_waiting(waiting: bool) -> void:
-	if _waiting_label != null:
-		_waiting_label.visible = waiting and Online.stalled_ticks > 6
+	if _waiting_label == null:
+		return
+	_waiting_label.visible = waiting and Online.stalled_ticks > 6
+	if _waiting_label.visible:
+		_waiting_label.text = "ESPERANDO AL RIVAL... %d" % Online.stall_seconds_left()
 
 ## El rival se desconectó en plena pelea: la partida se da por ganada.
 func _on_online_opponent_left() -> void:
 	if Online.failed.is_connected(_on_online_failed):
 		Online.failed.disconnect(_on_online_failed)
+	if Online.timed_out.is_connected(_on_online_timed_out):
+		Online.timed_out.disconnect(_on_online_timed_out)
 	hud.show_message("RIVAL DESCONECTADO", 2.0, HKTheme.GOLD)
 	round_manager.abort()
 	await get_tree().create_timer(2.0).timeout
@@ -266,10 +273,35 @@ func _on_online_opponent_left() -> void:
 	Game.set_match_result(Online.side, round_manager.wins[1], round_manager.wins[2])
 	Game.goto(Game.SCENE_RESULTS)
 
+## El servidor cerró el duelo porque nadie respondía: pierde quien iba por detrás.
+## Si no se sabe quién fue (loser = 0), el duelo se anula y se vuelve al menú.
+func _on_online_timed_out(loser: int) -> void:
+	if Online.opponent_left.is_connected(_on_online_opponent_left):
+		Online.opponent_left.disconnect(_on_online_opponent_left)
+	if Online.failed.is_connected(_on_online_failed):
+		Online.failed.disconnect(_on_online_failed)
+	if loser == 0:
+		hud.show_message("SIN RESPUESTA · DUELO ANULADO", 2.0, HKTheme.BLOOD)
+	elif loser == Online.side:
+		hud.show_message("TE QUEDASTE SIN RESPONDER", 2.0, HKTheme.BLOOD)
+	else:
+		hud.show_message("EL RIVAL NO RESPONDE", 2.0, HKTheme.GOLD)
+	round_manager.abort()
+	await get_tree().create_timer(2.0).timeout
+	if not is_inside_tree():
+		return
+	if loser == 0:
+		Game.goto(Game.SCENE_MENU)
+		return
+	Game.set_match_result(3 - loser, round_manager.wins[1], round_manager.wins[2])
+	Game.goto(Game.SCENE_RESULTS)
+
 ## Se perdió MI conexión: no hay ganador, se vuelve al menú.
 func _on_online_failed(message: String) -> void:
 	if Online.opponent_left.is_connected(_on_online_opponent_left):
 		Online.opponent_left.disconnect(_on_online_opponent_left)
+	if Online.timed_out.is_connected(_on_online_timed_out):
+		Online.timed_out.disconnect(_on_online_timed_out)
 	hud.show_message(message, 2.0, HKTheme.BLOOD)
 	round_manager.abort()
 	await get_tree().create_timer(2.0).timeout

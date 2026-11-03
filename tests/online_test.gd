@@ -45,6 +45,8 @@ func _run() -> void:
 	await _case_adaptive_delay()
 	await _case_lone_inputs()
 	await _case_opponent_gone()
+	await _case_timeout_message()
+	await _case_timeout_ends_the_fight()
 	print("\n=== RESULTADO: %d fallos ===" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -270,3 +272,61 @@ func _case_opponent_gone() -> void:
 	for t in LockstepSession.INITIAL_DELAY:
 		s2.masks_for(t)
 	check(s2.masks_for(LockstepSession.INITIAL_DELAY) == [7, 3], "P2 recibe [rival, yo]")
+
+## El servidor cierra el duelo si nadie responde (NET-02): el cliente lo recibe y cuenta la espera.
+func _case_timeout_message() -> void:
+	var got: Array = []
+	var on_timeout := func(loser: int) -> void: got.append(loser)
+	Online.timed_out.connect(on_timeout)
+	Online._on_message('{"t":"timeout","loser":1}')
+	check(got.is_empty(), "fuera de una pelea se ignora el cierre por espera")
+	Online.begin_fight()
+	Online._on_message('{"t":"timeout","loser":2}')
+	Online._on_message('{"t":"timeout","loser":9}')
+	Online._on_message('{"t":"timeout"}')
+	check(got == [2, 0, 0], "el cierre por espera avisa de quién perdió; si el dato no vale, se anula (%s)" % [str(got)])
+	Online.timed_out.disconnect(on_timeout)
+	# La cuenta atrás que ve el jugador sale de los ticks esperando al rival.
+	Online._session = LockstepSession.new(1, func() -> int: return 0, func(_f: int, _m: int, _a: int): pass)
+	for t in LockstepSession.INITIAL_DELAY:
+		Online._session.masks_for(t)
+	Online._session.masks_for(LockstepSession.INITIAL_DELAY)
+	check(Online.stall_seconds_left() == Online.RIVAL_TIMEOUT_S, "al empezar la espera quedan los %d s completos" % Online.RIVAL_TIMEOUT_S)
+	for i in 60:
+		Online._session.masks_for(LockstepSession.INITIAL_DELAY)
+	check(Online.stall_seconds_left() == Online.RIVAL_TIMEOUT_S - 1, "tras un segundo esperando queda uno menos")
+	for i in 20 * 60:
+		Online._session.masks_for(LockstepSession.INITIAL_DELAY)
+	check(Online.stall_seconds_left() == 0, "la cuenta atrás no baja de cero")
+	Online.disconnect_from_server()
+
+## En el combate real: sin botones del rival aparece la cuenta atrás y, al cerrar el servidor el duelo,
+## la pelea termina dando la victoria al que no perdió la respuesta.
+func _case_timeout_ends_the_fight() -> void:
+	var old_mode := Game.mode
+	Game.mode = Game.Mode.ONLINE
+	Online.side = 1
+	Online._session = LockstepSession.new(1, func() -> int: return 0, func(_f: int, _m: int, _a: int): pass)
+	var combat := _new_combat()
+	for i in 90:
+		await get_tree().physics_frame
+	check(combat._waiting_label.visible and combat._waiting_label.text.ends_with("%d" % Online.stall_seconds_left()),
+		"sin botones del rival se ve la espera con los segundos que quedan (%s)" % combat._waiting_label.text)
+	Game.last_winner = -1
+	Online._on_message('{"t":"timeout","loser":2}')
+	check(combat.round_manager.phase == RoundManager.Phase.MATCH_END, "al cerrar el servidor el duelo, la pelea se detiene")
+	var waited := 0
+	while Game.last_winner != 1 and waited < 400:
+		await get_tree().physics_frame
+		waited += 1
+	check(Game.last_winner == 1, "pierde quien dejó de responder: gana P1 (ganador %d)" % Game.last_winner)
+	# Game.goto ya está cambiando a Resultados: se deja terminar y se limpia.
+	await get_tree().create_timer(0.6).timeout
+	if get_tree().current_scene != null:
+		get_tree().current_scene.queue_free()
+		get_tree().current_scene = null
+	if is_instance_valid(combat):
+		combat.queue_free()
+	Online.disconnect_from_server()
+	Game.mode = old_mode
+	await get_tree().physics_frame
