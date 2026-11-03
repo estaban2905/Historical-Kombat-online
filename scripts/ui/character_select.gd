@@ -214,6 +214,7 @@ func _handle_player(p: int) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel") and not _starting:
+		Game.drop_challenge()
 		Game.goto(Game.SCENE_MENU)
 		get_viewport().set_input_as_handled()
 

@@ -219,6 +219,74 @@ func sync_unlocks() -> void:
 	var missing := Unlocks.as_dicts().filter(func(u: Dictionary) -> bool: return not known.has("%s:%s" % [u["kind"], u["key"]]))
 	await push_unlocks(missing)
 
+## Amigos y solicitudes ([{username, avatar, points, status}], status: "friend", "incoming" o "outgoing").
+## null si falla. Deja la lista en friends_cache para consultarla sin red (friend_status).
+var friends_cache: Array = []
+
+func fetch_friends() -> Variant:
+	if not is_logged_in():
+		return null
+	var r := await _request("GET", "/me/friends", null, true)
+	if not r.ok or not r.data is Array:
+		return null
+	friends_cache = r.data
+	return r.data
+
+## Cómo es mi relación con un jugador según la última lista descargada: "friend", "incoming" (me pidió
+## amistad), "outgoing" (se la pedí yo) o "" (ninguna).
+func friend_status(player_name: String) -> String:
+	for f in friends_cache:
+		if str(f.get("username", "")).to_lower() == player_name.to_lower():
+			return str(f.get("status", ""))
+	return ""
+
+## Pide amistad; si esa persona ya me la había pedido, quedan como amigos.
+## Devuelve {ok, result ("requested", "accepted", "already_friends", "already_requested"), error}.
+func request_friend(player_name: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "result": "", "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var r := await _request("POST", "/me/friends", {"username": player_name}, true)
+	if not r.ok or not r.data is Dictionary:
+		return {"ok": false, "result": "", "error": _error_text(r)}
+	return {"ok": true, "result": str(r.data.get("result", "")), "error": ""}
+
+## Quita un amigo, o cancela / rechaza una solicitud. true si el servidor lo hizo.
+func remove_friend(player_name: String) -> bool:
+	if not is_logged_in():
+		return false
+	var r := await _request("DELETE", "/me/friends/%s" % player_name.uri_encode(), null, true)
+	return r.ok
+
+## Ranking entre mis amigos y yo (mismo formato que fetch_ranking). Vacío si falla.
+func fetch_friends_ranking() -> Array:
+	if not is_logged_in():
+		return []
+	var r := await _request("GET", "/me/friends/leaderboard", null, true)
+	return r.data if r.ok and r.data is Array else []
+
+## Reta a un amigo: abre una sala privada de unos 2 minutos. Devuelve {ok, code, expires_in, error}.
+func create_challenge(player_name: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "code": "", "expires_in": 0, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var r := await _request("POST", "/me/challenges", {"to": player_name}, true)
+	if not r.ok or not r.data is Dictionary:
+		return {"ok": false, "code": "", "expires_in": 0, "error": _error_text(r)}
+	return {"ok": true, "code": str(r.data.get("code", "")), "expires_in": int(r.data.get("expires_in", 0)), "error": ""}
+
+## Los retos que me han hecho ([{code, from, expires_in}]). Vacío si no hay o falla.
+func fetch_challenges() -> Array:
+	if not is_logged_in():
+		return []
+	var r := await _request("GET", "/me/challenges", null, true)
+	return r.data if r.ok and r.data is Array else []
+
+## Cancela mi reto o rechaza el que me hicieron.
+func cancel_challenge(code: String) -> bool:
+	if not is_logged_in() or code == "":
+		return false
+	var r := await _request("DELETE", "/me/challenges/%s" % code.uri_encode(), null, true)
+	return r.ok
+
 ## Los mejores jugadores: [{username, points, wins, losses, avatar, favorite_fighter, streak}]. Vacío si falla.
 func fetch_ranking(limit: int = 10) -> Array:
 	var r := await _request("GET", "/leaderboard?limit=%d" % limit, null, false)
@@ -420,6 +488,10 @@ func _error_text(r: Dictionary) -> String:
 		"no_password": return "TU CUENTA ENTRA CON GOOGLE: NO TIENE CONTRASEÑA"
 		"player_not_found": return "JUGADOR NO ENCONTRADO"
 		"not_unlocked": return "TODAVÍA NO HAS DESBLOQUEADO ESO"
+		"cannot_friend_self": return "NO PUEDES SER TU PROPIO AMIGO"
+		"friend_limit": return "YA TIENES DEMASIADOS AMIGOS Y SOLICITUDES"
+		"not_friends": return "SOLO PUEDES RETAR A TUS AMIGOS"
+		"cannot_challenge_self": return "NO PUEDES RETARTE A TI MISMO"
 	return "ERROR DEL SERVIDOR (%d)" % r.code
 
 ## Valida los datos del formulario antes de enviarlos. "" = correcto.

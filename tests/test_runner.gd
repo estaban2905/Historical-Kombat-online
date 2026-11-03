@@ -280,6 +280,29 @@ func _test_profile_helpers() -> void:
 	Game.mode = nexo_mode
 	Game.p1_fighter_id = &"donald_trump"
 
+	# Amigos
+	var friends := [
+		{"username": "zeta", "status": "friend", "points": 1000},
+		{"username": "Beto", "status": "outgoing", "points": 1000},
+		{"username": "ana", "status": "friend", "points": 1000},
+		{"username": "Carla", "status": "incoming", "points": 1000},
+		{"username": "Dani", "status": "incoming", "points": 1000},
+	]
+	var sorted_friends := FriendsScreen.sort_entries(friends)
+	var order := sorted_friends.map(func(f): return f["username"])
+	check(order == ["Carla", "Dani", "ana", "zeta", "Beto"], "amigos: primero las solicitudes que me hacen, luego los amigos y al final las enviadas (%s)" % str(order))
+	check(friends[0]["username"] == "zeta", "ordenar no toca la lista original")
+	check(FriendsScreen.pending_count(friends) == 2 and FriendsScreen.pending_count([]) == 0, "se cuentan las solicitudes por contestar")
+	var old_cache := Backend.friends_cache
+	Backend.friends_cache = friends
+	check(Backend.friend_status("ANA") == "friend" and Backend.friend_status("carla") == "incoming", "friend_status no distingue mayúsculas")
+	check(Backend.friend_status("beto") == "outgoing" and Backend.friend_status("Nadie") == "", "sin relación devuelve vacío")
+	Backend.friends_cache = old_cache
+	Game.challenge_code = "ABCD2345"
+	Game.challenge_opponent = "Ana"
+	Game.drop_challenge()
+	check(Game.challenge_code == "" and Game.challenge_opponent == "", "soltar el reto lo limpia")
+
 func _test_menu_to_fight() -> void:
 	print("\n# Menú -> Selección -> Combate")
 	# La selección bloquea a quien aún no se ha ganado: esta prueba elige a Trump (el luchador por defecto),

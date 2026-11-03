@@ -1,5 +1,5 @@
-## Ranking de jugadores: los mejores por puntos. Tu fila sale resaltada, con tu puesto fijo debajo si no
-## entras en las primeras. Flecha arriba para entrar en la lista, arriba/abajo para moverte y ENTER (o un
+## Ranking de jugadores: los mejores por puntos. Con sesión, izquierda/derecha (con VOLVER elegido) alterna
+## entre GLOBAL y AMIGOS. Tu fila sale resaltada, con tu puesto fijo debajo si no entras en las primeras. Flecha arriba para entrar en la lista, arriba/abajo para moverte y ENTER (o un
 ## clic) para ver el perfil de ese jugador; abajo desde la última fila vuelve a VOLVER. ESC regresa al menú.
 extends Control
 
@@ -15,6 +15,11 @@ const FIRST_ROW_Y := 62.0
 const ROW_STEP := 13.0
 
 var _players: Array = []
+## Lo que se muestra: GLOBAL (los mejores de todos) o AMIGOS (mis amigos y yo). Cada lista se pide una vez.
+var _scope: int = 0
+var _global: Array = []
+var _friends_list: Array = []
+var _friends_loaded: bool = false
 var _loading: bool = true
 var _back: Button
 ## Fila elegida con el cursor (-1 = ninguna: el foco está en VOLVER).
@@ -32,7 +37,8 @@ func _ready() -> void:
 	_back.focus_entered.connect(func(): Sfx.play(&"select"))
 	_back.pressed.connect(func(): Sfx.play(&"confirm"))
 	_back.grab_focus()
-	_players = await Backend.fetch_ranking(FETCH)
+	_global = await Backend.fetch_ranking(FETCH)
+	_players = _global
 	_loading = false
 
 func _shown() -> int:
@@ -40,7 +46,13 @@ func _shown() -> int:
 
 ## _input y no _unhandled_input: los botones se quedan las flechas y ENTER antes de que lleguen a _unhandled_input.
 func _input(event: InputEvent) -> void:
-	if _loading or _shown() == 0:
+	if _loading:
+		return
+	if _sel == -1 and Backend.is_logged_in() and (event.is_action_pressed(&"ui_left") or event.is_action_pressed(&"ui_right")):
+		_set_scope(0 if event.is_action_pressed(&"ui_left") else 1)
+		get_viewport().set_input_as_handled()
+		return
+	if _shown() == 0:
 		return
 	if event.is_action_pressed(&"ui_up") and _sel != 0:
 		if _sel == -1:
@@ -61,6 +73,19 @@ func _input(event: InputEvent) -> void:
 	elif event.is_action_pressed(&"ui_accept") and _sel >= 0:
 		_open(_sel)
 		get_viewport().set_input_as_handled()
+
+func _set_scope(scope: int) -> void:
+	if scope == _scope:
+		return
+	_scope = scope
+	_sel = -1
+	Sfx.play(&"select")
+	if scope == 1 and not _friends_loaded:
+		_loading = true
+		_friends_list = await Backend.fetch_friends_ranking()
+		_friends_loaded = true
+		_loading = false
+	_players = _friends_list if _scope == 1 else _global
 
 func _gui_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
@@ -91,6 +116,7 @@ func _draw() -> void:
 	if _players.is_empty():
 		HKTheme.draw_text(self, Vector2(0, 110), "TODAVÍA NO HAY JUGADORES", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 		return
+	_draw_scope_tabs()
 	HKTheme.draw_text(self, Vector2(60, 46), "#", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(90, 46), "JUGADOR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	HKTheme.draw_text(self, Vector2(230, 46), "PTS", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
@@ -109,6 +135,19 @@ func _draw() -> void:
 			draw_rect(Rect2(51, y - 10, 364, 13), HKTheme.GOLD, false, 1.0)
 		y += ROW_STEP
 	_draw_footer(my_index, me)
+
+## GLOBAL y AMIGOS bajo el título (solo con sesión): el elegido en dorado y subrayado.
+func _draw_scope_tabs() -> void:
+	if not Backend.is_logged_in():
+		return
+	var names := ["GLOBAL", "AMIGOS"]
+	var x := 213.0 - (HKTheme.text_width("GLOBAL", 8) + HKTheme.text_width("AMIGOS", 8) + 24.0) * 0.5
+	for i in 2:
+		var w := HKTheme.text_width(names[i], 8)
+		HKTheme.draw_text(self, Vector2(x, 33), names[i], 8, HKTheme.GOLD if i == _scope else HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		if i == _scope:
+			draw_rect(Rect2(x, 35, w, 1), HKTheme.GOLD)
+		x += w + 24.0
 
 ## Debajo de la lista: lo del jugador elegido; si no hay ninguno, tu puesto (fijo si no entras en las filas) o lo que te falta.
 func _draw_footer(my_index: int, me: String) -> void:

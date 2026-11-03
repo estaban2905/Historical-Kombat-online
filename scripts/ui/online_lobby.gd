@@ -4,6 +4,8 @@
 extends Control
 
 const VS_SECONDS := 1.6
+## Cuánto se espera a que el amigo acepte un reto (un poco más que lo que vive en el servidor).
+const CHALLENGE_WAIT := 125.0
 
 var _t: float = 0.0
 var _error: String = ""
@@ -34,7 +36,7 @@ func _search() -> void:
 			_error = "TU SESIÓN CADUCÓ, ENTRA DE NUEVO"
 			return
 		token = Backend.access_token
-	Online.find_match(_my_id, Backend.username(), token)
+	Online.find_match(_my_id, Backend.username(), token, Game.challenge_code)
 
 func _on_failed(message: String) -> void:
 	# Si el rival se va durante el VS, se cancela el inicio y se puede reintentar.
@@ -50,6 +52,9 @@ func _on_matched() -> void:
 		_error = "TU RIVAL USA UNA VERSIÓN DISTINTA DEL JUEGO"
 		return
 	_matched = true
+	# El código del reto ya se gastó al emparejarse: la próxima búsqueda es una partida normal.
+	Game.challenge_code = ""
+	Game.challenge_opponent = ""
 	# P1 y P2 son los mismos en los dos PC: el servidor decide quién es cada uno.
 	if Online.side == 1:
 		Game.p1_fighter_id = _my_id
@@ -77,6 +82,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed(&"ui_cancel"):
 		Online.cancel()
+		Game.drop_challenge()
 		Game.goto(Game.SCENE_SELECT)
 		get_viewport().set_input_as_handled()
 	elif _error != "" and (event.is_action_pressed(&"ui_accept") or event.is_action_pressed(&"p1_punch_light")):
@@ -85,6 +91,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	# Un reto que el amigo no contesta no se espera para siempre.
+	if Game.challenge_code != "" and not _matched and _error == "" and _t > CHALLENGE_WAIT:
+		Online.cancel()
+		Online.disconnect_from_server()
+		Game.drop_challenge()
+		_error = "%s NO RESPONDIÓ AL RETO" % Game.challenge_opponent.to_upper() if Game.challenge_opponent != "" else "NADIE RESPONDIÓ AL RETO"
 	queue_redraw()
 
 func _draw() -> void:
@@ -108,11 +120,15 @@ func _draw() -> void:
 		return
 	var dots := ".".repeat(int(_t * 2.0) % 4)
 	var connecting := Online.state == Online.State.CONNECTING
-	HKTheme.draw_text(self, Vector2(0, 92), "DUELO ONLINE", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
-	HKTheme.draw_text(self, Vector2(0, 124), ("CONECTANDO" if connecting else "BUSCANDO RIVAL") + dots,
+	var challenge := Game.challenge_code != ""
+	HKTheme.draw_text(self, Vector2(0, 92), "RETO ENTRE AMIGOS" if challenge else "DUELO ONLINE", 16, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 3)
+	var waiting_for := "ESPERANDO A %s" % Game.challenge_opponent.to_upper() if Game.challenge_opponent != "" else "ESPERANDO AL AMIGO"
+	HKTheme.draw_text(self, Vector2(0, 124), ("CONECTANDO" if connecting else (waiting_for if challenge else "BUSCANDO RIVAL")) + dots,
 		8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	HKTheme.draw_text(self, Vector2(0, 150), "TU LUCHADOR: %s" % FighterRegistry.get_by_id(_my_id).short_name,
 		8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	var who := "JUEGAS COMO: %s" % Backend.username().to_upper() if Backend.is_logged_in() else "INVITADO · SIN PUNTOS"
+	if challenge:
+		who = "AMISTOSO · SIN PUNTOS"
 	HKTheme.draw_text(self, Vector2(0, 164), who, 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
 	HKTheme.draw_text(self, Vector2(0, 234), "ESC: CANCELAR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, 426, 1)

@@ -18,6 +18,7 @@ const SCENE_SETTINGS := "res://scenes/Settings.tscn"
 const SCENE_PLAYER := "res://scenes/PlayerProfile.tscn"
 const SCENE_EDIT_PROFILE := "res://scenes/EditProfile.tscn"
 const SCENE_ACHIEVEMENTS := "res://scenes/Achievements.tscn"
+const SCENE_FRIENDS := "res://scenes/Friends.tscn"
 const SCENE_ROSTER := "res://scenes/Roster.tscn"
 const SCENE_CREDITS := "res://scenes/Credits.tscn"
 const SCENE_STORY := "res://scenes/Story.tscn"
@@ -246,6 +247,17 @@ func stage_owner(round_number: int) -> StringName:
 	if mode == Mode.ARCADE:
 		return p2_fighter_id
 	return p1_fighter_id if round_number % 2 == 1 else p2_fighter_id
+
+## Reto entre amigos en curso: código de la sala privada y nombre del amigo ("" = ninguno: cola pública).
+var challenge_code: String = ""
+var challenge_opponent: String = ""
+
+## Deja el reto en curso (salir de la selección o de la sala): avisa a la cuenta para que el amigo no lo siga viendo.
+func drop_challenge() -> void:
+	if challenge_code != "":
+		Backend.cancel_challenge(challenge_code)   # sin esperar: si falla, caduca solo
+	challenge_code = ""
+	challenge_opponent = ""
 
 ## Perfil de otro jugador que se está viendo y escena a la que vuelve VOLVER.
 var viewed_player: String = ""

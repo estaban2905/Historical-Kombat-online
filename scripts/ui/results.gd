@@ -16,6 +16,12 @@ var _arcade: StringName = &""
 ## Online: lo que confirmó el servidor ({} mientras espera) y un aviso si no llegó.
 var _settled: Dictionary = {}
 var _online_note: String = ""
+## Online con cuenta: qué hace el botón de revancha: "challenge" (reto de nuevo), "accept" (el rival ya me retó),
+## "add" (todavía no somos amigos) o "" (no se ofrece).
+var _rematch_mode: String = ""
+var _incoming_code: String = ""
+var _poll: float = 0.0
+var _polling: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -25,6 +31,7 @@ func _ready() -> void:
 	_setup_buttons()
 	if Game.is_online():
 		_finish_online()
+		_setup_online_rematch()
 	for b in [btn_rematch, btn_select, btn_menu]:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
@@ -95,6 +102,70 @@ func _finish_online() -> void:
 		_online_note = "SIN CONFIRMACIÓN DEL SERVIDOR"
 		Online.disconnect_from_server()
 
+## Con cuenta y un rival que también la tiene: REVANCHA (reto privado, amistoso) si ya sois amigos, o AGREGAR AMIGO.
+func _setup_online_rematch() -> void:
+	var rival := Online.opponent_name
+	if not Backend.is_logged_in() or rival == "" or rival == "INVITADO":
+		return
+	await Backend.fetch_friends()
+	if not is_inside_tree():
+		return
+	match Backend.friend_status(rival):
+		"friend": _set_rematch("challenge", "REVANCHA")
+		"outgoing": _set_rematch("", "SOLICITUD ENVIADA")
+		"incoming": _set_rematch("add", "ACEPTAR AMISTAD")
+		_: _set_rematch("add", "AGREGAR AMIGO")
+	btn_rematch.visible = true
+	btn_rematch.pressed.connect(_on_online_rematch)
+	btn_rematch.focus_entered.connect(func(): Sfx.play(&"select"))
+	btn_rematch.pressed.connect(func(): Sfx.play(&"confirm"))
+
+func _set_rematch(mode: String, text: String) -> void:
+	_rematch_mode = mode
+	btn_rematch.text = text
+	btn_rematch.disabled = mode == ""
+
+func _on_online_rematch() -> void:
+	var rival := Online.opponent_name
+	match _rematch_mode:
+		"accept":
+			_enter_challenge(_incoming_code, rival)
+		"challenge":
+			var r := await Backend.create_challenge(rival)
+			if not r.ok:
+				_online_note = r.error
+				return
+			_enter_challenge(r.code, rival)
+		"add":
+			var r := await Backend.request_friend(rival)
+			if not r.ok:
+				_online_note = r.error
+			elif r.result == "accepted" or r.result == "already_friends":
+				_set_rematch("challenge", "REVANCHA")
+			else:
+				_set_rematch("", "SOLICITUD ENVIADA")
+
+## Pasa a elegir luchador para el reto (amistoso, sin puntos).
+func _enter_challenge(code: String, rival: String) -> void:
+	Online.disconnect_from_server()
+	Game.challenge_code = code
+	Game.challenge_opponent = rival
+	Game.mode = Game.Mode.ONLINE
+	Game.goto(Game.SCENE_SELECT)
+
+## Cada pocos segundos mira si el rival ya me ha retado a la revancha.
+func _check_rematch_challenge() -> void:
+	_polling = true
+	var list := await Backend.fetch_challenges()
+	_polling = false
+	if not is_inside_tree() or _rematch_mode != "challenge":
+		return
+	for c in list:
+		if str(c.get("from", "")).to_lower() == Online.opponent_name.to_lower():
+			_incoming_code = str(c.get("code", ""))
+			_set_rematch("accept", "ACEPTAR REVANCHA")
+			return
+
 func _on_settled(msg: Dictionary) -> void:
 	_settled = msg
 	Backend.apply_settled(msg)
@@ -111,6 +182,10 @@ func _add_figure(d: FighterData, pos: Vector2, s: int, pose: StringName) -> void
 
 func _process(delta: float) -> void:
 	_t += delta
+	_poll += delta
+	if _poll >= 3.0 and _rematch_mode == "challenge" and not _polling:
+		_poll = 0.0
+		_check_rematch_challenge()
 	queue_redraw()
 
 func _draw() -> void:
