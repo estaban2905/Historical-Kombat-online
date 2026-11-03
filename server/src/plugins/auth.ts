@@ -7,6 +7,7 @@ import { MatchRepository } from "../repositories/match.repository.js";
 import { SessionRepository } from "../repositories/session.repository.js";
 import { FriendRepository } from "../repositories/friend.repository.js";
 import { StoryRepository } from "../repositories/story.repository.js";
+import { ChallengeService } from "../services/challenge.service.js";
 import { UnlockRepository } from "../repositories/unlock.repository.js";
 import { AuthService } from "../services/auth.service.js";
 import type { GoogleVerifier } from "../services/google-verifier.js";
@@ -18,6 +19,7 @@ declare module "fastify" {
     matchHistory: MatchRepository;
     storySaves: StoryRepository;
     friends: FriendRepository;
+    challenges: ChallengeService;
     unlocks: UnlockRepository;
     /** preHandler: exige `Authorization: Bearer <token>` válido y deja la cuenta en request.account. */
     requireAuth: (req: FastifyRequest) => Promise<void>;
@@ -42,6 +44,7 @@ export function registerAuth(app: FastifyInstance, db: Db, googleVerifier: Googl
   app.decorate("matchHistory", new MatchRepository(db));
   app.decorate("storySaves", new StoryRepository(db));
   app.decorate("friends", new FriendRepository(db));
+  app.decorate("challenges", new ChallengeService());
   app.decorate("unlocks", new UnlockRepository(db));
   app.decorate("auth", auth);
   app.decorateRequest("account", null);

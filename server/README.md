@@ -28,6 +28,7 @@ npm run build && npm start
 | `POST /me/password` | Cambia mi contraseña (pide la actual y cierra las demás sesiones; no vale para cuentas de Google) |
 | `GET /me/unlocks` · `PUT /me/unlocks` | Lo que he desbloqueado (finales vistos, luchadores ganados, cosméticos). Solo se lee y se añade: desbloquear es para siempre |
 | `GET /me/friends` · `POST /me/friends` · `DELETE /me/friends/:nombre` | Mis amigos y solicitudes; pedir amistad (si esa persona ya me la había pedido, quedan como amigos); quitar un amigo o cancelar/rechazar una solicitud. Máx. 100 entre amigos y solicitudes enviadas |
+| `POST /me/challenges` · `GET /me/challenges` · `DELETE /me/challenges/:codigo` | Retar a un amigo (abre una sala privada de 2 minutos con un código), ver los retos que me hacen y cancelar o rechazar. Quien reta y el retado entran con `find` + `room: codigo`; el duelo es **amistoso** (no mueve puntos) |
 | `GET /me/friends/leaderboard` | Ranking entre mis amigos y yo |
 | `GET /me/achievements` | Mis logros (clave, progreso y meta), calculados al momento con mis duelos y desbloqueos: no se guardan. El juego pone los nombres |
 | `GET /leaderboard` · `GET /players/:nombre` | El ranking (con luchador favorito y racha) y el perfil público de cualquier jugador (puesto, favorito, racha y 10 últimos duelos; sin email) |

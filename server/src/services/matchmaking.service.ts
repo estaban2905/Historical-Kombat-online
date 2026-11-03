@@ -58,7 +58,7 @@ export class MatchmakingService {
   handle(peer: Peer, msg: ClientMessage, accountId: string | null = null): void {
     switch (msg.t) {
       case "find":
-        this.find(peer, msg.fighter, msg.name ?? "", accountId);
+        this.find(peer, msg.fighter, msg.name ?? "", accountId, msg.room ?? null);
         break;
       case "cancel":
         this.cancel(peer);
@@ -98,7 +98,7 @@ export class MatchmakingService {
     if (!this.players.has(other.peer)) this.clearTimer(room);
   }
 
-  private find(peer: Peer, fighter: string, name: string, accountId: string | null): void {
+  private find(peer: Peer, fighter: string, name: string, accountId: string | null, roomCode: string | null): void {
     const existing = this.players.get(peer);
     if (existing) {
       // Si su rival se fue, la sala ya está cerrada y puede buscar otra partida.
@@ -115,11 +115,12 @@ export class MatchmakingService {
       this.clearTimer(existing.room);
       this.players.delete(peer);
     }
-    const player: Player = { peer, fighter, name: name || "JUGADOR", accountId, room: null };
+    const player: Player = { peer, fighter, name: name || "JUGADOR", accountId, roomCode, room: null };
     this.players.set(peer, player);
 
-    // Una cuenta nunca se empareja consigo misma (dos pestañas abiertas).
-    const index = this.queue.findIndex((q) => accountId === null || q.accountId !== accountId);
+    // Una cuenta nunca se empareja consigo misma (dos pestañas abiertas). Con código de reto solo se
+    // empareja con quien tenga el mismo código; sin él, solo con quien tampoco lo tenga.
+    const index = this.queue.findIndex((q) => q.roomCode === roomCode && (accountId === null || q.accountId !== accountId));
     const rival = index >= 0 ? this.queue.splice(index, 1)[0] : undefined;
     if (!rival) {
       this.queue.push(player);
@@ -138,7 +139,8 @@ export class MatchmakingService {
 
   private startRoom(first: Player, second: Player): void {
     // Quien esperaba antes es P1.
-    const ranked = this.settler !== undefined && first.accountId !== null && second.accountId !== null;
+    // Los duelos de un reto entre amigos son amistosos: si no, dos amigos podrían repartirse puntos a voluntad.
+    const ranked = this.settler !== undefined && first.accountId !== null && second.accountId !== null && first.roomCode === null;
     const room = newRoom(first, second, ranked);
     first.room = room;
     second.room = room;

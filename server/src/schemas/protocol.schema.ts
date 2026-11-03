@@ -10,6 +10,13 @@ const find = {
     t: { const: "find" },
     fighter: { type: "string", pattern: "^[a-z0-9_]+$", maxLength: 40, examples: ["napoleon"] },
     name: { type: "string", maxLength: 16, examples: ["ANA"], description: "Se ignora: el nombre es el de la cuenta, o INVITADO" },
+    room: {
+      type: "string",
+      pattern: "^[A-Z0-9]{6,12}$",
+      description:
+        "Código de un reto entre amigos (POST /me/challenges). Solo se empareja con quien entre con el mismo código; " +
+        "pide `token` y el duelo es amistoso (no mueve puntos). Un reto que no es tuyo o caducó responde error `invalid_room`.",
+    },
     token: {
       type: "string",
       maxLength: 200,

@@ -69,3 +69,14 @@ test("result válido y con valores fuera de rango", () => {
     assert.equal(parseClientMessage(bad), null, bad);
   }
 });
+
+test("find con sala de reto: pide token y un código con la forma esperada", () => {
+  assert.deepEqual(parseClientMessage('{"t":"find","fighter":"napoleon","token":"abc.def","room":"ABCD2345"}'), {
+    t: "find", fighter: "napoleon", name: "", token: "abc.def", room: "ABCD2345",
+  });
+  assert.equal(parseClientMessage('{"t":"find","fighter":"napoleon","room":"ABCD2345"}'), null, "sin token no hay sala");
+  assert.equal(parseClientMessage('{"t":"find","fighter":"napoleon","token":"abc.def","room":"abc"}'), null, "código demasiado corto");
+  assert.equal(parseClientMessage('{"t":"find","fighter":"napoleon","token":"abc.def","room":"abcd2345"}'), null, "minúsculas");
+  assert.equal(parseClientMessage('{"t":"find","fighter":"napoleon","token":"abc.def","room":5}'), null);
+  assert.equal(parseClientMessage('{"t":"find","fighter":"napoleon","token":"abc.def","room":"ABCD2345EXTRA9"}'), null, "demasiado largo");
+});

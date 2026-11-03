@@ -10,7 +10,8 @@ export type Winner = 0 | 1 | 2;
 /** Lo que manda el cliente. */
 export type ClientMessage =
   /** `token`: access token de la cuenta; sin él se juega de invitado (sin puntos). */
-  | { t: "find"; fighter: string; name?: string; token?: string }
+  /** `room`: código de un reto entre amigos; solo se empareja con quien entre con el mismo código (y pide `token`). */
+  | { t: "find"; fighter: string; name?: string; token?: string; room?: string }
   | { t: "cancel" }
   | { t: "input"; f: number; m: number; a?: number }
   /** Resultado de la pelea según la simulación de este cliente. Los dos deben coincidir. */

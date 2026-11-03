@@ -15,6 +15,8 @@ export interface Player {
   name: string;
   /** Cuenta con la que inició sesión; null si juega de invitado. */
   accountId: string | null;
+  /** Código de la sala privada de un reto; null en la cola pública. */
+  roomCode: string | null;
   /** Sala en la que está peleando; null si está en cola. */
   room: Room | null;
 }

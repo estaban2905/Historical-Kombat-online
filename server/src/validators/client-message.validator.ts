@@ -9,6 +9,7 @@ export const MAX_TOKEN_LENGTH = 200;
 export const MAX_ROUNDS = 20;
 
 const FIGHTER_ID = /^[a-z0-9_]+$/;
+const ROOM_CODE = /^[A-Z0-9]{6,12}$/;
 
 /**
  * Valida y normaliza lo que llega por el socket. Devuelve null si no es un
@@ -47,10 +48,13 @@ function parseFind(msg: Record<string, unknown>): ClientMessage | null {
   }
   const name = typeof msg["name"] === "string" ? sanitizeName(msg["name"]) : "";
   const token = msg["token"];
+  const room = msg["room"];
+  // Una sala privada es de una cuenta: sin token no hay sala, y un código con mala forma se rechaza.
+  if (room !== undefined && (typeof room !== "string" || !ROOM_CODE.test(room) || token === undefined)) return null;
   if (token === undefined) return { t: "find", fighter, name };
   // Un token mal formado es un error, no "juega de invitado": así el jugador se entera.
   if (typeof token !== "string" || token === "" || token.length > MAX_TOKEN_LENGTH) return null;
-  return { t: "find", fighter, name, token };
+  return room === undefined ? { t: "find", fighter, name, token } : { t: "find", fighter, name, token, room: room as string };
 }
 
 function parseInput(msg: Record<string, unknown>): ClientMessage | null {

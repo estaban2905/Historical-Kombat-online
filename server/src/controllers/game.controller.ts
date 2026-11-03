@@ -2,6 +2,7 @@ import type { WebSocket } from "ws";
 import type { AppConfig } from "../config/env.js";
 import type { Peer } from "../models/player.js";
 import type { ServerMessage } from "../models/messages.js";
+import type { ChallengeService } from "../services/challenge.service.js";
 import type { MatchmakingService } from "../services/matchmaking.service.js";
 import { RateLimiter } from "../services/rate-limiter.service.js";
 import { parseClientMessage } from "../validators/client-message.validator.js";
@@ -21,6 +22,7 @@ export function handleGameSocket(
   config: GameConfig,
   authenticate?: Authenticator,
   onError: (err: unknown) => void = () => undefined,
+  challenges?: ChallengeService,
 ): void {
   const peer: Peer = {
     send(msg: ServerMessage) {
@@ -73,7 +75,13 @@ export function handleGameSocket(
         peer.send({ t: "error", msg: "invalid_token" });
         return;
       }
-      matchmaking.handle(peer, { t: "find", fighter: msg.fighter, name: account.username }, account.id);
+      // Una sala de reto solo la abren sus dos jugadores y mientras el reto siga vivo.
+      if (msg.room !== undefined && !challenges?.join(msg.room, account.id)) {
+        peer.send({ t: "error", msg: "invalid_room" });
+        return;
+      }
+      const find = { t: "find" as const, fighter: msg.fighter, name: account.username };
+      matchmaking.handle(peer, msg.room === undefined ? find : { ...find, room: msg.room }, account.id);
     });
   });
 
