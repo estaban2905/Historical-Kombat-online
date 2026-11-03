@@ -18,5 +18,8 @@ var counter: bool = false
 var perfect: bool = false
 ## Un escudo (Allende) absorbió el golpe: no hubo daño.
 var absorbed: bool = false
+## Nivel (AttackData.HitLevel) del golpe que entró porque la guardia no lo cubría (p. ej. un golpe bajo
+## contra un bloqueo de pie); -1 si no fue el caso. Sirve para avisar al jugador de por qué le entró.
+var guard_miss: int = -1
 ## Nombre del combo completado con este golpe ("" si ninguno); lo rellena el CombatManager.
 var combo_name: String = ""

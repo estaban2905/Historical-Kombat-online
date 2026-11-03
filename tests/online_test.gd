@@ -312,8 +312,12 @@ func _case_timeout_ends_the_fight() -> void:
 	var combat := _new_combat()
 	for i in 90:
 		await get_tree().physics_frame
+	check(combat._waiting_label.visible and combat._waiting_label.text == "CONEXIÓN LENTA...",
+		"sin botones del rival se ve un aviso de conexión lenta, sin cuenta atrás al principio (%s)" % combat._waiting_label.text)
+	for i in (Online.RIVAL_TIMEOUT_S - CombatManager.WAIT_COUNTDOWN_FROM) * 60:
+		await get_tree().physics_frame
 	check(combat._waiting_label.visible and combat._waiting_label.text.ends_with("%d" % Online.stall_seconds_left()),
-		"sin botones del rival se ve la espera con los segundos que quedan (%s)" % combat._waiting_label.text)
+		"en los últimos segundos se ve la cuenta atrás (%s)" % combat._waiting_label.text)
 	Game.last_winner = -1
 	Online._on_message('{"t":"timeout","loser":2}')
 	check(combat.round_manager.phase == RoundManager.Phase.MATCH_END, "al cerrar el servidor el duelo, la pelea se detiene")

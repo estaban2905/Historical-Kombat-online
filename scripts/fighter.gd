@@ -36,7 +36,7 @@ const BLOCK_DAMAGE_FACTOR := 0.15
 ## ningún golpe. Al llegar a 0 se rompe: GUARD_BREAK_STUN frames de aturdimiento
 ## (sin poder bloquear) y la guardia vuelve al GUARD_AFTER_BREAK %.
 const MAX_GUARD := 100.0
-const GUARD_DRAIN := 2.0
+const GUARD_DRAIN := 1.0
 const GUARD_REGEN_DELAY := 60
 const GUARD_REGEN_PER_SECOND := 30.0
 const GUARD_BREAK_STUN := 50
@@ -1010,6 +1010,9 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 			_break_guard()
 			result.guard_break = true
 	else:
+		# Bloqueaba, pero el golpe iba por otra altura: se avisa de cuál era.
+		if state == State.BLOCK and is_on_ground() and not guards_against(level):
+			result.guard_miss = level
 		# Golpes que ya lleva el combo (si no estaba aturdido, empieza uno nuevo).
 		var hits_before := combo_hits_taken if state == State.HIT else 0
 		# Counter-hit: le pillamos en el startup de su ataque.

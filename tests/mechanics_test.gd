@@ -57,6 +57,7 @@ func _run() -> void:
 	await _test_grab()
 	await _test_hit_levels()
 	await _test_guard()
+	_test_power_timing()
 	await _test_combos()
 	await _test_movement()
 	await _test_knockdown()
@@ -240,19 +241,46 @@ func _test_hit_levels() -> void:
 	var crouch := 1 << BIT_CROUCH
 	var r := await _attack_vs_guard(34.0, STAND_BLOCK, 1 << BIT_LK, crouch)
 	check(r == "hit", "patada agachada (baja) atraviesa la guardia de pie (%s)" % r)
+	check(_hits[0][3].guard_miss == AttackData.HitLevel.LOW, "…y avisa de que era un golpe bajo (%d)" % _hits[0][3].guard_miss)
 	r = await _attack_vs_guard(34.0, CROUCH_BLOCK, 1 << BIT_LK, crouch)
 	check(r == "block", "patada agachada se bloquea agachado (%s)" % r)
+	check(_hits[0][3].guard_miss == -1, "un golpe bloqueado no avisa de altura")
 	r = await _attack_vs_guard(34.0, CROUCH_BLOCK, 1 << BIT_LP)
 	check(r == "block", "puño de pie (medio) se bloquea agachado (%s)" % r)
 	r = await _attack_vs_guard(34.0, STAND_BLOCK, 1 << BIT_LP)
 	check(r == "block", "puño de pie (medio) se bloquea de pie (%s)" % r)
 	r = await _air_attack_vs_guard(34.0, CROUCH_BLOCK)
 	check(r == "hit", "ataque aéreo (alto) atraviesa la guardia agachada (%s)" % r)
+	check(_hits[0][3].guard_miss == AttackData.HitLevel.OVERHEAD, "…y avisa de que era un golpe alto")
 	r = await _air_attack_vs_guard(34.0, STAND_BLOCK)
 	check(r == "block", "ataque aéreo se bloquea de pie (%s)" % r)
 	combat.p1.energy = Fighter.MAX_ENERGY
 	r = await _attack_vs_guard(130.0, CROUCH_BLOCK, 1 << BIT_S1)
 	check(r != "hit", "un proyectil (medio) no atraviesa la guardia agachada (%s)" % r)
+
+## Las entidades de los poderes cuentan en frames enteros y van a la mitad de ritmo si su dueño está en tiempo lento.
+func _test_power_timing() -> void:
+	print("
+# Poderes en frames")
+	var p := Projectile.new()
+	p.owner_fighter = combat.p1
+	p.delay_frames = 5
+	p.life_frames = 20
+	p._armed = false
+	for i in 4:
+		p.tick(1.0 / 60.0)
+	check(not p.is_armed(), "no se arma antes de su retardo (%d frames)" % p.age)
+	p.tick(1.0 / 60.0)
+	check(p.is_armed() and p.age == 5, "se arma justo al cumplir su retardo en frames (%d)" % p.age)
+	check(p.life_frames == 15, "la vida baja un frame por tick (%d)" % p.life_frames)
+	combat.p1.slow_frames = 1000
+	var age_before := p.age
+	for n in 10:
+		combat.p1.frame_counter = n
+		p.tick(1.0 / 60.0)
+	check(p.age - age_before == 5, "con el dueño en tiempo lento avanza uno de cada dos frames (%d de 10)" % (p.age - age_before))
+	combat.p1.slow_frames = 0
+	p.free()
 
 # --- Guardia ------------------------------------------------------------------
 ## Daño de un ataque de P1 sobre P2 antes de reducirlo por el bloqueo.
@@ -1143,7 +1171,7 @@ func _test_snapshot_coverage() -> void:
 		check(changed, "el snapshot del luchador recoge %s" % fname)
 	var p := Projectile.new()
 	combat.projectiles_root.add_child(p)
-	var proj_fields := {"vy": 40.0, "_t": 0.5, "delay": 0.3, "_armed": false}
+	var proj_fields := {"vy": 40.0, "age": 30, "delay_frames": 18, "life_frames": 50, "_armed": false}
 	for fname in proj_fields:
 		var old: Variant = p.get(fname)
 		var before := combat.state_checksum()

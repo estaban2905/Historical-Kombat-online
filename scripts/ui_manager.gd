@@ -13,7 +13,7 @@ const BAR_Y := 16
 const ENERGY_W := 96
 const ENERGY_Y := 28
 const GUARD_Y := 36
-const GUARD_H := 3
+const GUARD_H := 5
 
 var combat: CombatManager
 var round_number: int = 1
@@ -221,7 +221,7 @@ func _draw_side(f: Fighter, i: int) -> void:
 
 ## Barra fina de guardia bajo la de energía (mismo lado y ancho).
 ## Verde-azulada llena; amarilla por debajo del 50 %; naranja por debajo del 25 %;
-## parpadea en rojo mientras la guardia está rota.
+## parpadea en naranja por debajo del 25 % y en rojo mientras la guardia está rota.
 func _draw_guard(f: Fighter, ex: float) -> void:
 	var left := f.player_id == 1
 	var r := Rect2(ex, GUARD_Y, ENERGY_W, GUARD_H)
@@ -230,7 +230,9 @@ func _draw_guard(f: Fighter, ex: float) -> void:
 	var ratio := clampf(f.guard / Fighter.MAX_GUARD, 0.0, 1.0)
 	var w := roundf(ENERGY_W * ratio)
 	var col := Color("40d0b0")
-	if f.guard_is_broken:
+	if not f.guard_is_broken and ratio < 0.25 and int(_time * 8.0) % 2 == 0:
+		col = Color("f8f0d0")
+	elif f.guard_is_broken:
 		col = Color("f04030") if int(_time * 10.0) % 2 == 0 else Color("f8f0d0")
 	elif ratio < 0.25:
 		col = Color("f08030")

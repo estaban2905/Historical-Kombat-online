@@ -22,7 +22,13 @@ const FIGHTER_SCENE := preload("res://scenes/fighters/Fighter.tscn")
 const SYNC_EVERY := 60
 ## Versión del contenido de state_snapshot: súbela si cambias qué recoge, para que el servidor no
 ## compare el resumen de un juego antiguo con el de uno nuevo.
-const SNAPSHOT_VERSION := 1
+const SNAPSHOT_VERSION := 2
+## Congelado de quien recibe el golpe de un proyectil o de un poder. Es corto y no se alarga si
+## bloquea: un poder de varias entidades congelaría al rival muchos frames seguidos mientras el
+## atacante sigue libre. Los golpes cuerpo a cuerpo usan el hitstop de su AttackData.
+const PROJECTILE_HITSTOP := 2
+## Segundos que quedan antes de que el servidor cierre el duelo a partir de los cuales se muestra la cuenta atrás.
+const WAIT_COUNTDOWN_FROM := 5
 const ULT_CINEMATIC_FRAMES := 48
 const ULT_ZOOM := 1.45
 
@@ -61,6 +67,8 @@ var ult_fx: UltimateFX
 ## Fases del Nexo (jefe final): [fracción de vida, rótulo, fuerza x, velocidad x].
 const NEXO_PHASES := [[0.66, "FASE II", 1.15, 1.15], [0.33, "FASE III", 1.3, 1.3]]
 var _nexo_phase: int = 0
+## Acciones de presentación programadas con after_frames: [tick, Callable].
+var _scheduled: Array = []
 ## (fuerza, velocidad) de la ficha del Nexo sin fases; Vector2.ZERO = no es el combate final.
 var _nexo_base := Vector2.ZERO
 
@@ -149,6 +157,7 @@ func reset_round() -> void:
 		ult_fx.queue_free()
 	ult_fx = null
 	cinematic_frames = 0
+	_scheduled.clear()
 	_update_cinematic()
 	for p in projectiles_root.get_children():
 		p.queue_free()
@@ -200,6 +209,7 @@ func _physics_process(delta: float) -> void:
 	_update_shake(delta)
 	_update_fx()
 	tick_count += 1
+	_run_scheduled()
 	if sync_enabled and tick_count % SYNC_EVERY == 0:
 		sync_point.emit(tick_count, state_checksum(), SNAPSHOT_VERSION)
 	ticked.emit()
@@ -257,21 +267,22 @@ func _start_online() -> void:
 	add_child(layer)
 	_waiting_label = Label.new()
 	_waiting_label.theme = HKTheme.theme()
-	_waiting_label.text = "ESPERANDO AL RIVAL..."
+	_waiting_label.text = "CONEXIÓN LENTA..."
 	_waiting_label.position = Vector2(0, 222)
 	_waiting_label.size = Vector2(426, 12)
 	_waiting_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_waiting_label.visible = false
 	layer.add_child(_waiting_label)
 
-## Muestra el aviso solo si la espera ya se nota (más de ~6 frames seguidos), con los segundos
-## que quedan antes de que el servidor cierre el duelo.
+## Muestra el aviso solo si la espera ya se nota (más de ~6 frames seguidos). Al principio solo avisa de
+## que la conexión va lenta; la cuenta atrás del cierre del duelo aparece en los últimos segundos.
 func _set_waiting(waiting: bool) -> void:
 	if _waiting_label == null:
 		return
 	_waiting_label.visible = waiting and Online.stalled_ticks > 6
 	if _waiting_label.visible:
-		_waiting_label.text = "ESPERANDO AL RIVAL... %d" % Online.stall_seconds_left()
+		var left := Online.stall_seconds_left()
+		_waiting_label.text = "CONEXIÓN LENTA..." if left > WAIT_COUNTDOWN_FROM 			else "SIN RESPUESTA DEL RIVAL · SE CIERRA EN %d" % left
 
 ## El rival se desconectó en plena pelea: la partida se da por ganada.
 func _on_online_opponent_left() -> void:
@@ -363,7 +374,7 @@ func state_snapshot() -> Array:
 				f.current_slot, f.projectile_spawned, f.combo_claimed, f.frame_counter])
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
-		parts.append([pr.position, pr.life, pr.alive, pr.vy, pr._t, pr.delay, pr._armed, pr._hit_log.values()])
+		parts.append([pr.position, pr.life_frames, pr.alive, pr.vy, pr.age, pr.delay_frames, pr._armed, pr._hit_log.values()])
 	parts.append(cinematic_frames)
 	return parts
 
@@ -517,6 +528,8 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 		if atk.energy_on_hit > 0.0:
 			attacker.add_energy(atk.energy_on_hit)
 	var stop := atk.hitstop if not result.blocked else maxi(atk.hitstop - 2, 2)
+	if from_projectile:
+		stop = 0 if result.blocked else mini(stop, PROJECTILE_HITSTOP)
 	if result.ko:
 		stop = 22
 	target.hitstop_frames = stop
@@ -559,6 +572,8 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 			fx.flash(0.35)
 	if result.ko:
 		stage.excite(1.0)
+	if result.guard_miss >= 0 and not result.ko:
+		hud.show_shout(target, "¡GOLPE BAJO! AGÁCHATE" if result.guard_miss == AttackData.HitLevel.LOW else "¡GOLPE ALTO! DE PIE")
 	hit_landed.emit(attacker, target, atk, result)
 
 func _on_projectile_requested(fighter: Fighter, atk: AttackData, spawn_position: Vector2) -> void:
@@ -604,13 +619,27 @@ func has_ult_fx() -> bool:
 	return is_instance_valid(ult_fx)
 
 ## Programa un evento de los efectos de pantalla del ultimate (si existen).
-func ult_fx_at(delay: float, type: StringName, args: Dictionary = {}) -> void:
+func ult_fx_at(delay: int, type: StringName, args: Dictionary = {}) -> void:
 	if is_instance_valid(ult_fx):
 		ult_fx.at(delay, type, args)
 
 ## Fragmentos de piedra en el suelo, en la posición x.
 func spawn_stones(x: float) -> void:
 	fx.stones(Vector2(x, stage.floor_y))
+
+## Ejecuta `action` cuando pasen `frames` ticks de combate (no pasa nada si el combate está parado).
+func after_frames(frames: int, action: Callable) -> void:
+	_scheduled.append([tick_count + frames, action])
+
+func _run_scheduled() -> void:
+	var i := _scheduled.size() - 1
+	while i >= 0:
+		if tick_count >= int(_scheduled[i][0]):
+			var action: Callable = _scheduled[i][1]
+			_scheduled.remove_at(i)
+			if action.is_valid():
+				action.call()
+		i -= 1
 
 ## Crea los efectos de pantalla del ultimate (el ambiente ya se oscurece durante el zoom).
 func start_ult_fx(atk: AttackData) -> void:

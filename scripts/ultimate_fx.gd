@@ -54,13 +54,14 @@ func _ready() -> void:
 	add_child(_under)
 	_under.draw.connect(_draw_under)
 
-## Programa un evento dentro de `delay` segundos (reloj propio del efecto).
+## Programa un evento dentro de `delay` frames de combate (ticks). Se dispara cuando el combate
+## llega a ese tick, así va a la par de los golpes aunque haya congelados o esperas.
 ## Tipos: crack {x, len} · shake {amount} · stones {x} · dust {x} · flash {amount} ·
 ## bolt {} (destello de rayo) · ring {x} (onda en el suelo) · cut {} (corte en pantalla) ·
 ## debris {x} (lluvia de escombros).
-func at(delay: float, type: StringName, args: Dictionary = {}) -> void:
+func at(delay: int, type: StringName, args: Dictionary = {}) -> void:
 	var e := args.duplicate()
-	e["t"] = age + delay
+	e["tick"] = _cm.tick_count + delay
 	e["type"] = type
 	_events.append(e)
 
@@ -69,18 +70,21 @@ func _process(delta: float) -> void:
 	if age >= duration:
 		queue_free()
 		return
-	_run_events()
 	_spawn_ambient(delta)
 	_update_parts(delta)
 	_flash = maxf(_flash - delta * 3.5, 0.0)
 	_under.queue_redraw()
 	queue_redraw()
 
+## Los eventos siguen el reloj del combate (ticks), no el de pantalla.
+func _physics_process(_delta: float) -> void:
+	_run_events()
+
 func _run_events() -> void:
 	var i := _events.size() - 1
 	while i >= 0:
 		var e := _events[i]
-		if age >= float(e["t"]):
+		if _cm.tick_count >= int(e["tick"]):
 			_events.remove_at(i)
 			_fire(e)
 		i -= 1
