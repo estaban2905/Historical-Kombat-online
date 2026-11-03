@@ -5,8 +5,6 @@
 class_name Stage
 extends Node2D
 
-signal excited(amount: float)
-
 @export var display_name: String = "ESCENARIO"
 ## Y de los pies de los luchadores.
 @export var floor_y: float = 206.0
@@ -24,4 +22,3 @@ func _process(delta: float) -> void:
 ## Llamado por el CombatManager en cada golpe fuerte.
 func excite(amount: float) -> void:
 	excitement = clampf(excitement + amount, 0.0, 1.0)
-	excited.emit(amount)

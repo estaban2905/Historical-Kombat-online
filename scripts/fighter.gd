@@ -10,16 +10,12 @@ class_name Fighter
 extends Node2D
 
 signal health_changed(fighter: Fighter)
-signal energy_changed(fighter: Fighter)
-signal guard_broken(fighter: Fighter)
 signal knocked_out(fighter: Fighter)
 signal attack_started(fighter: Fighter, attack: AttackData)
 signal projectile_requested(fighter: Fighter, attack: AttackData, spawn_position: Vector2)
 signal power_requested(fighter: Fighter, attack: AttackData)
 signal combo_performed(fighter: Fighter, combo: ComboData)
 signal not_enough_energy(fighter: Fighter)
-## Un escudo absorbió un golpe (el que atacaba, para devolverle la onda).
-signal shield_absorbed(fighter: Fighter, attacker: Fighter)
 ## Al tocar el suelo tras una caída (solo aviso visual; no cambia el estado).
 signal landed(fighter: Fighter)
 
@@ -320,7 +316,6 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	_update_boxes()
 	_update_visual()
 	health_changed.emit(self)
-	energy_changed.emit(self)
 
 # =========================================================================
 #  Bucle principal (lo llama CombatManager)
@@ -961,7 +956,6 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		result.blocked = true
 		result.absorbed = true
 		add_energy(ENERGY_ON_BLOCK)
-		shield_absorbed.emit(self, attacker)
 		return result
 	var dmg := atk.damage * attacker.data.strength / maxf(data.resistance, 0.1)
 	if state == State.BLOCK and is_on_ground() and guards_against(level):
@@ -1041,7 +1035,6 @@ func _break_guard() -> void:
 	combo_hits_taken = 0
 	stun_frames = GUARD_BREAK_STUN
 	_set_state(State.HIT)
-	guard_broken.emit(self)
 
 func _knock_out(direction: int) -> void:
 	health = 0.0
@@ -1059,10 +1052,7 @@ func set_victory() -> void:
 	_set_state(State.VICTORY)
 
 func add_energy(amount: float) -> void:
-	var before := energy
 	energy = clampf(energy + amount, 0.0, MAX_ENERGY)
-	if not is_equal_approx(before, energy):
-		energy_changed.emit(self)
 
 # =========================================================================
 #  Física
