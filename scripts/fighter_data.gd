@@ -197,4 +197,11 @@ func validate() -> PackedStringArray:
 			errors.append("%s: falta el ataque %s" % [id, slot])
 	if max_health <= 0:
 		errors.append("%s: max_health debe ser > 0" % id)
+	for stat in [&"walk_speed", &"strength", &"resistance", &"body_width", &"stand_height", &"crouch_height"]:
+		if float(get(stat)) <= 0.0:
+			errors.append("%s: %s debe ser > 0" % [id, stat])
+	for slot in ATTACK_SLOTS + [&"ultimate", &"grab"]:
+		var atk := get_attack(slot)
+		if atk != null and not (slot == &"grab" and grab == null):
+			errors.append_array(atk.validate("%s/%s" % [id, slot]))
 	return errors

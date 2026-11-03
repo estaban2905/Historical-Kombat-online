@@ -54,6 +54,7 @@ func wait_scene(scene_name: String, max_frames: int = 120) -> bool:
 func _run() -> void:
 	print("\n=== HISTORY COMBAT · PRUEBAS AUTOMÁTICAS ===")
 	_test_resources()
+	_test_catalogs()
 	_test_profile_helpers()
 	await _test_locked_select()
 	await _test_ranking_filters()
@@ -105,6 +106,118 @@ func _test_resources() -> void:
 				if keys1.has((e as InputEventKey).physical_keycode):
 					shared += 1
 	check(shared == 0, "P1 y P2 no comparten teclas")
+
+## Cada luchador tiene que estar en todos los catálogos que lo usan; si falta en uno, el juego no avisa:
+## cae en silencio en la última época, en un texto vacío o en un aviso en mitad del combate.
+func _test_catalogs() -> void:
+	print("\n# Catálogos")
+	var ids: Array[StringName] = []
+	for d in FighterRegistry.all():
+		ids.append(d.id)
+	# Plantel y carpetas: ninguna ficha .tres olvidada fuera de FighterRegistry.ROSTER.
+	var dirs := DirAccess.get_directories_at("res://fighters")
+	var in_roster := {}
+	for path in FighterRegistry.ROSTER:
+		in_roster[path.get_base_dir().get_file()] = true
+	var forgotten: Array[String] = []
+	for dir in dirs:
+		if not in_roster.has(dir) and dir != String(FighterRegistry.NEXO_ID):
+			forgotten.append(dir)
+	check(forgotten.is_empty(), "no hay fichas fuera del plantel (%s)" % ", ".join(forgotten))
+	var misnamed: Array[String] = []
+	for path in FighterRegistry.ROSTER:
+		if path != "res://fighters/%s/%s.tres" % [path.get_base_dir().get_file(), path.get_base_dir().get_file()]:
+			misnamed.append(path)
+	check(misnamed.is_empty(), "cada ficha vive en fighters/<id>/<id>.tres (%s)" % ", ".join(misnamed))
+	# Modo Historia: cada luchador, en una época y solo en una.
+	var chapter_of := {}
+	var dupes: Array[String] = []
+	for chapter in Game.STORY_CHAPTERS:
+		for id in chapter[1]:
+			if chapter_of.has(id):
+				dupes.append(str(id))
+			chapter_of[id] = chapter[0]
+	check(dupes.is_empty(), "nadie está en dos épocas (%s)" % ", ".join(dupes))
+	var no_chapter: Array[String] = []
+	for id in ids:
+		if not chapter_of.has(id):
+			no_chapter.append(str(id))
+	check(no_chapter.is_empty(), "todos los luchadores están en una época de STORY_CHAPTERS (faltan: %s)" % ", ".join(no_chapter))
+	var unknown_in_chapter: Array[String] = []
+	for id in chapter_of:
+		if not FighterRegistry.has(id):
+			unknown_in_chapter.append(str(id))
+	check(unknown_in_chapter.is_empty(), "las épocas no nombran a nadie que no exista (%s)" % ", ".join(unknown_in_chapter))
+	var bad_ref: Array[String] = []
+	for chapter_index in Game.STORY_BOSSES:
+		if not FighterRegistry.has(Game.STORY_BOSSES[chapter_index]):
+			bad_ref.append("jefe %s" % Game.STORY_BOSSES[chapter_index])
+	for id in Game.STORY_CREATORS:
+		if not FighterRegistry.has(id):
+			bad_ref.append("creador %s" % id)
+	for id in Game.STORY_VS:
+		if id != Game.STORY_NEXO_ID and not FighterRegistry.has(id):
+			bad_ref.append("frase de %s" % id)
+	for pair in Game.STORY_VS_PAIR:
+		for id in str(pair).split("|"):
+			if not FighterRegistry.has(StringName(id)):
+				bad_ref.append("pareja %s" % pair)
+	check(bad_ref.is_empty(), "jefes, creadores y frases apuntan a luchadores que existen (%s)" % ", ".join(bad_ref))
+	# Textos de la pantalla de personajes.
+	var no_lore: Array[String] = []
+	for id in ids:
+		var lore := RosterLore.get_lore(id)
+		for line in lore:
+			if str(line).strip_edges().is_empty():
+				no_lore.append(str(id))
+				break
+	check(no_lore.is_empty(), "todos tienen sus 4 textos en RosterLore (faltan: %s)" % ", ".join(no_lore))
+	# Poderes y ultimates: el id de la ficha debe existir en PowerEffects (si no, solo avisa a mitad del combate).
+	var powers := _match_arms("res://scripts/power_effects.gd", "static func cast(", "static func reflect(")
+	var ult_kinds := _match_arms("res://scripts/power_effects.gd", "static func _cast_ultimate(", "static func _ult_barrage(")
+	check(powers.size() >= 40 and ult_kinds.size() >= 11, "se leen los poderes (%d) y tipos de ultimate (%d) de PowerEffects" % [powers.size(), ult_kinds.size()])
+	var bad_power: Array[String] = []
+	var everyone: Array[FighterData] = FighterRegistry.all().duplicate()
+	everyone.append(FighterRegistry.get_by_id(FighterRegistry.NEXO_ID))
+	for d in everyone:
+		for slot in [&"special_1", &"special_2", &"ultimate"]:
+			var atk: AttackData = d.get_attack(slot)
+			if atk == null:
+				continue
+			if atk.power != &"" and not powers.has(atk.power):
+				bad_power.append("%s/%s: poder «%s»" % [d.id, slot, atk.power])
+			if atk.kind == AttackData.Kind.ULTIMATE and not ult_kinds.has(atk.ult_kind):
+				bad_power.append("%s: ult_kind «%s»" % [d.id, atk.ult_kind])
+	check(bad_power.is_empty(), "los poderes y ultimates de las fichas existen en PowerEffects (%s)" % ", ".join(bad_power))
+	# El validador detecta datos rotos.
+	var broken := FighterRegistry.get_by_id(&"napoleon").duplicate() as FighterData
+	broken.punch_light = broken.punch_light.duplicate() as AttackData
+	broken.punch_light.startup = 0
+	broken.punch_light.hitbox_size = Vector2.ZERO
+	broken.strength = 0.0
+	var errors := broken.validate()
+	check(errors.size() >= 3, "validate() detecta startup 0, hitbox sin tamaño y fuerza 0 (%d problemas)" % errors.size())
+	var bad_status := AttackData.new()
+	bad_status.status = &"congelar"
+	bad_status.status_frames = 10
+	check(not bad_status.validate("x").is_empty(), "validate() detecta un estado alterado desconocido")
+	check(FighterRegistry.get_by_id(FighterRegistry.NEXO_ID).validate().is_empty(), "la ficha del Nexo también es válida")
+
+## Ids de las ramas `&"id":` de un `match` de un script, entre dos funciones (para comprobar que las fichas
+## no piden un poder que el motor no conoce).
+func _match_arms(path: String, from_func: String, to_func: String) -> Array[StringName]:
+	var out: Array[StringName] = []
+	var text := FileAccess.get_file_as_string(path)
+	var start := text.find(from_func)
+	var stop := text.find(to_func, start + 1)
+	if start < 0 or stop < 0:
+		return out
+	var re := RegEx.new()
+	re.compile("(?m)^\t\t&\"([a-z_0-9]+)\":")
+	for m in re.search_all(text.substr(start, stop - start)):
+		out.append(StringName(m.get_string(1)))
+	return out
+
 
 func _test_profile_helpers() -> void:
 	print("
