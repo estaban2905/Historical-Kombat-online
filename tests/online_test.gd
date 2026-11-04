@@ -35,6 +35,7 @@ func check(ok: bool, what: String) -> void:
 
 func _run() -> void:
 	print("\n=== HISTORY COMBAT · PRUEBA ONLINE (2 PCs simulados) ===")
+	Online.use_rollback = false   # esta prueba cubre el lockstep (el rollback tiene la suya: RollbackNetTest)
 	Game.rounds_to_win = 99
 	Game.max_rounds = 99
 	Game.p1_fighter_id = &"donald_trump"

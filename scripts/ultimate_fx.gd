@@ -62,8 +62,20 @@ func _ready() -> void:
 func at(delay: int, type: StringName, args: Dictionary = {}) -> void:
 	var e := args.duplicate()
 	e["tick"] = _cm.tick_count + delay
+	e["born"] = _cm.tick_count
 	e["type"] = type
 	_events.append(e)
+
+## Tick en que se creó este efecto (para descartarlo si el rollback reescribe ese tick).
+var born: int = 0
+
+## Rollback: quita los eventos nacidos desde `tick`.
+func discard_from(tick: int) -> void:
+	var i := _events.size() - 1
+	while i >= 0:
+		if int(_events[i].get("born", 0)) >= tick:
+			_events.remove_at(i)
+		i -= 1
 
 func _process(delta: float) -> void:
 	age += delta
@@ -84,7 +96,7 @@ func _run_events() -> void:
 	var i := _events.size() - 1
 	while i >= 0:
 		var e := _events[i]
-		if _cm.tick_count >= int(e["tick"]):
+		if _cm.tick_count >= int(e["tick"]) and (_cm.confirmed_tick < 0 or int(e["tick"]) < _cm.confirmed_tick):
 			_events.remove_at(i)
 			_fire(e)
 		i -= 1

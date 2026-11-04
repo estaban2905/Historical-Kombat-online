@@ -67,8 +67,14 @@ var ult_fx: UltimateFX
 ## Fases del Nexo (jefe final): [fracción de vida, rótulo, fuerza x, velocidad x].
 const NEXO_PHASES := [[0.66, "FASE II", 1.15, 1.15], [0.33, "FASE III", 1.3, 1.3]]
 var _nexo_phase: int = 0
-## Acciones de presentación programadas con after_frames: [tick, Callable].
-var _scheduled: Array = []
+## Cola de presentación (sonido, partículas, sacudida, mensajes del HUD). La simulación NO toca nada
+## de eso directamente: lo anota con present() y la cola lo reproduce cuando el tick queda confirmado.
+## Cada evento: [tick en que nació, tick en que toca, objeto, método, argumentos].
+var _events: Array = []
+var _in_tick := false
+var _ev_tick: int = 0
+## Primer tick aún NO confirmado (los eventos nacidos desde ahí esperan). -1 = todo confirmado (offline).
+var confirmed_tick: int = -1
 ## (fuerza, velocidad) de la ficha del Nexo sin fases; Vector2.ZERO = no es el combate final.
 var _nexo_base := Vector2.ZERO
 
@@ -119,11 +125,14 @@ func _load_stage(round_number: int = 1) -> void:
 	stage_holder.add_child(stage)
 
 ## ¿Hay que cambiar de escenario al empezar esta ronda?
+## Depende solo del número de ronda (no de qué escenario esté cargado), para que sea igual al repetir un tick.
 func stage_changes_for(round_number: int) -> bool:
-	return Game.stage_owner(round_number) != _stage_owner
+	return Game.stage_owner(round_number) != Game.stage_owner(round_number - 1)
 
 ## Sustituye el escenario por el que toca en la ronda dada.
 func swap_stage(round_number: int) -> void:
+	if Game.stage_owner(round_number) == _stage_owner:
+		return
 	var old := stage
 	stage_holder.remove_child(old)
 	old.queue_free()
@@ -148,7 +157,7 @@ func _spawn_fighter(data: FighterData, player_id: int) -> Fighter:
 	f.knocked_out.connect(func(who: Fighter): fighter_knocked_out.emit(who))
 	f.attack_started.connect(_on_attack_started)
 	f.landed.connect(_on_fighter_landed)
-	f.not_enough_energy.connect(func(_who: Fighter): Sfx.play(&"denied"))
+	f.not_enough_energy.connect(func(_who: Fighter): sfx(&"denied"))
 	return f
 
 ## Coloca a los luchadores para una nueva ronda (vida al máximo).
@@ -157,7 +166,7 @@ func reset_round() -> void:
 		ult_fx.queue_free()
 	ult_fx = null
 	cinematic_frames = 0
-	_scheduled.clear()
+	_events.clear()
 	_update_cinematic()
 	for p in projectiles_root.get_children():
 		p.queue_free()
@@ -180,22 +189,44 @@ func _physics_process(delta: float) -> void:
 	# Pausa de frames del modo entrenamiento.
 	if training and training.should_skip_tick():
 		return
-	if cinematic_frames > 0:
-		cinematic_frames -= 1
-		_update_cinematic()
+	if rollback != null:
+		# Online con rollback: la sesión decide cuántos pasos de simulación toca dar (ver RollbackSession).
+		rollback.drive(self, delta)
+		_set_waiting(rollback.stalled_ticks > 0)
+		_update_shake(delta)
 		return
-	if _input_source.is_valid():
-		var masks: Array = _input_source.call(tick_count)
+	var masks: Array = []
+	if cinematic_frames == 0 and _input_source.is_valid():
+		masks = _input_source.call(tick_count)
 		# Vacío = aún faltan los botones del rival (online): el combate espera este tick.
 		_set_waiting(masks.is_empty())
 		if masks.is_empty():
 			return
+	var ticking := cinematic_frames == 0
+	sim_step(delta, masks)
+	if ticking:
+		_update_shake(delta)
+
+## ¿El tick que acaba de jugarse ya es definitivo (sin predicciones del rival)? Offline siempre.
+func tick_is_confirmed() -> bool:
+	return confirmed_tick < 0 or tick_count - 1 < confirmed_tick
+
+## Un paso de simulación: la cinemática de un ultimate (sin botones) o un tick de combate con las máscaras
+## [P1, P2] dadas. No lee teclado ni red ni toca pantalla: solo cambia el estado y anota efectos en la cola.
+func sim_step(delta: float, masks: Array) -> void:
+	if cinematic_frames > 0:
+		cinematic_frames -= 1
+		_update_cinematic()
+		return
+	if not masks.is_empty():
 		p1.input.apply_mask(masks[0])
 		p2.input.apply_mask(masks[1])
 	if ai:
 		ai.think()
 	if training:
 		training.pre_tick()
+	_in_tick = true
+	_ev_tick = tick_count
 	for f in fighters:
 		f.tick(delta)
 	if _nexo_base != Vector2.ZERO:
@@ -206,13 +237,17 @@ func _physics_process(delta: float) -> void:
 	_resolve_melee_hits()
 	_resolve_throws()
 	_resolve_projectiles()
-	_update_shake(delta)
 	_update_fx()
 	tick_count += 1
-	_run_scheduled()
 	if sync_enabled and tick_count % SYNC_EVERY == 0:
-		sync_point.emit(tick_count, state_checksum(), SNAPSHOT_VERSION)
+		if rollback != null:
+			rollback.note_checksum(tick_count, state_checksum())
+		else:
+			sync_point.emit(tick_count, state_checksum(), SNAPSHOT_VERSION)
+	# Las reglas de la ronda (ticked) también anotan sus efectos en la cola, con el tick que acaba de jugarse.
 	ticked.emit()
+	_in_tick = false
+	_flush_events()
 
 ## El Nexo se endurece al perder vida: más fuerza y velocidad en cada fase (se reinicia cada ronda).
 func _update_nexo_phase() -> void:
@@ -234,15 +269,23 @@ func _set_nexo_phase(phase: int, announce: bool) -> void:
 	p2.data.strength = _nexo_base.x * mult_s
 	p2.data.walk_speed = _nexo_base.y * mult_v
 	if announce:
-		hud.show_message("EL NEXO · %s" % NEXO_PHASES[phase - 1][1], 1.6, Color("ffd24a"))
-		hud.show_subtitle(StoryCampaign.NEXO_PHASE_LINES[phase - 1], 3.2, Color("e8d8ff"))
+		present(hud, &"show_message", ["EL NEXO · %s" % NEXO_PHASES[phase - 1][1], 1.6, Color("ffd24a")])
+		present(hud, &"show_subtitle", [StoryCampaign.NEXO_PHASE_LINES[phase - 1], 3.2, Color("e8d8ff")])
 		shake(6.0)
-		Sfx.play(&"hit_heavy")
+		sfx(&"hit_heavy")
 
 ## Sustituye el teclado por una fuente externa de entradas (partida online,
 ## repeticiones, pruebas). `source` recibe el número de tick y devuelve
 ## [máscara_P1, máscara_P2] (ver InputManager.apply_mask). Mientras esté
 ## activa, el combate depende SOLO de esas máscaras: mismas máscaras = misma pelea.
+## Sesión de rollback (online): si existe, ella lleva el bucle de combate en vez de _input_source.
+var rollback: RollbackSession
+
+func set_rollback(session: RollbackSession) -> void:
+	rollback = session
+	for f in fighters:
+		f.input.use_keyboard = false
+
 func set_input_source(source: Callable) -> void:
 	_input_source = source
 	for f in fighters:
@@ -255,8 +298,13 @@ func set_input_source(source: Callable) -> void:
 var _waiting_label: Label
 
 func _start_online() -> void:
-	set_input_source(Online.input_source)
 	Online.begin_fight()
+	if Online.use_rollback:
+		var session := Online.rollback_session()
+		session.sync_out = func(t: int, c: int) -> void: sync_point.emit(t, c, SNAPSHOT_VERSION)
+		set_rollback(session)
+	else:
+		set_input_source(Online.input_source)
 	sync_enabled = true
 	sync_point.connect(Online.send_sync)
 	Online.opponent_left.connect(_on_online_opponent_left, CONNECT_ONE_SHOT)
@@ -448,7 +496,7 @@ func _resolve_melee_hits() -> void:
 		if attacker.state == Fighter.State.ATTACK and target.can_be_grabbed():
 			attacker.start_throw(target)
 			target.start_thrown()
-			Sfx.play(&"whoosh")
+			sfx(&"whoosh")
 
 ## Llaves en curso: la víctima se zafa o, al acabar la llave, recibe el golpe.
 func _resolve_throws() -> void:
@@ -469,8 +517,8 @@ func _resolve_throws() -> void:
 func _break_throw(a: Fighter, b: Fighter) -> void:
 	a.break_throw()
 	b.break_throw()
-	HitEffect.spawn(effects_root, (a.position + b.position) * 0.5 + Vector2(0, -40), HitEffect.Type.CLASH, 1.0)
-	Sfx.play(&"block")
+	present(self, &"_spawn_hit_effect", [(a.position + b.position) * 0.5 + Vector2(0, -40), HitEffect.Type.CLASH, 1.0])
+	sfx(&"block")
 
 func _resolve_projectiles() -> void:
 	var nodes := projectiles_root.get_children()
@@ -486,8 +534,8 @@ func _resolve_projectiles() -> void:
 						and other.is_armed() and other.owner_fighter != p.owner_fighter \
 						and rect.intersects(other.get_rect()):
 					# Choque de proyectiles: se anulan.
-					HitEffect.spawn(effects_root, (p.position + other.position) * 0.5, HitEffect.Type.CLASH, 1.4)
-					Sfx.play(&"block")
+					present(self, &"_spawn_hit_effect", [(p.position + other.position) * 0.5, HitEffect.Type.CLASH, 1.4])
+					sfx(&"block")
 					p.destroy()
 					other.destroy()
 					break
@@ -517,11 +565,11 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 		combo: ComboData = null, sweep: bool = false) -> void:
 	var result := target.receive_hit(attacker, atk, direction, level, combo.bonus_damage if combo else 0.0, sweep)
 	if result.absorbed:
-		HitEffect.spawn(effects_root, point, HitEffect.Type.CLASH, 1.6)
-		Sfx.play(&"block")
-		fx.flash(0.3)
+		present(self, &"_spawn_hit_effect", [point, HitEffect.Type.CLASH, 1.6])
+		sfx(&"block")
+		present(fx, &"flash", [0.3])
 		PowerEffects.reflect(self, target, attacker)
-		hit_landed.emit(attacker, target, atk, result)
+		_emit_hit(attacker, target, atk, result)
 		return
 	# Nombre del combo completado: solo si el golpe final entra (el HUD lo muestra).
 	result.combo_name = combo.display_name if combo and not result.blocked else ""
@@ -548,56 +596,66 @@ func _apply_hit(attacker: Fighter, target: Fighter, atk: AttackData, direction: 
 	if result.ko:
 		fx_type = HitEffect.Type.KO
 	var fx_scale := atk.effect_scale * (1.5 if result.guard_break else 1.0) * (1.3 if result.counter else 1.0)
-	HitEffect.spawn(effects_root, point, fx_type, fx_scale)
+	present(self, &"_spawn_hit_effect", [point, fx_type, fx_scale])
 	if result.guard_break:
 		# Guardia rota: sonido y sacudida de golpe pesado.
-		Sfx.play(&"hit_heavy")
+		sfx(&"hit_heavy")
 		shake(3.0)
-		fx.sparks(point, -direction)
-		fx.hit_burst(point, direction, 1)
-		fx.flash(0.35)
+		present(fx, &"sparks", [point, -direction])
+		present(fx, &"hit_burst", [point, direction, 1])
+		present(fx, &"flash", [0.35])
 	elif result.blocked and not result.ko:
-		Sfx.play(&"block", 0.08)
-		fx.sparks(point, -direction)
+		sfx(&"block", 0.08)
+		present(fx, &"sparks", [point, -direction])
 	elif result.ko:
-		Sfx.play(&"ko")
+		sfx(&"ko")
 		shake(5.0)
-		fx.hit_burst(point, direction, 2)
-		fx.ko_stain(target.position.x)
-		fx.flash(0.6)
+		present(fx, &"hit_burst", [point, direction, 2])
+		present(fx, &"ko_stain", [target.position.x])
+		present(fx, &"flash", [0.6])
 	else:
 		var heavy: bool = atk.damage >= 10.0 or result.counter
-		Sfx.play(&"hit_heavy" if heavy else &"hit_light", 0.1)
+		sfx(&"hit_heavy" if heavy else &"hit_light", 0.1)
 		shake(3.0 if heavy else 1.0)
 		stage.excite(0.25 if heavy else 0.1)
 		if heavy:
-			fx.hit_burst(point, direction, 2 if atk.launch < 0.0 else 1)
+			present(fx, &"hit_burst", [point, direction, 2 if atk.launch < 0.0 else 1])
 		if atk.damage >= 15.0:
-			fx.flash(0.35)
+			present(fx, &"flash", [0.35])
 	if result.ko:
 		stage.excite(1.0)
 	if result.guard_miss >= 0 and not result.ko:
-		hud.show_shout(target, "¡GOLPE BAJO! AGÁCHATE" if result.guard_miss == AttackData.HitLevel.LOW else "¡GOLPE ALTO! DE PIE")
+		present(hud, &"show_shout", [target, "¡GOLPE BAJO! AGÁCHATE" if result.guard_miss == AttackData.HitLevel.LOW else "¡GOLPE ALTO! DE PIE"])
+	_emit_hit(attacker, target, atk, result)
+
+## Aviso de golpe a quien escuche (HUD, entrenamiento). Con rollback espera a que el tick se confirme.
+func _emit_hit(attacker: Fighter, target: Fighter, atk: AttackData, result: HitResult) -> void:
+	if rollback != null:
+		present(self, &"_do_emit_hit", [attacker, target, atk, result])
+	else:
+		hit_landed.emit(attacker, target, atk, result)
+
+func _do_emit_hit(attacker: Fighter, target: Fighter, atk: AttackData, result: HitResult) -> void:
 	hit_landed.emit(attacker, target, atk, result)
 
 func _on_projectile_requested(fighter: Fighter, atk: AttackData, spawn_position: Vector2) -> void:
 	var p := Projectile.new()
 	p.setup(fighter, atk, spawn_position)
 	projectiles_root.add_child(p)
-	Sfx.play(&"cannon" if atk.projectile_style == &"ball" else &"megaphone")
+	sfx(&"cannon" if atk.projectile_style == &"ball" else &"megaphone")
 
 func _on_power_requested(fighter: Fighter, atk: AttackData) -> void:
 	Passives.on_special_cast(fighter, atk)
-	fx.flash(0.3)
+	present(fx, &"flash", [0.3])
 	PowerEffects.cast(self, fighter, atk)
 
 func _on_attack_started(fighter: Fighter, atk: AttackData) -> void:
 	if fighter.current_slot == &"special_2" and fighter.data.power_quote != "":
-		hud.show_shout(fighter, fighter.data.power_quote)
+		present(hud, &"show_shout", [fighter, fighter.data.power_quote])
 	if atk.kind == AttackData.Kind.ULTIMATE:
 		_start_cinematic(fighter, atk)
 	elif not atk.is_projectile():
-		Sfx.play(&"whoosh", 0.15)
+		sfx(&"whoosh", 0.15)
 
 # =========================================================================
 #  Cinemática del ultimate
@@ -607,9 +665,9 @@ func _start_cinematic(f: Fighter, atk: AttackData) -> void:
 	cinematic_fighter = f
 	start_ult_fx(atk)
 	cinematic_text = atk.display_name.to_upper()
-	Sfx.play(&"confirm")
-	Sfx.play(&"megaphone")
-	fx.flash(0.7)
+	sfx(&"confirm")
+	sfx(&"megaphone")
+	present(fx, &"flash", [0.7])
 	shake(3.0)
 	_update_cinematic()
 
@@ -617,6 +675,7 @@ func _start_cinematic(f: Fighter, atk: AttackData) -> void:
 ## Añade al combate una entidad de poder (proyectil, decorado...). Si pide sacudir la cámara al armarse, se conecta.
 func add_entity(entity: Projectile) -> void:
 	entity.shake_requested.connect(shake)
+	entity.sound_requested.connect(sfx)
 	projectiles_root.add_child(entity)
 
 ## ¿Hay efectos de pantalla de un ultimate en marcha?
@@ -629,22 +688,48 @@ func ult_fx_at(delay: int, type: StringName, args: Dictionary = {}) -> void:
 		ult_fx.at(delay, type, args)
 
 ## Fragmentos de piedra en el suelo, en la posición x.
-func spawn_stones(x: float) -> void:
-	fx.stones(Vector2(x, stage.floor_y))
+func spawn_stones(x: float, delay: int = 0) -> void:
+	present(fx, &"stones", [Vector2(x, stage.floor_y)], delay)
 
-## Ejecuta `action` cuando pasen `frames` ticks de combate (no pasa nada si el combate está parado).
-func after_frames(frames: int, action: Callable) -> void:
-	_scheduled.append([tick_count + frames, action])
+## Anota un efecto de presentación: llama a `target.method(args)` cuando el tick quede confirmado y
+## pasen `delay` ticks. Fuera de un tick (menús, nodos de efectos) se ejecuta al momento.
+func present(target: Object, method: StringName, args: Array = [], delay: int = 0) -> void:
+	if not _in_tick and delay == 0:
+		target.callv(method, args)
+		return
+	_events.append([_ev_tick, _ev_tick + delay, target, method, args])
 
-func _run_scheduled() -> void:
-	var i := _scheduled.size() - 1
+func sfx(sound: StringName, pitch_variation: float = 0.0) -> void:
+	present(Sfx, &"play", [sound, pitch_variation])
+
+func _spawn_hit_effect(at: Vector2, type: HitEffect.Type, size: float = 1.0) -> void:
+	HitEffect.spawn(effects_root, at, type, size)
+
+## Reproduce los eventos que ya tocan y están confirmados.
+func _flush_events() -> void:
+	var i := 0
+	while i < _events.size():
+		var e: Array = _events[i]
+		if tick_count >= int(e[1]) and (confirmed_tick < 0 or int(e[0]) < confirmed_tick):
+			_events.remove_at(i)
+			if is_instance_valid(e[2]):
+				(e[2] as Object).callv(e[3], e[4])
+		else:
+			i += 1
+
+## Rollback: los eventos nacidos desde `tick` pertenecen a una historia que se reescribe; se descartan.
+func discard_events_from(tick: int) -> void:
+	var i := _events.size() - 1
 	while i >= 0:
-		if tick_count >= int(_scheduled[i][0]):
-			var action: Callable = _scheduled[i][1]
-			_scheduled.remove_at(i)
-			if action.is_valid():
-				action.call()
+		if int(_events[i][0]) >= tick:
+			_events.remove_at(i)
 		i -= 1
+	if is_instance_valid(ult_fx):
+		if ult_fx.born >= tick:
+			ult_fx.queue_free()
+			ult_fx = null
+		else:
+			ult_fx.discard_from(tick)
 
 ## Crea los efectos de pantalla del ultimate (el ambiente ya se oscurece durante el zoom).
 func start_ult_fx(atk: AttackData) -> void:
@@ -655,6 +740,7 @@ func start_ult_fx(atk: AttackData) -> void:
 		return
 	ult_fx = UltimateFX.new()
 	ult_fx.setup(self, atk)
+	ult_fx.born = tick_count
 	effects_root.add_child(ult_fx)
 
 ## Cámara de la cinemática: se acerca a quien lanza el ultimate, aguanta y vuelve.
@@ -681,9 +767,9 @@ func _update_cinematic() -> void:
 func _on_fighter_landed(f: Fighter) -> void:
 	var feet := Vector2(f.position.x, f.floor_y)
 	if f.state == Fighter.State.HIT or f.state == Fighter.State.KO:
-		fx.dust_wave(feet)
+		present(fx, &"dust_wave", [feet])
 	elif f.state == Fighter.State.JUMP or f.state == Fighter.State.ATTACK:
-		fx.dust_land(feet)
+		present(fx, &"dust_land", [feet])
 
 func _update_fx() -> void:
 	for i in fighters.size():
@@ -694,7 +780,7 @@ func _update_fx() -> void:
 		var atk := f.current_attack
 		# Estela mientras la hitbox de patadas y especiales está activa.
 		if atk != null and f.is_hitbox_active() and atk.kind != AttackData.Kind.PUNCH and phase % 2 == 0:
-			fx.trail(f.hitbox_shape.global_position, Color("ffd040") if atk.kind == AttackData.Kind.KICK else Color("ff7020"))
+			present(fx, &"trail", [f.hitbox_shape.global_position, Color("ffd040") if atk.kind == AttackData.Kind.KICK else Color("ff7020")])
 		if not f.is_on_ground():
 			continue
 		var feet := Vector2(f.position.x, f.floor_y)
@@ -702,27 +788,30 @@ func _update_fx() -> void:
 		match f.state:
 			Fighter.State.WALK:
 				if phase % (5 if f.running else 13) == 0:
-					fx.dust_step(feet, -moving if moving != 0 else -f.facing, f.running)
+					present(fx, &"dust_step", [feet, -moving if moving != 0 else -f.facing, f.running])
 				if f.running and phase % 6 == 0 and moving != 0:
-					fx.speed_lines(feet, moving)
+					present(fx, &"speed_lines", [feet, moving])
 			Fighter.State.HIT:
 				if absf(f.velocity.x) > 110.0 and phase % 4 == 0:
-					fx.dust_slide(feet, moving)
+					present(fx, &"dust_slide", [feet, moving])
 			Fighter.State.ATTACK:
 				if atk == null:
 					continue
 				if f.attack_crouching and f.is_hitbox_active() and phase % 3 == 0:
-					fx.dust_sweep(feet, f.facing)
+					present(fx, &"dust_sweep", [feet, f.facing])
 				if atk.dash_speed > 0.0 and f.attack_frame <= atk.startup + atk.active:
 					if phase % 4 == 0:
-						fx.dust_step(feet, -f.facing, true)
+						present(fx, &"dust_step", [feet, -f.facing, true])
 					if phase % 6 == 0:
-						fx.speed_lines(feet, f.facing)
+						present(fx, &"speed_lines", [feet, f.facing])
 
 # =========================================================================
 #  Cámara fija con vibración
 # =========================================================================
 func shake(amount: float) -> void:
+	present(self, &"_apply_shake", [amount])
+
+func _apply_shake(amount: float) -> void:
 	_shake = maxf(_shake, amount)
 
 func _update_shake(delta: float) -> void:

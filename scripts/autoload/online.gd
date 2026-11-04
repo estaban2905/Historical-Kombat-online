@@ -55,8 +55,11 @@ var stalled_ticks: int:
 func stall_seconds_left() -> int:
 	return maxi(ceili(RIVAL_TIMEOUT_S - stalled_ticks / 60.0), 0)
 
+## true = rollback (el combate nunca espera al rival); false = lockstep con retraso de entrada.
+var use_rollback: bool = true
+
 var _ws: WebSocketPeer
-var _session: LockstepSession
+var _session: Object
 var _pending: Array[Dictionary] = []
 var _connect_time: float = 0.0
 ## Lee el teclado de J1 (WASD + U/I/J/K/O/L) aunque yo juegue de P2.
@@ -141,18 +144,30 @@ func input_source(tick: int) -> Array:
 	_drain()
 	if _session == null:
 		return []
-	var masks := _session.masks_for(tick)
+	var masks: Array = _session.masks_for(tick)
 	if masks.is_empty() and _opponent_gone and not _left_emitted:
 		_left_emitted = true
 		opponent_left.emit()
 	return masks
 
-func _new_session() -> LockstepSession:
-	return LockstepSession.new(side, _sampler.sample_mask, func(frame: int, mask: int, ack: int):
+func _new_session() -> Object:
+	var send := func(frame: int, mask: int, ack: int):
 		var msg := {"t": "input", "f": frame, "m": mask}
 		if ack >= 0:
 			msg["a"] = ack
-		_send(msg))
+		_send(msg)
+	if use_rollback:
+		var rb := RollbackSession.new(side, _sampler.sample_mask, send, Callable(), _drain)
+		rb.on_stalled = func() -> void:
+			if _opponent_gone and not _left_emitted:
+				_left_emitted = true
+				opponent_left.emit()
+		return rb
+	return LockstepSession.new(side, _sampler.sample_mask, send)
+
+## La sesión de rollback de esta partida (la usa el combate al empezar).
+func rollback_session() -> RollbackSession:
+	return _session as RollbackSession
 
 # =========================================================================
 #  Red

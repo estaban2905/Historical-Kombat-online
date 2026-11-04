@@ -141,18 +141,27 @@ func _next_duel() -> void:
 	_combat = load(Game.SCENE_FIGHT).instantiate() as CombatManager
 	add_child(_combat)
 	_combat.ticked.connect(_on_tick)
+	# Resúmenes DEFINITIVOS del estado (con rollback, los de ticks predichos no valen para comparar).
+	_combat.sync_point.connect(func(tick: int, checksum: int, _v: int) -> void:
+		if tick <= TICKS:
+			print("CHK %d %d" % [tick, checksum]))
 	_press_random()
 
 ## Cada tick, cambia lo que "teclea" este jugador (entradas virtuales del muestreador).
+var _last_tick: int = -1
+
 func _on_tick() -> void:
 	if _done or _fight_over:
 		return
 	var t := _combat.tick_count
-	if t % 100 == 0:
-		print("CHK %d %d" % [t, _combat.state_checksum()])
-	if t >= TICKS:
+	# Con rollback un tick se puede jugar varias veces: solo cuenta la primera vez y lo ya definitivo.
+	if t <= _last_tick:
+		return
+	# Margen sobre TICKS: los resúmenes definitivos (sync_point) llegan unos ticks después de jugarse.
+	if t >= TICKS + 40 and _combat.tick_is_confirmed():
 		_end_fight(t)
 		return
+	_last_tick = t
 	if t % 12 == 0:
 		_press_random()
 	if _rng.randf() < _aggr:

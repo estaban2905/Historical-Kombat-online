@@ -995,7 +995,7 @@ static func _opp_dx(f: Fighter, dx: float) -> float:
 
 ## Fragmentos de piedra en el suelo tras `frames` (cuando el poder golpea).
 static func _stones_later(cm: CombatManager, x: float, frames: int) -> void:
-	cm.after_frames(frames, cm.spawn_stones.bind(x))
+	cm.spawn_stones(x, frames)
 
 ## Crea una entidad que golpea (ver claves en la cabecera).
 static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary) -> Projectile:
@@ -1024,7 +1024,7 @@ static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary
 		if p.shake_on_arm > 0.0:
 			cm.shake(p.shake_on_arm)
 		if p.sound_on_arm != &"":
-			Sfx.play(p.sound_on_arm)
+			cm.sfx(p.sound_on_arm)
 	return p
 
 ## Crea una entidad solo de decorado (cañón, guardia, humo, avión...).
