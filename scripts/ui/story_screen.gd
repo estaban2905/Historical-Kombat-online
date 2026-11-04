@@ -162,6 +162,7 @@ func _draw_timeline() -> void:
 	var cur := Game.arcade_stage
 	var cur_chapter := Game.story_chapter_of(ladder[cur])
 	HKTheme.draw_text(self, Vector2(0, 11), "MODO HISTORIA", 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
+	_draw_fragments()
 	# Barra: gris la que falta, dorada la recorrida.
 	draw_rect(Rect2(BAR_X0, BAR_Y - 1, BAR_X1 - BAR_X0, 2), FUTURE.darkened(0.3))
 	draw_rect(Rect2(BAR_X0, BAR_Y - 1, step * cur, 2), DONE)
@@ -201,6 +202,18 @@ func _draw_timeline() -> void:
 	var year := _year_text(Game.p2_data())
 	var w := HKTheme.text_width(year, 8)
 	HKTheme.draw_text(self, Vector2(clampf(ax - w * 0.5, 4.0, 422.0 - w), BAR_Y + 21), year, 8, Color("fff0a0"), HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+
+## Los cinco fragmentos del Reloj, arriba a la izquierda: de color los que ya se recuperaron.
+func _draw_fragments() -> void:
+	HKTheme.draw_text(self, Vector2(BAR_X0, 11), "RELOJ", 8, HKTheme.MUTED.lightened(0.2), HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	for c in Game.STORY_CHAPTERS.size():
+		var x := BAR_X0 + 46.0 + c * 11.0
+		var col: Color = StoryEnding.SHARD_COLORS[c]
+		if Game.story_fragment_earned(c):
+			draw_colored_polygon(PackedVector2Array([Vector2(x + 4, 4), Vector2(x + 8, 8), Vector2(x + 4, 12), Vector2(x, 8)]), col)
+		else:
+			draw_polyline(PackedVector2Array([Vector2(x + 4, 4), Vector2(x + 8, 8), Vector2(x + 4, 12), Vector2(x, 8), Vector2(x + 4, 4)]),
+				FUTURE, 1.0)
 
 ## Punto de la línea del tiempo: cuadrado, o rombo si es el jefe del capítulo.
 func _dot(x: float, r: float, color: Color, diamond: bool) -> void:

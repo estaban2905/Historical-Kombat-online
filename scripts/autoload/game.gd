@@ -420,6 +420,23 @@ func story_chapter_start(stage: int) -> bool:
 func story_is_chapter_boss(stage: int) -> bool:
 	return stage >= arcade_ladder.size() - 1 or story_chapter_of(arcade_ladder[stage + 1]) != story_chapter_of(arcade_ladder[stage])
 
+## ¿Ya se recuperó el fragmento del Reloj de esa época? Se gana al vencer a su jefe: no hace falta guardarlo,
+## sale de hasta dónde se ha llegado (arcade_stage).
+func story_fragment_earned(chapter: int) -> bool:
+	var boss_stage := -1
+	for i in arcade_ladder.size():
+		if story_chapter_of(arcade_ladder[i]) == chapter:
+			boss_stage = i
+	return boss_stage >= 0 and arcade_stage > boss_stage
+
+## Cuántos fragmentos del Reloj lleva el jugador (de 0 a STORY_CHAPTERS.size()).
+func story_fragments() -> int:
+	var n := 0
+	for c in STORY_CHAPTERS.size():
+		if story_fragment_earned(c):
+			n += 1
+	return n
+
 ## ¿El combate `stage` es contra uno de los creadores del Reloj?
 func story_is_creator(stage: int) -> bool:
 	return STORY_CREATORS.has(arcade_ladder[stage])
