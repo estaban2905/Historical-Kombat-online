@@ -67,6 +67,12 @@ const NEXO_TO_CREATOR := [
 	[NEXO, "VENCERME ES CARGAR CON ELLOS. ¿PUEDES?"],
 ]
 
+## Nombre de la escena para buscar sus voces (assets/sounds/story/scenes/<nombre>_<n>.wav).
+static func scene_id(rival: StringName, player: StringName) -> StringName:
+	if rival == NEXO and StoryCampaign.CREATORS.has(player):
+		return &"el_nexo_creador"
+	return rival
+
 ## Escena antes de pelear contra `rival` (vacía si no tiene) con `player` como luchador del jugador.
 static func lines(rival: StringName, player: StringName) -> Array:
 	if rival == NEXO and StoryCampaign.CREATORS.has(player):

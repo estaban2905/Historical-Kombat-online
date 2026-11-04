@@ -76,6 +76,7 @@ func _after_card() -> void:
 		return
 	var d := StoryDialogue.new()
 	d.lines = scene
+	d.scene_id = StoryScenes.scene_id(Game.p2_fighter_id, Game.p1_fighter_id)
 	d.finished.connect(_show_fight_button)
 	add_child(d)
 
