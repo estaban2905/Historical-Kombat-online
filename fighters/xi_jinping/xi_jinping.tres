@@ -184,7 +184,7 @@ power = &"dragon"
 [sub_resource type="Resource" id="R_xi_jinping_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Dragón Planificador"
+display_name = "Gran Cortafuegos"
 kind = 3
 anim = &"cast"
 damage = 35.0
@@ -210,8 +210,8 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"summon"
-ult_art = &"dragon"
+ult_kind = &"censor"
+ult_art = &""
 ult_color = Color(1, 0.815686, 0.25098, 1)
 ult_tint = Color(0.164706, 0.0313725, 0.0313725, 1)
 

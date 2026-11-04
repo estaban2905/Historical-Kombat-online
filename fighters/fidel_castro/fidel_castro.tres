@@ -184,7 +184,7 @@ power = &"endless_speech"
 [sub_resource type="Resource" id="R_fidel_castro_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Revolución Permanente"
+display_name = "Hasta la Victoria Siempre"
 kind = 3
 anim = &"megaphone"
 damage = 35.0
@@ -210,8 +210,8 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"wave"
-ult_art = &"ring"
+ult_kind = &"guerrilla"
+ult_art = &""
 ult_color = Color(1, 0.564706, 0.188235, 1)
 ult_tint = Color(0.156863, 0.0784314, 0.0313725, 1)
 

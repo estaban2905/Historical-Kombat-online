@@ -184,7 +184,7 @@ power = &"legion"
 [sub_resource type="Resource" id="R_julio_cesar_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Legiones de Roma"
+display_name = "Idus de Marzo"
 kind = 3
 anim = &"charge"
 damage = 35.0
@@ -210,8 +210,8 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"summon"
-ult_art = &"legion"
+ult_kind = &"ides"
+ult_art = &""
 ult_color = Color(0.878431, 0.25098, 0.25098, 1)
 ult_tint = Color(0.164706, 0.0313725, 0.0313725, 1)
 

@@ -184,7 +184,7 @@ power = &"anubis"
 [sub_resource type="Resource" id="R_cleopatra_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Maldición del Faraón"
+display_name = "Plagas de Egipto"
 kind = 3
 anim = &"cast"
 damage = 35.0
@@ -210,8 +210,8 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"summon"
-ult_art = &"jackal"
+ult_kind = &"plagues"
+ult_art = &""
 ult_color = Color(0.25098, 0.815686, 0.376471, 1)
 ult_tint = Color(0.0784314, 0.12549, 0.0392157, 1)
 

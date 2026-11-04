@@ -183,7 +183,7 @@ power = &"war_chariot"
 [sub_resource type="Resource" id="R_boudica_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Furia de los Icenos"
+display_name = "Londinium en Llamas"
 kind = 3
 anim = &"cast"
 damage = 35.0
@@ -209,8 +209,8 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"charge"
-ult_art = &"chariot"
+ult_kind = &"inferno"
+ult_art = &""
 ult_color = Color(0.815686, 0.25098, 0.25098, 1)
 ult_tint = Color(0.0470588, 0.101961, 0.0470588, 1)
 

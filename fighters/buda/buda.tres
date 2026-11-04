@@ -210,8 +210,8 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"wave"
-ult_art = &"ring"
+ult_kind = &"nirvana"
+ult_art = &""
 ult_color = Color(1, 0.815686, 0.25098, 1)
 ult_tint = Color(0.101961, 0.0705882, 0, 1)
 

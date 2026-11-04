@@ -209,8 +209,8 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"barrage"
-ult_art = &"bill"
+ult_kind = &"bribe"
+ult_art = &""
 ult_color = Color(0.313725, 0.752941, 0.376471, 1)
 ult_tint = Color(0.0313725, 0.12549, 0.0470588, 1)
 

@@ -184,7 +184,7 @@ power = &"orleans_blade"
 [sub_resource type="Resource" id="R_juana_de_arco_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Llama de Orleans"
+display_name = "La Hoguera de Ruan"
 kind = 3
 anim = &"charge"
 damage = 35.0
@@ -210,7 +210,7 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"light"
+ult_kind = &"pyre"
 ult_art = &""
 ult_color = Color(1, 0.878431, 0.627451, 1)
 ult_tint = Color(0.101961, 0.0784314, 0.0313725, 1)

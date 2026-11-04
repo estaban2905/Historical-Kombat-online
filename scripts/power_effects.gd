@@ -417,6 +417,29 @@ static func _cast_ultimate(cm: CombatManager, f: Fighter, atk: AttackData) -> vo
 		&"slash": _ult_slash(cm, f, atk)
 		&"trap": _ult_trap(cm, f, atk)
 		&"snipe": _ult_snipe(cm, f, atk)
+		&"chains": _ult_chains(cm, f, atk)
+		&"oprichnina": _ult_oprichnina(cm, f, atk)
+		&"codex": _ult_codex(cm, f, atk)
+		&"army": _ult_army(cm, f, atk)
+		&"nuke": _ult_nuke(cm, f, atk)
+		&"bribe": _ult_bribe(cm, f, atk)
+		&"plagues": _ult_plagues(cm, f, atk)
+		&"ides": _ult_ides(cm, f, atk)
+		&"inferno": _ult_inferno(cm, f, atk)
+		&"tidal": _ult_tidal(cm, f, atk)
+		&"judo": _ult_judo(cm, f, atk)
+		&"censor": _ult_censor(cm, f, atk)
+		&"arc": _ult_arc(cm, f, atk)
+		&"spacetime": _ult_spacetime(cm, f, atk)
+		&"nirvana": _ult_nirvana(cm, f, atk)
+		&"presser": _ult_presser(cm, f, atk)
+		&"guerrilla": _ult_guerrilla(cm, f, atk)
+		&"bombing": _ult_bombing(cm, f, atk)
+		&"defense": _ult_defense(cm, f, atk)
+		&"miracle": _ult_miracle(cm, f, atk)
+		&"pyre": _ult_pyre(cm, f, atk)
+		&"stonewalls": _ult_stonewalls(cm, f, atk)
+		&"mass": _ult_mass(cm, f, atk)
 		_: push_warning("PowerEffects: tipo de ultimate desconocido «%s»" % atk.ult_kind)
 
 ## Lluvia de bombas sobre toda la zona del rival; cada impacto abre una grieta.
@@ -598,6 +621,373 @@ static func _ult_snipe(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 	_ufx(cm, shot, &"crack", {"x": o, "len": 120.0, "shake": 6.0})
 	_ufx(cm, shot, &"debris", {"x": o})
 
+## Lincoln: unas cadenas inmovilizan al rival, el hacha las rompe a golpes y la onda final lo libera... lejos.
+static func _ult_chains(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	_spawn(cm, f, atk, {"art": &"chains", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -36),
+		"box": Vector2(54, 76), "delay": 14, "show": true, "life": 24, "pierce": true, "share": 0.12, "knock": 0.0,
+		"stun": 40, "status": &"root", "status_frames": 120, "shake": 3.0, "sound": &"hit_heavy"})
+	_ufx(cm, 14, &"crack", {"x": o, "len": 60.0, "shake": 3.0})
+	for i in 4:
+		_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(-8.0 + i * 5.0, -40.0 + (i % 2) * 10.0),
+			"box": Vector2(44, 56), "delay": 46 + i * 12, "life": 11, "pierce": true, "share": 0.12, "knock": 40.0,
+			"stun": 26, "sound": &"hit_light"})
+		_ufx(cm, 46 + i * 12, &"cut")
+	_spawn(cm, f, atk, {"art": &"ring", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -36),
+		"box": Vector2(190, 90), "delay": 108, "show": true, "life": 27, "pierce": true, "radial": true, "share": 0.4,
+		"knock": 330.0, "launch": -270.0, "stun": 40, "shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, 108, &"ring", {"x": o})
+	_ufx(cm, 108, &"flash", {"amount": 0.7})
+
+## Iván: la Oprichnina. Jinetes del zar cabalgan desde los dos lados, el rival queda lento y una columna
+## de hielo cierra la purga.
+static func _ult_oprichnina(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	for i in 4:
+		var side := -1 if i % 2 == 0 else 1
+		var d := {"art": &"horse", "at_opp": true, "off": Vector2(side * 190.0 * f.facing, -16.0), "dir": -side,
+			"box": Vector2(40, 30), "speed": 250.0, "delay": 8 + i * 14, "life": 114, "pierce": true, "share": 0.15,
+			"knock": 140.0, "stun": 26, "shake": 2.0, "sound": &"whoosh"}
+		if i == 0:
+			d["status"] = &"slow"
+			d["status_frames"] = 150
+		_spawn(cm, f, atk, d)
+	for k in 6:
+		_ufx(cm, 16 + k * 10, &"dust", {"x": o + (-1.0 if k % 2 == 0 else 1.0) * (30.0 + k * 20.0)})
+	_spawn(cm, f, atk, {"art": &"icebolt", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -105),
+		"box": Vector2(36, 210), "delay": 96, "show": true, "life": 24, "pierce": true, "share": 0.4,
+		"knock": 320.0, "launch": -260.0, "stun": 40, "shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, 96, &"bolt")
+	_ufx(cm, 96, &"crack", {"x": o, "len": 110.0, "shake": 6.0})
+	_ufx(cm, 96, &"flash", {"amount": 0.7})
+
+## Da Vinci: el Códice de inventos. Un carro blindado arrolla, una ballesta gigante dispara y el
+## Hombre de Vitruvio estalla como remate.
+static func _ult_codex(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	_spawn(cm, f, atk, {"art": &"tank", "off": Vector2(-34, -14), "box": Vector2(60, 28), "speed": 210.0,
+		"delay": 6, "life": 130, "pierce": true, "share": 0.25, "knock": 200.0, "stun": 28, "shake": 2.0,
+		"sound": &"hit_heavy"})
+	for i in 3:
+		_spawn(cm, f, atk, {"art": &"tracer", "color": atk.ult_color, "off": Vector2(26, -56.0 + i * 12.0),
+			"box": Vector2(26, 10), "speed": 520.0, "delay": 40 + i * 12, "life": 48, "pierce": true, "share": 0.12,
+			"knock": 60.0, "stun": 22, "sound": &"cannon"})
+	_spawn(cm, f, atk, {"art": &"ring", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -36),
+		"box": Vector2(190, 90), "delay": 96, "show": true, "life": 27, "pierce": true, "radial": true, "share": 0.39,
+		"knock": 330.0, "launch": -270.0, "stun": 40, "shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, 96, &"ring", {"x": o})
+	_ufx(cm, 96, &"flash", {"amount": 0.7})
+
+## Remate común: anillo que lanza al rival (`share` del daño), con su grieta y destello.
+static func _finisher(cm: CombatManager, f: Fighter, atk: AttackData, delay: int, share: float) -> void:
+	var o := f.opponent.position.x
+	_spawn(cm, f, atk, {"art": &"ring", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -36),
+		"box": Vector2(190, 90), "delay": delay, "show": true, "life": 27, "pierce": true, "radial": true, "share": share,
+		"knock": 330.0, "launch": -270.0, "stun": 40, "shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, delay, &"ring", {"x": o})
+	_ufx(cm, delay, &"crack", {"x": o, "len": 110.0, "shake": 6.0})
+	_ufx(cm, delay, &"flash", {"amount": 0.7})
+
+## Napoleón: la Grande Armée avanza en columnas (infantería y caballería) y remata la Guardia Imperial.
+static func _ult_army(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	for i in 3:
+		_spawn(cm, f, atk, {"art": &"legion", "off": Vector2(-40.0 - i * 30.0, -15.0), "box": Vector2(58, 34),
+			"speed": 170.0, "delay": i * 16, "life": 130, "pierce": true, "share": 0.2, "knock": 120.0, "stun": 26,
+			"sound": &"whoosh"})
+	_spawn(cm, f, atk, {"art": &"horse", "off": Vector2(-30, -16), "box": Vector2(40, 30), "speed": 300.0,
+		"delay": 60, "life": 100, "pierce": true, "share": 0.15, "knock": 260.0, "launch": -120.0, "stun": 28,
+		"sound": &"whoosh"})
+	for k in 8:
+		_ufx(cm, 10 + k * 8, &"dust", {"x": f.position.x + f.facing * (20.0 + k * 40.0)})
+	_finisher(cm, f, atk, 104, 0.25)
+
+## Kim: cuenta atrás y un único misil gigante que cae sobre el rival.
+static func _ult_nuke(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	_spawn(cm, f, atk, {"art": &"bomb", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -f.floor_y + 4.0),
+		"box": Vector2(40, 40), "speed": 0.0, "accel_y": 420.0, "floor_y": f.floor_y - 2.0, "boom": true,
+		"delay": 30, "life": 120, "share": 0.3, "knock": 100.0, "stun": 30})
+	_ufx(cm, 30 + 62, &"crack", {"x": o, "len": 140.0, "shake": 8.0})
+	_ufx(cm, 30 + 62, &"flash", {"amount": 1.0})
+	_finisher(cm, f, atk, 96, 0.7)
+
+## Escobar: plata o plomo. Los billetes ciegan de codicia (controles cambiados) y el plomo remata.
+static func _ult_bribe(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	for i in 10:
+		var d := {"style": &"spin", "color": Color("50c060"), "at_opp": true,
+			"off": Vector2(-60.0 + (i % 5) * 30.0, -f.floor_y + 10.0), "box": Vector2(18, 14), "speed": 0.0,
+			"accel_y": 380.0, "floor_y": f.floor_y - 2.0, "delay": 6 + i * 6, "life": 110, "share": 0.05,
+			"knock": 30.0, "stun": 24}
+		if i == 0:
+			d["status"] = &"invert"
+			d["status_frames"] = 150
+		_spawn(cm, f, atk, d)
+	for i in 4:
+		_spawn(cm, f, atk, {"art": &"tracer", "color": atk.ult_color, "at_opp": true,
+			"off": Vector2(_opp_dx(f, -150.0), -50.0 + i * 8.0), "box": Vector2(26, 10), "dir": f.facing,
+			"speed": 520.0, "delay": 76 + i * 8, "life": 40, "pierce": true, "share": 0.1, "knock": 60.0,
+			"stun": 24, "sound": &"cannon"})
+	_finisher(cm, f, atk, 116, 0.1)
+	_ufx(cm, 116, &"flash", {"amount": 0.3})
+
+## Cleopatra: las plagas de Egipto. Langostas, granizo y la última plaga.
+static func _ult_plagues(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	_spawn(cm, f, atk, {"art": &"sandstorm", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -30),
+		"box": Vector2(70, 70), "delay": 10, "show": true, "life": 70, "pierce": true, "rehit": 14, "max_hits": 4,
+		"share": 0.08, "knock": 20.0, "stun": 22, "status": &"slow", "status_frames": 120})
+	var offs: Array[float] = [-60.0, 40.0, -20.0, 70.0, 0.0]
+	for i in offs.size():
+		_spawn(cm, f, atk, {"art": &"meteor", "color": Color("a0e0ff"), "at_opp": true,
+			"off": Vector2(offs[i], -f.floor_y + 4.0), "box": Vector2(20, 20), "speed": 0.0, "accel_y": 520.0,
+			"floor_y": f.floor_y - 2.0, "boom": true, "delay": 40 + i * 10, "life": 110, "share": 0.08,
+			"knock": 80.0, "stun": 26})
+		_ufx(cm, 40 + i * 10 + 55, &"crack", {"x": o + offs[i] * f.facing, "len": 50.0, "shake": 2.0})
+	_finisher(cm, f, atk, 110, 0.28)
+
+## César: los idus de marzo. La legión rodea al rival y llegan las puñaladas de todos lados.
+static func _ult_ides(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	for side in [-1, 1]:
+		_spawn(cm, f, atk, {"art": &"legion", "at_opp": true, "off": Vector2(side * 190.0 * f.facing, -15.0),
+			"dir": -side, "box": Vector2(58, 34), "speed": 200.0, "delay": 0 if side < 0 else 6, "life": 110,
+			"pierce": true, "share": 0.1, "knock": 80.0, "stun": 24, "sound": &"whoosh"})
+	for i in 6:
+		_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(-30.0 + (i % 3) * 30.0, -30.0 - (i % 2) * 14.0),
+			"box": Vector2(40, 52), "delay": 44 + i * 9, "life": 11, "pierce": true, "share": 0.08, "knock": 40.0,
+			"stun": 22, "sound": &"hit_light"})
+		_ufx(cm, 44 + i * 9, &"cut")
+	_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -40), "box": Vector2(90, 100), "delay": 110,
+		"show": true, "life": 18, "pierce": true, "share": 0.32, "knock": 320.0, "launch": -260.0, "stun": 40,
+		"shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, 110, &"crack", {"x": o, "len": 120.0, "shake": 6.0})
+	_ufx(cm, 110, &"flash", {"amount": 0.7})
+
+## Boudica: Londinium en llamas. Columnas de fuego avanzan hasta el rival y el grito de guerra remata.
+static func _ult_inferno(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	for i in 5:
+		var x := lerpf(40.0, absf(o - f.position.x), float(i) / 4.0)
+		_spawn(cm, f, atk, {"art": &"lightpillar", "color": Color("ff6030"), "off": Vector2(x, -105.0),
+			"box": Vector2(40, 210), "delay": 10 + i * 12, "show": true, "life": 36, "pierce": true, "share": 0.15,
+			"knock": 80.0, "stun": 24, "sound": &"hit_heavy"})
+		_ufx(cm, 10 + i * 12, &"crack", {"x": f.position.x + f.facing * x, "len": 60.0, "shake": 2.0})
+	_finisher(cm, f, atk, 84, 0.25)
+
+## Colón: tormenta en el Atlántico. Una ola gigante embiste y la flota bombardea.
+static func _ult_tidal(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	_spawn(cm, f, atk, {"art": &"bigwave", "off": Vector2(20, -50), "box": Vector2(50, 100), "speed": 220.0,
+		"delay": 8, "life": 120, "pierce": true, "share": 0.45, "knock": 300.0, "launch": -120.0, "stun": 34,
+		"shake": 4.0, "sound": &"megaphone"})
+	var offs: Array[float] = [-50.0, 30.0, -10.0, 60.0]
+	for i in offs.size():
+		_spawn(cm, f, atk, {"art": &"bomb", "color": atk.ult_color, "at_opp": true,
+			"off": Vector2(offs[i], -f.floor_y + 4.0), "box": Vector2(20, 20), "speed": 0.0, "accel_y": 520.0,
+			"floor_y": f.floor_y - 2.0, "boom": true, "delay": 50 + i * 10, "life": 110, "share": 0.1,
+			"knock": 100.0, "stun": 26})
+		_ufx(cm, 50 + i * 10 + 55, &"crack", {"x": o + offs[i] * f.facing, "len": 60.0, "shake": 3.0})
+	_finisher(cm, f, atk, 120, 0.15)
+
+## Putin: llave de judo. Agarra, golpea de cerca y lo estrella contra el tatami.
+static func _ult_judo(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -36), "box": Vector2(46, 60), "delay": 12,
+		"life": 14, "pierce": true, "share": 0.1, "knock": 0.0, "stun": 40, "status": &"root", "status_frames": 80,
+		"sound": &"hit_light"})
+	for i in 3:
+		_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(-6.0 + i * 6.0, -36.0),
+			"box": Vector2(40, 52), "delay": 28 + i * 10, "life": 11, "pierce": true, "share": 0.1, "knock": 30.0,
+			"stun": 24, "sound": &"hit_light"})
+	_spawn(cm, f, atk, {"art": &"gravslam", "at_opp": true, "off": Vector2(0, -50), "box": Vector2(46, 100),
+		"delay": 66, "life": 18, "pierce": true, "share": 0.6, "knock": 140.0, "launch": 320.0, "stun": 34,
+		"shake": 8.0, "sound": &"hit_heavy"})
+	_stones_later(cm, o, 68)
+	_ufx(cm, 66, &"crack", {"x": o, "len": 120.0, "shake": 7.0})
+	_ufx(cm, 66, &"flash", {"amount": 0.6})
+
+## Xi: gran cortafuegos. Los caracteres censuran al rival (controles cambiados) y la Gran Muralla lo aplasta.
+static func _ult_censor(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	for i in 6:
+		var d := {"art": &"glyph", "color": Color("ff4040"), "at_opp": true,
+			"off": Vector2(-50.0 + (i % 3) * 50.0, -f.floor_y + 10.0), "box": Vector2(18, 18), "speed": 0.0,
+			"accel_y": 380.0, "floor_y": f.floor_y - 2.0, "delay": 8 + i * 8, "life": 110, "share": 0.07,
+			"knock": 30.0, "stun": 24}
+		if i == 0:
+			d["status"] = &"invert"
+			d["status_frames"] = 160
+		_spawn(cm, f, atk, d)
+	_spawn(cm, f, atk, {"art": &"wall", "at_opp": true, "off": Vector2(0, -42), "box": Vector2(40, 84),
+		"delay": 78, "show": true, "life": 27, "pierce": true, "share": 0.58, "knock": 160.0, "launch": -200.0,
+		"stun": 36, "shake": 7.0, "sound": &"hit_heavy"})
+	_stones_later(cm, o, 78)
+	_ufx(cm, 78, &"crack", {"x": o, "len": 110.0, "shake": 6.0})
+	_ufx(cm, 78, &"flash", {"amount": 0.6})
+
+## Tesla: Wardenclyffe. Dos arcos eléctricos recorren el suelo hacia el rival y caen los rayos.
+static func _ult_arc(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	for side in [-1, 1]:
+		var d := {"art": &"groundwave", "color": atk.ult_color, "at_opp": true,
+			"off": Vector2(side * 190.0 * f.facing, -6.0), "dir": -side, "box": Vector2(40, 16), "speed": 260.0,
+			"delay": 0, "life": 100, "pierce": true, "share": 0.15, "knock": 60.0, "stun": 26, "shake": 2.0,
+			"sound": &"hit_heavy"}
+		if side < 0:
+			d["status"] = &"root"
+			d["status_frames"] = 70
+		_spawn(cm, f, atk, d)
+	var offs: Array[float] = [0.0, -45.0, 45.0, -20.0, 20.0]
+	for i in offs.size():
+		var delay := 48 + i * 10
+		_spawn(cm, f, atk, {"art": &"icebolt", "color": atk.ult_color, "at_opp": true, "off": Vector2(offs[i], -105.0),
+			"box": Vector2(20, 210), "delay": delay, "show": true, "life": 18, "pierce": true, "share": 0.12,
+			"knock": 90.0, "stun": 22, "sound": &"hit_heavy"})
+		_ufx(cm, delay, &"bolt")
+		_ufx(cm, delay, &"crack", {"x": o + offs[i] * f.facing, "len": 40.0, "shake": 1.0})
+	_finisher(cm, f, atk, 108, 0.1)
+
+## Cura a quien lanza el ultimate (sin pasar de su vida máxima).
+static func _heal(f: Fighter, amount: float) -> void:
+	f.health = minf(f.health + amount, f.data.max_health)
+
+## Einstein: frena el tiempo del rival y detona una esfera de energía (E = mc²).
+static func _ult_spacetime(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	_spawn(cm, f, atk, {"art": &"timefield", "at_opp": true, "off": Vector2(0, -36), "box": Vector2(70, 80),
+		"delay": 10, "show": true, "life": 40, "pierce": true, "share": 0.15, "knock": 0.0, "stun": 30,
+		"status": &"slow", "status_frames": 170, "sound": &"confirm"})
+	_spawn(cm, f, atk, {"art": &"sphere", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -40),
+		"box": Vector2(70, 70), "delay": 64, "show": true, "life": 20, "pierce": true, "radial": true, "boom": true,
+		"share": 0.45, "knock": 260.0, "stun": 34, "shake": 5.0, "sound": &"hit_heavy"})
+	_ufx(cm, 64, &"flash", {"amount": 0.9})
+	_finisher(cm, f, atk, 100, 0.4)
+
+## Buda: se eleva, el rival queda en calma (inmóvil) entre ondas doradas y él recupera vida.
+static func _ult_nirvana(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	f.hop(230.0)
+	_heal(f, 12.0)
+	for i in 3:
+		var d := {"art": &"ring", "color": atk.ult_color, "at_opp": true, "off": Vector2(0, -40), "box": Vector2(150, 80),
+			"delay": 12 + i * 22, "show": true, "life": 26, "pierce": true, "radial": true, "share": 0.2,
+			"knock": 90.0, "stun": 32, "sound": &"confirm"}
+		if i == 0:
+			d["status"] = &"root"
+			d["status_frames"] = 120
+		_spawn(cm, f, atk, d)
+		_ufx(cm, 12 + i * 22, &"ring", {"x": f.opponent.position.x})
+	_finisher(cm, f, atk, 92, 0.4)
+
+## Trump: rueda de prensa. Ráfagas de megáfono (fake news: controles cambiados) y lluvia de aranceles.
+static func _ult_presser(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	for i in 6:
+		var d := {"art": &"bigwave", "off": Vector2(30, -50), "box": Vector2(26, 38), "speed": 230.0,
+			"delay": i * 9, "life": 84, "share": 0.08, "knock": 70.0, "stun": 26, "sound": &"megaphone"}
+		if i == 0:
+			d["status"] = &"invert"
+			d["status_frames"] = 150
+		_spawn(cm, f, atk, d)
+	for i in 4:
+		_spawn(cm, f, atk, {"style": &"spin", "color": Color("ffd040"), "at_opp": true,
+			"off": Vector2(-45.0 + i * 30.0, -f.floor_y + 10.0), "box": Vector2(18, 14), "speed": 0.0,
+			"accel_y": 380.0, "floor_y": f.floor_y - 2.0, "delay": 40 + i * 8, "life": 110, "share": 0.08,
+			"knock": 30.0, "stun": 24})
+	_finisher(cm, f, atk, 100, 0.2)
+
+## Fidel: los barbudos disparan desde los dos lados y el discurso final remata.
+static func _ult_guerrilla(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	for i in 8:
+		var side := -1 if i % 2 == 0 else 1
+		_spawn(cm, f, atk, {"art": &"tracer", "color": atk.ult_color, "at_opp": true,
+			"off": Vector2(side * 170.0 * f.facing, -40.0 - (i % 3) * 8.0), "dir": -side, "box": Vector2(26, 10),
+			"speed": 520.0, "delay": 8 + i * 8, "life": 44, "pierce": true, "share": 0.06, "knock": 40.0,
+			"stun": 24, "sound": &"cannon"})
+	_finisher(cm, f, atk, 96, 0.52)
+
+## Pinochet: los cazas de la Fuerza Aérea bombardean La Moneda y la onda final cierra.
+static func _ult_bombing(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	for k in 2:
+		_visual(cm, f, f.position + Vector2(-30.0 * f.facing, -110.0 - k * 14.0), {"art": &"jet",
+			"box": Vector2(50, 24), "speed": 240.0 + k * 30.0, "life": 132, "delay": k * 10, "show": true})
+	var offs: Array[float] = [-60.0, 20.0, -20.0, 60.0, 0.0, -40.0]
+	for i in offs.size():
+		_spawn(cm, f, atk, {"art": &"bomb", "color": atk.ult_color, "at_opp": true,
+			"off": Vector2(offs[i], -f.floor_y + 4.0), "box": Vector2(20, 20), "speed": 0.0, "accel_y": 520.0,
+			"floor_y": f.floor_y - 2.0, "boom": true, "delay": 14 + i * 9, "life": 110, "share": 0.1,
+			"knock": 90.0, "stun": 26})
+		_ufx(cm, 14 + i * 9 + 55, &"crack", {"x": o + offs[i] * f.facing, "len": 60.0, "shake": 3.0})
+	_finisher(cm, f, atk, 112, 0.4)
+
+## Allende: se defiende en La Moneda con el fusil que le regaló Fidel: ráfaga larga y un último disparo.
+static func _ult_defense(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	for i in 14:
+		_spawn(cm, f, atk, {"art": &"tracer", "color": atk.ult_color, "off": Vector2(26, -46.0 + (i % 3) * 5.0),
+			"box": Vector2(22, 8), "speed": 480.0, "delay": 8 + i * 4, "life": 46, "pierce": true, "share": 0.045,
+			"knock": 30.0, "stun": 20, "sound": &"cannon"})
+		if i % 3 == 0:
+			_ufx(cm, 8 + i * 4, &"flash", {"amount": 0.15})
+	_spawn(cm, f, atk, {"art": &"tracer", "color": Color("ffe080"), "off": Vector2(26, -46), "box": Vector2(34, 12),
+		"speed": 560.0, "delay": 80, "life": 46, "pierce": true, "share": 0.37, "knock": 320.0, "launch": -200.0,
+		"stun": 40, "shake": 6.0, "sound": &"cannon"})
+	_ufx(cm, 90, &"crack", {"x": o, "len": 90.0, "shake": 5.0})
+	_ufx(cm, 90, &"flash", {"amount": 0.6})
+
+## Jesús: el milagro. El rival flota entre pilares de luz y Jesús recupera vida.
+static func _ult_miracle(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	_heal(f, 15.0)
+	for i in 3:
+		var d := {"art": &"lightpillar", "color": atk.ult_color, "at_opp": true, "off": Vector2(-24.0 + i * 24.0, -105.0),
+			"box": Vector2(40, 210), "delay": 12 + i * 12, "show": true, "life": 36, "pierce": true, "share": 0.15,
+			"knock": 0.0, "stun": 30, "sound": &"confirm"}
+		if i == 1:
+			d["status"] = &"float"
+			d["status_frames"] = 45
+		_spawn(cm, f, atk, d)
+		_ufx(cm, 12 + i * 12, &"crack", {"x": o + (-24.0 + i * 24.0) * f.facing, "len": 70.0, "shake": 2.0})
+	_finisher(cm, f, atk, 80, 0.55)
+
+## Juana: la hoguera. Una columna de llamas envuelve al rival y quema varias veces.
+static func _ult_pyre(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	_spawn(cm, f, atk, {"art": &"lightpillar", "color": Color("ff7030"), "at_opp": true, "off": Vector2(0, -105),
+		"box": Vector2(64, 210), "delay": 14, "show": true, "life": 76, "pierce": true, "rehit": 12, "max_hits": 5,
+		"share": 0.12, "knock": 0.0, "stun": 26, "shake": 3.0, "sound": &"hit_heavy"})
+	_ufx(cm, 14, &"crack", {"x": o, "len": 90.0, "shake": 4.0})
+	_finisher(cm, f, atk, 96, 0.4)
+
+## Pachacútec: muros incas se cierran sobre el rival y la tierra se abre.
+static func _ult_stonewalls(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	var o := f.opponent.position.x
+	for i in 2:
+		var side := -1.0 if i == 0 else 1.0
+		_spawn(cm, f, atk, {"art": &"wall", "at_opp": true, "off": Vector2(side * 22.0, -42), "box": Vector2(26, 84),
+			"delay": 10 + i * 6, "show": true, "life": 27, "pierce": true, "share": 0.2, "knock": 60.0, "stun": 28,
+			"shake": 4.0, "sound": &"hit_heavy"})
+	_spawn(cm, f, atk, {"art": &"wall", "at_opp": true, "off": Vector2(0, -42), "box": Vector2(40, 84),
+		"delay": 46, "show": true, "life": 27, "pierce": true, "share": 0.2, "knock": 60.0, "launch": 0.0,
+		"stun": 34, "shake": 6.0, "sound": &"hit_heavy"})
+	_stones_later(cm, o, 46)
+	_spawn(cm, f, atk, {"art": &"quake", "at_opp": true, "off": Vector2(0, -12), "box": Vector2(120, 26),
+		"delay": 84, "show": true, "life": 30, "pierce": true, "share": 0.4, "knock": 120.0, "launch": -260.0,
+		"stun": 40, "shake": 7.0, "sound": &"hit_heavy"})
+	_ufx(cm, 84, &"crack", {"x": o, "len": 130.0, "shake": 6.0})
+	_ufx(cm, 84, &"debris", {"x": o})
+
+## Papa Francisco: la misa. La Guardia Suiza llega por los dos lados, repican campanas y él recupera vida.
+static func _ult_mass(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
+	_heal(f, 15.0)
+	for i in 4:
+		var side := -1 if i % 2 == 0 else 1
+		_spawn(cm, f, atk, {"art": &"guard", "at_opp": true, "off": Vector2(side * 190.0 * f.facing, -20.0),
+			"dir": -side, "box": Vector2(30, 40), "speed": 210.0, "delay": i * 8, "life": 110, "pierce": true,
+			"share": 0.1, "knock": 90.0, "stun": 24, "sound": &"whoosh"})
+	for i in 3:
+		_spawn(cm, f, atk, {"art": &"bell_wave", "off": Vector2(22, -40), "box": Vector2(20, 52), "speed": 175.0,
+			"delay": 40 + i * 14, "life": 78, "share": 0.1, "knock": 120.0, "stun": 26, "sound": &"confirm"})
+	_finisher(cm, f, atk, 100, 0.3)
+
 ## Desplazamiento (hacia delante) desde el rival que no saca la entidad de la pantalla.
 static func _opp_dx(f: Fighter, dx: float) -> float:
 	var x := clampf(f.opponent.position.x + dx * f.facing, -40.0, 466.0)
@@ -621,6 +1011,9 @@ static func _spawn(cm: CombatManager, f: Fighter, atk: AttackData, d: Dictionary
 	if d.get("nostatus", false):
 		a.status = &""
 		a.energy_on_hit = 0.0
+	if d.has("status"):
+		a.status = d["status"]
+		a.status_frames = int(d.get("status_frames", 60))
 	var base: Vector2 = f.opponent.position if d.get("at_opp", false) else f.position
 	var off: Vector2 = d.get("off", Vector2.ZERO)
 	var p := Projectile.new()

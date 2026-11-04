@@ -183,7 +183,7 @@ power = &"andean_quake"
 [sub_resource type="Resource" id="R_pachacutec_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Sol del Tahuantinsuyo"
+display_name = "Muros de Sacsayhuamán"
 kind = 3
 anim = &"axe"
 damage = 35.0
@@ -209,7 +209,7 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"light"
+ult_kind = &"stonewalls"
 ult_art = &""
 ult_color = Color(1, 0.752941, 0.25098, 1)
 ult_tint = Color(0.101961, 0.0705882, 0.0156863, 1)

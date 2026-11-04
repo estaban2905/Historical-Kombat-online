@@ -185,7 +185,7 @@ status_frames = 100
 [sub_resource type="Resource" id="R_augusto_pinochet_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Toque de Queda"
+display_name = "Bombardeo de La Moneda"
 kind = 3
 anim = &"cast"
 damage = 35.0
@@ -211,7 +211,7 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"slash"
+ult_kind = &"bombing"
 ult_art = &""
 ult_color = Color(0.603922, 0.666667, 0.603922, 1)
 ult_tint = Color(0, 0, 0, 1)

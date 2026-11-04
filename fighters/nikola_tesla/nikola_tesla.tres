@@ -183,7 +183,7 @@ power = &"tesla_storm"
 [sub_resource type="Resource" id="R_nikola_tesla_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Tormenta Eléctrica"
+display_name = "Torre Wardenclyffe"
 kind = 3
 anim = &"cast"
 damage = 35.0
@@ -209,7 +209,7 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"storm"
+ult_kind = &"arc"
 ult_art = &""
 ult_color = Color(0.439216, 0.878431, 1, 1)
 ult_tint = Color(0.0235294, 0.0470588, 0.109804, 1)

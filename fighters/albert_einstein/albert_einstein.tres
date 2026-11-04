@@ -186,7 +186,7 @@ status_frames = 150
 [sub_resource type="Resource" id="R_albert_einstein_ultimate"]
 script = ExtResource("2_attack")
 id = &"ultimate"
-display_name = "Bomba de Relatividad"
+display_name = "E = mc²"
 kind = 3
 anim = &"cast"
 damage = 35.0
@@ -212,8 +212,8 @@ projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
 power = &"ult"
-ult_kind = &"wave"
-ult_art = &"ring"
+ult_kind = &"spacetime"
+ult_art = &""
 ult_color = Color(0.439216, 0.878431, 1, 1)
 ult_tint = Color(0.0156863, 0.0627451, 0.12549, 1)
 
