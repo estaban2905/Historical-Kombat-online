@@ -25,6 +25,10 @@ var _message: String = ""
 var _message_color: Color = Color.WHITE
 var _message_t: float = 0.0
 var _message_dur: float = 0.0
+var _subtitle: Array = []
+var _subtitle_color: Color = Color.WHITE
+var _subtitle_t: float = 0.0
+var _subtitle_dur: float = 0.0
 var _stage_name: String = ""
 var _stage_name_t: float = 99.0
 var _combo: Array[int] = [0, 0, 0]        # golpes encadenados POR el jugador i
@@ -61,6 +65,13 @@ func show_message(text: String, duration: float, color: Color = Color.WHITE) -> 
 	_message_t = 0.0
 	_message_dur = duration
 
+## Subtítulo de una o dos líneas (voz del Nexo en su combate), bajo el mensaje central.
+func show_subtitle(lines: Array, duration: float, color: Color = Color.WHITE) -> void:
+	_subtitle = lines
+	_subtitle_color = color
+	_subtitle_t = 0.0
+	_subtitle_dur = duration
+
 ## Rótulo con el nombre del escenario al empezar cada ronda.
 func show_stage_name(text: String) -> void:
 	_stage_name = text
@@ -88,6 +99,7 @@ func _on_hit_landed(attacker: Fighter, defender: Fighter, _atk: AttackData, resu
 func _process(delta: float) -> void:
 	_time += delta
 	_message_t += delta
+	_subtitle_t += delta
 	_stage_name_t += delta
 	if combat:
 		for f in combat.fighters:
@@ -116,6 +128,7 @@ func _draw() -> void:
 	_draw_side(f2, 2)
 	_draw_timer()
 	_draw_message()
+	_draw_subtitle()
 	_draw_stage_name()
 	_draw_ultimate_cinematic()
 	_draw_shouts()
@@ -295,6 +308,15 @@ func _draw_timer() -> void:
 	var col := HKTheme.PAPER if secs > 10 else (HKTheme.BLOOD if int(_time * 4.0) % 2 == 0 else HKTheme.PAPER)
 	HKTheme.draw_text(self, Vector2(box.position.x, 23), "%02d" % secs, 16, col, HORIZONTAL_ALIGNMENT_CENTER, box.size.x)
 	HKTheme.draw_text(self, Vector2(0, 46), "ROUND %d" % round_number, 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, 426)
+
+func _draw_subtitle() -> void:
+	if _subtitle.is_empty() or _subtitle_t >= _subtitle_dur:
+		return
+	var fade := minf(clampf(_subtitle_t / 0.2, 0.0, 1.0), clampf((_subtitle_dur - _subtitle_t) / 0.3, 0.0, 1.0))
+	var h := 8.0 + _subtitle.size() * 11.0
+	draw_rect(Rect2(0, 132.0, 426, h), Color(0.02, 0.0, 0.04, 0.6 * fade))
+	for i in _subtitle.size():
+		HKTheme.draw_text(self, Vector2(0, 144.0 + i * 11.0), _subtitle[i], 8, Color(_subtitle_color, fade), HORIZONTAL_ALIGNMENT_CENTER, 426, 2)
 
 func _draw_message() -> void:
 	if _message.is_empty() or _message_t >= _message_dur:

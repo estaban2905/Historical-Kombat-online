@@ -72,7 +72,7 @@ func _test_resources() -> void:
 	print("\n# Datos y escenas")
 	for path in ["res://scenes/MainMenu.tscn", "res://scenes/CharacterSelect.tscn", "res://scenes/Fight.tscn",
 			"res://scenes/Results.tscn", "res://scenes/fighters/Fighter.tscn", "res://ui/HUD.tscn",
-			"res://stages/colosseum/Colosseum.tscn", "res://scenes/Story.tscn", "res://scenes/Roster.tscn", "res://scenes/Credits.tscn"]:
+			"res://stages/colosseum/Colosseum.tscn", "res://scenes/Story.tscn", "res://scenes/Roster.tscn", "res://scenes/Credits.tscn", "res://scenes/StorySaves.tscn"]:
 		var ps := load(path) as PackedScene
 		check(ps != null and ps.can_instantiate(), "escena carga: " + path)
 	var roster := FighterRegistry.all()

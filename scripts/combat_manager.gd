@@ -235,6 +235,7 @@ func _set_nexo_phase(phase: int, announce: bool) -> void:
 	p2.data.walk_speed = _nexo_base.y * mult_v
 	if announce:
 		hud.show_message("EL NEXO · %s" % NEXO_PHASES[phase - 1][1], 1.6, Color("ffd24a"))
+		hud.show_subtitle(StoryCampaign.NEXO_PHASE_LINES[phase - 1], 3.2, Color("e8d8ff"))
 		shake(6.0)
 		Sfx.play(&"hit_heavy")
 

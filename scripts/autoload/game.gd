@@ -22,7 +22,8 @@ const SCENE_FRIENDS := "res://scenes/Friends.tscn"
 const SCENE_ROSTER := "res://scenes/Roster.tscn"
 const SCENE_CREDITS := "res://scenes/Credits.tscn"
 const SCENE_STORY := "res://scenes/Story.tscn"
-const SCENE_STORY_ENDING := "res://scenes/StoryEnding.tscn"
+const SCENE_STORY_SAVES := "res://scenes/StorySaves.tscn"
+const SCENE_STORY_ENDING :="res://scenes/StoryEnding.tscn"
 
 const VERSION := "0.1.0"
 
@@ -281,21 +282,26 @@ func ai_level() -> float:
 func start_story(player_id: StringName) -> void:
 	mode = Mode.ARCADE
 	p1_fighter_id = player_id
-	var rivals: Array[FighterData] = []
-	for d in FighterRegistry.all():
-		if d.id != player_id:
-			rivals.append(d)
-	rivals.sort_custom(_story_before)
-	arcade_ladder.clear()
-	for d in rivals:
-		arcade_ladder.append(d.id)
-	arcade_ladder.append(STORY_NEXO_ID)
+	arcade_ladder = story_ladder_for(player_id)
 	arcade_stage = 0
 	arcade_continues = ARCADE_CONTINUES
 	story_continues_used = 0
 	_boss_cache.clear()
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
+
+## La escalera del modo Historia para quien juega con `player_id` (sin tocar la partida en curso).
+func story_ladder_for(player_id: StringName) -> Array[StringName]:
+	var rivals: Array[FighterData] = []
+	for d in FighterRegistry.all():
+		if d.id != player_id:
+			rivals.append(d)
+	rivals.sort_custom(_story_before)
+	var ladder: Array[StringName] = []
+	for d in rivals:
+		ladder.append(d.id)
+	ladder.append(STORY_NEXO_ID)
+	return ladder
 
 ## Vencer a un rival en el modo Historia lo desbloquea para siempre (el Nexo no: es el final).
 func story_record_win() -> void:
@@ -413,6 +419,23 @@ func story_chapter_start(stage: int) -> bool:
 ## ¿Es el último combate de su capítulo (el jefe)?
 func story_is_chapter_boss(stage: int) -> bool:
 	return stage >= arcade_ladder.size() - 1 or story_chapter_of(arcade_ladder[stage + 1]) != story_chapter_of(arcade_ladder[stage])
+
+## ¿Ya se recuperó el fragmento del Reloj de esa época? Se gana al vencer a su jefe: no hace falta guardarlo,
+## sale de hasta dónde se ha llegado (arcade_stage).
+func story_fragment_earned(chapter: int) -> bool:
+	var boss_stage := -1
+	for i in arcade_ladder.size():
+		if story_chapter_of(arcade_ladder[i]) == chapter:
+			boss_stage = i
+	return boss_stage >= 0 and arcade_stage > boss_stage
+
+## Cuántos fragmentos del Reloj lleva el jugador (de 0 a STORY_CHAPTERS.size()).
+func story_fragments() -> int:
+	var n := 0
+	for c in STORY_CHAPTERS.size():
+		if story_fragment_earned(c):
+			n += 1
+	return n
 
 ## ¿El combate `stage` es contra uno de los creadores del Reloj?
 func story_is_creator(stage: int) -> bool:

@@ -222,6 +222,8 @@ func _draw() -> void:
 		HKTheme.draw_text(self, Vector2(x0, 36), title, 16, pulse, HORIZONTAL_ALIGNMENT_CENTER, w, 4)
 		HKTheme.draw_text(self, Vector2(x0, 54), _winner_data.display_name, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w)
 		_draw_wrapped(Vector2(x0 + 8, 92), "\"%s\"" % _winner_data.victory_quote, w - 16, Color("e8d8b8"))
+		_draw_farewell(x0, w)
+		_draw_fragment(x0, w)
 	HKTheme.draw_text(self, Vector2(x0, 74), "RONDAS  %d - %d" % [Game.last_p1_rounds, Game.last_p2_rounds], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)
 	if _arcade != &"":
 		HKTheme.draw_text(self, Vector2(x0, 18), _arcade_status(), 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w)
@@ -290,6 +292,28 @@ func _not_saved_reason(reason: String) -> String:
 		"too_short": return "DUELO DEMASIADO CORTO"
 		"stalled": return "NADIE RESPONDIÓ: DUELO ANULADO"
 	return "ERROR DEL SERVIDOR"
+
+## Al vencer al jefe de una época se recupera el fragmento del Reloj de esa época.
+func _draw_fragment(x0: float, w: float) -> void:
+	if _arcade != &"next" or Game.last_winner != 1 or not Game.story_is_chapter_boss(Game.arcade_stage):
+		return
+	var chapter := Game.story_chapter_of(Game.p2_fighter_id)
+	if chapter >= StoryEnding.SHARD_COLORS.size():
+		return
+	var col: Color = StoryEnding.SHARD_COLORS[chapter]
+	col = col.lerp(Color.WHITE, 0.25 + 0.25 * sin(_t * 5.0))
+	HKTheme.draw_text(self, Vector2(x0, 64), "FRAGMENTO %s RECUPERADO" % ["I", "II", "III", "IV", "V"][chapter], 8, col,
+		HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+
+## Último aliento del rival vencido en el modo Historia (si ganó el jugador y el rival tiene frase).
+func _draw_farewell(x0: float, w: float) -> void:
+	if _arcade != &"next" or Game.last_winner != 1:
+		return
+	var rival := Game.p2_data()
+	if not StoryCampaign.FAREWELL.has(rival.id):
+		return
+	HKTheme.draw_text(self, Vector2(x0, 126), "%s:" % rival.short_name.to_upper(), 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+	_draw_wrapped(Vector2(x0 + 8, 137), "\"%s\"" % StoryCampaign.FAREWELL[rival.id], w - 16, HKTheme.PAPER.darkened(0.1))
 
 ## Líneas finales al ganar el último combate del modo Historia.
 func _epilogue() -> PackedStringArray:
