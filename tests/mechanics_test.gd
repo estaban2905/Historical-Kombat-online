@@ -70,6 +70,7 @@ func _run() -> void:
 	await _test_simultaneous_sweeps()
 	await _test_passives()
 	await _test_passive_library()
+	_test_quotes()
 	await _test_snapshot_coverage()
 
 	await get_tree().physics_frame
@@ -1506,6 +1507,73 @@ func _test_passive_library() -> void:
 
 	_set_fighters(&"napoleon", &"donald_trump")
 	await _place(80.0)
+
+
+# --- Frases ---------------------------------------------------------------------------
+## Cuántas líneas ocupa un texto de 8 px en un ancho dado (igual que el partido de línea de las pantallas).
+func _wrapped_lines(text: String, width: float) -> int:
+	var n := 0
+	var line := ""
+	for word in text.split(" "):
+		var test: String = word if line.is_empty() else line + " " + word
+		if HKTheme.text_width(test, 8) > width and not line.is_empty():
+			n += 1
+			line = word
+		else:
+			line = test
+	if not line.is_empty():
+		n += 1
+	return n
+
+func _test_quotes() -> void:
+	print("\n# Frases")
+	var all_data := FighterRegistry.all()
+	if not all_data.any(func(d): return d.id == FighterRegistry.NEXO_ID):
+		all_data.append(FighterRegistry.get_by_id(FighterRegistry.NEXO_ID))
+	var no_power: Array[String] = []
+	var seen := {}
+	var repeated: Array[String] = []
+	for d in all_data:
+		if d.power_quote.strip_edges() == "":
+			no_power.append(str(d.id))
+		for q in [d.intro_quote, d.victory_quote, d.power_quote]:
+			if q != "":
+				if seen.has(q):
+					repeated.append("%s / %s" % [d.id, seen[q]])
+				seen[q] = d.id
+	check(no_power.is_empty(), "los %d luchadores tienen frase de poder (faltan: %s)" % [all_data.size(), ", ".join(no_power)])
+	check(repeated.is_empty(), "ninguna frase se repite entre luchadores (%s)" % ", ".join(repeated))
+	var generic := ["¡El combate ha terminado!", "¡La batalla ha terminado!", "¡Se acabó el combate!"]
+	var bad_generic: Array[String] = []
+	for d in all_data:
+		if d.victory_quote in generic:
+			bad_generic.append(str(d.id))
+	check(bad_generic.is_empty(), "ninguna frase de victoria es genérica (%s)" % ", ".join(bad_generic))
+
+	# Frases cruzadas: ids reales, dos textos y que quepan en su caja.
+	var bad_keys: Array[String] = []
+	var too_long: Array[String] = []
+	for key in RosterLines.VERSUS:
+		var parts := String(key).split(">")
+		var entry: Array = RosterLines.VERSUS[key]
+		if parts.size() != 2 or parts[0] == parts[1] or FighterRegistry.get_by_id(StringName(parts[0])) == null \
+				or FighterRegistry.get_by_id(StringName(parts[1])) == null or entry.size() != 2 or "\"" in str(entry[0]) + str(entry[1]):
+			bad_keys.append(str(key))
+			continue
+		if _wrapped_lines("\"%s\"" % entry[0], 160.0) > 3:
+			too_long.append("%s (intro)" % key)
+		if _wrapped_lines("\"%s\"" % entry[1], 194.0) > 3:
+			too_long.append("%s (victoria)" % key)
+	check(bad_keys.is_empty(), "los %d duelos apuntan a luchadores reales (mal: %s)" % [RosterLines.VERSUS.size(), ", ".join(bad_keys)])
+	check(too_long.is_empty(), "todas las frases de duelo caben en su caja (largas: %s)" % ", ".join(too_long))
+	check(RosterLines.intro(&"julio_cesar", &"cleopatra", "x") != "x" and RosterLines.intro(&"napoleon", &"buda", "x") == "x", "sin duelo se usa la frase normal")
+	check(RosterLines.win(&"salvador_allende", &"augusto_pinochet", "x") != "x" and RosterLines.win(&"napoleon", &"buda", "x") == "x", "y al vencer, igual")
+	# Frases largas de las propias fichas: caben en la selección (3 líneas) y en resultados (3 líneas).
+	var overflow: Array[String] = []
+	for d in all_data:
+		if _wrapped_lines("\"%s\"" % d.victory_quote, 194.0) > 3:
+			overflow.append("%s (victoria)" % d.id)
+	check(overflow.is_empty(), "las frases de victoria de las fichas caben en resultados (largas: %s)" % ", ".join(overflow))
 
 
 func _test_snapshot_coverage() -> void:

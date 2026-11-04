@@ -240,6 +240,7 @@ era = "1769 – 1821"
 year = 1769
 intro_quote = "¡La victoria es cuestión de estrategia!"
 victory_quote = "¡Otra conquista para el emperador!"
+power_quote = "¡Artillería, fuego!"
 bio = "Emperador de los franceses y estratega legendario. Bajito de estatura, gigante de ego y de sombrero."
 max_health = 95.0
 walk_speed = 80.0
