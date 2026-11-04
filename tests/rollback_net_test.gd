@@ -48,6 +48,12 @@ func _run() -> void:
 	await _case("lag 4 frames", 4, 1, 0.0)
 	await _case("ping 150 ms (ida 75), variación 40 ms, 3% de pérdidas", 5, 2, 0.03)
 	await _case("lag duro: ping 300 ms con variación", 9, 3, 0.03)
+	# Rondas de 6 s y 1500 ticks: cruza varios fines de ronda (y el cambio de escenario) con rollbacks profundos.
+	Game.round_time = 6
+	await _case("cambio de ronda con ping 150 ms", 5, 2, 0.03, 0, 1500)
+	await _case("cambio de ronda con lag duro", 9, 3, 0.03, 0, 1500)
+	await _case("cambio de ronda, rival que carga 1 s más tarde", 3, 1, 0.0, 60, 1500)
+	Game.round_time = 99
 	print("\n=== RESULTADO: %d fallos ===" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -113,7 +119,7 @@ func _new_combat(session: RollbackSession, sums: Dictionary) -> CombatManager:
 	return combat
 
 # -------------------------------------------------------------------------
-func _case(label: String, latency: int, jitter: int, loss: float, late_b: int = 0) -> void:
+func _case(label: String, latency: int, jitter: int, loss: float, late_b: int = 0, ticks: int = TICKS) -> void:
 	_wire.clear()
 	_last_arrival.clear()
 	_latency = latency
@@ -135,7 +141,7 @@ func _case(label: String, latency: int, jitter: int, loss: float, late_b: int = 
 		b.set_physics_process(false)
 	var frames := 0
 	var stalled_frames := 0
-	while (a.tick_count < TICKS or b.tick_count < TICKS) and frames < TICKS * 6:
+	while (a.tick_count < ticks or b.tick_count < ticks) and frames < ticks * 6:
 		await get_tree().physics_frame
 		frames += 1
 		if late_b > 0 and frames == late_b:
@@ -163,8 +169,8 @@ func _case(label: String, latency: int, jitter: int, loss: float, late_b: int = 
 					first_bad = t
 	check(bad_inputs == 0, "%s: los dos usaron los mismos botones en cada tick definitivo (%d distintos, primero %d)" % [label, bad_inputs, first_bad])
 	var hurt: bool = a.p1.health < a.p1.data.max_health or a.p2.health < a.p2.data.max_health
-	check(a.tick_count >= TICKS and b.tick_count >= TICKS, "%s: los dos llegan al tick %d en %d frames (A %d, B %d)" % [
-		label, TICKS, frames, a.tick_count, b.tick_count])
+	check(a.tick_count >= ticks and b.tick_count >= ticks, "%s: los dos llegan al tick %d en %d frames (A %d, B %d)" % [
+		label, ticks, frames, a.tick_count, b.tick_count])
 	check(common > 0 and diverge == -1, "%s: %d resúmenes definitivos idénticos%s" % [
 		label, common, "" if diverge == -1 else " · primera divergencia en el tick %d" % diverge])
 	check(hurt, "%s: hubo golpes de verdad" % label)

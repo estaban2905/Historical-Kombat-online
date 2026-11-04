@@ -139,9 +139,8 @@ func _advance_round_end() -> void:
 			_step = 1
 			_begin_wait(2.2)
 		1:
-			# El fin de la partida es irreversible (cambia de escena): solo con el tick confirmado.
-			if not combat.tick_is_confirmed():
-				return
+			# Esto es simulación: pasa en el MISMO tick en todos los PCs (nunca depende de la red).
+			# Lo irreversible (cambiar de escena) va por present(), que espera a que el tick se confirme.
 			var match_winner := 0
 			if wins[1] >= Game.rounds_to_win:
 				match_winner = 1
@@ -151,8 +150,8 @@ func _advance_round_end() -> void:
 				if match_winner == 0 and wins[1] != wins[2]:
 					match_winner = 1 if wins[1] > wins[2] else 2
 				phase = Phase.MATCH_END
-				Game.set_match_result(match_winner, wins[1], wins[2])
-				Game.goto(Game.SCENE_RESULTS)
+				combat.present(Game, &"set_match_result", [match_winner, wins[1], wins[2]])
+				combat.present(Game, &"goto", [Game.SCENE_RESULTS])
 			# Cada ronda se juega en el escenario de un luchador distinto (ver Game.stage_owner).
 			elif combat.stage_changes_for(round_number + 1):
 				# El fundido es solo visual; el cambio de escenario espera ticks fijos.
