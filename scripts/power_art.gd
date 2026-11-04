@@ -86,22 +86,38 @@ static func draw(ci: CanvasItem, style: StringName, t: float, prog: float, a: fl
 static func _ease(x: float) -> float:
 	return 1.0 - pow(1.0 - clampf(x, 0.0, 1.0), 3.0)
 
+## Dibujo fino: contorno de medio píxel y luz/sombra en cada pieza (igual que los luchadores).
 static func _rect(ci: CanvasItem, x: float, y: float, w: float, h: float, c: Color) -> void:
-	ci.draw_rect(Rect2(x - 1, y - 1, w + 2, h + 2), OL)
+	ci.draw_rect(Rect2(x - 0.5, y - 0.5, w + 1.0, h + 1.0), OL)
 	ci.draw_rect(Rect2(x, y, w, h), c)
+	if w >= 3.0 and h >= 3.0:
+		ci.draw_rect(Rect2(x, y, w, 0.5), c.lightened(0.28))
+		ci.draw_rect(Rect2(x, y + 0.5, 0.5, h - 1.0), c.lightened(0.14))
+		ci.draw_rect(Rect2(x, y + h - 1.0, w, 1.0), c.darkened(0.22))
+		ci.draw_rect(Rect2(x + w - 0.5, y + 0.5, 0.5, h - 1.5), c.darkened(0.12))
 
 static func _poly(ci: CanvasItem, pts: Array, c: Color, outline: bool = true) -> void:
 	var v := PackedVector2Array(pts)
+	var center := Vector2.ZERO
+	for p in v:
+		center += p
+	center /= v.size()
 	if outline:
-		var center := Vector2.ZERO
-		for p in v:
-			center += p
-		center /= v.size()
 		var big := PackedVector2Array()
 		for p in v:
-			big.append(p + (p - center).normalized() * 1.5)
+			big.append(p + (p - center).normalized() * 0.9)
 		ci.draw_colored_polygon(big, OL)
 	ci.draw_colored_polygon(v, c)
+	if outline:
+		# Aristas de arriba con luz y de abajo con sombra.
+		for i in v.size():
+			var a := v[i]
+			var b := v[(i + 1) % v.size()]
+			var mid_y := (a.y + b.y) * 0.5
+			if mid_y < center.y - 0.5:
+				ci.draw_line(a, b, c.lightened(0.28), 0.5)
+			elif mid_y > center.y + 0.5:
+				ci.draw_line(a, b, c.darkened(0.25), 0.5)
 
 static func _note(ci: CanvasItem, p: Vector2, c: Color) -> void:
 	ci.draw_circle(p, 2.5, OL)

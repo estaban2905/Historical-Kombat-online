@@ -217,6 +217,28 @@ var draw_shadow: bool = true
 
 var _prop: String = ""
 
+## Dibujo FINO (todos menos el Nexo): mismo tamaño y mismas cajas de golpe, pero con contorno de medio
+## píxel, luces y sombras en miembros y torso, cara con ojo detallado y adornos. FINE_IDS son los que
+## tienen adornos hechos a mano (_sig_*); el resto usa los de su estilo de ropa, sombrero y barba (_*_b).
+## Es solo apariencia: no toca la simulación.
+const FINE_IDS: Array[StringName] = [
+	&"papa_francisco", &"albert_einstein", &"rasputin", &"nikola_tesla", &"abraham_lincoln", &"napoleon",
+	&"leonardo_da_vinci", &"gengis_kan", &"lautaro", &"juana_de_arco", &"cleopatra", &"alejandro_magno",
+]
+var _fine_on: bool = false
+
+## Medio píxel de contorno en los finos, un píxel en el resto.
+func _o() -> float:
+	return 0.5 if _fine_on else 1.0
+
+## Rectángulo con precisión de medio píxel.
+func _f(x: float, y: float, w: float, h: float, col: Color) -> void:
+	draw_rect(Rect2(x, y, w, h), _c(col))
+
+## Línea fina (medio píxel por defecto).
+func _fl(a: Vector2, b: Vector2, col: Color, w: float = 0.5) -> void:
+	draw_line(a, b, _c(col), w)
+
 func setup(p_data: FighterData) -> void:
 	data = p_data
 	queue_redraw()
@@ -365,6 +387,7 @@ func _draw() -> void:
 	if data == null:
 		return
 	var p := _compute_pose()
+	_fine_on = data.id != &"el_nexo"
 
 	# Sombra en el suelo (no rota con el cuerpo).
 	if draw_shadow:
@@ -443,12 +466,24 @@ func _draw() -> void:
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 func _seg(a: Vector2, b: Vector2, col: Color, w: float) -> void:
-	draw_line(a, b, _c(OUTLINE), w + 2.0, true)
-	draw_circle(a, (w + 2.0) * 0.5, _c(OUTLINE))
-	draw_circle(b, (w + 2.0) * 0.5, _c(OUTLINE))
+	var ow := 1.0 if _fine_on else 2.0
+	draw_line(a, b, _c(OUTLINE), w + ow, true)
+	draw_circle(a, (w + ow) * 0.5, _c(OUTLINE))
+	draw_circle(b, (w + ow) * 0.5, _c(OUTLINE))
 	draw_line(a, b, _c(col), w, true)
 	draw_circle(a, w * 0.5, _c(col))
 	draw_circle(b, w * 0.5, _c(col))
+	if _fine_on and w >= 3.0 and a.distance_to(b) > 1.0:
+		# Luz arriba/delante y sombra atrás/abajo, a lo largo del miembro.
+		var d := (b - a).normalized()
+		var n := Vector2(-d.y, d.x)
+		if absf(n.y) < 0.35:
+			if n.x < 0.0:
+				n = -n
+		elif n.y > 0.0:
+			n = -n
+		draw_line(a + n * w * 0.2, b + n * w * 0.2, _c(col.lightened(0.22)), maxf(w * 0.26, 1.0))
+		draw_line(a - n * w * 0.3, b - n * w * 0.3, _c(col.darkened(0.25)), maxf(w * 0.24, 1.0))
 
 func _limb(a: Vector2, b: Vector2, c: Vector2, col: Color, w: float) -> void:
 	_seg(a, b, col, w)
@@ -456,9 +491,14 @@ func _limb(a: Vector2, b: Vector2, c: Vector2, col: Color, w: float) -> void:
 
 func _fist(at: Vector2, col: Color) -> void:
 	var r := Rect2((at - Vector2(2.5, 2.5)).round(), Vector2(5, 5))
-	draw_rect(r.grow(1), _c(OUTLINE))
+	draw_rect(r.grow(_o()), _c(OUTLINE))
 	draw_rect(r, _c(col))
 	draw_rect(Rect2(r.position + Vector2(1, 1), Vector2(2, 1)), _c(col.lightened(0.25)))
+	if _fine_on:
+		# Nudillos y sombra del pulgar.
+		for i in 3:
+			_f(r.end.x - 1.5, r.position.y + 0.5 + i * 1.5, 1.0, 0.5, col.darkened(0.3))
+		_f(r.position.x, r.end.y - 1.0, r.size.x, 1.0, col.darkened(0.2))
 
 ## Guantelete mecánico: la mano delantera es de oro segmentado; la trasera, una bola de energía magenta.
 func _gauntlet(at: Vector2, front: bool) -> void:
@@ -501,10 +541,16 @@ func _torso(length: float) -> void:
 	if data.female:
 		_female_body(w, length, tail)
 	else:
-		draw_rect(body.grow(1), _c(OUTLINE))
+		draw_rect(body.grow(_o()), _c(OUTLINE))
 		draw_rect(body, _c(data.coat_color))
 		# Sombreado lateral trasero
 		draw_rect(Rect2(body.position, Vector2(3, body.size.y)), _c(data.coat_color.darkened(0.25)))
+		if _fine_on:
+			# Luz en el borde delantero y los hombros, y pliegues horizontales.
+			_f(body.end.x - 1.0, body.position.y, 1.0, body.size.y, data.coat_color.lightened(0.16))
+			_f(body.position.x + 3.0, body.position.y, body.size.x - 3.0, 0.5, data.coat_color.lightened(0.22))
+			for i in 3:
+				_f(body.position.x + 3.0, top + length * (0.3 + 0.22 * i), body.size.x - 5.0, 0.5, data.coat_color.darkened(0.22))
 	if data.chest_style == &"tie":
 		# Barriga de caricatura
 		var belly := Rect2(roundf(w / 2.0) - 1, roundf(top + length * 0.45), 3, roundf(length * 0.42))
@@ -623,6 +669,8 @@ func _torso(length: float) -> void:
 			draw_rect(Rect2(ep.position.x + i * 2, top, 1, 3), _c(data.coat_trim_color.darkened(0.2)))
 		var ep2 := Rect2(-roundf(w / 2.0) - 2, top - 2, 6, 3)
 		draw_rect(ep2, _c(data.coat_trim_color.darkened(0.3)))
+	if _fine_on:
+		_sig_torso(w, top, length)
 
 func _head() -> void:
 	var hw := data.head_width
@@ -630,7 +678,7 @@ func _head() -> void:
 	# Cuello
 	draw_rect(Rect2(-3, -2, 6, 3), _c(data.skin_color.darkened(0.15)))
 	var head := Rect2(roundf(-hw / 2.0), -hh, hw, hh)
-	draw_rect(head.grow(1), _c(OUTLINE))
+	draw_rect(head.grow(_o()), _c(OUTLINE))
 	draw_rect(head, _c(data.skin_color))
 	var fx := head.end.x
 	# Mandíbula / mejilla
@@ -660,6 +708,8 @@ func _head() -> void:
 		draw_rect(Rect2(fx - 6, roundf(-hh * 0.4), 3, 1), _c(Color("f08090").lerp(data.skin_color, 0.4)))
 	else:
 		draw_rect(Rect2(fx - 4, roundf(-hh * 0.27), 3, 1), _c(OUTLINE))
+	if _fine_on:
+		_fine_face(head, fx, hh, eye_y)
 	match data.glasses:
 		&"round":
 			draw_rect(Rect2(fx - 6, eye_y - 2, 6, 5), _c(OUTLINE), false, 1.0)
@@ -840,6 +890,8 @@ func _head() -> void:
 			draw_rect(Rect2(head.position.x - 2, -hh, 4, 8), _c(data.hair_color))
 			for i in 4:
 				draw_rect(Rect2(head.position.x - 2 + i * 4, -hh - 4, 3, 2), _c(data.hair_color.lightened(0.15)))
+	if _fine_on:
+		_sig_head(head, fx, hw, hh)
 	var hat := _c(data.hat_color)
 	var trim := _c(data.coat_trim_color)
 	match data.hat_style:
@@ -970,6 +1022,8 @@ func _head() -> void:
 		draw_circle(Vector2(2, -hh - 5), 3.0, _c(Color("d02030")))
 		draw_circle(Vector2(2, -hh - 5), 2.0, _c(Color.WHITE))
 		draw_circle(Vector2(2, -hh - 5), 1.0, _c(Color("2040a0")))
+	if _fine_on:
+		_sig_hat(hw, hh, fx)
 
 func _draw_prop(hand: Vector2, along: Vector2) -> void:
 	match _prop:
@@ -1060,8 +1114,569 @@ func _draw_prop(hand: Vector2, along: Vector2) -> void:
 					draw_rect(Rect2((p + perp * 3.0 * s - Vector2(1, 1)).round(), Vector2(2, 2)), _c(Color("2a2a3a")))
 
 func _orect(r: Rect2, col: Color) -> void:
-	draw_rect(r.grow(1), _c(OUTLINE))
+	draw_rect(r.grow(_o()), _c(OUTLINE))
 	draw_rect(r, col)
+
+# --- Dibujo fino (solo los luchadores de FINE_IDS) ----------------------------------
+## Cara con precisión de medio píxel: ojo con párpado, iris y brillo, nariz con luz y sombra, boca y mejilla.
+func _fine_face(head: Rect2, fx: float, hh: float, eye_y: float) -> void:
+	var sk := data.skin_color
+	# Borra el ojo grueso del dibujo clásico y lo rehace más fino.
+	_f(fx - 5.0, eye_y - 0.5, 4.5, 2.5, sk)
+	_f(fx - 4.5, eye_y, 3.0, 1.5, Color.WHITE)
+	_f(fx - 3.0, eye_y, 1.5, 1.5, Color("3a2a22"))
+	_f(fx - 2.5, eye_y, 0.5, 0.5, Color.WHITE)
+	_f(fx - 4.5, eye_y - 0.5, 3.5, 0.5, OUTLINE)
+	_f(fx - 4.5, eye_y + 1.5, 3.0, 0.5, sk.darkened(0.25))
+	# Nariz: luz arriba y sombra debajo.
+	var ny := roundf(-hh * 0.55)
+	_f(fx, ny, 1.0, 0.5, sk.lightened(0.2))
+	_f(fx, ny + 2.5, 2.0, 0.5, sk.darkened(0.3))
+	# Boca: labio inferior y comisura.
+	var my := roundf(-hh * 0.27)
+	_f(fx - 3.5, my + 1.0, 2.0, 0.5, sk.darkened(0.12))
+	_f(fx - 4.5, my - 0.5, 0.5, 0.5, sk.darkened(0.3))
+	# Mejilla, pómulo y sombra bajo la frente.
+	_f(fx - 5.0, roundf(-hh * 0.45) + 1.0, 2.5, 1.0, sk.lerp(Color("e08070"), 0.16))
+	_f(fx - 6.0, roundf(-hh * 0.62) + 2.5, 1.5, 0.5, sk.lightened(0.15))
+	_f(head.position.x, head.position.y, head.size.x, 1.0, sk.darkened(0.1))
+
+## Adornos del torso propios de cada luchador fino. x: -w/2 (espalda) .. w/2 (frente); y: top (hombros) .. 0 (cadera).
+func _sig_torso(w: float, top: float, length: float) -> void:
+	if not FINE_IDS.has(data.id):
+		_sig_torso_b(w, top, length)
+		return
+	var gold := data.coat_trim_color
+	var coat := data.coat_color
+	match data.id:
+		&"papa_francisco":
+			# Sotana: botones, pliegues, fajín blanco con flecos.
+			for i in 6:
+				_f(0.5, top + 3.0 + i * (length - 4.0) / 6.0, 1.0, 0.5, Color("c8c8d0"))
+			_fl(Vector2(-4, top + 4), Vector2(-4.5, 4), coat.darkened(0.1))
+			_fl(Vector2(4, top + 4), Vector2(4.5, 4), coat.darkened(0.1))
+			_f(-w / 2.0, -6.0, w, 1.5, Color("ffffff"))
+			_f(-w / 2.0, -4.5, w, 0.5, Color("c8c8d0"))
+			_f(w / 2.0 - 2.5, -4.5, 1.0, 3.0, Color("e8e8f0"))
+			_f(w / 2.0 - 1.0, -4.5, 0.5, 2.5, Color("c8c8d0"))
+		&"albert_einstein":
+			# Chaqueta de punto: escote en V, botones, bolsillo y puños acanalados.
+			var sh := data.shirt_color
+			draw_colored_polygon(PackedVector2Array([Vector2(-1, top), Vector2(5, top), Vector2(2, top + 8)]), _c(sh))
+			_fl(Vector2(-1, top), Vector2(2, top + 8), coat.darkened(0.3))
+			_fl(Vector2(5, top), Vector2(2, top + 8), coat.darkened(0.3))
+			for i in 3:
+				_f(2.0, top + 10.0 + i * 4.0, 1.0, 1.0, coat.darkened(0.4))
+			_f(-6.0, top + 10.0, 4.0, 4.0, coat.darkened(0.15))
+			_f(-6.0, top + 10.0, 4.0, 0.5, coat.lightened(0.2))
+			_f(-5.0, top + 7.0, 0.5, 4.0, Color("3a5aa0"))
+			for i in int(w / 2.0):
+				_f(-w / 2.0 + 1.0 + i * 2.0, -2.0, 0.5, 3.0, coat.darkened(0.3))
+		&"rasputin":
+			# Túnica oscura: cinto rojo con borlas, bordado dorado y pliegues largos.
+			_f(-w / 2.0, -7.0, w, 2.0, data.accent_color)
+			_f(-w / 2.0, -7.0, w, 0.5, data.accent_color.lightened(0.3))
+			_f(w / 2.0 - 3.0, -5.0, 1.0, 6.0, data.accent_color.darkened(0.1))
+			_f(w / 2.0 - 3.5, 1.0, 2.0, 1.0, gold)
+			_f(-w / 2.0, top, w, 0.5, gold)
+			for i in 3:
+				_fl(Vector2(-3.0 + i * 3.0, top + 5), Vector2(-3.5 + i * 3.0, -8), coat.lightened(0.1))
+			_fl(Vector2(1, top + 1), Vector2(1, top + 8), gold.darkened(0.2), 1.0)
+		&"nikola_tesla":
+			# Chaleco con botones, corbatín azul, cadena de reloj y solapas con luz.
+			draw_colored_polygon(PackedVector2Array([Vector2(-1, top), Vector2(5, top), Vector2(2, top + 9)]), _c(data.shirt_color))
+			_fl(Vector2(-1, top + 1), Vector2(2, top + 9), coat.lightened(0.22))
+			_fl(Vector2(5, top + 1), Vector2(2, top + 9), coat.lightened(0.22))
+			_f(0.0, top + 1.0, 4.0, 1.5, data.accent_color)
+			_f(1.5, top + 0.5, 1.0, 2.5, data.accent_color.darkened(0.3))
+			for i in 3:
+				_f(2.0, top + 10.0 + i * 3.5, 1.0, 1.0, gold)
+			_fl(Vector2(-4, top + 11), Vector2(2, top + 12), Color("d8c060"))
+			draw_circle(Vector2(-4, top + 11.5), 1.2, _c(Color("d8c060")))
+		&"abraham_lincoln":
+			# Levita: pajarita, cuello blanco, solapas y cadena.
+			_f(1.0, top, 3.0, 6.0, Color("f4f4f4"))
+			_f(0.5, top + 1.0, 4.0, 1.5, Color("141418"))
+			_f(2.0, top + 0.5, 1.0, 2.5, Color("000000"))
+			_fl(Vector2(-1, top + 2), Vector2(2, top + 14), coat.lightened(0.2))
+			_fl(Vector2(5, top + 2), Vector2(2, top + 14), coat.lightened(0.2))
+			for i in 3:
+				_f(2.0, top + 8.0 + i * 3.5, 1.0, 1.0, Color("3a3a40"))
+			_fl(Vector2(-4, top + 9), Vector2(1, top + 10), Color("b8a040"))
+		&"napoleon":
+			# Condecoraciones: banda roja cruzada, cruz con cinta y cordón dorado.
+			_fl(Vector2(w / 2.0 - 2.0, top + 1.0), Vector2(-w / 2.0 + 3.0, -4.0), Color("a02030"), 2.0)
+			_fl(Vector2(w / 2.0 - 2.0, top + 1.0), Vector2(-w / 2.0 + 3.0, -4.0), Color("d04050"), 0.5)
+			_f(-5.0, top + 4.0, 1.5, 3.0, Color("c02030"))
+			draw_circle(Vector2(-4.2, top + 8.0), 1.6, _c(gold))
+			_f(-4.7, top + 7.5, 1.0, 1.0, gold.lightened(0.5))
+			_fl(Vector2(-1, top + 2), Vector2(-5, top + 12), gold, 0.5)
+		&"leonardo_da_vinci":
+			# Túnica: cuello con cordones, cinto de cuero con bolsa y bordes.
+			for i in 3:
+				_fl(Vector2(-1, top + 2.0 + i * 2.0), Vector2(3, top + 3.0 + i * 2.0), Color("e8d8b0"))
+				_fl(Vector2(3, top + 2.0 + i * 2.0), Vector2(-1, top + 3.0 + i * 2.0), Color("e8d8b0"))
+			_f(-w / 2.0, -7.0, w, 1.5, Color("6a4a2a"))
+			_f(0.0, -8.0, 3.0, 3.5, gold.darkened(0.1))
+			_f(-5.0, -5.5, 4.0, 4.0, Color("5a3a22"))
+			_f(-5.0, -5.5, 4.0, 0.5, Color("8a6a3a"))
+			_f(-w / 2.0, top + 1.0, 0.5, length, coat.darkened(0.3))
+			_f(-w / 2.0 + 1.0, top + 7.0, w - 2.0, 0.5, coat.lightened(0.15))
+		&"gengis_kan":
+			# Coraza de láminas, cuello de piel, cinto con placa y correas.
+			for i in 5:
+				_f(-w / 2.0 + 1.0, top + 3.0 + i * 3.5, w - 2.0, 0.5, coat.darkened(0.35))
+				for j in int(w / 3.0):
+					_f(-w / 2.0 + 2.0 + j * 3.0, top + 3.5 + i * 3.5, 0.5, 3.0, coat.darkened(0.2))
+			_f(-w / 2.0 - 1.0, top - 1.0, w + 2.0, 2.5, data.hat_color.lightened(0.15))
+			for i in int(w / 2.0):
+				_f(-w / 2.0 - 0.5 + i * 2.0, top + 1.5, 1.0, 1.0, data.hat_color.lightened(0.3))
+			_f(-w / 2.0, -6.0, w, 2.0, Color("3a2a1a"))
+			_f(0.0, -6.5, 3.0, 3.0, gold)
+			_f(1.0, -5.5, 1.0, 1.0, Color("a02020"))
+			_fl(Vector2(w / 2.0 - 2.0, top + 1.0), Vector2(-w / 2.0 + 2.0, -6.0), Color("3a2a1a"), 1.5)
+		&"lautaro":
+			# Pintura de guerra, collar de cuentas y cinto tejido con grecas.
+			for i in 2:
+				_fl(Vector2(-4.0 + i * 3.0, top + 3.0), Vector2(-1.0 + i * 3.0, top + 9.0), Color("c02828"), 1.0)
+			for i in 5:
+				_f(-3.0 + i * 2.0, top + 1.0 + (1.0 if i % 2 == 0 else 0.0) + (1.0 if i == 2 else 0.0), 1.0, 1.0, Color("e8e0d0") if i % 2 == 0 else Color("c02828"))
+			_f(-w / 2.0, -5.0, w, 3.0, Color("f0e8d8"))
+			for i in int(w / 2.0):
+				_f(-w / 2.0 + i * 2.0, -5.0 + (i % 2) * 1.5, 1.0, 1.5, Color("c02828"))
+			_f(-w / 2.0, -5.5, w, 0.5, Color("141418"))
+			_f(-w / 2.0, top + 1.0, 0.5, length - 2.0, coat.lightened(0.2))
+		&"juana_de_arco":
+			# Sobreveste azul con flor de lis dorada, gorjal y cinturón.
+			var steel := data.coat_color
+			_f(-w * 0.33, top - 1.0, w * 0.66, 2.5, steel.lightened(0.25))
+			_f(-w * 0.33, top + 0.5, w * 0.66, 0.5, steel.darkened(0.3))
+			_f(1.0, top + 5.0, 1.0, 6.0, gold)
+			_f(-0.5, top + 7.0, 4.0, 1.0, gold)
+			_f(0.0, top + 5.0, 0.5, 2.5, gold)
+			_f(2.5, top + 5.0, 0.5, 2.5, gold)
+			_f(-w * 0.33, -3.0, w * 0.66, 1.5, Color("3a2a1a"))
+			_f(0.5, -3.5, 2.0, 2.5, gold)
+			_fl(Vector2(-3, top + 2), Vector2(-3, -4), steel.lightened(0.3))
+		&"cleopatra":
+			# Collar usekh de cuentas (azul, oro, rojo), plisado del vestido y cinto dorado.
+			var cols: Array[Color] = [Color("2a6ac0"), gold, Color("c02030")]
+			for r in 3:
+				for k in 7:
+					var a := deg_to_rad(20.0 + k * 23.0)
+					var q := Vector2(1.0 + cos(a) * (3.0 + r * 1.8), top + 0.5 + sin(a) * (2.5 + r * 1.5))
+					_f(q.x, q.y, 1.0, 1.0, cols[(k + r) % 3])
+			for i in int(w / 3.0):
+				_f(-w / 2.0 + 2.0 + i * 3.0, top + 8.0, 0.5, length - 6.0, Color("d8d8c8"))
+			_f(-w * 0.33, -6.0, w * 0.66, 1.5, gold)
+			_f(0.5, -6.5, 2.0, 2.5, Color("2a6ac0"))
+		&"alejandro_magno":
+			# Coraza anatómica: pectorales y abdominales, medallón de Gorgona y pteryges de cuero.
+			_fl(Vector2(-3, top + 3), Vector2(1, top + 5), gold.darkened(0.3))
+			_fl(Vector2(1, top + 5), Vector2(5, top + 3), gold.darkened(0.3))
+			for i in 3:
+				_f(-2.0, top + 9.0 + i * 3.0, 6.0, 0.5, gold.darkened(0.3))
+			_f(1.0, top + 6.0, 0.5, 11.0, gold.darkened(0.25))
+			draw_circle(Vector2(1.0, top + 4.5), 2.2, _c(Color("e0c040")))
+			draw_circle(Vector2(1.0, top + 4.5), 1.0, _c(Color("7a2a2a")))
+			for i in int(w / 3.0) + 1:
+				_f(-w / 2.0 + i * 3.0, -2.0, 2.5, 4.0, Color("b08a3a"))
+				_f(-w / 2.0 + i * 3.0, 1.5, 2.5, 0.5, gold)
+
+## Adornos de la cabeza (pelo, barba, marcas de la cara) de cada luchador fino. Se dibujan antes del sombrero.
+func _sig_head(head: Rect2, fx: float, hw: float, hh: float) -> void:
+	if not FINE_IDS.has(data.id):
+		_sig_head_b(head, fx, hw, hh)
+		return
+	var hair := data.hair_color
+	var mouth_y := roundf(-hh * 0.4)
+	var eye_y := roundf(-hh * 0.62)
+	match data.id:
+		&"papa_francisco":
+			_fl(Vector2(fx - 5.0, -hh + 2.5), Vector2(fx - 1.0, -hh + 2.5), data.skin_color.darkened(0.15))
+			_f(head.position.x - 0.5, -hh * 0.4, 1.0, 2.5, hair)
+			_f(head.position.x + 0.5, -hh * 0.55, 0.5, 2.0, hair.darkened(0.15))
+		&"albert_einstein":
+			# Pelo imposible: mechones que salen en todas direcciones y cejas pobladas.
+			for i in 9:
+				var ang := deg_to_rad(-175.0 + i * 19.0)
+				var root_p := Vector2(0, -hh)
+				var tip := root_p + Vector2(cos(ang), sin(ang)) * (7.0 + (i % 3) * 1.5)
+				_fl(root_p, tip, hair.darkened(0.12) if i % 2 == 0 else hair, 1.0)
+				_fl(root_p + Vector2(0, -1), tip + Vector2(0.5, -0.5), Color.WHITE, 0.5)
+			_f(fx - 5.5, eye_y - 2.0, 4.5, 1.0, hair)
+			_f(fx - 6.0, mouth_y - 0.5, 1.5, 2.5, hair)
+		&"rasputin":
+			# Barba larga en mechones y mirada hipnótica.
+			for i in 6:
+				_fl(Vector2(fx - 8.0 + i * 1.6, 1.0), Vector2(fx - 8.5 + i * 1.6 + (i % 2), 10.5), hair.lightened(0.28))
+			_f(fx - 3.5, eye_y + 0.25, 1.0, 1.0, Color("a0c8ff"))
+			_f(fx - 5.5, eye_y - 2.0, 4.0, 1.0, hair)
+			_fl(Vector2(head.position.x - 2, -hh + 2), Vector2(head.position.x - 3, 8), hair.lightened(0.18))
+		&"nikola_tesla":
+			# Bigote con las puntas hacia arriba y brillo en el pelo.
+			_f(fx + 0.5, mouth_y - 1.0, 1.0, 2.0, hair)
+			_f(fx - 6.0, mouth_y - 1.0, 1.0, 2.0, hair)
+			_fl(Vector2(head.position.x, -hh - 1.5), Vector2(fx - 2.0, -hh - 1.5), hair.lightened(0.35))
+		&"abraham_lincoln":
+			# Lunar en la mejilla y mechones de la barba.
+			_f(fx - 3.5, -hh * 0.35, 1.0, 1.0, Color("6a4a30"))
+			for i in 4:
+				_fl(Vector2(fx - 6.0 + i * 1.8, -3.0), Vector2(fx - 6.0 + i * 1.8, 2.0 + (i % 2) * 2.0), hair.lightened(0.2))
+			_f(fx - 5.5, eye_y - 2.0, 4.5, 1.0, hair)
+		&"napoleon":
+			# Mechón sobre la frente y patilla.
+			_f(fx - 4.0, -hh + 0.5, 3.0, 1.5, hair)
+			_f(head.position.x, -hh * 0.55, 1.5, 3.0, hair)
+			_fl(Vector2(fx - 4.0, -hh + 2.0), Vector2(fx - 1.0, -hh + 2.5), hair.lightened(0.2))
+		&"leonardo_da_vinci":
+			# Barba y melena onduladas.
+			for i in 6:
+				_fl(Vector2(fx - 8.0 + i * 1.5, 0.0), Vector2(fx - 8.0 + i * 1.5 + (1.0 if i % 2 == 0 else -1.0), 8.0), hair.lightened(0.3))
+			for i in 3:
+				_fl(Vector2(head.position.x - 2.5 + (i % 2), -hh + 1.0 + i * 3.0), Vector2(head.position.x - 3.0, -hh + 4.0 + i * 3.0), hair.lightened(0.25))
+			_f(fx - 5.5, eye_y - 2.0, 4.5, 1.0, hair.darkened(0.1))
+		&"gengis_kan":
+			# Trenza colgando por la espalda y bigote caído.
+			for i in 7:
+				_f(head.position.x - 3.0 + (i % 2) * 0.5, -hh + 3.0 + i * 1.8, 1.5, 1.0, hair.lightened(0.15) if i % 2 == 0 else hair)
+			_f(fx - 6.0, mouth_y, 0.5, 3.0, hair)
+			_f(fx - 1.0, mouth_y, 0.5, 3.0, hair)
+		&"lautaro":
+			# Pintura roja en la mejilla y mechones largos.
+			_f(fx - 6.0, -hh * 0.3, 4.0, 0.5, Color("c02828"))
+			_f(fx - 6.5, -hh * 0.3 + 1.5, 4.0, 0.5, Color("c02828"))
+			for i in 4:
+				_fl(Vector2(head.position.x - 2.0 + (i % 2), -hh + 1.0), Vector2(head.position.x - 3.0 - (i % 2), 6.0 + i), hair.lightened(0.25))
+		&"juana_de_arco":
+			# Reflejos del pelo corto y flequillo.
+			_fl(Vector2(head.position.x - 1.0, -hh - 1.5), Vector2(fx - 1.0, -hh - 1.5), hair.lightened(0.4))
+			_fl(Vector2(fx - 5.0, -hh + 2.0), Vector2(fx - 2.0, -hh + 3.5), hair.lightened(0.25))
+			_f(fx - 6.0, -hh * 0.4 + 0.5, 3.0, 1.0, Color("f08090").lerp(data.skin_color, 0.5))
+		&"cleopatra":
+			# Delineado egipcio con ala, sombra azul y flequillo recto.
+			_f(fx - 5.0, eye_y - 1.5, 3.5, 0.5, Color("2a6ac0"))
+			_f(fx - 1.5, eye_y + 0.5, 2.5, 0.5, OUTLINE)
+			_f(fx + 0.5, eye_y, 1.0, 0.5, OUTLINE)
+			_fl(Vector2(head.position.x - 1.0, -hh + 1.0), Vector2(fx - 1.0, -hh + 1.0), hair.lightened(0.3))
+		&"alejandro_magno":
+			# Rizos con reflejos y barbilla firme.
+			for i in 5:
+				_f(head.position.x + i * 2.5, -hh - 1.5 + (i % 2) * 1.0, 1.5, 0.5, hair.lightened(0.4))
+			_f(fx - 5.5, eye_y - 2.0, 4.5, 1.0, hair.darkened(0.1))
+			_f(fx - 3.0, -2.0, 3.0, 0.5, data.skin_color.darkened(0.15))
+
+## Detalles de los sombreros de los luchadores finos (luces, texturas, plumas).
+func _sig_hat(hw: float, hh: float, fx: float) -> void:
+	if not FINE_IDS.has(data.id):
+		_sig_hat_b(hw, hh, fx)
+		return
+	var hat := data.hat_color
+	var gold := data.coat_trim_color
+	match data.id:
+		&"papa_francisco":
+			_f(-hw / 2.0 + 1.5, -hh - 1.5, hw - 3.0, 0.5, Color("ffffff"))
+			_f(-hw / 2.0 + 1.0, -hh + 1.0, hw - 1.0, 0.5, Color("c8c8d0"))
+		&"abraham_lincoln":
+			_f(hw / 2.0 - 3.0, -hh - 14.0, 1.0, 11.0, hat.lightened(0.3))
+			_f(-hw / 2.0 + 1.0, -hh - 14.0, 0.5, 9.0, hat.lightened(0.12))
+			_f(-hw / 2.0 - 3.5, -hh + 1.5, hw + 7.0, 0.5, hat.lightened(0.25))
+			_f(-hw / 2.0, -hh - 3.5, hw, 0.5, Color("000000"))
+		&"napoleon":
+			_fl(Vector2(-hw / 2.0 - 5.0, -hh - 5.5), Vector2(1.0, -hh - 10.5), gold, 0.5)
+			_fl(Vector2(hw / 2.0 + 5.0, -hh - 5.5), Vector2(1.0, -hh - 10.5), gold, 0.5)
+			_fl(Vector2(-hw / 2.0 - 4.0, -hh - 1.5), Vector2(hw / 2.0 + 4.0, -hh - 1.5), hat.lightened(0.25))
+		&"leonardo_da_vinci":
+			# Boina con pliegues y una pluma.
+			_fl(Vector2(-hw / 2.0, -hh - 3.0), Vector2(0, -hh - 1.0), hat.darkened(0.3))
+			_fl(Vector2(hw / 2.0 - 1.0, -hh - 3.0), Vector2(hw / 2.0 + 5.0, -hh - 8.5), Color("f0e8d0"), 1.0)
+			for i in 4:
+				_fl(Vector2(hw / 2.0 + 0.5 + i * 1.3, -hh - 4.0 - i * 1.3), Vector2(hw / 2.0 + 2.5 + i * 1.3, -hh - 3.0 - i * 1.3), Color("d8c8a0"))
+			_f(-hw / 2.0 - 2.0, -hh - 3.5, hw + 3.0, 0.5, hat.lightened(0.25))
+		&"gengis_kan":
+			# Gorro de piel: mechones en el borde y adorno dorado.
+			for i in 8:
+				_f(-hw / 2.0 - 1.5 + i * 2.0, -hh - 6.5 + (i % 2) * 0.5, 1.0, 2.0, hat.lightened(0.28))
+			_f(-hw / 2.0 - 1.0, -hh + 0.5, 0.5, 6.0, hat.lightened(0.2))
+			_f(fx - 3.0, -hh - 3.0, 2.0, 2.0, gold)
+			_f(fx - 2.5, -hh - 2.5, 1.0, 1.0, Color("c02020"))
+		&"lautaro":
+			# Nudo de la cinta con colas que cuelgan.
+			_f(-hw / 2.0 - 2.5, -hh + 2.0, 1.5, 5.0, hat)
+			_f(-hw / 2.0 - 3.0, -hh + 5.0, 1.0, 3.0, hat.darkened(0.2))
+			_f(-hw / 2.0 - 1.5, -hh + 2.0, 0.5, 5.0, hat.lightened(0.25))
+		&"cleopatra":
+			# Rayas del nemes en azul y oro, y la cobra real al frente.
+			for i in 5:
+				_f(-hw / 2.0 - 3.0, -hh + 1.0 + i * 2.0, 5.0, 0.5, gold if i % 2 == 0 else Color("8ab0f0"))
+			_f(fx - 1.0, -hh - 7.0, 2.0, 3.0, gold)
+			_f(fx - 1.5, -hh - 8.0, 3.0, 1.5, gold.lightened(0.2))
+			_f(fx - 0.5, -hh - 7.5, 0.5, 0.5, Color("c02030"))
+		&"alejandro_magno":
+			# Crin del casco cayendo hacia atrás y remaches del carrillo.
+			for i in 6:
+				_fl(Vector2(-hw / 2.0 + i * 2.0, -hh - 10.0), Vector2(-hw / 2.0 - 3.0 + i * 1.5, -hh - 4.0 + i * 0.8), Color("c02828") if i % 2 == 0 else Color("e05050"), 0.75)
+			_f(-hw / 2.0, -hh + 3.0, 0.5, 0.5, gold.lightened(0.4))
+			_f(-hw / 2.0, -hh + 5.0, 0.5, 0.5, gold.lightened(0.4))
+			_fl(Vector2(-hw / 2.0 - 1.0, -hh - 1.5), Vector2(hw / 2.0 + 2.0, -hh - 1.5), gold.lightened(0.3))
+
+## Torso de los demás luchadores: detalle de base según el estilo de ropa y rasgos propios por personaje.
+func _sig_torso_b(w: float, top: float, length: float) -> void:
+	var gold := data.coat_trim_color
+	var coat := data.coat_color
+	var acc := data.accent_color
+	match data.chest_style:
+		&"tie":
+			_fl(Vector2(-1, top + 1), Vector2(2, top + 10), coat.lightened(0.2))
+			_fl(Vector2(5, top + 1), Vector2(2, top + 10), coat.lightened(0.2))
+			_f(2.0, top + 3.0, 0.5, length - 3.0, acc.lightened(0.35))
+			_f(1.0, top + 2.0, 3.0, 1.0, acc.darkened(0.2))
+			_f(-5.0, top + 9.0, 2.5, 1.0, Color("f4f4f4"))
+			_f(0.0, top + length * 0.75, 1.0, 1.0, coat.darkened(0.4))
+		&"uniform":
+			_f(-5.0, top + 7.0, 4.0, 0.5, coat.lightened(0.25))
+			_f(2.0, top + 7.0, 4.0, 0.5, coat.lightened(0.25))
+			_f(-w / 2.0, -3.0, w, 0.5, gold)
+			_f(0.0, -3.5, 2.5, 2.0, gold)
+			_fl(Vector2(w / 2.0 - 2.0, top + 1.0), Vector2(-w / 2.0 + 2.0, -3.0), coat.darkened(0.35), 1.0)
+			_f(-w / 2.0, top + 1.0, 0.5, length - 3.0, coat.lightened(0.1))
+		&"robe":
+			_fl(Vector2(-4, top + 3), Vector2(-4.5, -2), coat.darkened(0.15))
+			_fl(Vector2(4, top + 3), Vector2(4.5, -2), coat.lightened(0.12))
+			_f(-w / 2.0, -1.0, w, 0.5, gold)
+			_fl(Vector2(w / 2.0 - 2.0, top + 1.0), Vector2(-w / 2.0 + 3.0, -4.0), coat.darkened(0.12))
+		&"plain":
+			_fl(Vector2(1, top + 4), Vector2(1, -3), coat.darkened(0.25))
+			_f(-1.0, top, 7.0, 1.0, data.shirt_color)
+			for i in 3:
+				_f(1.5, top + 6.0 + i * 4.0, 1.0, 1.0, coat.darkened(0.4))
+		&"lapels":
+			_f(0.0, top + 1.0, 4.0, 3.0, Color("f4f4f4"))
+			_fl(Vector2(0.5, top + 2), Vector2(3.5, top + 2), Color("c8c8d0"))
+			_fl(Vector2(0.5, top + 3), Vector2(3.5, top + 3), Color("c8c8d0"))
+			for i in 5:
+				_f(5.5, top + 5.0 + i * 3.5, 1.0, 1.0, gold)
+			_f(-w / 2.0, -2.0, w, 0.5, coat.lightened(0.2))
+		&"mao":
+			_fl(Vector2(3, top + 2), Vector2(3, -6), coat.darkened(0.3))
+			_f(-5.0, top + 5.5, 6.0, 0.5, coat.lightened(0.2))
+			_f(5.0, top + 5.5, 4.0, 0.5, coat.lightened(0.2))
+		&"polo":
+			_f(3.0, top + 1.0, 0.5, 4.0, data.shirt_color.darkened(0.3))
+			_fl(Vector2(-3, top + 6), Vector2(-3, 1), coat.darkened(0.25))
+	match data.id:
+		&"donald_trump":
+			# Corbata larga y roja con brillo, y pin de la bandera en la solapa.
+			_f(2.0, top + length * 0.55, 1.0, 3.0, acc.lightened(0.3))
+			_f(-5.0, top + 4.0, 2.0, 1.5, Color("c02030"))
+			_f(-5.0, top + 5.5, 2.0, 0.5, Color("2a3a8a"))
+		&"kim_jong_un":
+			_f(-w / 2.0 + 2.0, top - 2.0, w - 2.0, 0.5, coat.lightened(0.35))
+		&"vladimir_putin", &"xi_jinping", &"salvador_allende":
+			_f(-w / 2.0, -3.0, w, 0.5, Color("141418"))
+		&"nicolas_maduro":
+			# Chándal tricolor: franjas amarilla, azul y roja, y cremallera.
+			_f(-w / 2.0, top + 8.0, w, 1.0, Color("f0d020"))
+			_f(-w / 2.0, top + 9.0, w, 1.0, Color("2a4ab0"))
+			_f(-w / 2.0, top + 10.0, w, 1.0, Color("d02020"))
+			_fl(Vector2(1, top), Vector2(1, -3), Color("c8c8d0"))
+		&"adolf_hitler", &"joseph_stalin", &"benito_mussolini", &"saddam_hussein", &"augusto_pinochet", &"fidel_castro":
+			for i in 3:
+				_f(-5.0 + i * 2.0, top + 3.0, 1.5, 2.0, [Color("d02020"), gold, Color("2a4ab0")][i])
+		&"osama_bin_laden":
+			_f(-5.0, top + 6.0, 5.0, 5.0, acc.darkened(0.1))
+			_f(-5.0, top + 6.0, 5.0, 0.5, acc.lightened(0.25))
+			_f(2.0, top + 6.0, 4.0, 4.0, acc.darkened(0.1))
+		&"julio_cesar":
+			_fl(Vector2(w / 2.0 - 1.0, top), Vector2(-w / 2.0 + 2.0, -3.0), acc, 1.5)
+			_fl(Vector2(w / 2.0 - 1.0, top + 2.0), Vector2(-w / 2.0 + 2.0, -1.0), coat.darkened(0.12), 1.0)
+		&"isabel_ii":
+			_fl(Vector2(w / 2.0 - 2.0, top + 1.0), Vector2(-w / 2.0 + 3.0, -4.0), Color("2a4ab0"), 1.5)
+			_f(-4.0, top + 5.0, 2.0, 2.0, Color("c02040"))
+			_f(-3.5, top + 5.0, 0.5, 0.5, Color.WHITE)
+		&"jesus_de_nazaret":
+			_fl(Vector2(w / 2.0 - 2.0, top), Vector2(-w / 2.0 + 2.0, -4.0), acc, 2.0)
+			_f(-w / 2.0, -5.0, w, 1.0, Color("c8a870"))
+		&"buda":
+			_f(w / 2.0 - 4.0, top, 4.0, 5.0, data.skin_color)
+			_fl(Vector2(w / 2.0 - 4.0, top + 5.0), Vector2(-w / 2.0 + 2.0, -3.0), coat.darkened(0.2), 1.0)
+		&"marie_curie":
+			_f(-3.0, top, 7.0, 2.0, Color.WHITE)
+			_f(-1.0, top + 3.0, 2.0, 1.5, Color("c8c8d0"))
+		&"galileo_galilei", &"nicolas_maquiavelo":
+			_f(-w / 2.0, top, w, 2.0, gold)
+			_fl(Vector2(-1, top + 2), Vector2(3, top + 8), acc, 1.0)
+			_fl(Vector2(5, top + 2), Vector2(3, top + 8), acc, 1.0)
+		&"charles_darwin":
+			_f(0.0, top + 1.0, 4.0, 2.0, Color("f0e8d0"))
+			_fl(Vector2(-4, top + 9), Vector2(2, top + 10), Color("b8a040"))
+		&"cristobal_colon":
+			for i in 4:
+				_f(-3.0 + i * 2.5, top + 3.0, 1.0, 1.0, gold)
+		&"janequeo":
+			for i in int(w / 2.0):
+				_f(-w / 2.0 + i * 2.0, -4.0 + (i % 2) * 1.5, 1.0, 1.5, Color("c0c4cc"))
+		&"pachacutec":
+			for i in 3:
+				for j in 3:
+					_f(-3.0 + i * 3.0, top + 4.0 + j * 3.0, 2.0, 2.0, gold if (i + j) % 2 == 0 else acc)
+		&"moctezuma_ii":
+			draw_circle(Vector2(1.0, top + 5.0), 3.0, _c(gold))
+			draw_circle(Vector2(1.0, top + 5.0), 1.5, _c(acc))
+			_f(-w / 2.0 - 1.0, top - 1.0, w + 2.0, 2.0, data.hat_color)
+		&"ivan_el_terrible":
+			for i in 5:
+				_f(1.0, top + 3.0 + i * 3.0, 1.0, 1.0, gold)
+			_f(-w / 2.0 - 1.0, top - 1.0, w + 2.0, 2.5, Color("e8e0d0"))
+		&"boudica":
+			for i in 4:
+				_f(-w / 2.0, top + 3.0 + i * 3.5, w, 0.5, gold)
+			for i in 4:
+				_f(-w / 2.0 + 2.0 + i * 4.0, top + 1.0, 0.5, length - 2.0, data.shirt_color)
+		&"socrates", &"platon", &"aristoteles":
+			_fl(Vector2(w / 2.0 - 1.0, top), Vector2(-w / 2.0 + 2.0, -2.0), coat.darkened(0.2), 1.5)
+			for i in 3:
+				_fl(Vector2(-3.0 + i * 3.0, top + 4.0), Vector2(-3.5 + i * 3.0, -2.0), coat.darkened(0.12))
+		&"sun_tzu":
+			for i in 5:
+				_f(-w / 2.0 + 1.0, top + 3.0 + i * 3.5, w - 2.0, 0.5, coat.darkened(0.35))
+		&"confucio":
+			_fl(Vector2(-w / 2.0 + 2.0, top), Vector2(2, top + 8), gold, 1.0)
+			_fl(Vector2(w / 2.0 - 2.0, top), Vector2(2, top + 8), gold, 1.0)
+			_f(-w / 2.0, -4.0, w, 1.0, gold)
+		&"isaac_newton":
+			_f(-w / 2.0, top + 1.0, 0.5, length - 2.0, gold)
+		&"hernan_cortes":
+			for i in 3:
+				_f(-w / 2.0 + 1.0, top + 3.0 + i * 5.0, w - 2.0, 0.5, coat.darkened(0.3))
+			_f(1.0, top + 2.0, 1.0, length - 4.0, coat.lightened(0.25))
+			_f(-w / 2.0, top, w, 1.5, coat.lightened(0.2))
+		&"arturo_prat":
+			for i in 4:
+				_f(5.0, top + 4.0 + i * 3.5, 1.0, 1.0, gold)
+				_f(3.0, top + 4.0 + i * 3.5, 1.0, 1.0, gold)
+		&"mariya_oktyabrskaya", &"liudmila_pavlichenko":
+			draw_circle(Vector2(-3.5, top + 6.0), 1.5, _c(gold))
+			_f(-4.0, top + 3.0, 1.0, 2.5, Color("c02020"))
+		&"pablo_escobar":
+			_f(-w / 2.0, top + 11.0, w, 0.5, coat.lightened(0.2))
+
+## Cabeza de los demás luchadores: reflejos de pelo, mechones de barba, brillo del bigote y detalles propios.
+func _sig_head_b(head: Rect2, fx: float, hw: float, hh: float) -> void:
+	var hair := data.hair_color
+	var mouth_y := roundf(-hh * 0.4)
+	var eye_y := roundf(-hh * 0.62)
+	if data.hair_style != &"bald":
+		_fl(Vector2(head.position.x - 1.0, -hh - 1.5), Vector2(fx - 1.0, -hh - 1.5), hair.lightened(0.32))
+		if data.hair_style in [&"long", &"bob", &"braids", &"ponytail", &"wig"]:
+			for i in 3:
+				_fl(Vector2(head.position.x - 2.0 + (i % 2), -hh + 1.0), Vector2(head.position.x - 3.0 - (i % 2), 5.0 + i * 1.5), hair.lightened(0.22))
+	match data.beard_style:
+		&"full", &"long", &"chin", &"goatee", &"stubble":
+			var n := 5
+			for i in n:
+				var bx := fx - 8.0 + i * 1.6
+				_fl(Vector2(bx, mouth_y + 1.0), Vector2(bx + (i % 2) - 0.5, mouth_y + 6.0 + (4.0 if data.beard_style == &"long" else 0.0)), hair.lightened(0.25))
+		&"mustache", &"brush", &"toothbrush":
+			_f(fx - 5.0, mouth_y, 3.0, 0.5, hair.lightened(0.3))
+	if data.female:
+		_f(fx - 1.5, eye_y, 1.5, 0.5, OUTLINE)
+		_f(fx - 3.5, roundf(-hh * 0.27), 1.0, 0.5, Color("ffb0c0"))
+		_f(fx - 5.0, eye_y - 1.5, 3.0, 0.5, data.accent_color.lerp(data.skin_color, 0.4))
+	match data.id:
+		&"donald_trump":
+			# Copete dorado con mechones y bronceado marcado.
+			for i in 4:
+				_fl(Vector2(head.position.x + 1.0 + i * 2.5, -hh - 3.0), Vector2(fx + 1.0, -hh - 1.0 + i * 0.5), hair.lightened(0.25))
+			_f(fx - 6.0, eye_y - 1.0, 5.5, 3.5, data.skin_color.lightened(0.1))
+		&"vladimir_putin":
+			_f(fx - 2.0, -hh * 0.3, 1.0, 1.0, data.skin_color.darkened(0.2))
+		&"xi_jinping", &"kim_jong_un":
+			_f(fx - 5.0, -hh * 0.35, 3.0, 1.0, data.skin_color.lightened(0.1))
+		&"nicolas_maduro":
+			_f(fx - 6.0, mouth_y - 0.5, 1.0, 3.0, hair)
+		&"adolf_hitler":
+			_fl(Vector2(fx - 5.0, -hh + 2.0), Vector2(fx - 1.0, -hh + 4.0), hair.lightened(0.15), 1.0)
+		&"pablo_escobar":
+			for i in 4:
+				_f(head.position.x - 2.0 + i * 3.0, -hh - 4.0, 1.5, 0.5, hair.lightened(0.4))
+		&"isabel_ii":
+			_fl(Vector2(head.position.x, -hh - 1.0), Vector2(fx - 1.0, -hh - 1.0), Color.WHITE)
+		&"jesus_de_nazaret", &"buda":
+			_f(fx - 3.0, -hh * 0.55, 1.0, 1.0, Color("e08070"))
+		&"julio_cesar", &"cristobal_colon", &"hernan_cortes":
+			_f(fx - 5.0, eye_y - 2.0, 4.0, 1.0, hair)
+		&"sun_tzu", &"confucio":
+			_fl(Vector2(fx - 6.0, mouth_y + 2.0), Vector2(fx - 8.0, mouth_y + 10.0), hair.lightened(0.3), 0.5)
+			_fl(Vector2(fx - 3.0, mouth_y + 2.0), Vector2(fx - 4.0, mouth_y + 9.0), hair.lightened(0.3), 0.5)
+		&"moctezuma_ii":
+			_f(fx - 6.0, -hh * 0.3, 3.0, 0.5, Color("e04030"))
+			_f(fx - 6.0, -hh * 0.3 + 1.5, 3.0, 0.5, Color("2a8a7a"))
+		&"pachacutec", &"janequeo", &"boudica":
+			_f(fx - 6.0, -hh * 0.35, 3.0, 0.5, Color("c02828") if data.id != &"boudica" else Color("3a6ac0"))
+		&"osama_bin_laden", &"charles_darwin", &"galileo_galilei", &"ivan_el_terrible":
+			_f(fx - 5.5, eye_y - 2.0, 4.5, 1.0, hair.lightened(0.1))
+
+## Sombreros de los demás luchadores: brillos, pliegues, plumas y adornos según el estilo.
+func _sig_hat_b(hw: float, hh: float, fx: float) -> void:
+	var hat := data.hat_color
+	var gold := data.coat_trim_color
+	match data.hat_style:
+		&"cap":
+			_f(fx - 1.0, -hh, 7.0, 0.5, hat.lightened(0.3))
+			_fl(Vector2(-hw / 2.0, -hh - 3.0), Vector2(hw / 2.0, -hh - 3.0), hat.lightened(0.2))
+			_f(fx - 3.0, -hh - 3.0, 2.0, 2.0, data.accent_color)
+			_f(fx - 2.5, -hh - 2.5, 1.0, 1.0, gold)
+		&"beret":
+			_fl(Vector2(-hw / 2.0, -hh - 3.0), Vector2(0, -hh - 1.0), hat.darkened(0.3))
+			_fl(Vector2(hw / 2.0 - 1.0, -hh - 3.0), Vector2(1, -hh - 1.0), hat.darkened(0.25))
+			_f(-hw / 2.0 - 2.0, -hh - 3.5, hw + 3.0, 0.5, hat.lightened(0.25))
+		&"turban":
+			for i in 3:
+				_fl(Vector2(-hw / 2.0 - 1.0, -hh - 6.0 + i * 3.0), Vector2(hw / 2.0 + 2.0, -hh - 4.0 + i * 3.0), hat.lightened(0.25))
+			_f(fx - 1.0, -hh - 3.0, 2.0, 2.0, data.accent_color)
+		&"crown", &"tiara":
+			for i in 3:
+				_f(-hw / 2.0 + 1.0 + i * 4.0, -hh - 3.0, 1.0, 1.0, hat.lightened(0.5))
+			_f(-hw / 2.0, -hh - 1.0, hw, 0.5, hat.lightened(0.3))
+			_f(-1.0, -hh - 1.5, 2.0, 1.5, Color("2a4ab0") if data.id == &"isabel_ii" else Color("c02030"))
+		&"laurel":
+			for i in 4:
+				_f(-hw / 2.0 + i * 4.0, -hh - 3.5, 1.0, 1.0, hat.darkened(0.25))
+			_f(-hw / 2.0 - 1.0, -hh - 1.5, hw + 3.0, 0.5, hat.lightened(0.35))
+		&"halo":
+			var c := Vector2(0, -hh - 6.0)
+			draw_arc(c, 7.5, 0.0, TAU, 24, _c(Color(hat.r, hat.g, hat.b, 0.35)), 1.5)
+			draw_arc(c, 6.0, 0.0, TAU, 24, _c(hat.lightened(0.45)), 0.5)
+			for i in 6:
+				var a := i * TAU / 6.0 + 0.3
+				_fl(c + Vector2(cos(a), sin(a)) * 8.5, c + Vector2(cos(a), sin(a)) * 10.5, Color(hat.r, hat.g, hat.b, 0.6))
+		&"fur_hat":
+			for i in 8:
+				_f(-hw / 2.0 - 1.5 + i * 2.0, -hh - 6.5 + (i % 2) * 0.5, 1.0, 2.0, hat.lightened(0.28))
+			_f(fx - 2.0, -hh - 3.0, 2.0, 2.0, gold)
+		&"helmet", &"morion":
+			_f(-hw / 2.0 + 1.0, -hh - 4.0, 0.5, 4.0, hat.lightened(0.4))
+			_fl(Vector2(-hw / 2.0, -hh - 4.5), Vector2(hw / 2.0, -hh - 4.5), hat.lightened(0.3))
+			_f(-hw / 2.0, -hh - 1.0, hw, 0.5, gold)
+			_f(-hw / 2.0, -hh + 3.0, 0.5, 0.5, gold.lightened(0.4))
+		&"plumes":
+			for i in 7:
+				var ang := deg_to_rad(-150.0 + i * 20.0)
+				var root_p := Vector2(0, -hh - 1.0)
+				var tip := root_p + Vector2(cos(ang), sin(ang)) * (15.0 if i % 2 == 0 else 12.0)
+				_fl(root_p.lerp(tip, 0.4), tip, Color("a0f0c0") if i % 2 == 0 else Color("50d0a0"), 0.5)
+		&"guan":
+			_fl(Vector2(hw / 2.0 - 1.0, -hh - 7.0), Vector2(hw / 2.0 + 3.0, -hh - 3.0), gold, 1.0)
+			_f(-3.0, -hh - 9.0, 0.5, 7.0, hat.lightened(0.35))
+		&"headband":
+			_f(-hw / 2.0 - 2.5, -hh + 2.0, 1.5, 5.0, hat)
+			_f(-hw / 2.0 - 3.0, -hh + 5.0, 1.0, 3.0, hat.darkened(0.2))
+		&"nemes":
+			for i in 5:
+				_f(-hw / 2.0 - 3.0, -hh + 1.0 + i * 2.0, 5.0, 0.5, gold if i % 2 == 0 else Color("8ab0f0"))
+		&"top_hat":
+			_f(hw / 2.0 - 3.0, -hh - 14.0, 1.0, 11.0, hat.lightened(0.3))
 
 # --- Rasgos: silueta femenina, falda o vestido y capa ---------------------------
 func _outfit_color() -> Color:
@@ -1077,7 +1692,7 @@ func _female_body(w: float, length: float, tail: float) -> void:
 		Vector2(-w * 0.34, top + length * 0.68), Vector2(-w * 0.52, top + length * 0.3)])
 	var closed := pts.duplicate()
 	closed.append(pts[0])
-	draw_polyline(closed, _c(OUTLINE), 2.0)
+	draw_polyline(closed, _c(OUTLINE), _o() * 2.0)
 	draw_colored_polygon(pts, _c(data.coat_color))
 	# Sombreado de la espalda y brillo del pecho.
 	draw_line(pts[0], pts[7], _c(data.coat_color.darkened(0.25)), 2.0)
@@ -1111,13 +1726,18 @@ func _skirt() -> void:
 		Vector2(bot_w * 0.5 + sway * 0.4, length), Vector2(-bot_w * 0.5 + sway, length)])
 	var closed := pts.duplicate()
 	closed.append(pts[0])
-	draw_polyline(closed, _c(OUTLINE), 2.0)
+	draw_polyline(closed, _c(OUTLINE), _o() * 2.0)
 	draw_colored_polygon(pts, _c(col))
 	# Pliegues y dobladillo.
 	draw_line(Vector2(-top_w * 0.1, -2), Vector2(-bot_w * 0.12 + sway * 0.6, length - 1), _c(col.darkened(0.22)), 1.0)
 	draw_line(Vector2(top_w * 0.25, -2), Vector2(bot_w * 0.25 + sway * 0.5, length - 1), _c(col.darkened(0.15)), 1.0)
 	draw_line(Vector2(-top_w * 0.5, -2), Vector2(-bot_w * 0.5 + sway, length - 1), _c(col.darkened(0.3)), 2.0)
 	draw_line(pts[3] + Vector2(0, -1), pts[2] + Vector2(0, -1), _c(data.coat_trim_color), 2.0)
+	if _fine_on and data.chest_style != &"clockwork":
+		# Más pliegues y brillo en el dobladillo (dibujo fino).
+		for i in 3:
+			_fl(Vector2(-top_w * 0.4 + i * top_w * 0.4, -2), Vector2(-bot_w * 0.35 + i * bot_w * 0.35 + sway * 0.5, length - 2), col.darkened(0.12))
+		_fl(pts[3] + Vector2(0, -2.5), pts[2] + Vector2(0, -2.5), col.lightened(0.18))
 	if data.chest_style == &"clockwork":
 		# Franja central dorada y un engranaje bordado en la túnica del Nexo.
 		var gold := data.coat_trim_color
@@ -1144,7 +1764,7 @@ func _cape(shoulder: Vector2, hip: Vector2) -> void:
 		hip + Vector2(-data.torso_width * 0.5 - 6.0 - fly, data.thigh_len * 1.05)])
 	var closed := pts.duplicate()
 	closed.append(pts[0])
-	draw_polyline(closed, _c(OUTLINE), 2.0)
+	draw_polyline(closed, _c(OUTLINE), _o() * 2.0)
 	draw_colored_polygon(pts, _c(col))
 	draw_line(pts[0], pts[3], _c(col.darkened(0.3)), 2.0)
 	draw_line(pts[3], pts[2], _c(data.coat_trim_color), 2.0)
