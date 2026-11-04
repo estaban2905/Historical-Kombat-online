@@ -925,7 +925,7 @@ def build_normals(c, h, tempo):
             extra = ["hit_level = 1"]
         name = prof["names"].get(key, c["moves"][idx])
         out[slot] = attack(slot, name, kind, prof["anim"].get(key, anim), round(dmg, 1), hs, bs, kn, 0, hstop, fx,
-                           st, ac, rec, (round(r * ox * xr), round(oy * h)), (round(w * k * xr), hh),
+                           st, ac, rec, (round(r * ox * xr) + REACH_SHIFT.get(c["id"], 0), round(oy * h)), (round(w * k * xr), hh),
                            c_off, a_off, True, True, 0, 0, 0, 0, "ball", extra=extra)
     return out
 
@@ -1108,6 +1108,8 @@ def special(s, slot, h, k, r, default_cost, default_cd):
 
 def build_tres(c):
     hp, walk, jump, jfwd, strength, resist, tempo = ARCHETYPES[c["arch"]]
+    ov = STATS_OVERRIDE.get(c["id"], {})
+    hp, walk, strength = ov.get("max_health", hp), ov.get("walk_speed", walk), ov.get("strength", strength)
     thigh, shin, legw, torso, tw, ua, fa, aw, hw, hh = BUILDS[c["build"]]
     stand = thigh + shin + torso + 2 + hh + 3
     crouch = round(stand * 0.64)
@@ -1148,6 +1150,8 @@ def build_tres(c):
         f"strength = {strength:.2f}",
         f"resistance = {resist:.2f}",
     ]
+    if c["id"] in PASSIVES:
+        out.append(f'passive = &"{PASSIVES[c["id"]]}"')
     for s in ("punch_light", "punch_heavy", "kick_light", "kick_heavy", "special_1", "special_2", "ultimate"):
         out.append(f'{s} = SubResource("{ids[s]}")')
     out += [
@@ -1181,7 +1185,7 @@ def build_tres(c):
         f"arm_width = {f(aw)}",
         f"head_width = {f(hw)}",
         f"head_height = {f(hh)}",
-        'idle_style = &"normal"',
+        f'idle_style = &"{IDLE_STYLES.get(c["id"], "normal")}"',
     ] + look_lines(c) + [
         "",
     ]
@@ -1245,7 +1249,7 @@ QUOTES = {
     "vladimir_putin": ("No sabes con quién te estás metiendo.", "El resultado estaba decidido."),
     "xi_jinping": ("La paciencia es una gran estrategia.", "El orden ha sido restaurado."),
     "nicolas_maduro": ("¡La victoria está garantizada, hermano!", "¡Victoria revolucionaria!"),
-    "adolf_hitler": ("¡Este combate será una conquista!", "¡El combate ha terminado!"),
+    "adolf_hitler": ("¡Este combate será una conquista!", "¡Gané! ¿Alguien aplaude? ¿Nadie?"),
     "joseph_stalin": ("Aquí no hay lugar para los débiles.", "La victoria pertenece al Estado."),
     "benito_mussolini": ("¡Mírame bien, porque soy el espectáculo!", "¡Una victoria digna de un gran discurso!"),
     "saddam_hussein": ("¡Este territorio es mío!", "¡Nadie pudo derrotarme!"),
@@ -1278,7 +1282,7 @@ QUOTES = {
     "ivan_el_terrible": ("¡Ante el zar, todos tiemblan!", "¡El zar siempre obtiene lo que quiere!"),
     "boudica": ("¡Mi pueblo no nació para ser esclavo!", "¡La reina de los icenos nunca se rinde!"),
     "juana_de_arco": ("¡Mi espada lucha por una causa!", "¡La fe me dio fuerzas para vencer!"),
-    "augusto_pinochet": ("¡Aquí se hace lo que yo ordeno!", "¡Se acabó el combate!"),
+    "augusto_pinochet": ("¡Aquí se hace lo que yo ordeno!", "¡Orden restablecido! Pueden retirarse."),
     "salvador_allende": ("¡La historia la escriben los pueblos!", "¡La historia es nuestra y la hacen los pueblos!"),
     "arturo_prat": ("¡Al abordaje, muchachos!", "¡Mientras exista valor, nunca habrá derrota!"),
     "socrates": ("¡Demuestra que puedes vencerme, si es que sabes cómo!", "¡Solo sé que hoy tú has perdido!"),
@@ -1287,7 +1291,7 @@ QUOTES = {
     "sun_tzu": ("¡La mejor victoria es la que se consigue sin luchar!", "¡La estrategia ha decidido el resultado!"),
     "confucio": ("¡La disciplina es el camino hacia la victoria!", "¡El orden ha triunfado!"),
     "isaac_newton": ("¡Todo lo que sube tiene que bajar!", "¡La gravedad nunca se equivoca!"),
-    "hernan_cortes": ("¡Una nueva conquista comienza aquí!", "¡La batalla ha terminado!"),
+    "hernan_cortes": ("¡Una nueva conquista comienza aquí!", "¡Quemen las naves: no hay vuelta atrás!"),
     "moctezuma_ii": ("¡El poder de Tenochtitlán no será olvidado!", "¡Mi imperio seguirá vivo en la historia!"),
     "nicolas_maquiavelo": ("¡En este combate, la estrategia lo es todo!", "¡El fin justifica la estrategia!"),
     "mariya_oktyabrskaya": ("¡Mi tanque abrirá el camino hacia la victoria!", "¡Misión cumplida! ¡El enemigo ha sido aplastado!"),
@@ -1316,7 +1320,200 @@ POWER_QUOTES = {
     "nicolas_maquiavelo": "¡Que caigan en mi trampa!",
     "mariya_oktyabrskaya": "¡Enciende los motores!",
     "liudmila_pavlichenko": "¡No fallaré!",
+    "abraham_lincoln": "¡Hacha por la libertad!",
+    "adolf_hitler": "¡Que empiece el desorden!",
+    "albert_einstein": "¡Todo es relativo!",
+    "alejandro_magno": "¡Adelante, Bucéfalo!",
+    "benito_mussolini": "¡Escuchen mi discurso!",
+    "buda": "¡Alcanzo la iluminación!",
+    "charles_darwin": "¡Adáptate o desaparece!",
+    "cleopatra": "¡Anubis, escúchame!",
+    "cristobal_colon": "¡Tierra a la vista!",
+    "donald_trump": "¡El muro será enorme!",
+    "el_nexo": "¡El tiempo se quiebra!",
+    "fidel_castro": "¡Hoy hablaré por horas!",
+    "galileo_galilei": "¡Invirtamos la gravedad!",
+    "gengis_kan": "¡Que tiemble la estepa!",
+    "isabel_ii": "¡Guardias, protocolo!",
+    "jesus_de_nazaret": "¡Hágase la luz!",
+    "joseph_stalin": "¡El acero no se dobla!",
+    "julio_cesar": "¡Legión, avancen!",
+    "kim_jong_un": "¡Fuego de cohetes!",
+    "leonardo_da_vinci": "¡Mi invento vuela!",
+    "marie_curie": "¡Brilla, radio!",
+    "napoleon": "¡Artillería, fuego!",
+    "nicolas_maduro": "¡A bailar, hermano!",
+    "nikola_tesla": "¡Que fluya la corriente!",
+    "osama_bin_laden": "¡Me desvanezco en la arena!",
+    "pablo_escobar": "¡Llueven billetes!",
+    "papa_francisco": "¡Que suenen las campanas!",
+    "rasputin": "¡Mírame a los ojos!",
+    "saddam_hussein": "¡Que se levante la tormenta!",
+    "vladimir_putin": "¡Suelten al oso!",
+    "xi_jinping": "¡Despierta, dragón!",
 }
+
+# Pasiva de cada luchador (ids de scripts/passives.gd). Los dos hechos a mano (Napoleón y Trump) la
+# llevan en su .tres, que el script no toca; se listan aquí solo para tener la tabla completa.
+PASSIVES = {
+    "abraham_lincoln": "casa_en_pie",
+    "adolf_hitler": "berrinche_final",
+    "albert_einstein": "energia_es_masa",
+    "alejandro_magno": "sin_retroceso",
+    "aristoteles": "observacion",
+    "arturo_prat": "al_abordaje",
+    "augusto_pinochet": "mano_dura",
+    "benito_mussolini": "balcon",
+    "boudica": "furia_icena",
+    "buda": "mente_tranquila",
+    "charles_darwin": "seleccion_natural",
+    "cleopatra": "encanto_fatal",
+    "confucio": "disciplina",
+    "cristobal_colon": "tierra_a_la_vista",
+    "donald_trump": "el_mejor",
+    "el_nexo": "sostiene_el_tiempo",
+    "fidel_castro": "resistencia",
+    "galileo_galilei": "telescopio",
+    "gengis_kan": "jinete_implacable",
+    "hernan_cortes": "quemar_las_naves",
+    "isaac_newton": "tercera_ley",
+    "isabel_ii": "imperturbable",
+    "ivan_el_terrible": "terror_del_zar",
+    "janequeo": "tierra_ancestral",
+    "jesus_de_nazaret": "milagro",
+    "joseph_stalin": "hombre_de_acero",
+    "juana_de_arco": "la_doncella",
+    "julio_cesar": "gloria_de_roma",
+    "kim_jong_un": "programa_de_misiles",
+    "lautaro": "estrategia_del_toqui",
+    "leonardo_da_vinci": "genio_creativo",
+    "liudmila_pavlichenko": "francotiradora",
+    "marie_curie": "radiactividad",
+    "mariya_oktyabrskaya": "blindaje",
+    "moctezuma_ii": "poder_del_sol",
+    "napoleon": "waterloo",
+    "nicolas_maduro": "aguante",
+    "nicolas_maquiavelo": "el_fin_justifica",
+    "nikola_tesla": "corriente_alterna",
+    "osama_bin_laden": "fugitivo",
+    "pablo_escobar": "plata_o_plomo",
+    "pachacutec": "muralla_andina",
+    "papa_francisco": "bendicion",
+    "platon": "mundo_de_ideas",
+    "rasputin": "dificil_de_matar",
+    "saddam_hussein": "arsenal_dorado",
+    "salvador_allende": "hasta_el_final",
+    "socrates": "solo_se_que_no_se",
+    "sun_tzu": "ganar_sin_luchar",
+    "vladimir_putin": "judoca",
+    "xi_jinping": "paciencia_infinita",
+}
+
+# Estilo de reposo y de victoria (FighterRenderer.IDLE_STYLES). Por defecto "normal".
+IDLE_STYLES = {
+    "abraham_lincoln": "relaxed",
+    "adolf_hitler": "bouncy",
+    "albert_einstein": "scholar",
+    "alejandro_magno": "proud",
+    "aristoteles": "scholar",
+    "arturo_prat": "boxer",
+    "augusto_pinochet": "arms_crossed",
+    "benito_mussolini": "proud",
+    "boudica": "boxer",
+    "buda": "prayer",
+    "charles_darwin": "scholar",
+    "cleopatra": "sway",
+    "confucio": "prayer",
+    "cristobal_colon": "proud",
+    "donald_trump": "proud",
+    "el_nexo": "sway",
+    "fidel_castro": "arms_crossed",
+    "galileo_galilei": "scholar",
+    "gengis_kan": "proud",
+    "hernan_cortes": "proud",
+    "isaac_newton": "scholar",
+    "isabel_ii": "sway",
+    "ivan_el_terrible": "proud",
+    "janequeo": "boxer",
+    "jesus_de_nazaret": "prayer",
+    "joseph_stalin": "arms_crossed",
+    "juana_de_arco": "boxer",
+    "julio_cesar": "proud",
+    "kim_jong_un": "arms_crossed",
+    "lautaro": "boxer",
+    "leonardo_da_vinci": "scholar",
+    "liudmila_pavlichenko": "boxer",
+    "marie_curie": "scholar",
+    "mariya_oktyabrskaya": "boxer",
+    "moctezuma_ii": "proud",
+    "napoleon": "hand_in_coat",
+    "nicolas_maduro": "bouncy",
+    "nicolas_maquiavelo": "scholar",
+    "nikola_tesla": "scholar",
+    "osama_bin_laden": "stalk",
+    "pablo_escobar": "arms_crossed",
+    "pachacutec": "proud",
+    "papa_francisco": "prayer",
+    "platon": "scholar",
+    "rasputin": "stalk",
+    "saddam_hussein": "arms_crossed",
+    "salvador_allende": "relaxed",
+    "socrates": "scholar",
+    "sun_tzu": "boxer",
+    "vladimir_putin": "arms_crossed",
+    "xi_jinping": "arms_crossed",
+}
+
+# Desplazamiento (px) del alcance de los 4 golpes normales, calculado con tests/BalanceSim para igualar
+# las tasas de victoria (solo mueve hitbox_offset). Vale también para Napoleón y Trump.
+REACH_SHIFT = {
+    "abraham_lincoln": 0.5,
+    "adolf_hitler": -1,
+    "albert_einstein": 2,
+    "alejandro_magno": -9,
+    "aristoteles": 4.5,
+    "arturo_prat": -9,
+    "augusto_pinochet": -2,
+    "benito_mussolini": 6,
+    "boudica": -9,
+    "buda": 6,
+    "charles_darwin": 5.5,
+    "confucio": 1.5,
+    "cristobal_colon": -5,
+    "donald_trump": -2,
+    "fidel_castro": -1.5,
+    "galileo_galilei": 6.5,
+    "gengis_kan": -0.5,
+    "hernan_cortes": -7.5,
+    "isabel_ii": 8.5,
+    "ivan_el_terrible": -3,
+    "janequeo": -9,
+    "joseph_stalin": 3.5,
+    "juana_de_arco": -3.5,
+    "kim_jong_un": 5,
+    "lautaro": -6,
+    "leonardo_da_vinci": 7.5,
+    "liudmila_pavlichenko": -0.5,
+    "marie_curie": 3,
+    "mariya_oktyabrskaya": 2.5,
+    "moctezuma_ii": -2,
+    "napoleon": -3,
+    "nicolas_maduro": 3.5,
+    "nicolas_maquiavelo": -1.5,
+    "nikola_tesla": 2.5,
+    "osama_bin_laden": -3,
+    "pablo_escobar": 3.5,
+    "pachacutec": 9,
+    "socrates": 9,
+    "sun_tzu": -9,
+    "vladimir_putin": 2.5,
+}
+
+# Estadísticas que se salen del arquetipo (balance medido con tests/BalanceSim).
+STATS_OVERRIDE = {
+    "alejandro_magno": {"max_health": 88, "walk_speed": 80, "strength": 0.90},
+}
+
 
 # Poder especial (botón L / Numpad 6). El daño es el TOTAL si todo conecta.
 POWERS = {
