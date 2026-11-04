@@ -282,21 +282,26 @@ func ai_level() -> float:
 func start_story(player_id: StringName) -> void:
 	mode = Mode.ARCADE
 	p1_fighter_id = player_id
-	var rivals: Array[FighterData] = []
-	for d in FighterRegistry.all():
-		if d.id != player_id:
-			rivals.append(d)
-	rivals.sort_custom(_story_before)
-	arcade_ladder.clear()
-	for d in rivals:
-		arcade_ladder.append(d.id)
-	arcade_ladder.append(STORY_NEXO_ID)
+	arcade_ladder = story_ladder_for(player_id)
 	arcade_stage = 0
 	arcade_continues = ARCADE_CONTINUES
 	story_continues_used = 0
 	_boss_cache.clear()
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
+
+## La escalera del modo Historia para quien juega con `player_id` (sin tocar la partida en curso).
+func story_ladder_for(player_id: StringName) -> Array[StringName]:
+	var rivals: Array[FighterData] = []
+	for d in FighterRegistry.all():
+		if d.id != player_id:
+			rivals.append(d)
+	rivals.sort_custom(_story_before)
+	var ladder: Array[StringName] = []
+	for d in rivals:
+		ladder.append(d.id)
+	ladder.append(STORY_NEXO_ID)
+	return ladder
 
 ## Vencer a un rival en el modo Historia lo desbloquea para siempre (el Nexo no: es el final).
 func story_record_win() -> void:
