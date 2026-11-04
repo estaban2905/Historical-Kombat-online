@@ -230,6 +230,7 @@ func approx_height() -> float:
 		&"bicorne": extra = 11.0
 		&"top_hat": extra = 15.0
 		&"halo": extra = 13.0
+		&"clockwork": extra = 15.0
 		&"plumes": extra = 18.0
 		&"helmet", &"morion": extra = 10.0
 		&"guan": extra = 8.0
@@ -413,7 +414,10 @@ func _draw() -> void:
 		_cape(shoulder, hip)
 	# Brazo trasero
 	_limb(bsh, belb, bhand, data.coat_color.darkened(0.3), data.arm_width)
-	_fist(bhand, data.skin_color.darkened(0.2))
+	if data.jewelry == &"gauntlet":
+		_gauntlet(bhand, false)
+	else:
+		_fist(bhand, data.skin_color.darkened(0.2))
 	# Pierna trasera
 	_leg(hip, bknee, bfoot, p["bl_s"], dark)
 	# Pierna delantera
@@ -432,7 +436,10 @@ func _draw() -> void:
 	if _prop != "":
 		_draw_prop(fhand, _dir(p["fa_l"]))
 	_limb(fsh, felb, fhand, data.coat_color, data.arm_width)
-	_fist(fhand, data.skin_color)
+	if data.jewelry == &"gauntlet":
+		_gauntlet(fhand, true)
+	else:
+		_fist(fhand, data.skin_color)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 func _seg(a: Vector2, b: Vector2, col: Color, w: float) -> void:
@@ -452,6 +459,27 @@ func _fist(at: Vector2, col: Color) -> void:
 	draw_rect(r.grow(1), _c(OUTLINE))
 	draw_rect(r, _c(col))
 	draw_rect(Rect2(r.position + Vector2(1, 1), Vector2(2, 1)), _c(col.lightened(0.25)))
+
+## Guantelete mecánico: la mano delantera es de oro segmentado; la trasera, una bola de energía magenta.
+func _gauntlet(at: Vector2, front: bool) -> void:
+	if front:
+		var gold := data.jewelry_color
+		var r := Rect2((at - Vector2(3.5, 3.5)).round(), Vector2(7, 7))
+		draw_rect(r.grow(1), _c(OUTLINE))
+		draw_rect(r, _c(gold))
+		draw_rect(Rect2(r.position + Vector2(1, 1), Vector2(3, 1)), _c(gold.lightened(0.4)))
+		for i in 3:
+			draw_rect(Rect2(r.position + Vector2(4, 1 + i * 2), Vector2(3, 1)), _c(gold.darkened(0.4)))
+	else:
+		var fl := sin(anim_time * 14.0)
+		draw_circle(at, 5.0 + fl * 0.6, _c(Color(0.75, 0.2, 1.0, 0.3)))
+		var r := Rect2((at - Vector2(2.5, 2.5)).round(), Vector2(5, 5))
+		draw_rect(r.grow(1), _c(OUTLINE))
+		draw_rect(r, _c(Color("7a2ad0")))
+		draw_rect(Rect2(r.position + Vector2(1, 1), Vector2(2, 2)), _c(Color("ff3cf0")))
+		for i in 4:
+			var sp := at + Vector2(cos(anim_time * 5.0 + i * 1.6), sin(anim_time * 7.0 + i * 2.1)) * 6.0
+			draw_rect(Rect2(sp.round(), Vector2(1, 1)), _c(Color("ff7cff")))
 
 func _leg(hip: Vector2, knee: Vector2, foot: Vector2, shin_deg: float, shade: float) -> void:
 	var pants := data.pants_color.darkened(1.0 - shade)
@@ -507,6 +535,28 @@ func _torso(length: float) -> void:
 		draw_rect(Rect2(-w / 2.0, top, w, 2).abs(), _c(data.coat_trim_color))
 		draw_rect(Rect2(1, top + 2, 2, length - 1), _c(data.coat_trim_color))
 		draw_rect(Rect2(-sw / 2.0, -6, sw, 2).abs(), _c(data.accent_color))
+	elif data.chest_style == &"clockwork":
+		# Armadura del Nexo: cuello y franja dorados, vetas de energía y un ojo dorado dentro de un engranaje.
+		var gold := data.coat_trim_color
+		var glow := Color("ff3cf0")
+		draw_rect(Rect2(-w / 2.0, top, w, 2).abs(), _c(gold))
+		draw_rect(Rect2(-w / 2.0, top + 2, 3, 2).abs(), _c(glow))
+		draw_rect(Rect2(w / 2.0 - 3, top + 2, 3, 2).abs(), _c(glow))
+		draw_rect(Rect2(-w / 2.0 + 1, top + 4, 1, length * 0.5), _c(glow.darkened(0.4)))
+		var ec := Vector2(1, top + length * 0.45)
+		draw_circle(ec, 7.0, _c(OUTLINE))
+		draw_circle(ec, 6.0, _c(gold.darkened(0.25)))
+		for i in 8:
+			var a := i * TAU / 8.0 + anim_time * 0.6
+			var tp := ec + Vector2(cos(a), sin(a)) * 6.0
+			draw_rect(Rect2((tp - Vector2(1, 1)).round(), Vector2(2, 2)), _c(gold))
+		draw_circle(ec, 4.5, _c(gold))
+		draw_circle(ec, 3.2, _c(Color("2a1248")))
+		draw_circle(ec, 2.4, _c(Color("ff9a20")))
+		draw_rect(Rect2(ec.x - 0.5, ec.y - 1.5, 1, 3), _c(OUTLINE))
+		# Cinturón dorado con hebilla
+		draw_rect(Rect2(-w / 2.0, -6, w, 2).abs(), _c(gold))
+		draw_rect(Rect2(0, -7, 3, 4), _c(gold.lightened(0.25)))
 	elif data.chest_style == &"polo":
 		# Polo de rayas por fuera del pantalón, cuello abierto y barriga.
 		var belly := Rect2(roundf(w / 2.0) - 1, roundf(top + length * 0.4), 4, roundf(length * 0.55))
@@ -625,6 +675,17 @@ func _head() -> void:
 			draw_rect(Rect2(fx - 6, eye_y - 1, 7, 4), _c(OUTLINE))
 			draw_rect(Rect2(fx - 5, eye_y, 2, 1), _c(Color("7090c0")))
 			draw_line(Vector2(head.position.x + 3, eye_y), Vector2(fx - 6, eye_y), _c(OUTLINE), 1.0)
+	if data.glasses == &"visor":
+		# Casco liso y oscuro con ranura de ojo magenta brillante.
+		var metal := Color("1c1226")
+		draw_rect(head, _c(metal))
+		draw_rect(Rect2(head.position.x, head.position.y, hw, 1), _c(Color("5a2a9a")))
+		draw_rect(Rect2(head.position.x + 1, head.position.y + 1, 2, hh - 2), _c(Color("2e1a48")))
+		draw_rect(Rect2(fx - 2, head.position.y + 2, 1, hh - 4), _c(Color("3a2260")))
+		draw_rect(Rect2(fx - 8, eye_y - 1, 8, 4), _c(OUTLINE))
+		draw_rect(Rect2(fx - 7, eye_y, 6, 2), _c(Color("ff3cf0")))
+		draw_rect(Rect2(fx - 5, eye_y, 2, 1), _c(Color("ffd0ff")))
+		draw_rect(Rect2(head.position.x + 2, head.position.y + 3, 2, 1), _c(data.accent_color))
 	match data.jewelry:
 		&"earplug":
 			draw_circle(Vector2(head.position.x + 3, -hh * 0.45 + 2), 3.6, _c(OUTLINE))
@@ -867,6 +928,30 @@ func _head() -> void:
 			draw_rect(Rect2(-hw / 2.0 - 4, -hh - 5, 3, 2), _c(data.accent_color))
 		&"zucchetto":
 			_orect(Rect2(-hw / 2.0 + 1, -hh - 2, hw - 1, 4), hat)
+		&"clockwork":
+			# Corona de pinchos dorados, engranaje detrás de la cabeza y dos relojes de arena flotando.
+			var cc := Vector2(0, -hh + 3.0)
+			var gr := 11.0
+			draw_arc(cc, gr, PI, TAU, 24, _c(OUTLINE), 5.0)
+			draw_arc(cc, gr, PI, TAU, 24, hat, 3.0)
+			for i in 7:
+				var ga := PI + i * PI / 6.0 + sin(anim_time * 0.8) * 0.05
+				var gp := cc + Vector2(cos(ga), sin(ga)) * (gr + 2.5)
+				_orect(Rect2((gp - Vector2(1.5, 1.5)).round(), Vector2(3, 3)), hat)
+			_orect(Rect2(-hw / 2.0 - 1, -hh - 2, hw + 2, 3), hat)
+			var spike_h := [3.0, 5.0, 8.0, 5.0, 3.0]
+			for i in 5:
+				var sx := -hw / 2.0 + i * (hw - 1.0) / 4.0
+				_orect(Rect2(roundf(sx) - 1, -hh - 2 - spike_h[i], 2, spike_h[i]), hat.lightened(0.1))
+			draw_rect(Rect2(-1, -hh - 1, 2, 1), _c(Color("ff3cf0")))
+			for side in [-1.0, 1.0]:
+				var hc := Vector2(side * (gr + 7.0), -hh - 3.0 + sin(anim_time * 2.0 + side) * 1.5).round()
+				draw_rect(Rect2(hc + Vector2(-4, -7), Vector2(8, 3)), _c(OUTLINE))
+				draw_rect(Rect2(hc + Vector2(-4, 4), Vector2(8, 3)), _c(OUTLINE))
+				draw_rect(Rect2(hc + Vector2(-3, -6), Vector2(6, 1)), hat)
+				draw_rect(Rect2(hc + Vector2(-3, 5), Vector2(6, 1)), hat)
+				draw_colored_polygon(PackedVector2Array([hc + Vector2(-3, -5), hc + Vector2(3, -5), hc]), _c(Color("bfe8ff")))
+				draw_colored_polygon(PackedVector2Array([hc, hc + Vector2(-3, 5), hc + Vector2(3, 5)]), hat.lightened(0.15))
 		&"halo":
 			draw_arc(Vector2(0, -hh - 6), 6.0, 0.0, TAU, 20, _c(OUTLINE), 4.0)
 			draw_arc(Vector2(0, -hh - 6), 6.0, 0.0, TAU, 20, hat, 2.0)
@@ -1033,6 +1118,16 @@ func _skirt() -> void:
 	draw_line(Vector2(top_w * 0.25, -2), Vector2(bot_w * 0.25 + sway * 0.5, length - 1), _c(col.darkened(0.15)), 1.0)
 	draw_line(Vector2(-top_w * 0.5, -2), Vector2(-bot_w * 0.5 + sway, length - 1), _c(col.darkened(0.3)), 2.0)
 	draw_line(pts[3] + Vector2(0, -1), pts[2] + Vector2(0, -1), _c(data.coat_trim_color), 2.0)
+	if data.chest_style == &"clockwork":
+		# Franja central dorada y un engranaje bordado en la túnica del Nexo.
+		var gold := data.coat_trim_color
+		draw_line(Vector2(0, -2), Vector2(bot_w * 0.04 + sway * 0.6, length - 1), _c(gold), 3.0)
+		draw_line(Vector2(-1, -2), Vector2(bot_w * 0.04 + sway * 0.6 - 1, length - 1), _c(gold.lightened(0.3)), 1.0)
+		var gc := Vector2(-bot_w * 0.22 + sway * 0.3, length * 0.62)
+		draw_circle(gc, 3.5, _c(gold))
+		draw_circle(gc, 1.6, _c(col.darkened(0.3)))
+		for gx in [Vector2(-4, 0), Vector2(4, 0), Vector2(0, -4), Vector2(0, 4)]:
+			draw_rect(Rect2((gc + gx - Vector2(1, 1)).round(), Vector2(2, 2)), _c(gold))
 
 ## Capa a la espalda: ondea al correr.
 func _cape(shoulder: Vector2, hip: Vector2) -> void:

@@ -1197,7 +1197,10 @@ def build_tres(c):
 #   female, outfit (skirt|dress|gown), outfit_color, glasses (round|dark), cape (color),
 #   jewelry (necklace|cross|earplug|pin|sash), jewelry_color, eyes (almond), y cualquier campo de CHARACTERS.
 LOOKS = {
-    "el_nexo": dict(cape="9a4dff"),
+    # Señor del tiempo: casco con visor, corona-engranaje con relojes de arena, ojo dorado en el pecho,
+    # túnica larga y guanteletes (oro delante, energía magenta detrás).
+    "el_nexo": dict(skin="2e1a48", hair="ff3cf0", hair_style="bald", hat_style="clockwork", chest="clockwork",
+                    glasses="visor", outfit="gown", outfit_color="2a1248", jewelry="gauntlet", jewelry_color="ffd24a"),
     # --- Mujeres ---
     "cleopatra": dict(female=True, outfit="gown", outfit_color="f6f2e4", jewelry="necklace", jewelry_color="e8c040"),
     "isabel_ii": dict(female=True, outfit="dress", hair_style="updo", hat_style="tiara", hat="e8d060",
