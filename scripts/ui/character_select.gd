@@ -42,6 +42,8 @@ var _overlay: Control
 var _stage: Stage
 var _stage_id: StringName = &""
 var _floor_y: float = 206.0
+var _stage_cache: Dictionary = {}       # id del luchador -> escenario ya construido
+var _preload_queue: Array[StringName] = []
 var _stage_pending: StringName = &""
 var _stage_wait: float = 0.0
 ## Estado dibujado la última vez: solo se redibuja si cambia (y el cursor al parpadear).
@@ -73,8 +75,11 @@ func _ready() -> void:
 		if cursor[2] == cursor[1]:
 			cursor[2] = (cursor[1] + 1) % roster.size()
 	_load_stage(roster[cursor[1]].id if cursor[1] < roster.size() else roster[0].id)
+	for i in roster.size():
+		if not _is_locked(i):
+			_preload_queue.append(roster[i].id)
 	_build_cells()
-	_back = BackButton.add_to(self, _on_back)
+	_back =BackButton.add_to(self, _on_back)
 	_overlay = Control.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -161,24 +166,49 @@ func _load_stage(fighter_id: StringName) -> void:
 		return
 	_stage_id = fighter_id
 	if _stage:
-		_stage.queue_free()
-	var packed := load(StageRegistry.scene_for(fighter_id)) as PackedScene
-	if packed == null:
-		packed = load(StageRegistry.COLOSSEUM)
-	_stage = packed.instantiate() as Stage
-	if _stage is ThemedStage:
-		(_stage as ThemedStage).fighter_id = fighter_id
-	# Un hijo se dibuja encima del padre; así el escenario queda detrás de la rejilla y los textos.
-	_stage.show_behind_parent = true
-	add_child(_stage)
-	move_child(_stage, 0)
+		_set_stage_active(_stage, false)
+	_stage = _stage_for(fighter_id)
+	_set_stage_active(_stage, true)
 	_floor_y = _stage.floor_y
 	for p in [1, 2]:
 		if _previews[p]:
 			(_previews[p] as FighterRenderer).position.y = _floor_y
 
+## El escenario de ese luchador: del caché si ya se construyó; si no, se construye y se guarda
+## (oculto y sin procesar) para no rearmarlo la próxima vez.
+func _stage_for(fighter_id: StringName) -> Stage:
+	if _stage_cache.has(fighter_id):
+		return _stage_cache[fighter_id]
+	var packed := load(StageRegistry.scene_for(fighter_id)) as PackedScene
+	if packed == null:
+		packed = load(StageRegistry.COLOSSEUM)
+	var st := packed.instantiate() as Stage
+	if st is ThemedStage:
+		(st as ThemedStage).fighter_id = fighter_id
+	# Un hijo se dibuja encima del padre; así el escenario queda detrás de la rejilla y los textos.
+	st.show_behind_parent = true
+	_set_stage_active(st, false)
+	add_child(st)
+	move_child(st, 0)
+	_stage_cache[fighter_id] = st
+	return st
+
+func _set_stage_active(st: Stage, on: bool) -> void:
+	st.visible = on
+	st.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+
+## Construye de a un escenario por frame mientras el jugador no mueve el cursor.
+func _preload_next_stage() -> void:
+	while not _preload_queue.is_empty():
+		var id: StringName = _preload_queue.pop_front()
+		if not _stage_cache.has(id):
+			_stage_for(id)
+			return
+
 func _process(delta: float) -> void:
 	_t += delta
+	if _stage_pending == &"" and not _starting:
+		_preload_next_stage()
 	if not _starting and not _asking:
 		for p in ([1] if _cpu else [1, 2]):
 			_handle_player(p)
@@ -224,7 +254,8 @@ func _move_cursor(p: int, c: int) -> void:
 	Sfx.play(&"select")
 	if c < roster.size() and not _is_locked(c):
 		_stage_pending = roster[c].id
-		_stage_wait = STAGE_DELAY
+		# Ya construido: el cambio es barato y va al instante; si no, se espera a que el cursor pare.
+		_stage_wait = 0.0 if _stage_cache.has(_stage_pending) else STAGE_DELAY
 	_refresh_preview(p)
 
 func _confirm(p: int) -> void:
