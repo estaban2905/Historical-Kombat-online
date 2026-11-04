@@ -427,6 +427,9 @@ func _draw_plate(p: int) -> void:
 				lines.append([l, HKTheme.GOLD])
 			for l in _wrap(d.era, PLATE_W - 8.0):
 				lines.append([l, HKTheme.MUTED.lightened(0.25)])
+			# Nombre de su pasiva (si tiene); el detalle está en PERSONAJES.
+			for l in _wrap(Passives.display_name(d.passive), PLATE_W - 8.0):
+				lines.append([l, Color("60d060")])
 			if _is_story() and _saves.has(str(d.id)):
 				lines.append(["GUARDADA · COMBATE %d" % (int(_saves[str(d.id)]["stage"]) + 1), Color("60d060")])
 		else:
@@ -447,7 +450,13 @@ func _draw_quotes(top: float) -> void:
 	var entries: Array = []
 	for p in ([1] if _cpu else [1, 2]):
 		if cursor[p] < roster.size() and not _is_locked(cursor[p]):
-			var quote := "\"%s\"" % roster[cursor[p]].intro_quote
+			var me := roster[cursor[p]]
+			var intro := me.intro_quote
+			# Si el otro jugador eligió a un rival con el que hay historia, dice una frase para ese duelo.
+			var foe_idx: int = cursor[3 - p]
+			if not _cpu and not Game.is_online() and foe_idx < roster.size() and not _is_locked(foe_idx):
+				intro = RosterLines.intro(me.id, roster[foe_idx].id, intro)
+			var quote := "\"%s\"" % intro
 			entries.append([_clip_lines(_wrap(quote, 160.0), 3), HKTheme.PAPER if p == 1 else Color("b8d0f0")])
 	if entries.is_empty():
 		return

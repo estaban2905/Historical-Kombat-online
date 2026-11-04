@@ -55,6 +55,10 @@ const ATTACK_SLOTS: Array[StringName] = [
 ## Combos con nombre propios (ver combo_data.gd). Vacío = los comunes.
 @export var combos: Array[ComboData] = []
 
+@export_group("Pasiva")
+## Regla propia que actúa sola (ver scripts/passives.gd). Vacío = sin pasiva.
+@export var passive: StringName = &""
+
 @export_group("Cuerpo (hurtbox)")
 @export var body_width: float = 26.0
 @export var stand_height: float = 76.0
@@ -197,6 +201,7 @@ func validate() -> PackedStringArray:
 			errors.append("%s: falta el ataque %s" % [id, slot])
 	if max_health <= 0:
 		errors.append("%s: max_health debe ser > 0" % id)
+	errors.append_array(Passives.validate(passive))
 	for stat in [&"walk_speed", &"strength", &"resistance", &"body_width", &"stand_height", &"crouch_height"]:
 		if float(get(stat)) <= 0.0:
 			errors.append("%s: %s debe ser > 0" % [id, stat])

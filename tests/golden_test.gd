@@ -25,6 +25,9 @@ const MATCHUPS: Array = [
 	[&"sun_tzu", &"isaac_newton", 6],
 	[&"cleopatra", &"gengis_kan", 7],
 	[&"salvador_allende", &"adolf_hitler", 8],
+	# Con pasiva: Rasputín (K.O. evitado), Curie (radiación), Buda (guardia) y Stalin (daño reducido).
+	[&"rasputin", &"marie_curie", 9],
+	[&"buda", &"joseph_stalin", 10],
 ]
 
 func _ready() -> void:

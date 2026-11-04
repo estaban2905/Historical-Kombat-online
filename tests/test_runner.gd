@@ -750,6 +750,7 @@ func _attack_test(attacker: Fighter, defender: Fighter, slot: StringName, k: Key
 		await frames(2)
 	var hp := defender.health
 	var hits := 0
+	var passive_mult := Passives.outgoing_mult(attacker, defender, atk)
 	key(k, true); await frames(2); key(k, false)
 	var last := hp
 	for i in 90:
@@ -757,7 +758,7 @@ func _attack_test(attacker: Fighter, defender: Fighter, slot: StringName, k: Key
 		if defender.health < last - 0.001:
 			hits += 1
 			last = defender.health
-	var expected := atk.damage * attacker.data.strength / defender.data.resistance
+	var expected := atk.damage * attacker.data.strength / defender.data.resistance * passive_mult
 	var dealt := hp - defender.health
 	if atk.is_power():
 		# Los poderes pueden repartir el daño en varios impactos (ráfagas).
@@ -807,7 +808,7 @@ func _test_powers() -> void:
 			if c.p1.position.x > c.p2.position.x:
 				swapped = true
 		var dealt := hp2 - c.p2.health
-		var cap := atk.damage * d.strength / c.p2.data.resistance + 0.05
+		var cap := atk.damage * d.strength / c.p2.data.resistance * _passive_max_mult(d) + 0.05 + _passive_extra_damage(d)
 		if atk.power == &"chilean_way":
 			# El escudo no hace daño: se comprueba que se activa (la onda devuelta se prueba en MechanicsTest).
 			check(max_shield > 0, "%s: «%s» activa el escudo" % [d.id, atk.display_name])
@@ -866,7 +867,7 @@ func _test_ultimates() -> void:
 			await frames(1)
 			fx_seen = fx_seen or is_instance_valid(c.ult_fx)
 		var dealt := hp2 - c.p2.health
-		var cap := atk.damage * d.strength / c.p2.data.resistance + 0.05
+		var cap := atk.damage * d.strength / c.p2.data.resistance * _passive_max_mult(d) + 0.05 + _passive_extra_damage(d)
 		kinds[atk.ult_kind] = true
 		check(atk.is_power() and atk.ult_kind != &"", "%s: «%s» es un ultimate de tipo %s" % [d.id, atk.display_name, atk.ult_kind])
 		check(dealt > 0.0 and dealt <= cap, "%s: «%s» conecta (daño %.1f, máx. %.1f)" % [d.id, atk.display_name, dealt, cap])
@@ -1183,3 +1184,21 @@ func _test_arcade() -> void:
 	check(Game.ai_level() == 1.0, "el Nexo usa la IA al máximo")
 	check(Game.story_chapter_of(Game.STORY_NEXO_ID) == Game.STORY_CHAPTERS.size(), "el Nexo tiene su propio capítulo")
 	Game.mode = Game.Mode.VERSUS
+
+## Daño máximo extra que puede sumar la pasiva del atacante durante la prueba (la radiación de Curie).
+func _passive_extra_damage(d: FighterData) -> float:
+	if d.passive == &"radiactividad":
+		return Passives.CURIE_DAMAGE * float(Passives.CURIE_TICKS / Passives.CURIE_EVERY)
+	return 0.0
+
+## Mayor multiplicador de daño que la pasiva del atacante puede aplicar a un ataque (1.0 = ninguno).
+func _passive_max_mult(d: FighterData) -> float:
+	if not Passives.CFG.has(d.passive):
+		return 1.0
+	var cfg: Array = Passives.CFG[d.passive]
+	match cfg[0]:
+		Passives.DAMAGE_LOW_HP, Passives.RANGE_FAR, Passives.RANGE_NEAR:
+			return 1.0 + float(cfg[2])
+		Passives.OPENING, Passives.PROJECTILE_DAMAGE, Passives.FULL_ENERGY_DAMAGE:
+			return 1.0 + float(cfg[1])
+	return 1.0

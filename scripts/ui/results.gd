@@ -221,7 +221,10 @@ func _draw() -> void:
 			title = "YOU WIN" if Game.last_winner == Online.side else "YOU LOSE"
 		HKTheme.draw_text(self, Vector2(x0, 36), title, 16, pulse, HORIZONTAL_ALIGNMENT_CENTER, w, 4)
 		HKTheme.draw_text(self, Vector2(x0, 54), _winner_data.display_name, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_CENTER, w)
-		_draw_wrapped(Vector2(x0 + 8, 92), "\"%s\"" % _winner_data.victory_quote, w - 16, Color("e8d8b8"))
+		# Frase propia contra ese rival si existe (ver RosterLines); si no, la de siempre.
+		var loser := Game.p2_data() if Game.last_winner == 1 else Game.p1_data()
+		var quote := RosterLines.win(_winner_data.id, loser.id, _winner_data.victory_quote)
+		_draw_wrapped(Vector2(x0 + 8, 92), "\"%s\"" % quote, w - 16, Color("e8d8b8"))
 		_draw_farewell(x0, w)
 		_draw_fragment(x0, w)
 	HKTheme.draw_text(self, Vector2(x0, 74), "RONDAS  %d - %d" % [Game.last_p1_rounds, Game.last_p2_rounds], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)

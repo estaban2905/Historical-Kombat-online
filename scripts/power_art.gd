@@ -29,6 +29,7 @@ static func draw(ci: CanvasItem, style: StringName, t: float, prog: float, a: fl
 		&"bell_wave": _bell_wave(ci, t)
 		&"monkeys": _monkeys(ci, t)
 		&"plane": _plane(ci, t)
+		&"jet": _jet(ci, t)
 		&"bomb": _bomb(ci, t)
 		&"caravel": _caravel(ci, t, dir)
 		&"sphere": _sphere(ci, t, col)
@@ -66,6 +67,7 @@ static func draw(ci: CanvasItem, style: StringName, t: float, prog: float, a: fl
 		&"sungod": _sungod(ci, t, prog, box)
 		&"jaws": _jaws(ci, prog, a, box)
 		&"tank": _tank(ci, t)
+		&"chains": _chains(ci, prog, a, box, col)
 		&"scope": _scope(ci, t, prog, box, col)
 		&"tracer": _tracer(ci, t, box, col)
 		&"hemlock": _hemlock(ci, prog, a, box, col)
@@ -299,6 +301,28 @@ static func _plane(ci: CanvasItem, t: float) -> void:
 	ci.draw_circle(Vector2(2, -6), 2.2, Color("e8c098"))
 	ci.draw_rect(Rect2(0, -9, 5, 2), Color("a03030"))
 	ci.draw_line(Vector2(16, 0), Vector2(20, 4), wood, 2.0)
+
+## Caza militar a reacción (tipo Hawker Hunter): fuselaje gris, alas en flecha, escarapela y estela.
+static func _jet(ci: CanvasItem, t: float) -> void:
+	var hull := Color("8a9298")
+	var dark := Color("5a6268")
+	# Estela del motor.
+	var flick := 1.0 + sin(t * 40.0) * 0.25
+	ci.draw_line(Vector2(-26, 0), Vector2(-26 - 16.0 * flick, 0), Color(1.0, 0.7, 0.25, 0.8), 3.0)
+	ci.draw_line(Vector2(-26, 0), Vector2(-26 - 30.0 * flick, 0), Color(0.9, 0.9, 0.95, 0.35), 5.0)
+	# Ala trasera y deriva.
+	_poly(ci, [Vector2(-24, 0), Vector2(-14, -1), Vector2(-26, -11), Vector2(-30, -11)], dark)
+	_poly(ci, [Vector2(-22, 2), Vector2(-12, 2), Vector2(-20, 8), Vector2(-26, 8)], dark)
+	# Fuselaje.
+	_poly(ci, [Vector2(-26, -2), Vector2(10, -4), Vector2(26, 0), Vector2(10, 4), Vector2(-26, 3)], hull)
+	# Ala principal en flecha.
+	_poly(ci, [Vector2(6, 2), Vector2(-8, 2), Vector2(-18, 13), Vector2(-9, 13)], dark)
+	# Cabina.
+	_poly(ci, [Vector2(2, -4), Vector2(11, -4), Vector2(9, -8), Vector2(4, -8)], Color("a8d8f0"))
+	# Escarapela y toma de aire.
+	ci.draw_circle(Vector2(-6, 0), 2.2, Color("2050a0"))
+	ci.draw_circle(Vector2(-6, 0), 1.0, Color("e03030"))
+	ci.draw_rect(Rect2(17, 0, 5, 2), Color("2a2a32"))
 
 static func _bomb(ci: CanvasItem, t: float) -> void:
 	ci.draw_circle(Vector2.ZERO, 5.5, OL)
@@ -561,6 +585,27 @@ static func _barrier(ci: CanvasItem, prog: float, box: Vector2) -> void:
 	for i in 9:
 		wire.append(Vector2(-hw + 4.0 + i * (box.x - 8.0) / 8.0, y + (3.0 if i % 2 == 0 else -3.0)))
 	ci.draw_polyline(wire, Color("b8b8c0"), 1.5)
+
+## Lincoln: cadenas que aprisionan al rival y se aflojan al final.
+static func _chains(ci: CanvasItem, prog: float, a: float, box: Vector2, col: Color) -> void:
+	var k := _ease(prog)
+	var hw := box.x * 0.5
+	var hh := box.y * 0.5
+	var slack := clampf(a * 2.0, 0.0, 1.0) if prog >= 1.0 else 0.0
+	for diag in 2:
+		var s := -1.0 if diag == 0 else 1.0
+		var n := 8
+		for i in n:
+			if float(i) / n > k:
+				break
+			var u := (float(i) + 0.5) / n
+			var p := Vector2(lerpf(-hw, hw, u), lerpf(-hh * s, hh * s, u) + slack * 6.0 * (u - 0.5))
+			if i % 2 == 0:
+				_rect(ci, p.x - 4.0, p.y - 2.0, 8.0, 4.0, Color("b8b8c0"))
+			else:
+				_rect(ci, p.x - 2.0, p.y - 4.0, 4.0, 8.0, Color("8a8a96"))
+	ci.draw_line(Vector2(-hw, 0), Vector2(hw, 0), OL, 5.0)
+	ci.draw_line(Vector2(-hw, 0), Vector2(hw * k * 2.0 - hw, 0), Color(col.r, col.g, col.b, 0.85), 3.0)
 
 ## Allende: escudo elíptico de energía roja.
 static func _redshield(ci: CanvasItem, t: float, box: Vector2) -> void:
