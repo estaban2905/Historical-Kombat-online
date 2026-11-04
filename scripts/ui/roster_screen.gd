@@ -222,6 +222,7 @@ func _draw_powers() -> void:
 	var d := _data()
 	var lore := RosterLore.get_lore(d.id)
 	var y := PANEL_Y + 22.0
+	y = _passive(y, d)
 	y = _skill(y, "ESPECIAL 1", d.special_1, lore[2], HKTheme.GOLD)
 	_skill(y + 4.0, "ESPECIAL 2", d.special_2, lore[3], HKTheme.GOLD)
 	# Combos al pie del panel (pueden ocupar dos líneas).
@@ -244,6 +245,21 @@ func _draw_ultimate() -> void:
 	y = _section(TEXT_X, y + 16.0, "CÓMO SE LANZA",
 		"Especial 1 + Especial 2 a la vez, en el suelo y con la energía al 100.")
 	_section(TEXT_X, y + 13.0, "EFECTO", RosterLore.ULT_TEXT.get(d.ultimate.ult_kind, "Ataque definitivo.") if d.ultimate else "")
+
+## La pasiva del luchador (si tiene): etiqueta, nombre en verde y descripción. Devuelve la y siguiente.
+func _passive(y: float, d: FighterData) -> float:
+	var title := Passives.display_name(d.passive)
+	if title == "":
+		return y
+	# Una sola línea ("PASIVA  NOMBRE") para no quitarle sitio a los especiales y los combos.
+	var label_w := HKTheme.text_width("PASIVA  ", 8)
+	HKTheme.draw_text(self, Vector2(TEXT_X, y + 8), "PASIVA", 8, HKTheme.MUTED.lightened(0.2), HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
+	HKTheme.draw_text(self, Vector2(TEXT_X + label_w, y + 8), title, 8, Color("60d060"), HORIZONTAL_ALIGNMENT_LEFT, TEXT_W - label_w, 1)
+	y += 11.0
+	for line in _wrap(Passives.description(d.passive), TEXT_W):
+		HKTheme.draw_text(self, Vector2(TEXT_X, y + 8), line, 8, HKTheme.PAPER, HORIZONTAL_ALIGNMENT_LEFT, -1, 0)
+		y += LINE_H
+	return y + 3.0
 
 ## Un poder: línea de etiqueta con daño y coste, nombre en color y descripción. Devuelve la y siguiente.
 func _skill(y: float, slot: String, atk: AttackData, desc: String, color: Color) -> float:

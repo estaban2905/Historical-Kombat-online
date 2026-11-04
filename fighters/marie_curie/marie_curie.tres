@@ -248,6 +248,7 @@ jump_velocity = -360.0
 jump_forward_speed = 112.0
 strength = 0.98
 resistance = 0.97
+passive = &"radiactividad"
 punch_light = SubResource("R_marie_curie_punch_light")
 punch_heavy = SubResource("R_marie_curie_punch_heavy")
 kick_light = SubResource("R_marie_curie_kick_light")

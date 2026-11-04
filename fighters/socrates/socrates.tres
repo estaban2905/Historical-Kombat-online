@@ -250,6 +250,7 @@ jump_velocity = -345.0
 jump_forward_speed = 102.0
 strength = 0.98
 resistance = 1.03
+passive = &"solo_se_que_no_se"
 punch_light = SubResource("R_socrates_punch_light")
 punch_heavy = SubResource("R_socrates_punch_heavy")
 kick_light = SubResource("R_socrates_kick_light")

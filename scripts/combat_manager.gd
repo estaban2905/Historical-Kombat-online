@@ -22,7 +22,7 @@ const FIGHTER_SCENE := preload("res://scenes/fighters/Fighter.tscn")
 const SYNC_EVERY := 60
 ## Versión del contenido de state_snapshot: súbela si cambias qué recoge, para que el servidor no
 ## compare el resumen de un juego antiguo con el de uno nuevo.
-const SNAPSHOT_VERSION := 2
+const SNAPSHOT_VERSION := 3
 ## Congelado de quien recibe el golpe de un proyectil o de un poder. Es corto y no se alarga si
 ## bloquea: un poder de varias entidades congelaría al rival muchos frames seguidos mientras el
 ## atacante sigue libre. Los golpes cuerpo a cuerpo usan el hitstop de su AttackData.
@@ -373,6 +373,9 @@ func state_snapshot() -> Array:
 				f.attack_crouching, f.attack_airborne, f.guard_is_broken, f.wake_invuln, f.invert_grace,
 				f._prev_jump_held, f._prev_block_held, f._prev_h, f._tap_dir, f._tap_timer, f.throw_ready,
 				f.current_slot, f.projectile_spawned, f.combo_claimed, f.frame_counter])
+		# Memoria de la pasiva: solo si tiene una, para no alterar el resumen de los demás.
+		if Passives.has(f):
+			parts.append(Passives.snapshot(f))
 	for p in projectiles_root.get_children():
 		var pr := p as Projectile
 		parts.append([pr.position, pr.life_frames, pr.alive, pr.vy, pr.age, pr.delay_frames, pr._armed, pr._hit_log.values()])
@@ -584,6 +587,7 @@ func _on_projectile_requested(fighter: Fighter, atk: AttackData, spawn_position:
 	Sfx.play(&"cannon" if atk.projectile_style == &"ball" else &"megaphone")
 
 func _on_power_requested(fighter: Fighter, atk: AttackData) -> void:
+	Passives.on_special_cast(fighter, atk)
 	fx.flash(0.3)
 	PowerEffects.cast(self, fighter, atk)
 

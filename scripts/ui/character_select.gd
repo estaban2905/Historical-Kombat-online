@@ -427,6 +427,9 @@ func _draw_plate(p: int) -> void:
 				lines.append([l, HKTheme.GOLD])
 			for l in _wrap(d.era, PLATE_W - 8.0):
 				lines.append([l, HKTheme.MUTED.lightened(0.25)])
+			# Nombre de su pasiva (si tiene); el detalle está en PERSONAJES.
+			for l in _wrap(Passives.display_name(d.passive), PLATE_W - 8.0):
+				lines.append([l, Color("60d060")])
 			if _is_story() and _saves.has(str(d.id)):
 				lines.append(["GUARDADA · COMBATE %d" % (int(_saves[str(d.id)]["stage"]) + 1), Color("60d060")])
 		else:

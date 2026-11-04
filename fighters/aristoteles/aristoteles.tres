@@ -248,6 +248,7 @@ jump_velocity = -345.0
 jump_forward_speed = 102.0
 strength = 0.98
 resistance = 1.03
+passive = &"observacion"
 punch_light = SubResource("R_aristoteles_punch_light")
 punch_heavy = SubResource("R_aristoteles_punch_heavy")
 kick_light = SubResource("R_aristoteles_kick_light")

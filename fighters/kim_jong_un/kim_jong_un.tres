@@ -248,6 +248,7 @@ jump_velocity = -340.0
 jump_forward_speed = 98.0
 strength = 1.05
 resistance = 1.02
+passive = &"programa_de_misiles"
 punch_light = SubResource("R_kim_jong_un_punch_light")
 punch_heavy = SubResource("R_kim_jong_un_punch_heavy")
 kick_light = SubResource("R_kim_jong_un_kick_light")

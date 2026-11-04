@@ -217,6 +217,10 @@ var invert_frames: int = 0
 ## Aviso de los controles invertidos: no se invierten hasta pasados INVERT_WARNING frames.
 var invert_grace: int = 0
 var float_frames: int = 0
+## Memoria de la pasiva del luchador (contadores, usos...). Ver scripts/passives.gd.
+var passive_state: Array[int] = Passives.fresh_state()
+## Cuántas veces ha actuado la pasiva (solo para que el HUD la haga brillar; no se simula ni entra en el checksum).
+var passive_pulses: int = 0
 ## Atrapado por una barrera: no puede caminar, saltar ni hacer backdash (sí atacar y bloquear).
 var root_frames: int = 0
 ## Escudo de energía: absorbe el siguiente golpe y lo devuelve como onda.
@@ -257,6 +261,7 @@ func setup(p_data: FighterData, p_player_id: int, p_input: InputManager) -> void
 	data = p_data
 	player_id = p_player_id
 	input = p_input
+	passive_state = Passives.fresh_state()
 	name = "Fighter%d" % player_id
 	if data.sprite_frames:
 		sprite.sprite_frames = data.sprite_frames
@@ -300,6 +305,8 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	float_frames = 0
 	root_frames = 0
 	shield_frames = 0
+	for i in Passives.ROUND_SLOTS:
+		passive_state[i] = 0
 	running = false
 	_clear_throw()
 	_prev_h = 0
@@ -315,6 +322,7 @@ func reset_for_round(x: float, p_facing: int) -> void:
 	hurtbox_shape.set_deferred("disabled", false)
 	_update_boxes()
 	_update_visual()
+	Passives.on_round_start(self)
 	health_changed.emit(self)
 
 # =========================================================================
@@ -334,6 +342,7 @@ func tick(delta: float) -> void:
 	if slow_frames > 0 and frame_counter % 2 == 0:
 		input.end_frame()
 		return
+	Passives.on_tick(self)
 	state_frames += 1
 	if _tap_timer > 0:
 		_tap_timer -= 1
@@ -426,7 +435,7 @@ func _ground_control() -> void:
 	if h != 0:
 		# Retroceder es algo más lento que avanzar.
 		var backwards := h != facing
-		velocity.x = h * data.walk_speed * (0.8 if backwards else 1.0) * (RUN_SPEED_MULT if running else 1.0)
+		velocity.x = h * data.walk_speed * Passives.speed_mult(self) * (0.8 if backwards else 1.0) * (RUN_SPEED_MULT if running else 1.0)
 		if state != State.WALK:
 			_set_state(State.WALK)
 		return
@@ -984,6 +993,8 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		add_energy(ENERGY_ON_BLOCK)
 		return result
 	var dmg := atk.damage * attacker.data.strength / maxf(data.resistance, 0.1)
+	# Pasivas: daño que inflige el atacante y daño que ignora quien lo recibe (1.0 = sin pasiva).
+	dmg *= Passives.outgoing_mult(attacker, self, atk) * Passives.incoming_mult(self, attacker, atk)
 	if state == State.BLOCK and is_on_ground() and guards_against(level):
 		# BLOQUEO: daño muy reducido. Los golpes normales nunca noquean; los
 		# especiales (proyectiles, poderes) sí pueden rematar con el daño de rozadura.
@@ -1003,7 +1014,7 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		result.blocked = true
 		guard_idle = 0
 		guard = maxf(guard - full * GUARD_DRAIN, 0.0)
-		if health <= 0.0:
+		if health <= 0.0 and not Passives.prevents_ko(self):
 			_knock_out(direction)
 			result.ko = true
 		elif guard <= 0.0:
@@ -1050,10 +1061,15 @@ func receive_hit(attacker: Fighter, atk: AttackData, direction: int,
 		add_energy(ENERGY_ON_HIT_TAKEN)
 		attacker.add_energy(ENERGY_ON_HIT_DEALT)
 		visual.flash_hit()
-		if health <= 0.0:
+		if health <= 0.0 and not Passives.prevents_ko(self):
 			_knock_out(direction)
 			result.ko = true
 	result.damage = dmg
+	if result.blocked:
+		Passives.on_block(self, attacker, atk, result)
+	else:
+		Passives.on_hit_taken(self, attacker, atk, result)
+		Passives.on_hit_dealt(attacker, self, atk, result)
 	health_changed.emit(self)
 	return result
 

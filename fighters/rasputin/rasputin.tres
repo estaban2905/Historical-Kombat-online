@@ -250,6 +250,7 @@ jump_velocity = -330.0
 jump_forward_speed = 90.0
 strength = 0.97
 resistance = 1.06
+passive = &"dificil_de_matar"
 punch_light = SubResource("R_rasputin_punch_light")
 punch_heavy = SubResource("R_rasputin_punch_heavy")
 kick_light = SubResource("R_rasputin_kick_light")

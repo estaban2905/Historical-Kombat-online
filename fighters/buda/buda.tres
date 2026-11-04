@@ -249,6 +249,7 @@ jump_velocity = -330.0
 jump_forward_speed = 90.0
 strength = 0.97
 resistance = 1.06
+passive = &"mente_tranquila"
 punch_light = SubResource("R_buda_punch_light")
 punch_heavy = SubResource("R_buda_punch_heavy")
 kick_light = SubResource("R_buda_kick_light")

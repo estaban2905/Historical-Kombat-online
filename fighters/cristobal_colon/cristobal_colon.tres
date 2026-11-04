@@ -248,6 +248,7 @@ jump_velocity = -375.0
 jump_forward_speed = 125.0
 strength = 1.00
 resistance = 0.97
+passive = &"tierra_a_la_vista"
 punch_light = SubResource("R_cristobal_colon_punch_light")
 punch_heavy = SubResource("R_cristobal_colon_punch_heavy")
 kick_light = SubResource("R_cristobal_colon_kick_light")

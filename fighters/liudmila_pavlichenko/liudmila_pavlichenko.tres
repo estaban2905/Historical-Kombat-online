@@ -251,6 +251,7 @@ jump_velocity = -360.0
 jump_forward_speed = 112.0
 strength = 0.98
 resistance = 0.97
+passive = &"francotiradora"
 punch_light = SubResource("R_liudmila_pavlichenko_punch_light")
 punch_heavy = SubResource("R_liudmila_pavlichenko_punch_heavy")
 kick_light = SubResource("R_liudmila_pavlichenko_kick_light")

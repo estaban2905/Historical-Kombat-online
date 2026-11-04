@@ -249,6 +249,7 @@ jump_velocity = -375.0
 jump_forward_speed = 125.0
 strength = 1.00
 resistance = 0.97
+passive = &"jinete_implacable"
 punch_light = SubResource("R_gengis_kan_punch_light")
 punch_heavy = SubResource("R_gengis_kan_punch_heavy")
 kick_light = SubResource("R_gengis_kan_kick_light")

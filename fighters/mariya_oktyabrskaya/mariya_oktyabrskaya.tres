@@ -249,6 +249,7 @@ jump_velocity = -325.0
 jump_forward_speed = 88.0
 strength = 1.04
 resistance = 1.06
+passive = &"blindaje"
 punch_light = SubResource("R_mariya_oktyabrskaya_punch_light")
 punch_heavy = SubResource("R_mariya_oktyabrskaya_punch_heavy")
 kick_light = SubResource("R_mariya_oktyabrskaya_kick_light")

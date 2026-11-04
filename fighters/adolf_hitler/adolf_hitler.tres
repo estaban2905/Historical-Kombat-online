@@ -248,6 +248,7 @@ jump_velocity = -380.0
 jump_forward_speed = 130.0
 strength = 1.10
 resistance = 0.96
+passive = &"berrinche_final"
 punch_light = SubResource("R_adolf_hitler_punch_light")
 punch_heavy = SubResource("R_adolf_hitler_punch_heavy")
 kick_light = SubResource("R_adolf_hitler_kick_light")

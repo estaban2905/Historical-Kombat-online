@@ -101,6 +101,7 @@ func _end_round(reason: String) -> void:
 		winner = 2
 	if winner != 0:
 		wins[winner] += 1
+		Passives.on_round_won(p1 if winner == 1 else p2)
 	combat.hud.set_round(round_number, wins)
 
 	if reason == "KO":

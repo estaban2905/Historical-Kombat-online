@@ -247,6 +247,7 @@ jump_velocity = -370.0
 jump_forward_speed = 120.0
 strength = 1.08
 resistance = 0.95
+passive = &"waterloo"
 punch_light = SubResource("Resource_i3axp")
 punch_heavy = SubResource("Resource_18xjt")
 kick_light = SubResource("Resource_hsp53")

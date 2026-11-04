@@ -249,6 +249,7 @@ jump_velocity = -385.0
 jump_forward_speed = 128.0
 strength = 0.99
 resistance = 0.97
+passive = &"fugitivo"
 punch_light = SubResource("R_osama_bin_laden_punch_light")
 punch_heavy = SubResource("R_osama_bin_laden_punch_heavy")
 kick_light = SubResource("R_osama_bin_laden_kick_light")

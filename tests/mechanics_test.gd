@@ -68,6 +68,8 @@ func _run() -> void:
 	_test_profiles()
 	_test_balance()
 	await _test_simultaneous_sweeps()
+	await _test_passives()
+	await _test_passive_library()
 	await _test_snapshot_coverage()
 
 	await get_tree().physics_frame
@@ -1149,6 +1151,363 @@ func _test_simultaneous_sweeps() -> void:
 # --- Cobertura del snapshot ----------------------------------------------------
 ## Todo lo que condiciona el siguiente tick debe estar en el snapshot: si un campo cambia y el
 ## checksum no, dos PCs podrían divergir sin que la comprobación online lo note.
+# --- Pasivas ----------------------------------------------------------------
+func _test_passives() -> void:
+	print("
+# Pasivas")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	await _wait_round()
+
+	# Waterloo al revés (Napoleón): con poca vida camina más rápido.
+	_set_fighters(&"napoleon", &"donald_trump")
+	var walked: Array[float] = []
+	for hp_ratio in [1.0, 0.3]:
+		await _place(300.0)
+		p1.health = p1.data.max_health * hp_ratio
+		var x0 := p1.position.x
+		_masks[0] = 1 << 1
+		await _ticks(20)
+		_masks[0] = 0
+		walked.append(p1.position.x - x0)
+	check(walked[1] > walked[0] * 1.2, "Waterloo: con poca vida camina más rápido (%.1f → %.1f px)" % [walked[0], walked[1]])
+	await _ticks(30)
+
+	# Difícil de matar (Rasputín): se levanta una vez por combate con 1 de vida.
+	_set_fighters(&"rasputin", &"napoleon")
+	await _place(34.0)
+	p1.health = 1.0
+	await _press(1, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 40)
+	await _ticks(4)
+	check(p1.state != Fighter.State.KO and is_equal_approx(p1.health, 1.0), "Rasputín: el golpe mortal lo deja con 1 de vida")
+	check(p1.passive_state[Passives.SLOT_SURVIVED] == 1, "y gasta su única vida extra")
+	await _ticks(60)
+	await _place(34.0)
+	check(p1.passive_state[Passives.SLOT_SURVIVED] == 1, "la vida extra no se recupera al empezar otra ronda")
+	p1.health = 1.0
+	await _press(1, 1 << BIT_LP)
+	await _until(func(): return p1.state == Fighter.State.KO, 40)
+	check(p1.state == Fighter.State.KO, "la segunda vez sí cae K.O.")
+	# El cierre de la ronda es diferido: primero esperar a que empiece, luego a que arranque la siguiente.
+	await _until(func(): return combat.round_manager.phase != RoundManager.Phase.FIGHT, 30)
+	await _wait_round()
+
+	# La Doncella (Juana): al ganar una ronda, la siguiente empieza con energía extra.
+	_set_fighters(&"juana_de_arco", &"napoleon")
+	await _place(80.0)
+	Passives.on_round_won(p1)
+	p1.reset_for_round(p1.position.x, 1)
+	check(is_equal_approx(p1.energy, Fighter.ROUND_START_ENERGY + 40.0), "Juana: gana ronda y empieza la siguiente con +40 de energía")
+	p1.reset_for_round(p1.position.x, 1)
+	check(is_equal_approx(p1.energy, Fighter.ROUND_START_ENERGY), "y el bono se gasta: la ronda después vuelve a lo normal")
+
+	# Radiactividad (Curie): el rival pierde vida poco a poco, sin llegar a morir.
+	_set_fighters(&"marie_curie", &"napoleon")
+	await _place(34.0)
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 40)
+	await _ticks(4)
+	check(p1.passive_state[Passives.SLOT_A] > 0, "Curie: el golpe irradia al rival")
+	var after_hit := p2.health
+	await _ticks(70)
+	check(p2.health <= after_hit - 2.0, "y pierde vida con el tiempo (%.0f → %.0f)" % [after_hit, p2.health])
+	p2.health = 1.5
+	await _ticks(70)
+	check(p2.health >= 1.0 and p2.state != Fighter.State.KO, "la radiación nunca remata")
+	await _ticks(150)
+
+	# Mente tranquila (Buda): bloquear devuelve guardia.
+	_set_fighters(&"buda", &"napoleon")
+	await _place(34.0)
+	_masks[0] = STAND_BLOCK
+	await _ticks(10)
+	p1.guard = 50.0
+	await _press(1, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 40)
+	check(not _hits.is_empty() and _hits[0][3].blocked, "Buda: bloquea el golpe")
+	check(p1.guard > 50.0, "y recupera guardia en vez de gastarla (%.1f)" % p1.guard)
+	_masks[0] = 0
+	await _ticks(60)
+
+	# Hombre de acero (Stalin): con menos de la mitad de vida, recibe menos daño.
+	_set_fighters(&"joseph_stalin", &"napoleon")
+	var taken: Array[float] = []
+	for hp in [p1.data.max_health, 40.0]:
+		await _place(34.0)
+		p1.health = hp
+		await _press(1, 1 << BIT_HP)
+		await _until(func(): return not _hits.is_empty(), 60)
+		taken.append(hp - p1.health)
+		await _ticks(60)
+	check(taken[1] < taken[0] * 0.9, "Stalin: con poca vida recibe menos daño (%.1f → %.1f)" % [taken[0], taken[1]])
+
+	# El resumen del combate recoge la memoria de la pasiva (y solo si la hay).
+	_set_fighters(&"napoleon", &"donald_trump")
+	await _place(80.0)
+	var before := combat.state_checksum()
+	p1.passive_state[0] = 5
+	check(combat.state_checksum() != before, "el snapshot recoge la memoria de una pasiva")
+	p1.passive_state[0] = 0
+	# Sin pasiva (se la quitamos un momento a Trump) la memoria no entra en el resumen.
+	var trump_passive := p2.data.passive
+	p2.data.passive = &""
+	before = combat.state_checksum()
+	p2.passive_state[0] = 5
+	check(combat.state_checksum() == before, "y no cambia para quien no tiene pasiva")
+	p2.passive_state[0] = 0
+	p2.data.passive = trump_passive
+
+
+# --- Biblioteca de efectos de las pasivas ------------------------------------------
+func _fake_result(damage: float = 10.0, perfect: bool = false, ko: bool = false) -> HitResult:
+	var r := HitResult.new()
+	r.damage = damage
+	r.perfect = perfect
+	r.ko = ko
+	return r
+
+## Daño del primer golpe real (jab de P1) con la pasiva de `subject` activada o no.
+func _real_hit_damage(a_id: StringName, d_id: StringName, subject: StringName, enabled: bool, setup: Callable) -> float:
+	var data := FighterRegistry.get_by_id(subject)
+	var saved := data.passive
+	if not enabled:
+		data.passive = &""
+	_set_fighters(a_id, d_id)
+	await _place(34.0)
+	setup.call()
+	_hits.clear()
+	await _press(0, 1 << BIT_LP)
+	await _until(func(): return not _hits.is_empty(), 40)
+	var dmg: float = _hits[0][3].damage if not _hits.is_empty() else -1.0
+	data.passive = saved
+	await _ticks(40)
+	return dmg
+
+func _test_passive_library() -> void:
+	print("\n# Biblioteca de pasivas")
+	var p1 := combat.p1
+	var p2 := combat.p2
+	await _wait_round()
+
+	# Humo: todos los luchadores tienen pasiva y ningún hook rompe nada ni deja la vida fuera de rango.
+	var without: Array[String] = []
+	var broken: Array[String] = []
+	var all_data := FighterRegistry.all()
+	if not all_data.any(func(d): return d.id == FighterRegistry.NEXO_ID):
+		all_data.append(FighterRegistry.get_by_id(FighterRegistry.NEXO_ID))
+	for d in all_data:
+		if not Passives.has_data(d):
+			without.append(str(d.id))
+		var foe := &"napoleon" if d.id != &"napoleon" else &"donald_trump"
+		_set_fighters(d.id, foe)
+		await _place(60.0)
+		p1.controls_enabled = true
+		var atk := p1.data.punch_light
+		var res := _fake_result()
+		Passives.on_round_start(p1)
+		for i in 70:
+			Passives.on_tick(p1)
+		Passives.on_hit_dealt(p1, p2, atk, res)
+		Passives.on_hit_taken(p1, p2, atk, res)
+		Passives.on_block(p1, p2, atk, res)
+		Passives.on_special_cast(p1, atk)
+		Passives.on_round_won(p1)
+		Passives.outgoing_mult(p1, p2, atk)
+		Passives.incoming_mult(p1, p2, atk)
+		Passives.speed_mult(p1)
+		if p1.health <= 0.0 or p1.health > p1.data.max_health + 0.001 or p2.health <= 0.0 or p1.passive_state.size() != Passives.STATE_SIZE:
+			broken.append(str(d.id))
+	check(without.is_empty(), "los %d luchadores tienen pasiva (sin ella: %s)" % [all_data.size(), ", ".join(without)])
+	check(broken.is_empty(), "ningún hook rompe la vida ni la memoria (rotos: %s)" % ", ".join(broken))
+	await _ticks(10)
+
+	# Multiplicadores de daño y velocidad (llamadas directas).
+	_set_fighters(&"boudica", &"napoleon")
+	await _place(60.0)
+	var jab := p1.data.punch_light
+	p1.health = p1.data.max_health
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, jab), 1.0), "Boudica: con vida llena pega normal")
+	p1.health = p1.data.max_health * 0.3
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, jab), 1.25), "Boudica: con poca vida pega un 25% más")
+
+	_set_fighters(&"hernan_cortes", &"napoleon")
+	await _place(60.0)
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, jab), 1.25), "Cortés: el primer golpe pega un 25% más")
+	Passives.on_hit_dealt(p1, p2, jab, _fake_result())
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, jab), 1.0), "y los siguientes, normal")
+	p1.reset_for_round(p1.position.x, 1)
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, jab), 1.25), "y se renueva cada ronda")
+
+	_set_fighters(&"donald_trump", &"napoleon")
+	await _place(60.0)
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, p1.data.special_1), 1.25), "Trump: sus poderes hacen un 25% más")
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, p1.data.punch_light), 1.0), "y sus golpes normales, no")
+
+	_set_fighters(&"liudmila_pavlichenko", &"napoleon")
+	await _place(160.0)
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, p1.data.punch_light), 1.25), "Liudmila: desde lejos pega un 25% más")
+	await _place(50.0)
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, p1.data.punch_light), 1.0), "y de cerca, normal")
+
+	_set_fighters(&"vladimir_putin", &"napoleon")
+	await _place(30.0)
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, p1.data.punch_light), 1.2), "Putin: de cerca pega un 20% más")
+	await _place(100.0)
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, p1.data.punch_light), 1.0), "y de lejos, normal")
+
+	_set_fighters(&"moctezuma_ii", &"napoleon")
+	await _place(60.0)
+	p1.energy = Fighter.MAX_ENERGY
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, p1.data.punch_light), 1.25), "Moctezuma: con la energía llena pega un 25% más")
+	p1.energy = 50.0
+	check(is_equal_approx(Passives.outgoing_mult(p1, p2, p1.data.punch_light), 1.0), "y con menos, normal")
+
+	_set_fighters(&"napoleon", &"abraham_lincoln")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	p2.health = 100.0
+	check(is_equal_approx(Passives.incoming_mult(p2, p1, jab), 1.0), "Lincoln: con vida de sobra recibe daño normal")
+	p2.health = 40.0
+	check(is_equal_approx(Passives.incoming_mult(p2, p1, jab), 0.85), "Lincoln: con poca vida recibe un 15% menos")
+
+	_set_fighters(&"napoleon", &"mariya_oktyabrskaya")
+	await _place(60.0)
+	check(is_equal_approx(Passives.incoming_mult(p2, p1, p1.data.special_1), 0.7), "Mariya: ignora el 30% del daño de un proyectil")
+	check(is_equal_approx(Passives.incoming_mult(p2, p1, p1.data.punch_light), 1.0), "y no el de un golpe normal")
+
+	_set_fighters(&"janequeo", &"napoleon")
+	await _place(60.0)
+	check(is_equal_approx(Passives.speed_mult(p1), 1.0), "Janequeo: con vida llena camina normal")
+	p1.health = p1.data.max_health * 0.3
+	check(is_equal_approx(Passives.speed_mult(p1), 1.2), "Janequeo: con poca vida camina un 20% más rápido")
+
+	_set_fighters(&"gengis_kan", &"napoleon")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	check(is_equal_approx(Passives.speed_mult(p1), 1.0), "Gengis: sin impulso camina normal")
+	Passives.on_hit_dealt(p1, p2, jab, _fake_result())
+	check(is_equal_approx(Passives.speed_mult(p1), 1.2), "Gengis: tras conectar camina un 20% más rápido")
+	for i in 90:
+		Passives.on_tick(p1)
+	check(is_equal_approx(Passives.speed_mult(p1), 1.0), "y el impulso dura 1,5 s")
+
+	# Efectos de los golpes: vida, energía y guardia.
+	_set_fighters(&"nicolas_maquiavelo", &"napoleon")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	p1.health = 50.0
+	Passives.on_hit_dealt(p1, p2, jab, _fake_result(10.0))
+	check(is_equal_approx(p1.health, 51.2), "Maquiavelo: se cura un 12%% del daño (%.2f)" % p1.health)
+
+	_set_fighters(&"nikola_tesla", &"napoleon")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	p1.energy = 10.0
+	Passives.on_hit_dealt(p1, p2, jab, _fake_result())
+	check(is_equal_approx(p1.energy, 14.0), "Tesla: cada golpe conectado da 4 de energía")
+
+	_set_fighters(&"fidel_castro", &"napoleon")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	p1.energy = 10.0
+	Passives.on_hit_taken(p1, p2, jab, _fake_result())
+	check(is_equal_approx(p1.energy, 18.0), "Fidel: cada golpe recibido da 8 de energía")
+	p1.energy = 10.0
+	Passives.on_hit_taken(p1, p2, jab, _fake_result(10.0, false, true))
+	check(is_equal_approx(p1.energy, 10.0), "y un golpe que lo deja K.O. no")
+
+	_set_fighters(&"isaac_newton", &"napoleon")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	var foe_hp := p2.health
+	Passives.on_hit_taken(p1, p2, jab, _fake_result())
+	check(is_equal_approx(p2.health, foe_hp - 1.0), "Newton: quien lo golpea pierde 1 de vida")
+	p2.health = 1.0
+	Passives.on_hit_taken(p1, p2, jab, _fake_result())
+	check(is_equal_approx(p2.health, 1.0), "y nunca lo deja K.O.")
+
+	_set_fighters(&"jesus_de_nazaret", &"napoleon")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	p1.health = 20.0
+	Passives.on_hit_taken(p1, p2, jab, _fake_result())
+	check(is_equal_approx(p1.health, 40.0), "Jesús: bajo el 25% de vida recupera 20")
+	p1.health = 20.0
+	Passives.on_hit_taken(p1, p2, jab, _fake_result())
+	check(is_equal_approx(p1.health, 20.0), "y solo una vez por ronda")
+	p1.reset_for_round(p1.position.x, 1)
+	p1.health = 20.0
+	Passives.on_hit_taken(p1, p2, jab, _fake_result())
+	check(is_equal_approx(p1.health, 40.0), "y se renueva en la ronda siguiente")
+
+	_set_fighters(&"sun_tzu", &"napoleon")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	p1.energy = 10.0
+	Passives.on_block(p1, p2, jab, _fake_result())
+	check(is_equal_approx(p1.energy, 18.0), "Sun Tzu: cada golpe bloqueado da 8 de energía")
+
+	_set_fighters(&"socrates", &"napoleon")
+	await _place(60.0)
+	jab = p1.data.punch_light
+	p1.energy = 10.0
+	Passives.on_block(p1, p2, jab, _fake_result(10.0, false))
+	check(is_equal_approx(p1.energy, 10.0), "Sócrates: un bloqueo normal no da energía")
+	Passives.on_block(p1, p2, jab, _fake_result(10.0, true))
+	check(is_equal_approx(p1.energy, 35.0), "Sócrates: un bloqueo perfecto da 25")
+
+	# Efectos continuos (por tick) y de inicio de ronda.
+	_set_fighters(&"charles_darwin", &"napoleon")
+	await _place(60.0)
+	p1.controls_enabled = true
+	p1.health = 50.0
+	for i in 120:
+		Passives.on_tick(p1)
+	check(absf(p1.health - 51.0) < 0.01, "Darwin: recupera 0,5 de vida por segundo en calma (%.2f en 2 s)" % (p1.health - 50.0))
+	p1.state = Fighter.State.HIT
+	var hp_hit := p1.health
+	for i in 120:
+		Passives.on_tick(p1)
+	check(is_equal_approx(p1.health, hp_hit), "y no mientras está aturdido")
+	p1.state = Fighter.State.IDLE
+
+	_set_fighters(&"albert_einstein", &"napoleon")
+	await _place(60.0)
+	p1.controls_enabled = true
+	p1.energy = 10.0
+	for i in 60:
+		Passives.on_tick(p1)
+	check(absf(p1.energy - 11.5) < 0.01, "Einstein: gana 1,5 de energía extra por segundo")
+
+	_set_fighters(&"isabel_ii", &"napoleon")
+	await _place(60.0)
+	p1.guard = 50.0
+	for i in 60:
+		Passives.on_tick(p1)
+	check(absf(p1.guard - 70.0) < 0.01, "Isabel: su guardia sube 20 puntos más por segundo")
+
+	_set_fighters(&"cristobal_colon", &"napoleon")
+	await _place(60.0)
+	p1.reset_for_round(p1.position.x, 1)
+	check(is_equal_approx(p1.energy, Fighter.ROUND_START_ENERGY + 25.0), "Colón: empieza cada ronda con 25 de energía extra")
+
+	# Cableado real: el daño del golpe incluye el multiplicador de la pasiva.
+	var dmg_on: float = await _real_hit_damage(&"adolf_hitler", &"napoleon", &"adolf_hitler", true,
+		func(): combat.p1.health = combat.p1.data.max_health * 0.2)
+	var dmg_off: float = await _real_hit_damage(&"adolf_hitler", &"napoleon", &"adolf_hitler", false,
+		func(): combat.p1.health = combat.p1.data.max_health * 0.2)
+	check(dmg_off > 0.0 and absf(dmg_on / dmg_off - 1.3) < 0.01, "golpe real de Hitler con poca vida: x%.2f (esperado x1,30)" % (dmg_on / maxf(dmg_off, 0.001)))
+	var in_on: float = await _real_hit_damage(&"napoleon", &"abraham_lincoln", &"abraham_lincoln", true,
+		func(): combat.p2.health = 40.0)
+	var in_off: float = await _real_hit_damage(&"napoleon", &"abraham_lincoln", &"abraham_lincoln", false,
+		func(): combat.p2.health = 40.0)
+	check(in_off > 0.0 and absf(in_on / in_off - 0.85) < 0.01, "golpe real contra Lincoln con poca vida: x%.2f (esperado x0,85)" % (in_on / maxf(in_off, 0.001)))
+
+	_set_fighters(&"napoleon", &"donald_trump")
+	await _place(80.0)
+
+
 func _test_snapshot_coverage() -> void:
 	print("\n# Cobertura del snapshot")
 	await _place(80.0)

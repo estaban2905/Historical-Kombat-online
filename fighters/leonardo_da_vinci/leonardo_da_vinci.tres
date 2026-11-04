@@ -248,6 +248,7 @@ jump_velocity = -385.0
 jump_forward_speed = 128.0
 strength = 0.99
 resistance = 0.97
+passive = &"genio_creativo"
 punch_light = SubResource("R_leonardo_da_vinci_punch_light")
 punch_heavy = SubResource("R_leonardo_da_vinci_punch_heavy")
 kick_light = SubResource("R_leonardo_da_vinci_kick_light")
