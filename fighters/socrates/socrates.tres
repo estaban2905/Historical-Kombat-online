@@ -288,6 +288,6 @@ forearm_len = 10.0
 arm_width = 6.0
 head_width = 14.0
 head_height = 13.0
-idle_style = &"normal"
+idle_style = &"scholar"
 outfit = &"skirt"
 outfit_color = Color(0.909804, 0.886275, 0.815686, 1)

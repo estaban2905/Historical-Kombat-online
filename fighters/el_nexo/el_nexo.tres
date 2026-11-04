@@ -289,5 +289,5 @@ forearm_len = 12.0
 arm_width = 5.0
 head_width = 12.0
 head_height = 14.0
-idle_style = &"normal"
+idle_style = &"sway"
 cape_color = Color(0.603922, 0.301961, 1, 1)

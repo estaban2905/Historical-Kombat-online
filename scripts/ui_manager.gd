@@ -43,6 +43,11 @@ var _perfect_t: Array[float] = [0.0, 0.0, 0.0]
 var _shout: Array[String] = ["", "", ""]
 var _shout_t: Array[float] = [0.0, 0.0, 0.0]
 var _time: float = 0.0
+## Icono de la pasiva: pulsos ya vistos, brillo restante y aviso con su nombre (por jugador).
+var _pulses_seen: Array[int] = [0, 0, 0]
+var _pulse_t: Array[float] = [0.0, 0.0, 0.0]
+var _pop_t: Array[float] = [0.0, 0.0, 0.0]
+var _pop_cool: Array[float] = [0.0, 0.0, 0.0]
 
 func bind(p_combat: CombatManager) -> void:
 	combat = p_combat
@@ -115,6 +120,16 @@ func _process(delta: float) -> void:
 			_perfect_t[i] = maxf(_perfect_t[i] - delta, 0.0)
 			_shout_t[i] = maxf(_shout_t[i] - delta, 0.0)
 			_combo_name_t[i] = maxf(_combo_name_t[i] - delta, 0.0)
+			_pulse_t[i] = maxf(_pulse_t[i] - delta, 0.0)
+			_pop_t[i] = maxf(_pop_t[i] - delta, 0.0)
+			_pop_cool[i] = maxf(_pop_cool[i] - delta, 0.0)
+			if f.passive_pulses != _pulses_seen[i]:
+				_pulses_seen[i] = f.passive_pulses
+				_pulse_t[i] = 0.45
+				# El nombre solo se muestra de vez en cuando para no tapar la pantalla.
+				if _pop_cool[i] <= 0.0:
+					_pop_t[i] = 1.3
+					_pop_cool[i] = 4.0
 	queue_redraw()
 
 func _draw() -> void:
@@ -197,6 +212,7 @@ func _draw_side(f: Fighter, i: int) -> void:
 			mx = ex + ENERGY_W - roundf(ENERGY_W * cost / Fighter.MAX_ENERGY)
 		draw_rect(Rect2(mx, ENERGY_Y - 1, 1, 6), HKTheme.PAPER)
 	_draw_guard(f, ex)
+	_draw_passive(f, i, x0, left)
 	if ult_ready and not f.guard_is_broken:
 		var ua := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
 		var ux := ex if left else ex + ENERGY_W - 120.0
@@ -231,6 +247,37 @@ func _draw_side(f: Fighter, i: int) -> void:
 		HKTheme.draw_text(self, Vector2(cx2, 84), "¡COUNTER!", 8, ccol, align2, 100)
 	if _combo_name_t[i] > 0.0:
 		HKTheme.draw_text(self, Vector2(cx2, 94), _combo_name[i], 8, HKTheme.GOLD, align2, 100)
+
+## Estrella de la pasiva junto al nombre: apagada si ya se gastó, verde tenue si está en espera, brillante si
+## su condición se cumple, y destello blanco cuando actúa. Al actuar también muestra su nombre un instante.
+func _draw_passive(f: Fighter, i: int, x0: float, left: bool) -> void:
+	if not Passives.has(f):
+		return
+	var status := Passives.status(f)
+	var col := Color("4a4a4a")
+	if status == Passives.STATUS_READY:
+		col = Color("3a9a4a")
+	elif status == Passives.STATUS_ACTIVE:
+		col = Color("70ff90").lerp(Color("b8ffc8"), 0.5 + 0.5 * sin(_time * 7.0))
+	if _pulse_t[i] > 0.0:
+		col = col.lerp(Color.WHITE, clampf(_pulse_t[i] / 0.45, 0.0, 1.0))
+	var c := Vector2(x0 + BAR_W - 5.0, 8.0) if left else Vector2(x0 + 5.0, 8.0)
+	var outline := PackedVector2Array()
+	var star := PackedVector2Array()
+	for k in 10:
+		var a := -PI * 0.5 + k * PI / 5.0
+		var out_r := 6.0 if k % 2 == 0 else 3.0
+		var in_r := 4.5 if k % 2 == 0 else 2.0
+		outline.append(c + Vector2(cos(a), sin(a)) * out_r)
+		star.append(c + Vector2(cos(a), sin(a)) * in_r)
+	draw_colored_polygon(outline, HKTheme.INK)
+	draw_colored_polygon(star, col)
+	if _pop_t[i] > 0.0:
+		var pc := Color("70ff90")
+		pc.a = clampf(_pop_t[i] / 0.4, 0.0, 1.0)
+		var px := 12.0 if left else 426.0 - 12.0 - 200.0
+		var pa := HORIZONTAL_ALIGNMENT_LEFT if left else HORIZONTAL_ALIGNMENT_RIGHT
+		HKTheme.draw_text(self, Vector2(px, 106), Passives.display_name(f.data.passive), 8, pc, pa, 200)
 
 ## Barra fina de guardia bajo la de energía (mismo lado y ancho).
 ## Verde-azulada llena; amarilla por debajo del 50 %; naranja por debajo del 25 %;

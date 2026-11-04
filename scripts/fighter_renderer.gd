@@ -45,6 +45,44 @@ const POSE_HIT := {
 }
 const POSE_VICTORY := {"fa_u": 30.0, "fa_l": 160.0, "ba_u": 172.0, "ba_l": 178.0, "lean": -4.0, "head": -6.0}
 
+## Estilos de REPOSO y de VICTORIA (FighterData.idle_style): cómo se para y cómo celebra cada luchador.
+## Es solo apariencia: no afecta a la simulación ni a las cajas de golpe.
+##   pose     ángulos que sustituyen a la postura base mientras está quieto
+##   walk     true: también los conserva al caminar (los brazos no se mueven al andar)
+##   bob      [amplitud en px, velocidad] de la respiración; por defecto [0.8, 4.0]
+##   victory  ángulos que sustituyen a la pose de victoria; wave=false: no agita el brazo
+const IDLE_STYLES := {
+	# Mano metida en la casaca (Napoleón).
+	&"hand_in_coat": {"pose": {"fa_u": 8.0, "fa_l": 112.0}, "walk": true},
+	# Brazos cruzados sobre el pecho: dureza y distancia (líderes de mano firme).
+	&"arms_crossed": {"pose": {"fa_u": 8.0, "fa_l": 96.0, "ba_u": 4.0, "ba_l": 92.0, "lean": 2.0, "head": -3.0},
+		"victory": {"fa_u": 8.0, "fa_l": 96.0, "ba_u": 4.0, "ba_l": 92.0, "lean": -6.0, "head": -9.0}, "wave": false},
+	# Pecho afuera y manos en la cintura: orgullo (emperadores, reyes, oradores).
+	&"proud": {"pose": {"fa_u": -12.0, "fa_l": 62.0, "ba_u": -18.0, "ba_l": 70.0, "lean": -3.0, "head": -4.0},
+		"victory": {"fa_u": -12.0, "fa_l": 62.0, "ba_u": -18.0, "ba_l": 70.0, "lean": -8.0, "head": -9.0}, "wave": false},
+	# Manos juntas frente al pecho: calma y fe (maestros espirituales).
+	&"prayer": {"pose": {"fa_u": 14.0, "fa_l": 128.0, "ba_u": 12.0, "ba_l": 124.0, "lean": 3.0, "head": 12.0},
+		"bob": [0.5, 2.5], "victory": {"fa_u": 150.0, "fa_l": 172.0, "ba_u": 160.0, "ba_l": 176.0, "lean": -4.0, "head": -10.0}},
+	# Mano al mentón mientras piensa (filósofos y científicos).
+	&"scholar": {"pose": {"fa_u": 52.0, "fa_l": 172.0, "ba_u": 8.0, "ba_l": 92.0, "head": 5.0},
+		"bob": [0.6, 3.0], "victory": {"fa_u": 52.0, "fa_l": 172.0, "ba_u": 150.0, "ba_l": 176.0, "head": -6.0}},
+	# Guardia alta y rodillas flexionadas: listo para el golpe (guerreros y soldados).
+	&"boxer": {"pose": {"fa_u": 55.0, "fa_l": 160.0, "ba_u": 45.0, "ba_l": 165.0, "lean": 8.0,
+			"fl_t": 22.0, "fl_s": 10.0, "bl_t": -20.0, "bl_s": -12.0},
+		"bob": [1.1, 6.0], "victory": {"fa_u": 150.0, "fa_l": 170.0, "ba_u": 165.0, "ba_l": 175.0, "lean": -6.0}},
+	# Brazos caídos, cuerpo suelto: tranquilidad (humildes y cercanos).
+	&"relaxed": {"pose": {"fa_u": 6.0, "fa_l": 14.0, "ba_u": -4.0, "ba_l": 8.0, "lean": 0.0},
+		"bob": [0.6, 3.0]},
+	# Rebote constante: energía y espectáculo.
+	&"bouncy": {"pose": {"fa_u": 40.0, "fa_l": 140.0, "ba_u": 25.0, "ba_l": 135.0}, "bob": [2.2, 8.0]},
+	# Balanceo lento y digno (realeza y presencia inquietante).
+	&"sway": {"pose": {"fa_u": 18.0, "fa_l": 135.0, "ba_u": 10.0, "ba_l": 130.0, "lean": -1.0},
+		"bob": [1.4, 2.2]},
+	# Encorvado y de brazos largos hacia delante: acecho.
+	&"stalk": {"pose": {"fa_u": 28.0, "fa_l": 62.0, "ba_u": 22.0, "ba_l": 56.0, "lean": 11.0, "head": 6.0},
+		"bob": [1.0, 3.5]},
+}
+
 ## Animaciones de ataque: pose de preparación ("windup") y de impacto ("strike").
 ## "prop" dibuja un objeto en la mano delantera durante el ataque.
 const POSES := {
@@ -249,24 +287,26 @@ func _base_pose() -> Dictionary:
 		return BASE_CROUCH
 	return BASE_STAND
 
+func _style() -> Dictionary:
+	return IDLE_STYLES.get(data.idle_style, {})
+
 func _compute_pose() -> Dictionary:
 	var base: Dictionary = _base_pose()
 	var p: Dictionary = base.duplicate()
 	_prop = ""
 	match pose_name:
 		&"idle", &"crouch", &"jump":
-			if pose_name == &"idle" and data.idle_style == &"hand_in_coat":
-				p["fa_u"] = 8.0
-				p["fa_l"] = 112.0
+			if pose_name == &"idle":
+				p.merge(_style().get("pose", {}), true)
 		&"walk":
 			var s := sin(anim_time * 11.0)
 			p["fl_t"] = 16.0 + s * 22.0
 			p["fl_s"] = 4.0 + minf(s, 0.0) * 25.0
 			p["bl_t"] = -16.0 - s * 22.0
 			p["bl_s"] = -8.0 + minf(-s, 0.0) * 25.0
-			if data.idle_style == &"hand_in_coat":
-				p["fa_u"] = 8.0
-				p["fa_l"] = 112.0
+			var st := _style()
+			if st.get("walk", false):
+				p.merge(st["pose"], true)
 		&"run":
 			# Zancada amplia y brazos bombeando; hacia atrás: pasos invertidos,
 			# cuerpo erguido y guardia arriba.
@@ -294,10 +334,14 @@ func _compute_pose() -> Dictionary:
 			p = _apply(p, POSE_HIT, 1.0)
 		&"victory":
 			p = _apply(BASE_STAND, POSE_VICTORY, 1.0)
-			# Puño en alto que se agita
-			var wave := sin(anim_time * 8.0) * 10.0
-			p["ba_l"] += wave
-			p["ba_u"] -= wave * 0.5
+			var vst := _style()
+			if vst.has("victory"):
+				p.merge(vst["victory"], true)
+			# Puño en alto que se agita (salvo los estilos que celebran quietos)
+			if vst.get("wave", true):
+				var wave := sin(anim_time * 8.0) * 10.0
+				p["ba_l"] += wave
+				p["ba_u"] -= wave * 0.5
 		_:
 			var anim: Dictionary = POSES.get(String(pose_name), POSES["jab"])
 			_prop = anim.get("prop", "")
@@ -335,7 +379,8 @@ func _draw() -> void:
 		root = Transform2D(ang, Vector2(-6.0 * ko_t, -4.0 * ko_t))
 	var bob := 0.0
 	if pose_name == &"idle" or pose_name == &"crouch" or pose_name == &"block":
-		bob = sin(anim_time * 4.0) * 0.8
+		var bob_cfg: Array = _style().get("bob", [0.8, 4.0]) if pose_name == &"idle" else [0.8, 4.0]
+		bob = sin(anim_time * float(bob_cfg[1])) * float(bob_cfg[0])
 	if pose_name == &"victory":
 		bob = -absf(roundf(sin(anim_time * 5.0) * 3.0))
 

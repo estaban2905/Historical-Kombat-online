@@ -286,6 +286,6 @@ forearm_len = 11.0
 arm_width = 5.0
 head_width = 12.0
 head_height = 13.0
-idle_style = &"normal"
+idle_style = &"prayer"
 outfit = &"gown"
 outfit_color = Color(0.164706, 0.352941, 0.352941, 1)

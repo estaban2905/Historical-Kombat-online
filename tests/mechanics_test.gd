@@ -71,6 +71,7 @@ func _run() -> void:
 	await _test_passives()
 	await _test_passive_library()
 	_test_quotes()
+	await _test_expression()
 	await _test_snapshot_coverage()
 
 	await get_tree().physics_frame
@@ -1574,6 +1575,59 @@ func _test_quotes() -> void:
 		if _wrapped_lines("\"%s\"" % d.victory_quote, 194.0) > 3:
 			overflow.append("%s (victoria)" % d.id)
 	check(overflow.is_empty(), "las frases de victoria de las fichas caben en resultados (largas: %s)" % ", ".join(overflow))
+
+
+# --- Expresión: reposo, victoria e icono de la pasiva ---------------------------------------
+func _test_expression() -> void:
+	print("\n# Expresión")
+	var all_data := FighterRegistry.all()
+	if not all_data.any(func(d): return d.id == FighterRegistry.NEXO_ID):
+		all_data.append(FighterRegistry.get_by_id(FighterRegistry.NEXO_ID))
+	var unknown: Array[String] = []
+	var styles := {}
+	for d in all_data:
+		styles[d.idle_style] = true
+		if d.idle_style != &"normal" and not FighterRenderer.IDLE_STYLES.has(d.idle_style):
+			unknown.append("%s (%s)" % [d.id, d.idle_style])
+	check(unknown.is_empty(), "todos los estilos de reposo existen (desconocidos: %s)" % ", ".join(unknown))
+	check(styles.size() >= 8, "hay %d estilos de reposo distintos en el plantel" % styles.size())
+	var normal: Array[String] = []
+	for d in all_data:
+		if d.idle_style == &"normal":
+			normal.append(str(d.id))
+	check(normal.size() <= 3, "casi nadie usa el reposo genérico (lo usan: %s)" % ", ".join(normal))
+	# Cada estilo solo contiene ángulos que el esqueleto conoce.
+	var valid_keys := ["fa_u", "fa_l", "ba_u", "ba_l", "fl_t", "fl_s", "bl_t", "bl_s", "lean", "head", "tl", "hx"]
+	var bad_keys: Array[String] = []
+	for style in FighterRenderer.IDLE_STYLES:
+		var def: Dictionary = FighterRenderer.IDLE_STYLES[style]
+		for part in ["pose", "victory"]:
+			for k in def.get(part, {}):
+				if not (k in valid_keys):
+					bad_keys.append("%s.%s.%s" % [style, part, k])
+	check(bad_keys.is_empty(), "los estilos solo usan ángulos válidos (mal: %s)" % ", ".join(bad_keys))
+
+	# Icono de la pasiva: solo lectura y fuera del checksum.
+	_set_fighters(&"napoleon", &"donald_trump")
+	await _place(80.0)
+	var p1 := combat.p1
+	check(Passives.status(p1) == Passives.STATUS_READY, "Napoleón con vida llena: pasiva en espera")
+	p1.health = p1.data.max_health * 0.2
+	check(Passives.status(p1) == Passives.STATUS_ACTIVE, "con poca vida: pasiva activa")
+	p1.health = p1.data.max_health
+	var before := combat.state_checksum()
+	p1.passive_pulses += 5
+	check(combat.state_checksum() == before, "los pulsos del icono no entran en el checksum del combate")
+	var bad_status: Array[String] = []
+	for d in all_data:
+		_set_fighters(d.id, &"napoleon" if d.id != &"napoleon" else &"donald_trump")
+		await _place(80.0)
+		var s := Passives.status(combat.p1)
+		if s < Passives.STATUS_OFF or s > Passives.STATUS_ACTIVE:
+			bad_status.append(str(d.id))
+	check(bad_status.is_empty(), "todas las pasivas dan un estado válido para el icono (mal: %s)" % ", ".join(bad_status))
+	_set_fighters(&"napoleon", &"donald_trump")
+	await _place(80.0)
 
 
 func _test_snapshot_coverage() -> void:
