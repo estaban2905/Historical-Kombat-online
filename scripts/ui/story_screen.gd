@@ -56,10 +56,10 @@ func _ready() -> void:
 	add_child(_overlay)
 	_overlay.draw.connect(_draw_card)
 	_card = Game.story_chapter_start(Game.arcade_stage)
-	_btn.visible = not _card
-	_back.visible = _btn.visible
+	_btn.visible = false
+	_back.visible = false
 	if not _card:
-		_btn.grab_focus()
+		_after_card()
 	if _card:
 		# En el primer combate, la mini-intro del Nexo; después, la animación de la época.
 		# Al acabar (o saltarlas) sigue la tarjeta del capítulo.
@@ -67,6 +67,22 @@ func _ready() -> void:
 			_play_intro(StoryPrologue.new(), true)
 		else:
 			_play_era_intro()
+
+## Tras la tarjeta del capítulo: la escena de diálogo del rival, si tiene, y después el botón de combatir.
+func _after_card() -> void:
+	var scene := StoryScenes.lines(Game.p2_fighter_id, Game.p1_fighter_id)
+	if scene.is_empty():
+		_show_fight_button()
+		return
+	var d := StoryDialogue.new()
+	d.lines = scene
+	d.finished.connect(_show_fight_button)
+	add_child(d)
+
+func _show_fight_button() -> void:
+	_btn.visible = true
+	_back.visible = true
+	_btn.grab_focus()
 
 func _play_intro(intro: Node, then_era: bool) -> void:
 	_intro = intro
@@ -124,9 +140,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	if _card and _t >= CARD_TIME:
 		_card = false
-		_btn.visible = true
-		_back.visible = true
-		_btn.grab_focus()
+		_after_card()
 	queue_redraw()
 	_overlay.queue_redraw()
 
