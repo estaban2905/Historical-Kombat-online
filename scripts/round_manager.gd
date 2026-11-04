@@ -18,6 +18,12 @@ var pause_scale: float = 1.0
 
 var combat: CombatManager
 var _ko_pending: bool = false
+## Máquina de la ronda (todo avanza con los ticks del combate, nada espera con await):
+## `_step` es el paso dentro de ROUND_END, `_wait_until` el tick en que acaba la espera actual.
+## Los tres entran en la foto del estado (SimState) para poder volver a un tick.
+var _step: int = 0
+var _wait_until: int = 0
+var _winner: int = 0
 
 func _ready() -> void:
 	combat = get_parent() as CombatManager
@@ -53,107 +59,117 @@ func start_round() -> void:
 	time_left = float(Game.round_time)
 	combat.reset_round()
 	combat.set_controls(false)
-	combat.hud.set_round(round_number, wins)
-	combat.hud.show_message("ROUND %d" % round_number, 1.1, HKTheme.PAPER)
-	combat.hud.show_stage_name(combat.stage_name())
-	Sfx.play(&"round")
-	if not await _wait(1.2):
-		return
-	combat.hud.show_message("FIGHT!", 0.8, HKTheme.GOLD)
-	Sfx.play(&"fight")
-	combat.set_controls(true)
-	phase = Phase.FIGHT
+	combat.present(combat.hud, &"set_round", [round_number, wins.duplicate()])
+	combat.present(combat.hud, &"show_message", ["ROUND %d" % round_number, 1.1, HKTheme.PAPER])
+	combat.present(combat.hud, &"show_stage_name", [combat.stage_name()])
+	combat.sfx(&"round")
+	_begin_wait(1.2)
 
 const TICK_SECONDS := 1.0 / 60.0
 
+## Avanza la ronda un tick. Es lo único que mueve intro, reloj, K.O. y cambio de ronda.
 func _on_tick() -> void:
-	if phase != Phase.FIGHT or Game.mode == Game.Mode.TRAINING:
-		return
-	# El reloj se detiene durante la cinemática de un ultimate.
-	if combat.cinematic_frames > 0:
-		return
-	time_left = maxf(time_left - TICK_SECONDS, 0.0)
-	if time_left <= 0.0:
-		_end_round("TIME")
+	match phase:
+		Phase.INTRO:
+			if combat.tick_count >= _wait_until:
+				combat.present(combat.hud, &"show_message", ["FIGHT!", 0.8, HKTheme.GOLD])
+				combat.sfx(&"fight")
+				combat.set_controls(true)
+				phase = Phase.FIGHT
+		Phase.FIGHT:
+			if Game.mode == Game.Mode.TRAINING:
+				return
+			# El reloj se detiene durante la cinemática de un ultimate.
+			if combat.cinematic_frames > 0:
+				return
+			time_left = maxf(time_left - TICK_SECONDS, 0.0)
+			if time_left <= 0.0:
+				_end_round("TIME")
+			elif _ko_pending:
+				# Se espera al final del tick por si ambos caen a la vez (doble K.O.).
+				_end_round("KO")
+		Phase.ROUND_END:
+			if combat.tick_count >= _wait_until:
+				_advance_round_end()
 
 func seconds_left() -> int:
 	return int(ceil(time_left))
 
 func _on_fighter_ko(_fighter: Fighter) -> void:
-	# Se espera al final del frame por si ambos caen a la vez (doble K.O.).
-	if phase == Phase.FIGHT and not _ko_pending:
+	if phase == Phase.FIGHT:
 		_ko_pending = true
-		_end_round.call_deferred("KO")
 
 func _end_round(reason: String) -> void:
 	if phase != Phase.FIGHT:
 		return
 	phase = Phase.ROUND_END
+	_step = 0
 	combat.set_controls(false)
 	var p1 := combat.p1
 	var p2 := combat.p2
-	var winner := 0
+	_winner = 0
 	var r1 := p1.health / p1.data.max_health
 	var r2 := p2.health / p2.data.max_health
 	if r1 > r2 + 0.0001:
-		winner = 1
+		_winner = 1
 	elif r2 > r1 + 0.0001:
-		winner = 2
-	if winner != 0:
-		wins[winner] += 1
-		Passives.on_round_won(p1 if winner == 1 else p2)
-	combat.hud.set_round(round_number, wins)
-
+		_winner = 2
+	if _winner != 0:
+		wins[_winner] += 1
+		Passives.on_round_won(p1 if _winner == 1 else p2)
+	combat.present(combat.hud, &"set_round", [round_number, wins.duplicate()])
 	if reason == "KO":
-		combat.hud.show_message("K.O.", 1.4, HKTheme.BLOOD)
+		combat.present(combat.hud, &"show_message", ["K.O.", 1.4, HKTheme.BLOOD])
 	else:
-		combat.hud.show_message("TIME", 1.4, HKTheme.PAPER)
-	if not await _wait(1.6):
-		return
-	if winner == 1:
-		p1.set_victory()
-		combat.hud.show_message("PLAYER 1 WINS", 1.8, HKTheme.GOLD)
-	elif winner == 2:
-		p2.set_victory()
-		combat.hud.show_message("CPU WINS" if Game.is_vs_cpu() else "PLAYER 2 WINS", 1.8, HKTheme.GOLD)
-	else:
-		combat.hud.show_message("DRAW", 1.8, HKTheme.PAPER)
-	if not await _wait(2.2):
-		return
+		combat.present(combat.hud, &"show_message", ["TIME", 1.4, HKTheme.PAPER])
+	_begin_wait(1.6)
 
-	var match_winner := 0
-	if wins[1] >= Game.rounds_to_win:
-		match_winner = 1
-	elif wins[2] >= Game.rounds_to_win:
-		match_winner = 2
-	if match_winner != 0 or round_number >= Game.max_rounds:
-		if match_winner == 0 and wins[1] != wins[2]:
-			match_winner = 1 if wins[1] > wins[2] else 2
-		phase = Phase.MATCH_END
-		Game.set_match_result(match_winner, wins[1], wins[2])
-		Game.goto(Game.SCENE_RESULTS)
-	else:
-		# Cada ronda se juega en el escenario de un luchador distinto (ver Game.stage_owner).
-		if combat.stage_changes_for(round_number + 1):
-			# El fundido es solo visual; el cambio de escenario espera frames fijos.
-			Game.fade_to_black(0.14)
-			if not await _wait(0.15):
-				return
+## Pasos del fin de ronda, cada uno tras su espera: resultado -> fin de partida o siguiente ronda.
+func _advance_round_end() -> void:
+	match _step:
+		0:
+			if _winner == 1:
+				combat.p1.set_victory()
+				combat.present(combat.hud, &"show_message", ["PLAYER 1 WINS", 1.8, HKTheme.GOLD])
+			elif _winner == 2:
+				combat.p2.set_victory()
+				combat.present(combat.hud, &"show_message", ["CPU WINS" if Game.is_vs_cpu() else "PLAYER 2 WINS", 1.8, HKTheme.GOLD])
+			else:
+				combat.present(combat.hud, &"show_message", ["DRAW", 1.8, HKTheme.PAPER])
+			_step = 1
+			_begin_wait(2.2)
+		1:
+			# Esto es simulación: pasa en el MISMO tick en todos los PCs (nunca depende de la red).
+			# Lo irreversible (cambiar de escena) va por present(), que espera a que el tick se confirme.
+			var match_winner := 0
+			if wins[1] >= Game.rounds_to_win:
+				match_winner = 1
+			elif wins[2] >= Game.rounds_to_win:
+				match_winner = 2
+			if match_winner != 0 or round_number >= Game.max_rounds:
+				if match_winner == 0 and wins[1] != wins[2]:
+					match_winner = 1 if wins[1] > wins[2] else 2
+				phase = Phase.MATCH_END
+				combat.present(Game, &"set_match_result", [match_winner, wins[1], wins[2]])
+				combat.present(Game, &"goto", [Game.SCENE_RESULTS])
+			# Cada ronda se juega en el escenario de un luchador distinto (ver Game.stage_owner).
+			elif combat.stage_changes_for(round_number + 1):
+				# El fundido es solo visual; el cambio de escenario espera ticks fijos.
+				combat.present(Game, &"fade_to_black", [0.14])
+				_step = 2
+				_begin_wait(0.15)
+			else:
+				_next_round()
+		2:
 			combat.swap_stage(round_number + 1)
-			Game.fade_from_black(0.22)
-		round_number += 1
-		start_round()
+			combat.present(Game, &"fade_from_black", [0.22])
+			_next_round()
 
-## Espera respetando la pausa. Devuelve false si la escena ya no existe.
-## Cuenta ticks del combate, no segundos de reloj ni señales del motor: así la
-## ronda avanza en el MISMO tick en todos los PCs de una partida online. Con la
-## pausa el combate no avanza, así que la espera también se detiene.
-func _wait(seconds: float) -> bool:
-	if not is_inside_tree():
-		return false
-	var target := combat.tick_count + ceili(seconds * 60.0 * pause_scale)
-	while combat.tick_count < target:
-		await combat.ticked
-		if not is_inside_tree():
-			return false
-	return true
+func _next_round() -> void:
+	round_number += 1
+	start_round()
+
+## Espera `seconds` de combate: cuenta ticks, no segundos de reloj ni señales del motor, así la ronda
+## avanza en el MISMO tick en todos los PCs de una partida online. Con la pausa el combate no avanza.
+func _begin_wait(seconds: float) -> void:
+	_wait_until = combat.tick_count + ceili(seconds * 60.0 * pause_scale)

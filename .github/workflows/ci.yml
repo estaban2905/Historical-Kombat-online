@@ -103,6 +103,9 @@ jobs:
       # Imprescindible para el online: ambos PC deben simular exactamente igual.
       - name: Determinismo (los 50 luchadores)
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/DeterminismTest.tscn
+      # Base del rollback online: volver a una foto del estado y repetir los ticks da exactamente lo mismo.
+      - name: Rollback (foto y restauración del estado)
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/RollbackTest.tscn
       # Regresión de jugabilidad: los mismos botones deben dar el mismo estado que en tests/golden_checksums.json.
       # Si el cambio es intencionado: GoldenTest.tscn -- --update y subir el archivo en el mismo PR.
       # Sin referencias de Linux solo avisa (hay que generarlas en esa plataforma con --update).
@@ -114,6 +117,9 @@ jobs:
       # Dos PCs simulados con lag: las peleas deben quedar idénticas.
       - name: Online (sincronización con lag)
         run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/OnlineTest.tscn
+      # Rollback: lag, variación y pérdidas; los estados definitivos de los dos PCs deben coincidir.
+      - name: Online (rollback con red mala)
+        run: ~/godot/godot --headless --fixed-fps 60 --path . res://tests/RollbackNetTest.tscn
       - name: Online (pantallas)
         run: ~/godot/godot --headless --path . res://tests/OnlineUiTest.tscn
       # Servidor real + dos clientes Godot conectados por WebSocket.

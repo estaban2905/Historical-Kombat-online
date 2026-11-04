@@ -62,8 +62,20 @@ func _ready() -> void:
 func at(delay: int, type: StringName, args: Dictionary = {}) -> void:
 	var e := args.duplicate()
 	e["tick"] = _cm.tick_count + delay
+	e["born"] = _cm.tick_count
 	e["type"] = type
 	_events.append(e)
+
+## Tick en que se creó este efecto (para descartarlo si el rollback reescribe ese tick).
+var born: int = 0
+
+## Rollback: quita los eventos nacidos desde `tick`.
+func discard_from(tick: int) -> void:
+	var i := _events.size() - 1
+	while i >= 0:
+		if int(_events[i].get("born", 0)) >= tick:
+			_events.remove_at(i)
+		i -= 1
 
 func _process(delta: float) -> void:
 	age += delta
@@ -84,7 +96,7 @@ func _run_events() -> void:
 	var i := _events.size() - 1
 	while i >= 0:
 		var e := _events[i]
-		if _cm.tick_count >= int(e["tick"]):
+		if _cm.tick_count >= int(e["tick"]) and (_cm.confirmed_tick < 0 or int(e["tick"]) < _cm.confirmed_tick):
 			_events.remove_at(i)
 			_fire(e)
 		i -= 1
@@ -224,8 +236,9 @@ func _draw_under() -> void:
 		for k in 25:
 			var ang := TAU * k / 24.0
 			pts.append(Vector2(float(r["x"]) + cos(ang) * rad, floor_y + 6.0 + sin(ang) * rad * 0.12))
-		n.draw_polyline(pts, Color(0, 0, 0, ra * 0.8), 5.0)
-		n.draw_polyline(pts, Color(color.r, color.g, color.b, ra), 2.0)
+		n.draw_polyline(pts, Color(0, 0, 0, ra * 0.8), 3.5)
+		n.draw_polyline(pts, Color(color.r, color.g, color.b, ra), 1.5)
+		n.draw_polyline(pts, Color(1.0, 1.0, 1.0, ra * 0.6), 0.5)
 
 func _draw_crack(n: Node2D, c: Dictionary, a: float) -> void:
 	var t := age - float(c["t0"])
@@ -237,9 +250,12 @@ func _draw_crack(n: Node2D, c: Dictionary, a: float) -> void:
 		var part: PackedVector2Array = pts.slice(0, count)
 		if part.size() < 2:
 			continue
-		n.draw_polyline(part, Color(color.r, color.g, color.b, 0.35 * life), 8.0)
-		n.draw_polyline(part, Color(0.03, 0.01, 0.02, 0.95 * life), 4.0)
+		# Fisura fina: halo suave, borde oscuro, luz de color y un hilo blanco caliente en el centro.
+		n.draw_polyline(part, Color(color.r, color.g, color.b, 0.22 * life), 7.0)
+		n.draw_polyline(part, Color(color.r, color.g, color.b, 0.35 * life), 4.5)
+		n.draw_polyline(part, Color(0.03, 0.01, 0.02, 0.95 * life), 3.0)
 		n.draw_polyline(part, Color(color.r, color.g, color.b, 0.9 * life), 1.0)
+		n.draw_polyline(part, Color(1.0, 1.0, 1.0, 0.7 * life), 0.5)
 
 ## Capa de ARRIBA: partículas, destellos, cortes y viñeta.
 func _draw() -> void:
@@ -253,17 +269,23 @@ func _draw() -> void:
 			1:
 				draw_line(p, p - Vector2(q["v"]) * 0.025, c, float(q["s"]))
 			2:
+				# Brillo suave alrededor y núcleo claro.
+				draw_circle(p, float(q["s"]) * 2.0, Color(c.r, c.g, c.b, c.a * 0.22))
 				draw_circle(p, float(q["s"]), c)
+				draw_circle(p, float(q["s"]) * 0.45, Color(1.0, 1.0, 1.0, c.a * 0.7))
 			_:
-				draw_rect(Rect2(p.round(), Vector2(q["s"], q["s"])), c)
+				var sz := float(q["s"])
+				draw_rect(Rect2(p.round(), Vector2(sz, sz)), c)
+				draw_rect(Rect2(p.round(), Vector2(sz, 0.5)), Color(1.0, 1.0, 1.0, c.a * 0.5))
 	for cut in _cuts:
 		var t := age - float(cut["t0"])
 		if t > 0.3:
 			continue
 		var k := 1.0 - t / 0.3
-		draw_line(cut["a"], cut["b"], Color(0, 0, 0, 0.6 * k), 7.0)
-		draw_line(cut["a"], cut["b"], Color(1, 1, 1, k), 3.0)
-		draw_line(cut["a"], cut["b"], Color(color.r, color.g, color.b, k), 1.0)
+		draw_line(cut["a"], cut["b"], Color(0, 0, 0, 0.6 * k), 5.0)
+		draw_line(cut["a"], cut["b"], Color(color.r, color.g, color.b, 0.5 * k), 3.5)
+		draw_line(cut["a"], cut["b"], Color(1, 1, 1, k), 1.5)
+		draw_line(cut["a"], cut["b"], Color(color.r, color.g, color.b, k), 0.5)
 	if _flash > 0.0:
 		draw_rect(Rect2(-40, -40, W + 80, H + 80), Color(1, 1, 1, _flash * 0.45))
 	# Viñeta: bordes oscuros que se cierran sobre la escena.

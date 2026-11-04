@@ -12,6 +12,7 @@ extends Node2D
 
 ## Pide sacudir la cámara cuando la entidad se arma tras su retardo (lo conecta quien la crea).
 signal shake_requested(amount: float)
+signal sound_requested(sound: StringName)
 
 const TICKS_PER_SECOND := 60.0
 
@@ -177,7 +178,7 @@ func _arm() -> void:
 	if shake_on_arm > 0.0:
 		shake_requested.emit(shake_on_arm)
 	if sound_on_arm != &"":
-		Sfx.play(sound_on_arm)
+		sound_requested.emit(sound_on_arm)
 
 func can_hit(target: Fighter) -> bool:
 	var entry = _hit_log.get(target)
@@ -208,7 +209,7 @@ func _spawn_boom() -> void:
 	var b := Projectile.make_visual(owner_fighter, position, {"art": &"boom", "box": Vector2(40, 40),
 		"life": 21, "color": art_color if art_color != Color.WHITE else Color("ffd060")})
 	parent.add_child(b)
-	Sfx.play(&"cannon")
+	sound_requested.emit(&"cannon")
 
 func destroy() -> void:
 	if not alive:
