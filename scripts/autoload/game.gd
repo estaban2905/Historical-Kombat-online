@@ -400,6 +400,15 @@ func story_vs_lines(fighter_id: StringName) -> Array:
 			return STORY_VS_PAIR[key]
 	return STORY_VS.get(fighter_id, [])
 
+## Consejo de uno de los creadores del Reloj tras una derrota: [nombre, texto]. Rota de creador y de consejo
+## según las revanchas gastadas, para que cada derrota enseñe algo distinto.
+func story_defeat_tip() -> Array:
+	var tips: Array = StoryCampaign.DEFEAT_TIPS
+	var entry: Array = tips[story_continues_used % tips.size()]
+	var list: Array = entry[1]
+	var d := FighterRegistry.get_by_id(entry[0])
+	return [d.short_name, list[(story_continues_used / tips.size()) % list.size()]]
+
 ## Época (índice en STORY_CHAPTERS) a la que pertenece un luchador.
 func story_chapter_of(fighter_id: StringName) -> int:
 	if fighter_id == STORY_NEXO_ID:
