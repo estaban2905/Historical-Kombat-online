@@ -78,6 +78,7 @@ const INFO := {
 	# --- Estrategas ---
 	&"ganar_sin_luchar": ["GANAR SIN LUCHAR", "Cada golpe que bloquea le da 8 de energía."],
 	&"el_fin_justifica": ["EL FIN JUSTIFICA", "Se cura un 12% del daño que causa con sus golpes."],
+	&"lo_habia_previsto": ["LO HABÍA PREVISTO", "Empieza cada ronda con 25 de energía: ya sabía lo que venía."],
 	&"jinete_implacable": ["JINETE IMPLACABLE", "Tras conectar, camina un 20% más rápido durante 1,5 s."],
 	&"sin_retroceso": ["SIN RETROCESO", "Tras conectar un golpe, camina un 20% más rápido durante 1 s."],
 	&"gloria_de_roma": ["GLORIA DE ROMA", "Cada golpe que conecta le da 3 de energía extra."],
@@ -139,6 +140,7 @@ const CFG := {
 	# --- Estrategas ---
 	&"ganar_sin_luchar": [ENERGY_ON_BLOCK, 8.0, 0.0],
 	&"el_fin_justifica": [LIFESTEAL, 0.12, 0.0],
+	&"lo_habia_previsto": [ROUND_ENERGY, 25.0, 0.0],
 	&"jinete_implacable": [MOMENTUM, 90.0, 1.2],
 	&"sin_retroceso": [MOMENTUM, 60.0, 1.2],
 	&"gloria_de_roma": [ENERGY_ON_HIT, 3.0, 0.0],

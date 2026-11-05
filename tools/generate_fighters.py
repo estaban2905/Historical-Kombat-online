@@ -654,6 +654,17 @@ CHARACTERS = [
          s1=P(name="Disparo Certero", anim="rifle", style="bolt", color="fff0a0", speed=330, dmg=14),
          s2=W(name="x", anim="rifle", power="x", dmg=1),
          ult="Mira Telescópica"),
+    dict(id="nostradamus", name="NOSTRADAMUS", short="NOSTRADAMUS", country="Francia", era="1503 – 1566",
+         intro="x", victory="x",
+         bio="Médico y astrólogo francés autor de Las Profecías. Dicen que vio el futuro... y que ya sabe cómo acaba este combate.",
+         arch="sage", build="slim",
+         skin="e8c8a0", hair="d8d4cc", coat="2a2a6a", trim="c0a040", shirt="1a1a4a", accent="8a5ad0",
+         pants="2a2a6a", boots="1a1a1a", hat="2a2a6a",
+         hair_style="long", hat_style="turban", beard="long", chest="robe",
+         moves=("Gesto Profético", "Bastón del Astrólogo", "Patada del Presagio", "Patada del Eclipse"),
+         s1=P(name="Visión Fugaz", anim="cast", style="orb", color="b080ff", speed=210, dmg=14),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Las Centurias"),
 ]
 
 
@@ -820,6 +831,7 @@ PROFILES = {
     "nicolas_maquiavelo": _pf("speed", "low", "LK", "Zancadilla Florentina", ("INTRIGA", "LP LK HK", 3.0), ("EL FIN", "LK LP HP S2", 7.0), anim={"LP": "dagger", "HP": "dagger"}),
     "mariya_oktyabrskaya": _pf("heavy", "oh", "HP", "Culatazo Blindado", ("ORUGA", "LP HP HK", 4.5), ("FRENTE ORIENTAL", "LK LP HP S1", 8.0), anim={"HP": "pistol"}),
     "liudmila_pavlichenko": _pf("zoner", "low", "LK", "Barrido de Trinchera", ("TRINCHERA", "LK LP HP", 3.0), ("SEVASTOPOL", "LP LK HP S1", 6.5), anim={"HP": "rifle"}),
+    "nostradamus": _pf("mystic", "oh", "HP", "Bastonazo del Destino", ("PRESAGIO", "LP HP HK", 3.5), ("CENTURIA", "LK LP HP S2", 7.0)),
 }
 
 
@@ -851,6 +863,7 @@ TWEAKS = {
     "nicolas_maquiavelo": {"HP": (0, 0, 0.9, 1.0)},                               # poca fuerza física
     "mariya_oktyabrskaya": {"HP": (1, 1, 1.1, 1.0)},                              # golpes de tanquista
     "liudmila_pavlichenko": {"HP": (0, 1, 1.0, 1.15)},                            # culatazo largo, recuperación lenta
+    "nostradamus": {"LP": (1, 1, 1.0, 0.95), "HP": (1, 0, 1.0, 1.05)},               # golpes lentos, ya sabe dónde caerán
 }
 
 
@@ -990,6 +1003,7 @@ ULTS = {
     "nicolas_maquiavelo": ("trap", "prince_book", "e8c040", "140608", "dagger"),
     "mariya_oktyabrskaya": ("snipe", "tank", "ff9040", "1a1408", "pistol"),
     "liudmila_pavlichenko": ("snipe", "scope", "ff4040", "000000", "rifle"),
+    "nostradamus": ("trap", "crystal_ball", "b080ff", "0a061a", "cast"),
 }
 
 
@@ -1214,6 +1228,7 @@ LOOKS = {
                           hat_style="none", jewelry="cross", jewelry_color="e8c040"),
     "mariya_oktyabrskaya": dict(female=True),
     "liudmila_pavlichenko": dict(female=True, outfit="skirt", outfit_color="5a5a3a"),
+    "nostradamus": dict(outfit="gown", outfit_color="2a2a6a", cape="1a1a4a", jewelry="necklace", jewelry_color="c0a040"),
     # --- Túnicas, capas y joyas de los nuevos ---
     "socrates": dict(outfit="skirt", outfit_color="e8e2d0"),
     "platon": dict(outfit="skirt", outfit_color="ece6d4", cape="3a5a9a"),
@@ -1299,6 +1314,7 @@ QUOTES = {
     "nicolas_maquiavelo": ("¡En este combate, la estrategia lo es todo!", "¡El fin justifica la estrategia!"),
     "mariya_oktyabrskaya": ("¡Mi tanque abrirá el camino hacia la victoria!", "¡Misión cumplida! ¡El enemigo ha sido aplastado!"),
     "liudmila_pavlichenko": ("Un solo disparo es suficiente.", "Objetivo eliminado. Siguiente."),
+    "nostradamus": ("Ya vi cómo termina este combate... y no te gustará.", "Lo escribí en mis Centurias: la victoria era mía."),
 }
 
 # Frase que se grita al lanzar el poder especial (special_2). Vacía = no dice nada.
@@ -1323,6 +1339,7 @@ POWER_QUOTES = {
     "nicolas_maquiavelo": "¡Que caigan en mi trampa!",
     "mariya_oktyabrskaya": "¡Enciende los motores!",
     "liudmila_pavlichenko": "¡No fallaré!",
+    "nostradamus": "¡Lo he visto en mis profecías!",
     "abraham_lincoln": "¡Hacha por la libertad!",
     "adolf_hitler": "¡Que empiece el desorden!",
     "albert_einstein": "¡Todo es relativo!",
@@ -1397,6 +1414,7 @@ PASSIVES = {
     "napoleon": "waterloo",
     "nicolas_maduro": "aguante",
     "nicolas_maquiavelo": "el_fin_justifica",
+    "nostradamus": "lo_habia_previsto",
     "nikola_tesla": "corriente_alterna",
     "osama_bin_laden": "fugitivo",
     "pablo_escobar": "plata_o_plomo",
@@ -1452,6 +1470,7 @@ IDLE_STYLES = {
     "napoleon": "hand_in_coat",
     "nicolas_maduro": "bouncy",
     "nicolas_maquiavelo": "scholar",
+    "nostradamus": "prayer",
     "nikola_tesla": "scholar",
     "osama_bin_laden": "stalk",
     "pablo_escobar": "arms_crossed",
@@ -1571,6 +1590,7 @@ POWERS = {
     "nicolas_maquiavelo": W(name="El Príncipe", anim="dagger", power="the_prince", dmg=20, status="root", status_frames=70),
     "mariya_oktyabrskaya": W(name="Tanque Fighting Girlfriend", anim="cast", power="t34", dmg=22),
     "liudmila_pavlichenko": W(name="Disparo de la Muerte", anim="rifle", power="death_shot", dmg=21, status="slow", status_frames=120),
+    "nostradamus": W(name="Profecía Cumplida", anim="cast", power="prophecy", dmg=20, status="slow", status_frames=100),
 }
 
 # Especiales 1 que se cambian para no repetir el estilo del poder nuevo.

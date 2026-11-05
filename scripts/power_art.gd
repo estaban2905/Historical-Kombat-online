@@ -75,6 +75,7 @@ static func draw(ci: CanvasItem, style: StringName, t: float, prog: float, a: fl
 		&"blackboard": _blackboard(ci, prog, box)
 		&"statue": _statue(ci, prog, box)
 		&"prince_book": _prince_book(ci, prog, a, box)
+		&"crystal_ball": _crystal_ball(ci, t, prog, a, box, col)
 		&"apple": _apple(ci, prog, box)
 		&"sundisc": _sundisc(ci, t, prog, box, col)
 		&"ghost_army": _ghost_army(ci, t)
@@ -996,6 +997,21 @@ static func _prince_book(ci: CanvasItem, prog: float, a: float, box: Vector2) ->
 	if open < 0.3:
 		_text(ci, Vector2(-hw, -6), "EL", 8, Color("e8c040"), box.x)
 		_text(ci, Vector2(-hw, 6), "PRÍNCIPE", 8, Color("e8c040"), box.x)
+
+## Nostradamus: una esfera de cristal enorme muestra el futuro del rival y lo encierra en su visión.
+static func _crystal_ball(ci: CanvasItem, t: float, prog: float, a: float, box: Vector2, col: Color) -> void:
+	var r := box.x * 0.42
+	var grow := _ease(prog) * (1.0 - _ease(a / 0.18))
+	var rr := r * (0.3 + 0.7 * grow)
+	ci.draw_rect(Rect2(-rr * 0.6, rr * 0.8, rr * 1.2, 6), OL)
+	_rect(ci, -rr * 0.6 + 1, rr * 0.8 + 1, rr * 1.2 - 2, 4, Color("6a4a20"))
+	ci.draw_circle(Vector2.ZERO, rr + 2.0, OL)
+	ci.draw_circle(Vector2.ZERO, rr, Color(col.r * 0.5, col.g * 0.4, col.b * 0.9, 0.85))
+	for i in 3:
+		var ang := t * (2.0 + i) + i * 2.1
+		ci.draw_circle(Vector2(cos(ang), sin(ang)) * rr * (0.25 + 0.15 * i), 2.5, Color(1, 1, 1, 0.8))
+	ci.draw_arc(Vector2.ZERO, rr * 0.55, t * 2.0, t * 2.0 + TAU * 0.7, 16, col, 2.0)
+	ci.draw_circle(Vector2(-rr * 0.4, -rr * 0.4), rr * 0.15, Color(1, 1, 1, 0.6))
 
 ## Newton: manzana gigante que cae del cielo.
 static func _apple(ci: CanvasItem, prog: float, box: Vector2) -> void:

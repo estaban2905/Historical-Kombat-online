@@ -76,7 +76,7 @@ func _test_resources() -> void:
 		var ps := load(path) as PackedScene
 		check(ps != null and ps.can_instantiate(), "escena carga: " + path)
 	var roster := FighterRegistry.all()
-	check(roster.size() == 50, "roster con 50 luchadores (%d)" % roster.size())
+	check(roster.size() == 51, "roster con 51 luchadores (%d)" % roster.size())
 	var seen := {}
 	for d in roster:
 		check(not seen.has(d.id), "id único: %s" % d.id)

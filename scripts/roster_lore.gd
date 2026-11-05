@@ -296,6 +296,12 @@ const LORE := {
 		"Se lanza hacia delante con una puñalada traicionera.",
 		"Deja una ilusión, reaparece tras el rival, lo atrapa en un cepo y lo apuñala.",
 	],
+	&"nostradamus": [
+		"Médico y astrólogo francés del siglo XVI. Estudió medicina y trató a enfermos durante epidemias de peste.",
+		"Publicó Las Profecías, cuartetas enigmáticas que la gente aún interpreta como predicciones.",
+		"Una visión de energía violeta cruza la pantalla.",
+		"Un ojo se abre sobre el rival, lo ralentiza y la profecía se cumple en tres golpes.",
+	],
 	&"mariya_oktyabrskaya": [
 		"Tanquista soviética. Al saber que su marido había muerto en la guerra, vendió todo lo que tenía.",
 		"Con el dinero compró un tanque T-34, lo llamó \"Novia combatiente\" y lo condujo ella misma.",
@@ -344,6 +350,7 @@ const ULT_LORE := {
 	&"hernan_cortes": "La flota aparece tras el rival y lo arrastra en una ola enorme.",
 	&"moctezuma_ii": "Un disco solar de energía cae sobre el rival y lo lanza fuera de la pantalla.",
 	&"nicolas_maquiavelo": "El príncipe se abre y atrapa al rival entre sus páginas.",
+	&"nostradamus": "Una esfera de cristal enorme muestra las Centurias y encierra al rival en su visión.",
 	&"mariya_oktyabrskaya": "El tanque aparece en primer plano y un cañonazo hunde al rival en una nube de humo.",
 	&"liudmila_pavlichenko": "La pantalla se oscurece, aparece la mira y un disparo deja al rival humeando.",
 }

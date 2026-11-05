@@ -354,6 +354,16 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 			_spawn(cm, f, atk, {"art": &"slash", "at_opp": true, "off": Vector2(0, -38), "box": Vector2(40, 52),
 				"delay": 34, "life": 13, "pierce": true, "share": 0.7, "knock": 220.0, "stun": 26, "nostatus": true,
 				"shake": 4.0, "sound": &"hit_heavy"})
+		&"prophecy":
+			# Nostradamus: un ojo se abre sobre el rival (lo ralentiza) y la profecía se cumple en tres golpes.
+			_spawn(cm, f, atk, {"art": &"glyph", "color": Color("b080ff"), "at_opp": true, "off": Vector2(0, -44),
+				"box": Vector2(54, 70), "delay": 10, "show": true, "life": 48, "pierce": true, "share": 0.2,
+				"knock": 0.0, "stun": 46, "sound": &"confirm"})
+			for i in 3:
+				_spawn(cm, f, atk, {"art": &"lightburst", "color": Color("c8a0ff"), "at_opp": true,
+					"off": Vector2(0, -36), "box": Vector2(44, 64), "delay": 36 + i * 14, "life": 12, "pierce": true,
+					"share": 0.25 if i < 2 else 0.3, "knock": 220.0 if i == 2 else 40.0, "stun": 22,
+					"nostatus": true, "shake": 3.0 if i == 2 else 0.0, "sound": &"hit_light"})
 		&"t34":
 			# Mariya: su T-34 cruza el escenario disparando y remata con una explosión.
 			_spawn(cm, f, atk, {"art": &"tank", "off": Vector2(-34, -14), "box": Vector2(60, 28), "speed": 160.0,

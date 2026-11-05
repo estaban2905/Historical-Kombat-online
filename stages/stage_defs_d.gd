@@ -16,6 +16,7 @@ static func get_def(id: StringName) -> Dictionary:
 		&"nicolas_maquiavelo": return _maquiavelo()
 		&"mariya_oktyabrskaya": return _mariya()
 		&"liudmila_pavlichenko": return _liudmila()
+		&"nostradamus": return _nostradamus()
 		&"el_nexo": return _nexo()
 	return {}
 
@@ -286,5 +287,22 @@ static func _liudmila() -> Dictionary:
 		],
 		"fx": [
 			["embers", 12, "ff9040", 12],
+		],
+	}
+
+static func _nostradamus() -> Dictionary:
+	return {
+		"name": "SALON-DE-PROVENCE · OBSERVATORIO",
+		"back": [
+			["sky", ["05061a", "0a0e2a", "141a3c", "1e2650", "2a3262"], 176],
+			["stars", 70, 3, 120, "fff0c0"],
+			["disc", 300, 40, 14, "e8e4d0", "fffbe8"],
+			["mount", 140, 30, "1a1a3a", 3.6, "", 0.8],
+			["tower", 110, 120, 22, 80, "3a3a5a", "2a2a48", "1a1a30"],
+			["dome", 110, 120, 20, "4a4a7a", "3a3a62", "c0a040"],
+			["ground", 176, "slabs", "4a4a5a", "3a3a4a", "2a2a38", 120],
+		],
+		"mid": [
+			["birds", 3, 24, 20, 60, 14, "1a1a2a", 1.0],
 		],
 	}
