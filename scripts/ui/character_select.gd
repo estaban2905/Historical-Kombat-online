@@ -599,16 +599,8 @@ func _draw_plate(p: int) -> void:
 			lines = [["BLOQUEADO", HKTheme.MUTED], ["VENCELO EN", HKTheme.PAPER], ["EL MODO", HKTheme.PAPER], ["HISTORIA", HKTheme.PAPER]]
 		elif idx < roster.size():
 			var d := roster[idx]
+			# Solo el nombre: el resto (país, época, pasiva) está en PERSONAJES y la época en la pestaña.
 			lines.append([d.short_name, HKTheme.PAPER])
-			for l in _wrap(d.country.to_upper(), PLATE_W - 8.0):
-				lines.append([l, HKTheme.GOLD])
-			for l in _wrap(d.era, PLATE_W - 8.0):
-				lines.append([l, HKTheme.MUTED.lightened(0.25)])
-			# Nombre de su pasiva (si tiene); el detalle está en PERSONAJES.
-			for l in _wrap(Passives.display_name(d.passive), PLATE_W - 8.0):
-				lines.append([l, Color("60d060")])
-			if _is_story() and _saves.has(str(d.id)):
-				lines.append(["GUARDADA · COMBATE %d" % (int(_saves[str(d.id)]["stage"]) + 1), Color("60d060")])
 		else:
 			lines.append(["BLOQUEADO", HKTheme.MUTED])
 	var box := Rect2(x0, PLATE_Y, PLATE_W, 6.0 + (lines.size() + 1) * 10.0)
