@@ -1588,7 +1588,8 @@ func _sig_head_b(head: Rect2, fx: float, hw: float, hh: float) -> void:
 			# Copete dorado con mechones y bronceado marcado.
 			for i in 4:
 				_fl(Vector2(head.position.x + 1.0 + i * 2.5, -hh - 3.0), Vector2(fx + 1.0, -hh - 1.0 + i * 0.5), hair.lightened(0.25))
-			_f(fx - 6.0, eye_y - 1.0, 5.5, 3.5, data.skin_color.lightened(0.1))
+			# Mancha clara bajo el ojo (antes tapaba el ojo entero y Trump se veía sin ojos).
+			_f(fx - 6.0, eye_y + 2.5, 5.5, 1.5, data.skin_color.lightened(0.1))
 		&"vladimir_putin":
 			_f(fx - 2.0, -hh * 0.3, 1.0, 1.0, data.skin_color.darkened(0.2))
 		&"xi_jinping", &"kim_jong_un":
