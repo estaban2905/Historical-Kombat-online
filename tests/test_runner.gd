@@ -478,9 +478,9 @@ func _test_locked_select() -> void:
 	sel.cursor[1] = FighterRegistry.index_of(&"donald_trump")
 	await tap(KEY_U)
 	check(not sel.confirmed[1] and is_instance_valid(sel) and scene() == sel, "con U sobre un bloqueado no se confirma ni empieza la historia")
-	# Recorre toda la rejilla con D pulsando U en cada bloqueado: ninguno se confirma.
+	# Recorre todo el plantel con D (al acabar una época pasa a la siguiente) pulsando U en cada bloqueado: ninguno se confirma.
 	var tried := 0
-	for i in CharacterSelect.COLS * CharacterSelect.ROWS:
+	for i in FighterRegistry.all().size():
 		await tap(KEY_D)
 		var c: int = sel.cursor[1]
 		if c < sel.roster.size() and not Unlocks.fighter_unlocked(sel.roster[c].id):
@@ -1145,23 +1145,20 @@ func _test_arcade() -> void:
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
 	check(await wait_scene("Results"), "resultados tras perder")
 	rematch = scene().get_node("Buttons/Rematch") as Button
-	check(rematch.text == "CONTINUAR (3)", "tras perder se ofrece CONTINUAR (%s)" % rematch.text)
+	check(rematch.text == "REVANCHA", "tras perder se ofrece REVANCHA (%s)" % rematch.text)
 	await frames(5)
 	await tap(KEY_ENTER)
-	check(await wait_scene("Fight", 240), "CONTINUAR repite el combate")
-	check(Game.arcade_continues == 2 and Game.arcade_stage == 1 and _fight().p2.data.id == ladder[1], "gasta una revancha y repite el mismo rival")
+	check(await wait_scene("Fight", 240), "REVANCHA repite el combate")
+	check(Game.story_continues_used == 1 and Game.arcade_stage == 1 and _fight().p2.data.id == ladder[1], "cuenta la revancha y repite el mismo rival")
 
-	# --- Sin revanchas: fin de la partida ---
-	Game.arcade_continues = 0
+	# --- Revanchas ilimitadas: perder nunca termina la partida ---
 	Game.set_match_result(2, 0, 2)
-	check(Game.arcade_outcome() == &"over", "sin revanchas el arcade termina")
+	check(Game.arcade_outcome() == &"retry", "las revanchas son ilimitadas: perder siempre permite reintentar")
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
-	check(await wait_scene("Results"), "resultados con partida terminada")
+	check(await wait_scene("Results"), "resultados tras otra derrota")
 	rematch = scene().get_node("Buttons/Rematch") as Button
-	check(not rematch.visible and (scene().get_node("Buttons/Menu") as Button).has_focus(), "solo queda volver al menú")
+	check(rematch.visible and rematch.text == "REVANCHA", "sigue ofreciendo REVANCHA")
 	await frames(5)
-	await tap(KEY_ENTER)
-	check(await wait_scene("MainMenu"), "vuelve al menú principal")
 
 	# --- Ganar el último combate completa el arcade ---
 	Game.arcade_stage = ladder.size() - 1
