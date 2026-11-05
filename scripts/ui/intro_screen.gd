@@ -111,6 +111,12 @@ var _stage_key: int = -1
 var _shake: Vector2 = Vector2.ZERO
 var _done: bool = false
 var _clash_frozen: bool = false
+## El reloj de la intro espera a que la música suene de verdad (en la web el audio tarda en desbloquearse,
+## y si el reloj arrancaba antes, al empezar la música el tiempo saltaba y la intro parpadeaba o se reiniciaba).
+var _started: bool = false
+var _audio_clock: bool = false
+var _start_wait: float = 0.0
+const START_TIMEOUT := 2.0
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -177,8 +183,20 @@ func _finish() -> void:
 	Game.goto(Game.SCENE_LOGIN)
 
 func _process(delta: float) -> void:
+	if not _started:
+		_start_wait += delta
+		if _music.playing and _music.get_playback_position() > 0.0:
+			_started = true
+			_audio_clock = true
+		elif _start_wait >= START_TIMEOUT:
+			# Sin audio (navegador sin permiso): la intro corre con el reloj normal y la música no se une tarde.
+			_started = true
+			_music.stop()
+		else:
+			_fx.queue_redraw()
+			return
 	_t += delta
-	if _music.playing and delta < 0.1:
+	if _audio_clock and _music.playing and delta < 0.1:
 		var at := _music.get_playback_position() + AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()
 		if absf(at - _t) > 0.25:
 			_t = at
