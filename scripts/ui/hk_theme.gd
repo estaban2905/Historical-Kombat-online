@@ -1,9 +1,9 @@
 ## Estilo visual común de la interfaz (fuente pixel y tema de botones).
-## Fuente: "Press Start 2P" (SIL Open Font License, ver assets/fonts).
+## Fuente: "Silkscreen" (SIL Open Font License, ver assets/fonts): pixel, más estrecha y nítida que Press Start 2P.
 class_name HKTheme
 extends RefCounted
 
-const FONT_PATH := "res://assets/fonts/PressStart2P-Regular.ttf"
+const FONT_PATH := "res://assets/fonts/Silkscreen-Regular.ttf"
 
 const GOLD := Color("f0c040")
 const GOLD_DARK := Color("a06818")
