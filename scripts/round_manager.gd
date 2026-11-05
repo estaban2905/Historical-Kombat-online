@@ -162,8 +162,10 @@ func _advance_round_end() -> void:
 				_next_round()
 		2:
 			combat.swap_stage(round_number + 1)
-			combat.present(Game, &"fade_from_black", [0.22])
 			_next_round()
+			# Después de _next_round(): start_round() vacía la cola de eventos (reset_round) y borraría este
+			# fundido, dejando la pantalla en negro mientras el combate sigue (bug online del round 2).
+			combat.present(Game, &"fade_from_black", [0.22])
 
 func _next_round() -> void:
 	round_number += 1
