@@ -51,7 +51,9 @@ enum Difficulty { EASY, NORMAL, HARD }
 const DIFFICULTY_NAMES: Array[String] = ["FÁCIL", "NORMAL", "DIFÍCIL"]
 ## Nivel base de la IA (0..1) por dificultad; el arcade lo sube en cada combate.
 const DIFFICULTY_LEVEL: Array[float] = [0.2, 0.5, 0.8]
-## Revanchas por capítulo del modo Historia (se recuperan al empezar cada capítulo).
+## Las revanchas del modo Historia son ilimitadas: perder nunca termina la partida.
+## La constante solo se conserva por compatibilidad con partidas guardadas; el contador de revanchas
+## gastadas (story_continues_used) sigue alimentando las reacciones del Nexo.
 const ARCADE_CONTINUES := 3
 ## Jefe final: el Nexo cierra la escalera tras la última época.
 const STORY_NEXO_ID := FighterRegistry.NEXO_ID
@@ -334,7 +336,6 @@ func story_autosave_next() -> void:
 ## Guarda la partida como quedará al gastar una revancha (sin gastarla todavía).
 func story_autosave_retry() -> void:
 	var s := story_snapshot()
-	s["continues"] = maxi(arcade_continues - 1, 0)
 	s["continues_used"] = story_continues_used + 1
 	Backend.save_story(s)
 
@@ -449,7 +450,7 @@ func arcade_outcome() -> StringName:
 		if arcade_stage < arcade_ladder.size() - 1:
 			return &"next"
 		return &"complete"
-	return &"retry" if arcade_continues > 0 else &"over"
+	return &"retry"
 
 func arcade_advance() -> void:
 	arcade_stage = mini(arcade_stage + 1, arcade_ladder.size() - 1)
@@ -459,5 +460,4 @@ func arcade_advance() -> void:
 		arcade_continues = ARCADE_CONTINUES
 
 func arcade_use_continue() -> void:
-	arcade_continues = maxi(arcade_continues - 1, 0)
 	story_continues_used += 1

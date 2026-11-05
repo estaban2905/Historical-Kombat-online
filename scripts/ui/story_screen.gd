@@ -289,8 +289,8 @@ func _draw_card() -> void:
 	var react := Game.story_nexo_reaction()
 	for i in react.size():
 		HKTheme.draw_text(_overlay, Vector2(0, 208 + i * 11), react[i], 8, HKTheme.GOLD.darkened(0.1) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
-	var count := "EL COMBATE FINAL · %d REVANCHAS" % Game.arcade_continues if final \
-		else "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues]
+	var count := "EL COMBATE FINAL · REVANCHAS ILIMITADAS" if final \
+		else "%d COMBATES · REVANCHAS ILIMITADAS" % [last - first + 1]
 	HKTheme.draw_text(_overlay, Vector2(0, 158), count, 8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 
 func _centered(cx: float, y: float, text: String, color: Color) -> void:

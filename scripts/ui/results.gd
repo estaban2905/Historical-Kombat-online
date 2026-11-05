@@ -87,7 +87,7 @@ func _setup_buttons() -> void:
 		&"retry":
 			# La revancha se descuenta ya, al perder: recargar no la devuelve.
 			Game.story_autosave_retry()
-			btn_rematch.text = "CONTINUAR (%d)" % Game.arcade_continues
+			btn_rematch.text = "REVANCHA"
 			btn_rematch.pressed.connect(func():
 				Game.arcade_use_continue()
 				Game.goto(Game.SCENE_FIGHT))
