@@ -360,8 +360,9 @@ func _place_scientists() -> void:
 			if w > 0.0 and w < 1.0:
 				pose = &"walk"
 			face = -1 if w > 0.0 else 1
-		var y := 212.0
-		var h := 86.0
+		# Los pies quedan por encima de la franja de subtítulos (empieza en y≈207) para no pisar las letras.
+		var y := 199.0
+		var h := 80.0
 		var rot := 0.0
 		if _t >= T_BLAST:
 			# Los absorbe el Nexo: giran hacia la grieta y se encogen.
@@ -775,7 +776,7 @@ func _fx_scientists() -> void:
 		var x: float = e[2]
 		if i == 0:
 			x = lerpf(x, 66.0, _ease(_ph(14.0, 15.0)))
-		_txt(_fx, 118.0, e[1], 8, Color(HKTheme.GOLD, a), x - 40.0, 80.0)
+		_txt(_fx, 112.0, e[1], 8, Color(HKTheme.GOLD, a), x - 40.0, 80.0)
 		# Cada uno con lo suyo en la mano.
 		var hand := Vector2(x + (14.0 if x < W * 0.5 and i != 0 else -14.0), 170.0)
 		if i == 0 and _t >= 15.0:
