@@ -64,6 +64,15 @@ const SCIENTISTS: Array = [
 	[&"leonardo_da_vinci", "DA VINCI", 336.0, 8.4],
 ]
 
+## La pieza que cada creador acopla al Reloj antes de encenderlo, en el mismo orden que SCIENTISTS:
+## [segundo en que sale de su mano, segundo en que encaja, ángulo del engarce en el aro, color, rótulo].
+const PIECES: Array = [
+	[13.0, 14.0, 0.0, Color("35e6ff"), "CORRIENTE"],
+	[10.2, 11.4, -PI * 0.5, Color("ffd24a"), "RELATIVIDAD"],
+	[11.2, 12.4, PI, Color("60ff70"), "RADIACTIVIDAD"],
+	[12.2, 13.4, PI * 0.5, Color("f0a040"), "DISEÑO"],
+]
+
 ## Cinco mundos fundidos: escenario del luchador, rótulo y tinte.
 const WORLDS: Array = [
 	[33.0, &"cleopatra", "EGIPTO CIBERNÉTICO", Color(0.1, 0.9, 1.0, 0.14)],
@@ -468,6 +477,16 @@ func _draw() -> void:
 		_bg_logo()
 
 # --- I y II: el laboratorio -----------------------------------------------
+func _clock_c() -> Vector2:
+	return Vector2(W * 0.5, 106.0)
+
+func _clock_r() -> float:
+	return lerpf(124.0, 62.0, _ease(_t / 12.0))
+
+## Dónde está el engarce `i` en el aro del Reloj.
+func _socket_pos(i: int) -> Vector2:
+	return _clock_c() + Vector2.from_angle(float(PIECES[i][2])) * (_clock_r() + 4.0)
+
 func _spin_phase() -> float:
 	var ph := minf(_t, T_BLAST)
 	return ph + 2.4 * pow(maxf(0.0, ph - T_LEVER), 2.0)
@@ -510,6 +529,21 @@ func _lab_room(t: float) -> void:
 		draw_colored_polygon(PackedVector2Array([p0, pl, p1]), Color(CYAN, 0.35 + 0.25 * glow))
 		draw_line(p0, p1, Color(CYAN, 0.9), 1.0)
 	_gear(self, c, R * 0.32, 12, -sp * 0.6, BRASS, Color("120a1c"))
+	# Engarces del aro: cada creador acopla ahí su pieza (ver PIECES y _fx_pieces).
+	for i in PIECES.size():
+		var sock := _socket_pos(i)
+		var col: Color = PIECES[i][3]
+		draw_circle(sock, 6.0, Color("120a1c"))
+		draw_arc(sock, 6.0, 0, TAU, 20, BRASS, 1.5)
+		if t >= float(PIECES[i][1]):
+			var pulse := 0.6 + 0.4 * sin(t * 6.0 + i)
+			draw_circle(sock, 4.5, Color(col, 0.9))
+			draw_circle(sock, 9.0 + 3.0 * pulse, Color(col, 0.18))
+	if t >= float(PIECES[0][1]):
+		# Con las cuatro piezas puestas, el aro se enciende con los cuatro colores.
+		for i in PIECES.size():
+			var a0 := float(PIECES[i][2]) - PI * 0.25
+			draw_arc(c, R + 9.0, a0, a0 + PI * 0.5, 14, Color(PIECES[i][3], 0.55 + 0.25 * sin(t * 5.0 + i)), 2.0)
 	# Manecillas imposibles: una gira al revés y otra a velocidades distintas.
 	draw_line(c, c + Vector2.from_angle(sp * 0.7) * R * 0.78, NEXO_GOLD, 2.0)
 	draw_line(c, c + Vector2.from_angle(-sp * 3.1) * R * 0.55, CYAN, 1.0)
@@ -536,13 +570,60 @@ func _lab_room(t: float) -> void:
 
 # --- Después de la explosión ----------------------------------------------
 func _crack(dt: float) -> void:
-	var grow := _ease(dt / 1.2)
-	var pts := _crack_points(H * 0.5 - H * 0.5 * grow, H * 0.5 + H * 0.5 * grow, 4.0, 46.0)
+	var grow := _ease(dt / 1.4)
+	var main := _crack_points(H * 0.5 - H * 0.5 * grow, H * 0.5 + H * 0.5 * grow, 4.0, 46.0)
 	var wob := 0.7 + 0.3 * sin(dt * 9.0)
-	draw_polyline(pts, Color(VIOLET, 0.25 * wob), 22.0)
-	draw_polyline(pts, Color(VIOLET, 0.6), 10.0)
-	draw_polyline(pts, NEXO_GOLD, 5.0)
-	draw_polyline(pts, Color("02000a"), 2.5)
+	_crack_line(main, wob, 1.0)
+	# Ramas que se abren desde la grieta principal y se subdividen en otras más finas.
+	for b in 12:
+		var base_i := 1 + int(_h(b * 3.3) * 12.0)
+		var side := 1.0 if b % 2 == 0 else -1.0
+		var ang := (_h(b + 40.0) - 0.5) * 1.0 + (0.0 if side > 0.0 else PI)
+		var bp := _ease((dt - 0.2 - b * 0.06) / 0.9)
+		if bp <= 0.0:
+			continue
+		var br := _crack_branch(main[base_i], ang, (46.0 + _h(b + 9.0) * 110.0) * bp, b * 7.0)
+		_crack_line(br, wob, 0.55)
+		if br.size() > 4:
+			for k in 2:
+				var sub_i := 2 + k * 2
+				var sb := _crack_branch(br[sub_i], ang + (0.9 if k == 0 else -0.9), (18.0 + _h(b + k * 5.0) * 40.0) * bp, b * 13.0 + k)
+				_crack_line(sb, wob, 0.3)
+	# Fragmentos de tiempo que se desprenden de los bordes y flotan.
+	var fade := 1.0 - _ph(T_COLLIDE - 2.0, T_COLLIDE)
+	for i in 10:
+		var o := main[1 + i % 13]
+		var drift := Vector2((_h(i + 1.0) - 0.5) * 34.0, -10.0 - _h(i + 2.0) * 26.0) * dt * 0.5
+		var c := o + drift
+		var sz := 3.0 + _h(i + 3.0) * 6.0
+		var r := dt * (0.5 + _h(i)) + i
+		var tri := PackedVector2Array([c + Vector2.from_angle(r) * sz, c + Vector2.from_angle(r + 2.3) * sz * 0.8, c + Vector2.from_angle(r + 4.2) * sz * 0.6])
+		draw_colored_polygon(tri, Color([NEXO_GOLD, VIOLET, CYAN][i % 3], 0.75 * fade * grow))
+	# Destellos de luz que se cuelan por la grieta.
+	for i in main.size():
+		if _h(floorf(dt * 12.0) + i * 1.7) > 0.72:
+			draw_rect(Rect2(main[i] + Vector2((_h(i + dt) - 0.5) * 10.0, (_h(i - dt) - 0.5) * 10.0), Vector2(2, 2)), Color("fff4c0"))
+
+## Una línea de la grieta con halo violeta, núcleo dorado y centro negro (k = grosor relativo).
+func _crack_line(pts: PackedVector2Array, wob: float, k: float) -> void:
+	if pts.size() < 2:
+		return
+	draw_polyline(pts, Color(VIOLET, 0.25 * wob), 22.0 * k)
+	draw_polyline(pts, Color(VIOLET, 0.6), 10.0 * k)
+	draw_polyline(pts, NEXO_GOLD, maxf(5.0 * k, 1.5))
+	draw_polyline(pts, Color("02000a"), maxf(2.5 * k, 0.8))
+
+## Rama quebrada que sale de `origin` hacia `ang` y mide `length`.
+func _crack_branch(origin: Vector2, ang: float, length: float, seed_v: float) -> PackedVector2Array:
+	var pts := PackedVector2Array([origin])
+	var step := length / 7.0
+	var a := ang
+	var cur := origin
+	for i in 7:
+		a += (_h(seed_v + i * 2.3) - 0.5) * 1.1
+		cur += Vector2.from_angle(a) * step
+		pts.append(cur)
+	return pts
 
 func _nexo_swirl(dt: float) -> void:
 	var c := Vector2(W * 0.5, 106.0)
@@ -739,6 +820,8 @@ func _draw_fx() -> void:
 	var t := _t
 	if t < 14.0:
 		_fx_scientists()
+	if t >= 10.0 and t < T_LEVER + 0.3:
+		_fx_pieces()
 	if t >= T_LEVER and t < T_BLAST:
 		_fx_blackout()
 	if t >= T_BLAST and t < T_COLLIDE:
@@ -776,10 +859,10 @@ func _fx_scientists() -> void:
 		var x: float = e[2]
 		if i == 0:
 			x = lerpf(x, 66.0, _ease(_ph(14.0, 15.0)))
-		_txt(_fx, 112.0, e[1], 8, Color(HKTheme.GOLD, a), x - 40.0, 80.0)
+		_txt(_fx, 112.0, e[1], 8, Color(HKTheme.GOLD, a * (1.0 - _ph(9.6, 10.2))), x - 40.0, 80.0)   # los nombres ceden el sitio a los rótulos de las piezas
 		# Cada uno con lo suyo en la mano.
 		var hand := Vector2(x + (14.0 if x < W * 0.5 and i != 0 else -14.0), 170.0)
-		if i == 0 and _t >= 15.0:
+		if _t >= float(PIECES[i][0]):
 			continue
 		match i:
 			0:
@@ -799,6 +882,31 @@ func _fx_scientists() -> void:
 				_fx.draw_line(hand + Vector2(0, -3), hand + Vector2(-6, 6), Color("c0c0d0"), 1.0)
 				_fx.draw_line(hand + Vector2(0, -3), hand + Vector2(6, 6), Color("c0c0d0"), 1.0)
 
+## Cada creador lanza su pieza al Reloj: una curva con estela, un destello al encajar y su rótulo.
+func _fx_pieces() -> void:
+	for i in PIECES.size():
+		var launch := float(PIECES[i][0])
+		var land := float(PIECES[i][1])
+		var col: Color = PIECES[i][3]
+		var sock := _socket_pos(i)
+		if _t >= launch and _t < land:
+			var x: float = SCIENTISTS[i][2]
+			var start := Vector2(x + (14.0 if x < W * 0.5 and i != 0 else -14.0), 170.0)
+			var ctrl := (start + sock) * 0.5 + Vector2(0.0, -80.0)
+			for k in 6:
+				var u := _ease((_t - launch - k * 0.035) / (land - launch))
+				var q := start.lerp(ctrl, u).lerp(ctrl.lerp(sock, u), u)
+				_fx.draw_circle(q, 4.5 - k * 0.6, Color(col, 0.9 - k * 0.15))
+		if _t >= land and _t < land + 0.7:
+			var d := (_t - land) / 0.7
+			_fx.draw_arc(sock, 6.0 + d * 30.0, 0, TAU, 28, Color(col, 1.0 - d), 2.0)
+			_fx.draw_circle(sock, 10.0 * (1.0 - d), Color(1, 1, 1, 0.9 * (1.0 - d)))
+		if _t >= land and _t < land + 2.0:
+			var al := minf(1.0, (land + 2.0 - _t) / 0.6)
+			var out := Vector2.from_angle(float(PIECES[i][2]))
+			var tp := sock + out * 16.0
+			HKTheme.draw_text(_fx, Vector2(tp.x - 40.0, tp.y + 3.0), PIECES[i][4], 8, Color(col, al), HORIZONTAL_ALIGNMENT_CENTER, 80.0, 1)
+
 func _fx_blackout() -> void:
 	# Se apagan las luces y queda el silencio absoluto antes de la explosión.
 	var a := 0.97 * _ease((_t - T_LEVER - 0.2) / 0.8)
@@ -812,6 +920,12 @@ func _fx_blast() -> void:
 	var dt := _t - T_BLAST
 	if dt < 0.8:
 		_fx.draw_rect(Rect2(0, 0, W, H), Color(1, 1, 0.9, 1.0 - dt / 0.8))
+	if dt < 1.1:
+		for k in 30:
+			var dir := Vector2.from_angle(TAU * k / 30.0 + _h(k) * 0.2)
+			var inner := dt * 110.0
+			var outer := dt * (260.0 + _h(k + 3.0) * 300.0)
+			_fx.draw_line(Vector2(W * 0.5, 106) + dir * inner, Vector2(W * 0.5, 106) + dir * outer, Color(NEXO_GOLD, 0.85 * (1.0 - dt / 1.1)), 1.0 + _h(k + 7.0) * 2.0)
 	if dt < 1.6:
 		var r := dt * 380.0
 		_fx.draw_arc(Vector2(W * 0.5, 106), r, 0, TAU, 72, Color(NEXO_GOLD, 1.0 - dt / 1.6), 4.0)
