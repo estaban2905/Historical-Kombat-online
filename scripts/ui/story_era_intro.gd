@@ -31,17 +31,20 @@ const ERAS: Array = [
 		"subs": ["CADA ÉPOCA ES AHORA UN FRAGMENTO ROTO.", "ESTE LO GOBIERNAN LOS QUE GRITAN MÁS FUERTE."]},
 	{"title": "FRAGMENTO II · EL SIGLO XX", "len": 5.60,
 		"subs": ["UN SIGLO DE GUERRAS.", "EL TIEMPO AÚN SANGRA."]},
-	{"title": "FRAGMENTO III · REVOLUCIONES Y PROGRESO", "len": 7.61,
-		"subs": ["AQUÍ BROTARON LAS IDEAS DE LA CIENCIA.", "ALGUNAS TERMINARON DENTRO DEL RELOJ."]},
+	{"title": "FRAGMENTO III · REVOLUCIONES, IMPERIOS Y DESCUBRIMIENTOS", "len": 9.56,
+		"subs": ["IDEAS, REINOS Y FLOTAS: PODER DE SOBRA", "Y POCA MEMORIA. AQUÍ SE FORJÓ EL MUNDO MODERNO."]},
 	{"title": "FRAGMENTO IV · IMPERIOS Y DESCUBRIMIENTOS", "len": 7.85,
 		"subs": ["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."]},
-	{"title": "FRAGMENTO V · LA ANTIGÜEDAD", "len": 7.82,
+	{"title": "FRAGMENTO IV · LA ANTIGÜEDAD Y LA EDAD MEDIA", "len": 7.82,
 		"subs": ["LA CUNA DE LA HISTORIA.", "AQUÍ NACIÓ EL PODER, Y AQUÍ DECIDES CÓMO TERMINA."]},
 	{"title": "EL JUICIO DEL NEXO", "len": 6.10,
 		"subs": ["HAS LLEGADO HASTA MÍ.", "DEMUESTRA QUE MERECES EL TIEMPO."]},
 ]
 
 var chapter: int = 0
+## Qué animación (índice de ERAS) usa cada época del modo Historia: las épocas 3 y 4 reutilizan la de las revoluciones
+## y la de la antigüedad, y el Nexo la suya.
+const ERA_ART: Array[int] = [0, 1, 2, 4, 5]
 ## >= 0 congela el reloj en ese instante y no reproduce audio (capturas de pantalla).
 var preview_time: float = -1.0
 
@@ -56,7 +59,7 @@ var _end: float = 0.0
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_idx = clampi(chapter, 0, ERAS.size() - 1)
+	_idx = ERA_ART[clampi(chapter, 0, ERA_ART.size() - 1)]
 	_end = VOICE_AT + float(ERAS[_idx]["len"]) + TAIL
 	if preview_time >= 0.0:
 		_t = preview_time
