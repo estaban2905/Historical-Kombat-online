@@ -43,69 +43,6 @@ const NEXO_LINES := [
 const NEXO_REACT_FLAWLESS := ["SIN UNA SOLA REVANCHA.", "EL TIEMPO TE RESPETA."]
 const NEXO_REACT_WOUNDED := ["HAS CAÍDO, PERO TE LEVANTAS.", "EL TIEMPO TOMA NOTA."]
 const NEXO_REACT_WORN := ["TANTAS CAÍDAS... ¿SEGURO", "QUE MERECES EL NEXO?"]
-## Frases antes del combate: rival -> [línea 1, línea 2]. Cada luchador quiere volver a su época para
-## reescribir su historia y ganar la batalla que perdió; el jugador debe impedirlo. Los creadores del Reloj
-## solo aportaron sus conocimientos científicos.
-const VS := {
-	&"el_nexo": ["SOY LO QUE QUISIERON CONSTRUIR.", "SOY LO QUE RECUERDAN."],
-	# Los creadores del Reloj: científicos que aportaron lo que sabían.
-	&"albert_einstein": ["CREADOR DEL RELOJ, POSEÍDO POR EL NEXO", "A TRAVÉS DE SU PROPIA ECUACIÓN. LIBÉRALO."],
-	&"nikola_tesla": ["CREADOR DEL RELOJ, POSEÍDO POR EL NEXO", "A TRAVÉS DE SU PROPIA CORRIENTE. LIBÉRALO."],
-	&"marie_curie": ["CREADORA DEL RELOJ, POSEÍDA POR EL NEXO", "A TRAVÉS DE SU PROPIA ENERGÍA. LIBÉRALA."],
-	&"leonardo_da_vinci": ["CREADOR DEL RELOJ, POSEÍDO POR EL NEXO", "A TRAVÉS DE SUS PROPIOS ENGRANAJES. LIBÉRALO."],
-	# El mundo actual
-	&"kim_jong_un": ["QUIERE REESCRIBIR LA HISTORIA", "Y CERRAR EL TIEMPO COMO SU FRONTERA."],
-	&"nicolas_maduro": ["QUIERE REESCRIBIR SU HISTORIA", "A PUNTA DE BAILE Y AGUANTE."],
-	&"osama_bin_laden": ["QUIERE VOLVER A 2011 Y ESCAPAR", "DE QUIEN LO ENCONTRÓ."],
-	&"xi_jinping": ["QUIERE REESCRIBIR EL TIEMPO", "A SU RITMO: LENTO Y SEGURO."],
-	&"vladimir_putin": ["QUIERE VOLVER A 1991 Y EVITAR", "QUE LA UNIÓN SOVIÉTICA SE DISUELVA."],
-	&"pablo_escobar": ["QUIERE VOLVER A 1993 Y ESCAPAR", "DE MEDELLÍN. ESTA VEZ, GANA."],
-	&"papa_francisco": ["QUIERE REESCRIBIR LA HISTORIA PARA", "QUE NO HAYA MÁS GUERRAS."],
-	&"isabel_ii": ["QUIERE VOLVER A 1952 Y REINAR", "OTRA VEZ SIN QUE NADA CAMBIE."],
-	&"donald_trump": ["QUIERE VOLVER A 2020 Y GANAR", "LA ELECCIÓN QUE PERDIÓ."],
-	# El siglo XX
-	&"saddam_hussein": ["QUIERE VOLVER A 1991 Y GANAR", "LA GUERRA DEL GOLFO."],
-	&"fidel_castro": ["QUIERE REESCRIBIR SU ISLA:", "QUE EL BLOQUEO NO EXISTA."],
-	&"liudmila_pavlichenko": ["QUIERE VOLVER A 1942 Y SALVAR", "A SUS COMPAÑEROS CAÍDOS."],
-	&"augusto_pinochet": ["QUIERE VOLVER A 1988 Y GANAR", "EL PLEBISCITO QUE PERDIÓ."],
-	&"salvador_allende": ["QUIERE VOLVER AL 11 DE SEPTIEMBRE", "DE 1973 Y GANAR EN LA MONEDA."],
-	&"mariya_oktyabrskaya": ["QUIERE VOLVER A 1944 Y EVITAR", "LA BATALLA EN LA QUE CAYÓ."],
-	&"benito_mussolini": ["QUIERE VOLVER A 1943 Y GANAR", "LA GUERRA QUE PERDIÓ."],
-	&"joseph_stalin": ["QUIERE REESCRIBIR 1941 Y QUE", "NADIE LO SORPRENDA OTRA VEZ."],
-	&"rasputin": ["QUIERE VOLVER A DICIEMBRE DE 1916", "Y SOBREVIVIR POR FIN."],
-	&"adolf_hitler": ["QUIERE VOLVER A 1945 Y GANAR", "LA GUERRA QUE PERDIÓ. NO PUEDE."],
-	# Revoluciones y progreso
-	&"arturo_prat": ["QUIERE VOLVER A IQUIQUE, 1879,", "Y GANAR SIN PERDER LA VIDA."],
-	&"abraham_lincoln": ["QUIERE VOLVER A 1865 Y EVITAR", "LA NOCHE DEL TEATRO FORD."],
-	&"charles_darwin": ["QUIERE REESCRIBIR SU HISTORIA", "Y COMPROBAR QUIÉN SE ADAPTA."],
-	&"napoleon": ["QUIERE VOLVER A WATERLOO, 1815,", "Y GANAR LA BATALLA QUE PERDIÓ."],
-	# Imperios y descubrimientos
-	&"isaac_newton": ["QUIERE VOLVER A 1720 Y NO PERDER", "SU FORTUNA EN LA BURBUJA."],
-	&"janequeo": ["QUIERE VOLVER AL SUR Y EVITAR", "LA MUERTE DE SU ESPOSO EN LA GUERRA."],
-	&"galileo_galilei": ["QUIERE VOLVER A 1633 Y GANAR", "EL JUICIO QUE LO CALLÓ."],
-	&"lautaro": ["QUIERE VOLVER A MATAQUITO, 1557,", "Y NO CAER EN LA EMBOSCADA."],
-	&"ivan_el_terrible": ["QUIERE VOLVER A 1582 Y GANAR", "LA GUERRA DE LIVONIA QUE PERDIÓ."],
-	&"nostradamus": ["QUIERE VOLVER A SU ÉPOCA Y ACERTAR", "LA PROFECÍA QUE FALLÓ."],
-	&"nicolas_maquiavelo": ["QUIERE VOLVER A 1512 Y EVITAR QUE", "LOS MEDICI LO ENCARCELEN."],
-	&"moctezuma_ii": ["QUIERE VOLVER A 1519 Y NO DEJAR", "ENTRAR A CORTÉS EN TENOCHTITLAN."],
-	&"cristobal_colon": ["QUIERE VOLVER A 1500 Y EVITAR", "CAER EN DESGRACIA ENCADENADO."],
-	&"pachacutec": ["QUIERE VOLVER A SU ÉPOCA Y EVITAR", "LA CAÍDA FUTURA DEL TAHUANTINSUYO."],
-	&"juana_de_arco": ["QUIERE VOLVER A 1431 Y EVITAR", "LA HOGUERA DE ROUEN."],
-	&"gengis_kan": ["QUIERE VOLVER A 1227 Y CABALGAR", "SIN MORIR ANTES DE TERMINAR."],
-	&"hernan_cortes": ["QUIERE VOLVER A 1520 Y GANAR", "LA NOCHE TRISTE QUE PERDIÓ."],
-	# La antigüedad
-	&"boudica": ["QUIERE VOLVER AL AÑO 60 Y GANAR", "LA BATALLA CONTRA ROMA."],
-	&"jesus_de_nazaret": ["QUIERE VOLVER A SU ÉPOCA A DEFENDER", "A LOS SUYOS. SU VARA TAMBIÉN GOLPEA."],
-	&"cleopatra": ["QUIERE VOLVER A ACCIO, 31 A.C., Y GANAR", "LA BATALLA QUE PERDIÓ."],
-	&"alejandro_magno": ["QUIERE VOLVER A BABILONIA, 323 A.C.,", "Y NO MORIR A LOS 32."],
-	&"aristoteles": ["QUIERE VOLVER A 323 A.C. Y EVITAR", "EL EXILIO DE ATENAS."],
-	&"platon": ["QUIERE VOLVER A SIRACUSA Y CONVERTIR", "A UN REY EN FILÓSOFO."],
-	&"socrates": ["QUIERE VOLVER AL JUICIO DE 399 A.C.", "Y GANAR SU DEFENSA."],
-	&"sun_tzu": ["QUIERE REESCRIBIR SU HISTORIA", "Y GANAR SIN LUCHAR... CASI."],
-	&"confucio": ["QUIERE VOLVER A SU ÉPOCA Y LOGRAR", "QUE UN REY ESCUCHE SU DOCTRINA."],
-	&"buda": ["QUIERE VOLVER A SU ÉPOCA SIN DESEO,", "Y AUN ASÍ TE DETENDRÁ."],
-	&"julio_cesar": ["QUIERE VOLVER A LOS IDUS DE MARZO", "DEL 44 A.C. Y EVITAR LAS PUÑALADAS."],
-}
 ## Consejos de los creadores del Reloj cuando el jugador pierde: cada uno liga su ciencia con una
 ## técnica del combate. [creador, [consejos]]; se reparten según las revanchas gastadas.
 const DEFEAT_TIPS := [
@@ -130,36 +67,6 @@ const DEFEAT_TIPS := [
 		"Observa: el rival repite sus ataques. Espera el golpe, bloquea y responde.",
 	]],
 ]
-## Frases cuando se enfrentan dos luchadores concretos, en cualquier orden: "id|id" -> líneas.
-const VS_PAIR := {
-	"salvador_allende|augusto_pinochet": ["LA MONEDA, 1973.", "AHORA SE DECIDE DE OTRO MODO."],
-	"hernan_cortes|moctezuma_ii": ["DOS MUNDOS SE ENCUENTRAN", "EN TENOCHTITLAN."],
-	"cristobal_colon|lautaro": ["EL DESCUBRIDOR Y EL TOQUI", "SE VEN LAS CARAS."],
-	"cristobal_colon|hernan_cortes": ["DEL MISMO OCÉANO,", "DOS CONQUISTAS."],
-	"napoleon|juana_de_arco": ["UN EMPERADOR Y UNA SANTA.", "TRES SIGLOS Y MEDIO ENTRE ELLOS."],
-	"napoleon|julio_cesar": ["DOS EMPERADORES, DOS CORONAS,", "UN SOLO TIEMPO."],
-	"adolf_hitler|napoleon": ["EL INVIERNO RUSO VENCIÓ", "A LOS DOS."],
-	"abraham_lincoln|charles_darwin": ["NACIERON EL MISMO DÍA.", "SOLO UNO SE QUEDA EN PIE."],
-	"socrates|platon": ["MAESTRO Y DISCÍPULO.", "LA LECCIÓN SE DA A GOLPES."],
-	"platon|aristoteles": ["EL DISCÍPULO CONTRA", "SU MAYOR RIVAL DE IDEAS."],
-	"socrates|aristoteles": ["TRES SABIOS, UNA IDEA:", "EL MÁS FUERTE ENSEÑA."],
-	"julio_cesar|cleopatra": ["ROMA Y EGIPTO,", "OTRA VEZ ENFRENTADAS."],
-	"alejandro_magno|aristoteles": ["EL ALUMNO DEBE LA CLASE", "A SU MAESTRO."],
-	"alejandro_magno|gengis_kan": ["DOS CONQUISTADORES.", "AL TIEMPO LE SOBRA UNO."],
-	"juana_de_arco|boudica": ["DOS MUJERES AL MANDO", "DE EJÉRCITOS. SOLO UNA GANA."],
-	"sun_tzu|confucio": ["DOS MAESTROS DE CHINA:", "LA GUERRA Y EL ORDEN."],
-	"papa_francisco|jesus_de_nazaret": ["EL PASTOR Y SU MAESTRO.", "EL PERDÓN NO EVITA EL GOLPE."],
-	"isaac_newton|galileo_galilei": ["NEWTON NACIÓ EL AÑO", "EN QUE MURIÓ GALILEO."],
-	"adolf_hitler|joseph_stalin": ["DOS TIRANOS, UN PACTO", "ROTO. FUEGO CRUZADO."],
-	"adolf_hitler|benito_mussolini": ["EL EJE SE QUIEBRA.", "NO HAY ALIADOS EN EL NEXO."],
-	"liudmila_pavlichenko|adolf_hitler": ["LADY DEATH ENFRENTA", "AL HOMBRE DE LA GUERRA."],
-	"fidel_castro|donald_trump": ["MEDIO SIGLO DE ENEMISTAD.", "SALDADA EN UN RING."],
-	"nikola_tesla|albert_einstein": ["DOS MENTES, UNA MÁQUINA.", "AHORA, UN SOLO GANADOR."],
-	"marie_curie|nikola_tesla": ["LUZ CONTRA CORRIENTE.", "EL RELOJ LOS UNIÓ."],
-	"albert_einstein|marie_curie": ["LA ECUACIÓN Y LA LUZ.", "DOS CIENCIAS, UNA MISMA MÁQUINA."],
-	"albert_einstein|leonardo_da_vinci": ["LA TEORÍA Y EL DISEÑO.", "UN RELOJ, DOS APORTES."],
-	"nikola_tesla|leonardo_da_vinci": ["EL INVENTOR Y SU MAESTRO.", "LA MÁQUINA NACIÓ DE LOS DOS."],
-}
 ## Lo que dice el rival vencido (se muestra en los resultados): su último aliento antes de volver al tiempo roto.
 const FAREWELL := {
 	&"kim_jong_un": "QUE NO ABRAN MI PAÍS, PROMÉTELO.",

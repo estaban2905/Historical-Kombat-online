@@ -66,8 +66,6 @@ const STORY_NEXO_LINES := StoryCampaign.NEXO_LINES
 const STORY_NEXO_REACT_FLAWLESS := StoryCampaign.NEXO_REACT_FLAWLESS
 const STORY_NEXO_REACT_WOUNDED := StoryCampaign.NEXO_REACT_WOUNDED
 const STORY_NEXO_REACT_WORN := StoryCampaign.NEXO_REACT_WORN
-const STORY_VS := StoryCampaign.VS
-const STORY_VS_PAIR := StoryCampaign.VS_PAIR
 ## Refuerzo [vida, fuerza, resistencia] del jefe de cada época.
 const BOSS_BOOST := [1.12, 1.05, 1.0]
 ## Refuerzo del Nexo, el jefe final (sus fases lo suben aún más durante el combate).
@@ -410,14 +408,6 @@ func story_nexo_reaction() -> Array:
 	if story_continues_used == 0:
 		return STORY_NEXO_REACT_FLAWLESS
 	return STORY_NEXO_REACT_WOUNDED if story_continues_used <= 2 else STORY_NEXO_REACT_WORN
-
-## Frase de presentación del rival: la del duelo concreto con el jugador si existe,
-## y si no la del propio rival (vacía si no tiene).
-func story_vs_lines(fighter_id: StringName) -> Array:
-	for key in ["%s|%s" % [p1_fighter_id, fighter_id], "%s|%s" % [fighter_id, p1_fighter_id]]:
-		if STORY_VS_PAIR.has(key):
-			return STORY_VS_PAIR[key]
-	return STORY_VS.get(fighter_id, [])
 
 ## Consejo de uno de los creadores del Reloj tras una derrota: [nombre, texto]. Rota de creador y de consejo
 ## según las revanchas gastadas, para que cada derrota enseñe algo distinto.

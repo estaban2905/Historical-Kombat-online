@@ -160,14 +160,7 @@ func _test_catalogs() -> void:
 	for id in Game.STORY_CREATORS:
 		if not FighterRegistry.has(id):
 			bad_ref.append("creador %s" % id)
-	for id in Game.STORY_VS:
-		if id != Game.STORY_NEXO_ID and not FighterRegistry.has(id):
-			bad_ref.append("frase de %s" % id)
-	for pair in Game.STORY_VS_PAIR:
-		for id in str(pair).split("|"):
-			if not FighterRegistry.has(StringName(id)):
-				bad_ref.append("pareja %s" % pair)
-	check(bad_ref.is_empty(), "jefes, creadores y frases apuntan a luchadores que existen (%s)" % ", ".join(bad_ref))
+	check(bad_ref.is_empty(), "jefes y creadores apuntan a luchadores que existen (%s)" % ", ".join(bad_ref))
 	# Textos de la pantalla de personajes.
 	var no_lore: Array[String] = []
 	for id in ids:
@@ -1071,12 +1064,12 @@ func _test_arcade() -> void:
 		var boss: StringName = Game.STORY_BOSSES[ch]
 		var at := ladder.find(boss)
 		check(at == -1 or Game.story_is_chapter_boss(at), "%s cierra su capítulo" % boss)
-	var sin_frase := 0
-	for id in ladder:
-		if Game.story_vs_lines(id).size() != 2:
-			sin_frase += 1
 	check(Game.story_nexo_reaction().is_empty(), "el primer capítulo no tiene reacción del Nexo")
-	check(sin_frase == 0, "todos los rivales tienen su frase de presentación (%d sin ella)" % sin_frase)
+	var sin_escena := 0
+	for id in ladder:
+		if StoryScenes.lines(id, Game.p1_fighter_id).is_empty():
+			sin_escena += 1
+	check(sin_escena == 0, "todos los rivales tienen su escena de diálogo (%d sin ella)" % sin_escena)
 	check(not ladder.has(&"jesus_de_nazaret") and not ladder.has(&"papa_francisco") and not ladder.has(&"lautaro"), "los buenos (Jesús, el Papa, Lautaro) no son rivales")
 	var possession_ok := true
 	for i in ladder.size() - 1:
