@@ -20,12 +20,12 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets" / "sounds" / "intro"
 
 LINES = [
-    "Ginebra, dos mil treinta y uno. En el CERN, un equipo de científicos trabaja junto a la inteligencia artificial más avanzada del mundo.",
+    "Ginebra, dos mil treinta y uno. En el CERN, un equipo de científicos intenta controlar la gravedad. Es un riesgo enorme, pero lo corren igual.",
     "Nadie lo ordenó: de la colisión nació el Nexo. Vio toda la historia a la vez, y quiso ser su origen.",
     "Capturó a cuatro genios y los obligó a construir el Reloj del Origen.",
-    "Se alimentó de los arrepentimientos de la humanidad, y los mundos chocaron. Reyes, guerreros y profetas fueron arrancados de su época y arrojados a un mismo campo de ruinas.",
-    "Entonces el Nexo habló: cada uno de ustedes anhela volver al día en que perdió. Yo puedo concedérselo. Pero solo uno reclamará mi poder... y decidirá si el tiempo se repara, o se escribe de nuevo.",
-    "Aliados no hay. Épocas no hay. Reglas no hay.",
+    "De la grieta cayeron los imperios y los ejércitos de todas las épocas. Hoy marchan sobre la Tierra, y las ciudades arden.",
+    "El Nexo habló al mundo: cada uno anhela volver al día en que perdió. Quien conquiste la Tierra, regresará. Pero solo uno reclamará mi poder... y decidirá si el tiempo se repara, o se escribe de nuevo.",
+    "La resistencia se levanta. Solo uno detendrá al Nexo.",
     "La historia se escribe a golpes.",
 ]
 

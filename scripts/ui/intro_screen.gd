@@ -1,9 +1,10 @@
 ## INTRO del juego (~2 minutos): cuenta cómo se rompió el tiempo y nació el torneo.
 ##   I    PROYECTO ORIGEN          Ginebra 2031: el colisionador, la sala de control y la IA
 ##   II   EL DESPERTAR DEL NEXO    la colisión que nadie ordenó, el Nexo despierta y captura a cuatro genios
-##   III  LA COLISIÓN DE LAS ERAS  cinco mundos fundidos y un campo de ruinas
-##   IV   EL JUICIO DEL NEXO       la esfera, el coliseo y el público espectral
-##   V    LOS LUCHADORES           presentación de los 15 y el círculo final
+##   III  LA INVASIÓN              los ejércitos de todas las épocas toman las ciudades de la Tierra
+##   IV   EL ULTIMÁTUM DEL NEXO    la Tierra conquistada y el Nexo habla al mundo
+##   V    LA RESISTENCIA           el último bastión entre ruinas
+##   VI   LOS CAMPEONES            presentación de los 15 héroes, la Torre del Reloj y el círculo final
 ##   VI   IMPACTO Y LOGOTIPO       choque, corte a negro, HISTORY COMBAT, PRESS START
 ## Todo se dibuja por código sobre el reloj de la música (assets/music/intro.ogg) y la narración
 ## (assets/sounds/intro/voice_N.wav). Solo Enter salta la intro y va al inicio de sesión.
@@ -37,14 +38,14 @@ const BRASS_D := Color("5e4216")
 
 ## Narración: inicio (s), duración (s) y subtítulos (se reparten según el largo de cada uno).
 const VOICE_T: Array[float] = [1.2, 18.4, 28.6, 36.0, 68.0, 104.0, 116.6]
-const VOICE_LEN: Array[float] = [12.54, 9.83, 6.20, 14.81, 18.17, 6.80, 3.69]
+const VOICE_LEN: Array[float] = [14.40, 9.83, 6.20, 11.10, 18.33, 6.76, 3.69]
 const SUBS: Array = [
-	["GINEBRA, 2031.", "EN EL CERN, UN EQUIPO DE CIENTÍFICOS TRABAJA\nJUNTO A LA INTELIGENCIA ARTIFICIAL MÁS AVANZADA."],
+	["GINEBRA, 2031.", "EN EL CERN, UN EQUIPO DE CIENTÍFICOS INTENTA\nCONTROLAR LA GRAVEDAD.", "ES UN RIESGO ENORME,\nPERO LO CORREN IGUAL."],
 	["NADIE LO ORDENÓ:\nDE LA COLISIÓN NACIÓ EL NEXO.", "VIO TODA LA HISTORIA A LA VEZ,\nY QUISO SER SU ORIGEN."],
 	["CAPTURÓ A CUATRO GENIOS Y LOS OBLIGÓ", "A CONSTRUIR EL RELOJ DEL ORIGEN."],
-	["SE ALIMENTÓ DE LOS ARREPENTIMIENTOS\nDE LA HUMANIDAD, Y LOS MUNDOS CHOCARON.", "REYES, GUERREROS Y PROFETAS FUERON\nARRANCADOS DE SU ÉPOCA", "Y ARROJADOS A UN MISMO CAMPO DE RUINAS."],
-	["ENTONCES EL NEXO HABLÓ:", "CADA UNO ANHELA VOLVER AL DÍA EN QUE PERDIÓ.\nYO PUEDO CONCEDÉRSELO.", "PERO SOLO UNO RECLAMARÁ MI PODER...", "Y DECIDIRÁ SI EL TIEMPO SE REPARA,\nO SE ESCRIBE DE NUEVO."],
-	["ALIADOS NO HAY.\nÉPOCAS NO HAY. REGLAS NO HAY."],
+	["DE LA GRIETA CAYERON LOS IMPERIOS\nY LOS EJÉRCITOS DE TODAS LAS ÉPOCAS.", "HOY MARCHAN SOBRE LA TIERRA,\nY LAS CIUDADES ARDEN."],
+	["EL NEXO HABLÓ AL MUNDO:", "CADA UNO ANHELA VOLVER AL DÍA EN QUE PERDIÓ.", "QUIEN CONQUISTE LA TIERRA, REGRESARÁ.", "PERO SOLO UNO RECLAMARÁ MI PODER...", "Y DECIDIRÁ SI EL TIEMPO SE REPARA,\nO SE ESCRIBE DE NUEVO."],
+	["LA RESISTENCIA SE LEVANTA.\nSOLO UNO DETENDRÁ AL NEXO."],
 	[],
 ]
 
@@ -52,9 +53,10 @@ const SUBS: Array = [
 const CARDS: Array = [
 	[0.4, "I · PROYECTO ORIGEN"],
 	[18.0, "II · EL DESPERTAR DEL NEXO"],
-	[33.4, "III · LA COLISIÓN DE LAS ERAS"],
-	[66.6, "IV · EL JUICIO DEL NEXO"],
-	[90.3, "V · LOS LUCHADORES"],
+	[33.4, "III · LA INVASIÓN"],
+	[66.6, "IV · EL ULTIMÁTUM DEL NEXO"],
+	[76.4, "V · LA RESISTENCIA"],
+	[90.3, "VI · LOS CAMPEONES"],
 ]
 
 ## Los cuatro genios que el Nexo captura, cada uno en su época dentro de un portal:
@@ -82,38 +84,40 @@ const SCI_ROOM: Array = [
 	[370.0, Color("e0c070"), false, 11.0, 13.4],
 ]
 
-## Cinco mundos fundidos: escenario del luchador, rótulo y tinte.
+## Cinco frentes de la invasión: [segundo, quién lidera, rótulo, cielo arriba, cielo abajo, intensidad de los incendios].
 const WORLDS: Array = [
-	[33.0, &"cleopatra", "EGIPTO CIBERNÉTICO", Color(0.1, 0.9, 1.0, 0.14)],
-	[38.5, &"julio_cesar", "METRÓPOLIS ROMANA", Color(1.0, 0.5, 0.2, 0.12)],
-	[44.0, &"gengis_kan", "ESTEPA URBANA", Color(0.5, 0.7, 1.0, 0.12)],
-	[49.5, &"pachacutec", "LOS ANDES FRACTURADOS", Color(1.0, 0.8, 0.2, 0.12)],
-	[55.0, &"lautaro", "TIERRAS AUSTRALES", Color(0.6, 0.4, 1.0, 0.14)],
+	[33.0, &"julio_cesar", "LAS LEGIONES TOMAN LAS AVENIDAS", Color("2a1420"), Color("8a3a20"), 1.0],
+	[38.5, &"gengis_kan", "LA HORDA CRUZA LA CIUDAD", Color("3a2a18"), Color("b08a4a"), 0.6],
+	[44.0, &"cleopatra", "EGIPTO ALZA SUS PIRÁMIDES", Color("1a1038"), Color("c07a30"), 0.4],
+	[49.5, &"napoleon", "LA ARTILLERÍA DERRIBA EL HORIZONTE", Color("141018"), Color("604a40"), 1.2],
+	[55.0, &"alejandro_magno", "NINGUNA CIUDAD RESISTE", Color("3a0f14"), Color("e0602a"), 1.0],
 ]
+## Los villanos que se ven en la invasión (no forman parte de los campeones).
+const VILLAINS: Array[StringName] = [&"julio_cesar", &"gengis_kan", &"cleopatra", &"napoleon", &"alejandro_magno"]
 
-## Campo de ruinas: quién cae y dónde.
+## Los héroes que caen de la grieta a la Tierra conquistada: [quién, x].
 const RUINS: Array = [
-	[&"juana_de_arco", 78.0], [&"alejandro_magno", 146.0], [&"boudica", 213.0],
-	[&"napoleon", 280.0], [&"arturo_prat", 348.0],
+	[&"lautaro", 78.0], [&"janequeo", 146.0], [&"juana_de_arco", 213.0],
+	[&"boudica", 280.0], [&"arturo_prat", 348.0],
 ]
 
-## Presentación: [id, rasgo, color, aura (0 rayos, 1 llamas, 2 órbita, 3 destellos)].
+## Presentación de los campeones de la resistencia: [id, rasgo, color, aura (0 rayos, 1 llamas, 2 órbita, 3 destellos)].
 const CAST: Array = [
-	[&"cleopatra", "DAGA DE ESMERALDA", Color("b070ff"), 1],
-	[&"julio_cesar", "GLADIUS IMPERIAL", Color("ffd24a"), 3],
-	[&"alejandro_magno", "ESCUDO SOLAR", Color("ffc030"), 3],
-	[&"gengis_kan", "SABLE DE LA HORDA", Color("ff7a3a"), 1],
-	[&"pachacutec", "MAZA DE PIEDRA Y ORO", Color("ffd24a"), 2],
 	[&"lautaro", "LANZA Y VIENTO", Color("35e6ff"), 2],
 	[&"janequeo", "PICA DE PLATA", Color("c8e0ff"), 3],
+	[&"pachacutec", "MAZA DE PIEDRA Y ORO", Color("ffd24a"), 2],
 	[&"boudica", "ESCUDO CELTA", Color("4aa0ff"), 2],
 	[&"juana_de_arco", "FUEGO BLANCO", Color("fff4d8"), 1],
-	[&"napoleon", "SABLE DE CABALLERÍA", Color("6aa8ff"), 3],
 	[&"arturo_prat", "SABLE DE ABORDAJE", Color("35e6ff"), 3],
+	[&"abraham_lincoln", "VOZ DE LA UNIÓN", Color("6aa8ff"), 3],
+	[&"socrates", "MÉTODO SOCRÁTICO", Color("ffd24a"), 3],
+	[&"sun_tzu", "EL ARTE DE LA GUERRA", Color("ff7a3a"), 2],
+	[&"isaac_newton", "GRAVEDAD ABSOLUTA", Color("9a4dff"), 2],
+	[&"galileo_galilei", "TELESCOPIO", Color("35e6ff"), 3],
+	[&"liudmila_pavlichenko", "MIRA TELESCÓPICA", Color("c8e0ff"), 3],
+	[&"mariya_oktyabrskaya", "TANQUE T-34", Color("ff7a3a"), 1],
+	[&"salvador_allende", "VÍA CHILENA", Color("ff7050"), 3],
 	[&"nikola_tesla", "ELECTRICIDAD VOLTAICA", Color("35e6ff"), 0],
-	[&"albert_einstein", "GRAVEDAD", Color("9a4dff"), 2],
-	[&"marie_curie", "ENERGÍA RADIACTIVA", Color("60ff70"), 2],
-	[&"leonardo_da_vinci", "COMPÁS DE LUZ", Color("ffd24a"), 3],
 ]
 
 var _t: float = 0.0
@@ -124,8 +128,6 @@ var _music: AudioStreamPlayer
 var _voices: Array[AudioStreamPlayer] = []
 var _voice_started: Array[bool] = []
 var _subs: Array = []          # [desde, hasta, texto]
-var _stage: Stage
-var _stage_key: int = -1
 var _shake: Vector2 = Vector2.ZERO
 var _done: bool = false
 var _clash_frozen: bool = false
@@ -142,12 +144,19 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_world = Node2D.new()
 	add_child(_world)
+	var ids: Array = []
 	for e in CAST:
+		ids.append(e[0])
+	ids.append_array(VILLAINS)
+	for s in SCIENTISTS:
+		if not ids.has(s[0]):
+			ids.append(s[0])
+	for id in ids:
 		var r := FighterRenderer.new()
 		_world.add_child(r)
-		r.setup(FighterRegistry.get_by_id(e[0]))
+		r.setup(FighterRegistry.get_by_id(id))
 		r.visible = false
-		_fighters[e[0]] = r
+		_fighters[id] = r
 	_fx = Control.new()
 	_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -225,7 +234,6 @@ func _process(delta: float) -> void:
 	_sfx_once("eye", T_BLAST + 4.0, &"whoosh")
 	_sfx_once("grab", T_PULL, &"hit_heavy")
 	_update_shake()
-	_update_stage()
 	_place_fighters()
 	if _t > T_END + 8.0:
 		_finish()
@@ -311,31 +319,6 @@ func _world_index() -> int:
 			idx = i
 	return idx if (_t >= T_COLLIDE and _t < T_RUINS) else -1
 
-func _update_stage() -> void:
-	var key := _world_index()
-	if key == _stage_key:
-		if _stage:
-			var k := 1.0 + 0.07 * _ph(WORLDS[key][0], WORLDS[key][0] + 5.5)
-			_stage.scale = Vector2(k, k)
-			_stage.position = Vector2(W * 0.5, H * 0.5) * (1.0 - k) + _shake
-		return
-	_stage_key = key
-	if _stage:
-		_stage.queue_free()
-		_stage = null
-	if key < 0:
-		return
-	var id: StringName = WORLDS[key][1]
-	var packed := load(StageRegistry.scene_for(id)) as PackedScene
-	if packed == null:
-		packed = load(StageRegistry.COLOSSEUM)
-	_stage = packed.instantiate() as Stage
-	if _stage is ThemedStage:
-		(_stage as ThemedStage).fighter_id = id
-	_stage.show_behind_parent = true   # debajo del dibujo del propio nodo, que en esta parte no pinta
-	add_child(_stage)
-	move_child(_stage, 0)
-
 func _update_shake() -> void:
 	var amp := 0.0
 	amp = maxf(amp, 7.0 * (1.0 - _ph(T_BLAST, T_BLAST + 1.2)) if _t >= T_BLAST else 0.0)
@@ -394,21 +377,22 @@ func _place_scientists() -> void:
 
 func _place_world() -> void:
 	var idx := _world_index()
+	if idx < 0:
+		return
 	var lt := _t - float(WORLDS[idx][0])
 	var a := clampf(lt / 0.35, 0.0, 1.0)
 	match idx:
-		0: _put(&"cleopatra", 300.0, 204.0, 108.0, -1, &"idle", a)
-		1: _put(&"julio_cesar", 150.0, 204.0, 108.0, 1, &"victory", a)
-		2: _put(&"gengis_kan", lerpf(60.0, 350.0, lt / 5.5), 204.0, 108.0, 1, &"run", a)
-		3: _put(&"pachacutec", 213.0, 204.0, 116.0, 1, &"idle", a)
-		4:
-			_put(&"lautaro", 130.0, 204.0, 108.0, 1, &"idle", a)
-			_put(&"janequeo", 296.0, 204.0, 108.0, -1, &"idle", a)
+		0: _put(&"julio_cesar", 120.0, 204.0, 112.0, 1, &"victory", a)
+		1: _put(&"gengis_kan", lerpf(40.0, 380.0, lt / 5.5), 204.0, 108.0, 1, &"run", a)
+		2: _put(&"cleopatra", 300.0, 204.0, 108.0, -1, &"idle", a)
+		3: _put(&"napoleon", 300.0, 204.0, 108.0, -1, &"idle", a)
+		4: _put(&"alejandro_magno", 213.0, 204.0, 116.0, 1, &"victory", a)
 
+## Los héroes aterrizan en la Tierra conquistada (columnas de luz) y se reúnen en el bastión.
 func _place_ruins() -> void:
 	for i in RUINS.size():
 		var lt := _t - (T_RUINS + 0.2 + i * 0.9)
-		var a := clampf(lt / 0.25, 0.0, 1.0) * (1.0 - _ph(80.0, 83.0))
+		var a := clampf(lt / 0.25, 0.0, 1.0)
 		var bob := 0.0 if _t < T_JUDGE else sin(_t * 1.6 + i) * 1.5 * _ph(T_JUDGE, T_JUDGE + 3.0)
 		_put(RUINS[i][0], RUINS[i][1], 200.0 + bob, 92.0, 1 if i < 3 else -1, &"idle", a)
 
@@ -464,15 +448,14 @@ func _draw() -> void:
 	if _t < T_COLLIDE:
 		_bg_lab()
 	elif _t < T_RUINS:
-		pass   # el escenario del luchador se ve a través (hijo con show_behind_parent)
+		_bg_invasion()
 	elif _t < T_SELECT:
-		_bg_ruins()
+		_bg_conquered()
+		_bg_bastion(_ease((_t - T_ARENA) / 6.0) if _t >= T_ARENA else 0.0, 0.3)
 		if _t >= T_JUDGE:
 			_nexo_sphere(self)
-		if _t >= T_ARENA:
-			_bg_arena(self, _ease((_t - T_ARENA) / 8.0))
 	elif _t < T_LOGO - 0.3:
-		_bg_arena(self, 1.0)
+		_bg_bastion(1.0, 0.35 if _t < T_CIRCLE else 1.0)
 		if _t < T_CIRCLE:
 			_select_backdrop()
 		elif _t < T_BUILD:
@@ -594,6 +577,14 @@ func _control_room(t: float) -> void:
 				var dx := float(SCI_ROOM[k % 5][0]) + (_h(k + q) - 0.5) * 40.0
 				for j in 4:
 					draw_rect(Rect2(dx + (_h(j + k) - 0.5) * 14.0, 172.0 - _h(j + 3.0 + q) * 18.0, 2, 2), Color(1.0, 0.7, 0.2, 0.9))
+	# La gravedad falla: papeles y objetos se elevan de las mesas.
+	if t >= 9.0:
+		for k in 12:
+			var lift := clampf((t - 9.0 - _h(k) * 2.0) * (6.0 + _h(k + 2.0) * 12.0), 0.0, 130.0)
+			if lift <= 0.0:
+				continue
+			var ox := float(SCI_ROOM[k % 5][0]) + (_h(k + 7.0) - 0.5) * 44.0 + sin(t * 1.5 + k) * 5.0
+			_quad(self, Vector2(ox, 176.0 - lift), 7.0 + _h(k + 4.0) * 3.0, 4.0, t * (1.0 + _h(k)) + k, Color(0.9, 0.92, 1.0, 0.75))
 	# Alarma: baliza roja y luz que parpadea en toda la sala.
 	if phase >= 1:
 		draw_rect(Rect2(0, 0, W, 240), Color(1.0, 0.1, 0.1, 0.05 * float(phase) * beacon))
@@ -621,10 +612,10 @@ func _screen_ring(sr: Rect2, phase: int, t: float, pc: Color) -> void:
 		draw_line(p1, p2, Color(VIOLET, 0.6), 1.0)
 		draw_circle(p1, 1.6, Color(pc, 0.9))
 	draw_circle(c, 3.0 + float(phase) * (0.5 + 0.5 * sin(t * 9.0)) * 2.0, Color(1, 1, 1, 0.9))
-	var title: String = ["ANILLO PRINCIPAL · NOMINAL", "ANOMALÍA EN NÚCLEO IA", "COLISIÓN SIN AUTORIZACIÓN"][phase]
+	var title: String = ["CONTROL DE GRAVEDAD · OK", "ANOMALÍA GRAVITATORIA", "COLISIÓN SIN AUTORIZACIÓN"][phase]
 	if phase == 0 or fposmod(t, 0.8) < 0.55:
 		_txt(self, sr.position.y + 12.0, title, 8, pc, sr.position.x, sr.size.x, 1)
-	var l1: String = ["13.6 TEV · IA ESTABLE", "NÚCLEO IA: ACTIVIDAD 340 %", "ORDEN DE ORIGEN DESCONOCIDO"][phase]
+	var l1: String = ["RIESGO ACEPTADO · 13.6 TEV", "NÚCLEO IA: ACTIVIDAD 340 %", "ORDEN DE ORIGEN DESCONOCIDO"][phase]
 	_txt(self, sr.end.y - 16.0, l1, 8, Color(HKTheme.PAPER, 0.8), sr.position.x, sr.size.x, 1)
 	if phase == 2 and fposmod(t, 0.6) < 0.4:
 		_txt(self, sr.end.y - 6.0, "ACCESO DENEGADO", 8, pc, sr.position.x, sr.size.x, 1)
@@ -875,37 +866,229 @@ func _debris(dt: float) -> void:
 		var col := [CYAN, BRASS, Color("ffffff")][i % 3] as Color
 		_quad(self, p, 2.0 + _h(i + 2.0) * 7.0, 2.0 + _h(i + 8.0) * 5.0, dt * (2.0 + _h(i)) * 3.0, Color(col, fade))
 
-# --- Ruinas, esfera y coliseo ---------------------------------------------
-func _bg_ruins() -> void:
-	var bands := [Color("05020a"), Color("0a0415"), Color("12081f"), Color("1c0c2c"), Color("2a1238"), Color("3a1a40")]
-	for i in bands.size():
-		draw_rect(Rect2(0, i * 32, W, 32), bands[i])
-	for i in 36:
-		draw_rect(Rect2(_h(i) * W, _h(i + 9.0) * 120.0, 1, 1), Color(1, 1, 1, 0.3 + 0.4 * _h(i + 2.0)))
-	# Trozos de mundo flotando en el cielo.
-	for i in 9:
-		var p := Vector2(_h(i + 1.0) * W, 30.0 + _h(i + 4.0) * 90.0 + sin(_t * 0.5 + i) * 3.0)
-		_quad(self, p, 8.0 + _h(i + 6.0) * 22.0, 4.0 + _h(i + 3.0) * 8.0, _h(i) - 0.5 + sin(_t * 0.3 + i) * 0.1, Color("1c1224"))
-	# Suelo volcánico con grietas de lava y columnas rotas.
-	draw_rect(Rect2(0, 196, W, 44), Color("0c060f"))
-	draw_rect(Rect2(0, 196, W, 1), Color("5a2028"))
-	for i in 6:
-		var x := 20.0 + i * 74.0 + _h(i) * 20.0
-		var hh := 20.0 + _h(i + 5.0) * 34.0
-		draw_rect(Rect2(x, 196 - hh, 9, hh), Color("160c1c"))
-		draw_rect(Rect2(x - 2, 196 - hh, 13, 3), Color("22122a"))
+# --- La Tierra invadida: ciudad en ruinas, ejércitos, bastión de la resistencia y la Torre del Reloj ----------
+## Ciudad moderna destruida en tres capas con paralaje. `scroll` desplaza las capas, `fire` es la intensidad de los
+## incendios y `rift` la de la grieta violeta del cielo. `a` es la opacidad (para fundirla encima de otra).
+func _city(sky_top: Color, sky_bot: Color, scroll: float, fire: float, rift: float, a: float = 1.0) -> void:
+	for i in 8:
+		draw_rect(Rect2(0, i * 24, W, 24), Color(sky_top.lerp(sky_bot, i / 7.0), a))
+	if rift > 0.0:
+		var rp := _crack_points(0.0, 120.0, 31.0, 90.0)
+		draw_polyline(rp, Color(VIOLET, 0.35 * rift * a), 9.0)
+		draw_polyline(rp, Color(NEXO_GOLD, 0.8 * rift * a), 2.0)
+		draw_polyline(rp, Color("02000a"), 1.0)
+	for layer in 3:
+		var speed: float = [0.25, 0.55, 1.0][layer]
+		var base_y: float = [150.0, 172.0, 196.0][layer]
+		var col: Color = [Color(0.12, 0.08, 0.14), Color(0.08, 0.05, 0.1), Color(0.045, 0.03, 0.06)][layer]
+		col = col.lerp(sky_bot.darkened(0.35), [0.6, 0.3, 0.0][layer])
+		var n := 12 - layer * 2
+		var bw := W / float(n - 2)
+		for k in n + 2:
+			var wx := fposmod(k * bw - scroll * speed * 40.0, bw * (n + 2)) - bw
+			var sv := float(k) + layer * 37.0
+			var bwid := bw * (0.75 + _h(sv) * 0.5)
+			var topy := base_y - ((46.0 + layer * 14.0) + _h(sv + 3.0) * (70.0 - layer * 6.0))
+			# Silueta con la azotea rota.
+			var pts := PackedVector2Array([Vector2(wx, base_y), Vector2(wx, topy + _h(sv + 5.0) * 12.0)])
+			var ragged := 1.0 if _h(sv + 9.0) > 0.4 else 0.2
+			for s in 4:
+				pts.append(Vector2(wx + bwid * (s + 1) / 4.0, topy + _h(sv + 7.0 + s) * 16.0 * ragged))
+			pts.append(Vector2(wx + bwid, base_y))
+			draw_colored_polygon(pts, Color(col, a))
+			if layer >= 1:
+				for wy in range(int(topy) + 10, int(base_y) - 6, 10):
+					for wxx in range(int(wx) + 4, int(wx + bwid) - 4, 8):
+						if _h(wxx * 0.13 + wy * 0.31 + sv) > 0.84:
+							draw_rect(Rect2(wxx, wy, 3, 4), Color(1.0, 0.8, 0.4, 0.55 * a))
+			if fire > 0.0 and _h(sv + 11.0) > 0.6:
+				var fx := wx + bwid * 0.5
+				var fl := 0.5 + 0.5 * sin(_t * 9.0 + sv)
+				draw_rect(Rect2(fx - 7.0, topy - 4.0, 14.0, 6.0), Color(1.0, 0.4, 0.1, 0.18 * a))
+				draw_rect(Rect2(fx - 2.0, topy - 6.0 * fl - 2.0, 4.0, 6.0 + 6.0 * fl), Color(1.0, 0.6, 0.15, 0.9 * a))
+		# Columnas de humo entre una capa y otra.
+		for i in 3:
+			var sx := fposmod(_h(i + 3.0 + layer * 5.0) * W + scroll * 6.0, W)
+			var sy := base_y - fposmod(_t * (8.0 + _h(i) * 8.0) + _h(i + 9.0) * 90.0, 90.0)
+			draw_circle(Vector2(sx, sy), 14.0 + _h(i + 6.0) * 14.0, Color(0.05, 0.04, 0.05, 0.16 * minf(fire, 1.0) * a))
+	# Calle destrozada: coches volcados, farolas torcidas y grietas que brillan.
+	draw_rect(Rect2(0, 196, W, 44), Color(0.04, 0.025, 0.05, a))
+	draw_rect(Rect2(0, 196, W, 1), Color(0.4, 0.15, 0.15, a))
+	for k in 5:
+		var gx := fposmod(k * 96.0 - scroll * 40.0, W + 60.0) - 30.0
+		var gp := _crack_points(197.0, 240.0, k * 11.0, 50.0)
+		for j in gp.size():
+			gp[j].x = gx + (gp[j].x - W * 0.5)
+		draw_polyline(gp, Color(NEXO_GOLD, (0.35 + 0.25 * sin(_t * 2.0 + k)) * a), 1.0)
+	for k in 3:
+		var cx := fposmod(k * 150.0 + 40.0 - scroll * 40.0, W + 80.0) - 40.0
+		draw_rect(Rect2(cx, 190.0, 24.0, 8.0), Color(0.16, 0.05, 0.06, a))
+		draw_rect(Rect2(cx + 4.0, 186.0, 14.0, 5.0), Color(0.1, 0.04, 0.05, a))
+		draw_circle(Vector2(cx + 5.0, 198.0), 3.0, Color(0.02, 0.02, 0.03, a))
+		draw_circle(Vector2(cx + 19.0, 198.0), 3.0, Color(0.02, 0.02, 0.03, a))
+
+## Frente de la invasión (cada uno con su ejército), con ciudadanos que huyen.
+func _bg_invasion() -> void:
+	var idx := _world_index()
+	if idx < 0:
+		return
+	var w: Array = WORLDS[idx]
+	var lt := _t - float(w[0])
+	_city(w[3], w[4], lt * 0.5, float(w[5]), 1.0)
+	if idx == 0 or idx == 1:
+		draw_set_transform(Vector2(213.0, 198.0) * -0.5 + _shake, 0.0, Vector2(1.5, 1.5))
+	_inv_extra(idx, lt)
+	draw_set_transform(_shake, 0.0, Vector2.ONE)
+	_civilians(lt)
+
+func _inv_extra(idx: int, lt: float) -> void:
+	match idx:
+		0:   # legionarios en formación
+			for r in 3:
+				for k in 14:
+					var x := fposmod(k * 32.0 + r * 11.0 - lt * 26.0, W + 40.0) - 20.0
+					var y := 190.0 + r * 5.0
+					draw_rect(Rect2(x - 3.0, y - 6.0, 6.0, 8.0), Color("8a1a1a"))
+					draw_rect(Rect2(x - 3.0, y - 6.0, 6.0, 1.0), Color(NEXO_GOLD, 0.9))
+					draw_circle(Vector2(x, y - 9.0), 2.0, Color("c8a070"))
+					draw_rect(Rect2(x - 2.0, y - 11.0, 4.0, 2.0), Color("b0b0c0"))
+					draw_line(Vector2(x + 4.0, y - 4.0), Vector2(x + 4.0, y - 18.0), Color("7a5a3a"), 1.0)
+		1:   # la horda a caballo
+			for k in 12:
+				var sp := 150.0 + _h(k + 1.0) * 90.0
+				var x := fposmod(k * 38.0 + lt * sp, W + 60.0) - 30.0
+				var y := 182.0 + (k % 3) * 7.0
+				var gal := sin(lt * 14.0 + k) * 1.5
+				draw_rect(Rect2(x - 7.0, y - 6.0 + gal, 14.0, 5.0), Color("3a2414"))
+				draw_rect(Rect2(x + 5.0, y - 10.0 + gal, 4.0, 5.0), Color("3a2414"))
+				draw_rect(Rect2(x - 7.0, y - 1.0 + gal, 2.0, 5.0), Color("2a180c"))
+				draw_rect(Rect2(x + 4.0, y - 1.0 - gal, 2.0, 5.0), Color("2a180c"))
+				draw_circle(Vector2(x, y - 13.0 + gal), 2.2, Color("c8a070"))
+				draw_rect(Rect2(x - 2.0, y - 11.0 + gal, 4.0, 5.0), Color("2a3a6a"))
+				draw_line(Vector2(x - 4.0, y - 18.0), Vector2(x + 8.0, y - 6.0), Color("c0c0d0"), 1.0)
+				draw_line(Vector2(x - 8.0, y - 2.0), Vector2(x - 24.0, y - 2.0), Color(0.8, 0.7, 0.5, 0.25), 1.0)
+		2:   # pirámides y un obelisco que se alzan entre los edificios, con interferencias
+			var gl := 0.6 + 0.4 * _h(floorf(lt * 12.0))
+			var up := _ease(lt / 2.0)
+			for pyr in [[130.0, 40.0, 56.0], [250.0, 52.0, 70.0], [330.0, 34.0, 44.0]]:
+				var px: float = pyr[0]
+				var hw: float = pyr[1]
+				var ph: float = float(pyr[2]) * up
+				var tri := PackedVector2Array([Vector2(px - hw, 196.0), Vector2(px, 196.0 - ph), Vector2(px + hw, 196.0)])
+				draw_colored_polygon(tri, Color(Color("c9a050"), 0.9))
+				draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), Color(CYAN, 0.6 * gl), 1.0)
+			draw_rect(Rect2(60.0, 196.0 - 70.0 * up, 8.0, 70.0 * up), Color("d8b060"))
+			for k in 14:
+				var sx := fposmod(_h(k) * W - lt * 120.0, W + 40.0) - 20.0
+				draw_line(Vector2(sx, 130.0 + _h(k + 2.0) * 60.0), Vector2(sx + 22.0, 130.0 + _h(k + 2.0) * 60.0), Color(0.9, 0.75, 0.5, 0.25), 1.0)
+		3:   # cañones que disparan contra el horizonte
+			for c in 2:
+				var cx := 36.0 + c * 52.0
+				var cy := 186.0 + c * 4.0
+				draw_rect(Rect2(cx, cy, 22.0, 5.0), Color("6a6a7a"))
+				draw_circle(Vector2(cx + 6.0, cy + 8.0), 6.0, Color("8a5a30"))
+				var ft := fposmod(lt + c * 0.55, 1.1)
+				if ft < 0.2:
+					draw_circle(Vector2(cx + 24.0, cy + 1.0), 12.0 * (1.0 - ft / 0.2) + 3.0, Color(1.0, 0.8, 0.3, 0.9))
+				draw_circle(Vector2(cx + 28.0 + ft * 40.0, cy - ft * 6.0), 6.0 + ft * 14.0, Color(0.6, 0.6, 0.6, 0.35 * (1.0 - ft / 1.1)))
+			for k in 14:
+				var fy := fposmod(lt * (40.0 + _h(k) * 60.0) + _h(k + 3.0) * 100.0, 150.0)
+				draw_rect(Rect2(240.0 + _h(k + 7.0) * 150.0, 40.0 + fy, 3.0 + _h(k) * 4.0, 3.0 + _h(k + 2.0) * 4.0), Color(0.2, 0.18, 0.2))
+		_:   # falange con lanzas y bandera sobre un rascacielos
+			for k in 16:
+				var x := 20.0 + k * 26.0
+				var sw := sin(lt * 3.0 + k * 0.5) * 1.5
+				draw_circle(Vector2(x, 192.0), 6.0, Color("c89020"))
+				draw_circle(Vector2(x, 192.0), 4.0, Color("e8c050"))
+				draw_line(Vector2(x + 6.0 + sw, 158.0), Vector2(x + 6.0, 198.0), Color("7a5a3a"), 1.0)
+				draw_colored_polygon(PackedVector2Array([Vector2(x + 4.0 + sw, 160.0), Vector2(x + 8.0 + sw, 160.0), Vector2(x + 6.0 + sw, 152.0)]), Color("c0c0d0"))
+			_flag(330.0, 120.0, Color("e0a020"), lt, 1.0)
+
+func _flag(x: float, y: float, col: Color, ph: float, a: float) -> void:
+	draw_line(Vector2(x, y), Vector2(x, y - 26.0), Color(0.15, 0.1, 0.12, a), 1.5)
+	var pts := PackedVector2Array()
+	for k in 5:
+		pts.append(Vector2(x + 2.0 + k * 4.0, y - 26.0 + sin(_t * 5.0 + ph + k * 0.8) * 1.5))
+	for k in range(4, -1, -1):
+		pts.append(Vector2(x + 2.0 + k * 4.0, y - 15.0 + sin(_t * 5.0 + ph + k * 0.8) * 1.5))
+	draw_colored_polygon(pts, Color(col, a))
+
+func _civilians(lt: float) -> void:
+	for k in 7:
+		var x := fposmod(W + 30.0 - lt * (40.0 + _h(k) * 30.0) - k * 55.0, W + 60.0) - 30.0
+		var y := 200.0 + (k % 3) * 3.0
+		var bob := absf(sin(lt * 12.0 + k)) * 2.0
+		draw_circle(Vector2(x, y - 9.0 - bob), 1.6, Color("d0b090"))
+		draw_rect(Rect2(x - 1.5, y - 7.0 - bob, 3.0, 5.0), Color(0.3 + _h(k + 4.0) * 0.5, 0.3, 0.4))
+
+## La Tierra ya conquistada: noche, incendios y las banderas de cada ejército plantadas sobre los escombros.
+func _bg_conquered() -> void:
+	_city(Color("0a0518"), Color("3a1230"), _t * 0.05, 1.0, 1.0)
+	var cols := [Color("c02020"), Color("2a3a6a"), Color("e0a020"), Color("3a60c0"), Color("101010")]
 	for i in 5:
-		var pts := _crack_points(197.0, 240.0, i * 11.0, 60.0)
-		for k in pts.size():
-			pts[k].x = 30.0 + i * 85.0 + (pts[k].x - W * 0.5)
-		draw_polyline(pts, Color(NEXO_GOLD, 0.5 + 0.3 * sin(_t * 2.0 + i)), 1.0)
-	# Bloques de piedra que levitan hacia la esfera.
-	if _t > T_JUDGE + 4.0:
-		for i in 16:
-			var rise := _ease((_t - T_JUDGE - 4.0 - _h(i) * 3.0) / 6.0)
-			var p := Vector2(20.0 + _h(i + 1.0) * (W - 40.0), 188.0 - rise * (70.0 + _h(i + 4.0) * 80.0))
-			_quad(self, p, 6.0 + _h(i + 2.0) * 12.0, 4.0 + _h(i + 6.0) * 9.0, rise * (1.0 + _h(i)), Color("2a1c34"))
-			draw_rect(Rect2(p.x - 2, p.y - 2, 4, 1), Color(NEXO_GOLD, 0.5 * rise))
+		var mx := 40.0 + i * 85.0
+		draw_colored_polygon(PackedVector2Array([Vector2(mx - 22.0, 197.0), Vector2(mx - 6.0, 186.0), Vector2(mx + 8.0, 184.0), Vector2(mx + 24.0, 197.0)]), Color("120a16"))
+		_flag(mx, 186.0, cols[i], i * 1.3, 1.0)
+
+## El último bastión de la resistencia: barricadas, una fogata, la bandera de los héroes y, a lo lejos, la Torre del Reloj.
+func _bg_bastion(a: float, tower_a: float) -> void:
+	if a <= 0.0:
+		return
+	_city(Color("0a0a20"), Color("1c1238"), 0.0, 0.35, 0.5, a)
+	_tower(tower_a * a)
+	for side in [0, 1]:
+		for row in 3:
+			for k in 5 - row:
+				var bx := 4.0 + k * 17.0 + row * 8.0 if side == 0 else W - 22.0 - k * 17.0 - row * 8.0
+				draw_rect(Rect2(bx, 189.0 - row * 7.0, 16.0, 7.0), Color(0.3, 0.25, 0.18, a))
+				draw_rect(Rect2(bx, 189.0 - row * 7.0, 16.0, 1.0), Color(0.42, 0.36, 0.26, a))
+	draw_rect(Rect2(150.0, 188.0, 40.0, 10.0), Color(0.07, 0.07, 0.12, a))
+	draw_rect(Rect2(156.0, 183.0, 26.0, 6.0), Color(0.05, 0.05, 0.1, a))
+	# Fogata.
+	var fl := 0.5 + 0.5 * sin(_t * 11.0)
+	draw_circle(Vector2(76.0, 192.0), 38.0 + 4.0 * fl, Color(1.0, 0.5, 0.15, 0.1 * a))
+	draw_line(Vector2(68.0, 197.0), Vector2(84.0, 193.0), Color(0.25, 0.14, 0.08, a), 3.0)
+	draw_line(Vector2(68.0, 193.0), Vector2(84.0, 197.0), Color(0.3, 0.17, 0.09, a), 3.0)
+	for k in 5:
+		var fh := 8.0 + 8.0 * _h(floorf(_t * 10.0) + k)
+		draw_rect(Rect2(71.0 + k * 3.0, 192.0 - fh, 3.0, fh), Color(1.0, 0.55 + 0.1 * k, 0.15, 0.9 * a))
+	# Bandera de la resistencia.
+	draw_line(Vector2(352.0, 196.0), Vector2(352.0, 124.0), Color(0.5, 0.5, 0.55, a), 2.0)
+	_flag(352.0, 150.0, Color(CYAN.lightened(0.3), 1.0), 0.0, a)
+	# Farola encendida.
+	draw_line(Vector2(120.0, 196.0), Vector2(120.0, 150.0), Color(0.12, 0.12, 0.16, a), 2.0)
+	draw_circle(Vector2(120.0, 150.0), 18.0, Color(1.0, 0.85, 0.5, 0.1 * a))
+	draw_circle(Vector2(120.0, 150.0), 3.0, Color(1.0, 0.9, 0.6, a))
+
+## La Torre del Reloj del Origen: una aguja con el Reloj gigante y un haz de luz que perfora el cielo.
+func _tower(a: float) -> void:
+	if a <= 0.0:
+		return
+	var cx := 213.0
+	var by := 192.0
+	var ty := 44.0
+	var body := PackedVector2Array([Vector2(cx - 22.0, by), Vector2(cx - 9.0, ty + 40.0), Vector2(cx - 6.0, ty + 20.0), Vector2(cx - 3.0, ty),
+		Vector2(cx + 3.0, ty), Vector2(cx + 6.0, ty + 20.0), Vector2(cx + 9.0, ty + 40.0), Vector2(cx + 22.0, by)])
+	draw_rect(Rect2(cx - 4.0, 0.0, 8.0, ty), Color(VIOLET, 0.3 * a))
+	draw_rect(Rect2(cx - 1.0, 0.0, 2.0, ty), Color(NEXO_GOLD, 0.85 * a))
+	draw_colored_polygon(body, Color(0.07, 0.04, 0.12, a))
+	var edge := PackedVector2Array(body)
+	edge.append(body[0])
+	draw_polyline(edge, Color(VIOLET.lightened(0.2), 0.8 * a), 1.0)
+	var rc := Vector2(cx, 96.0)
+	draw_circle(rc, 30.0, Color(VIOLET, 0.12 * a))
+	for g in 14:
+		var ang := _t * 0.4 + TAU * g / 14.0
+		_quad(self, rc + Vector2.from_angle(ang) * 26.0, 6.0, 5.0, ang, Color(BRASS, a))
+	draw_arc(rc, 23.0, 0.0, TAU, 40, Color(BRASS, a), 4.0)
+	draw_circle(rc, 19.0, Color(0.05, 0.03, 0.09, a))
+	for g in 12:
+		var ang := TAU * g / 12.0
+		draw_line(rc + Vector2.from_angle(ang) * 15.0, rc + Vector2.from_angle(ang) * 18.0, Color(NEXO_GOLD, 0.8 * a), 1.0)
+	draw_line(rc, rc + Vector2.from_angle(-_t * 0.8) * 14.0, Color(NEXO_GOLD, a), 2.0)
+	draw_line(rc, rc + Vector2.from_angle(_t * 2.1) * 10.0, Color(CYAN, a), 1.0)
+	for k in 6:
+		draw_rect(Rect2(cx - 5.0 + (k % 2) * 6.0, 140.0 + (k / 2) * 14.0, 3.0, 4.0), Color(NEXO_GOLD, (0.4 + 0.4 * _h(floorf(_t * 3.0) + k)) * a))
 
 func _nexo_sphere(ci: CanvasItem) -> void:
 	var grow := _ease((_t - T_JUDGE) / 3.0)
@@ -924,32 +1107,6 @@ func _nexo_sphere(ci: CanvasItem) -> void:
 		var a0 := _t * (1.2 + k * 0.5) + k * 2.1
 		ci.draw_arc(c, r * (1.25 + k * 0.18), a0, a0 + 2.2, 24, [CYAN, VIOLET, CYAN][k] as Color, 2.0)
 	ci.draw_arc(c, r * 1.6 + pulse * 3.0, 0, TAU, 48, Color(CYAN, 0.35), 1.0)
-
-func _bg_arena(ci: CanvasItem, a: float) -> void:
-	if a <= 0.0:
-		return
-	# Gradas en tres pisos con arcos; el público espectral las va llenando.
-	ci.draw_rect(Rect2(0, 0, W, 176), Color(VOID, a))
-	var orbit := sin((_t - T_JUDGE) * 0.45)
-	var fill := _ease((_t - 80.0) / 10.0)
-	for row in 3:
-		var y := 70.0 + row * 36.0
-		var shift := orbit * (6.0 + row * 8.0)
-		ci.draw_rect(Rect2(0, y, W, 36), Color(0.07 + row * 0.015, 0.03, 0.12 + row * 0.02, a))
-		ci.draw_rect(Rect2(0, y, W, 1), Color(CYAN, 0.5 * a))
-		for k in range(-2, 24):
-			var x := k * 20.0 + shift
-			ci.draw_rect(Rect2(x, y + 12, 12, 22), Color(0.02, 0.01, 0.05, a))
-			var hs := _h(k * 7.0 + row * 31.0)
-			if hs < fill:
-				var bob := sin(_t * 3.0 + k) * 1.0
-				ci.draw_rect(Rect2(x + 4, y + 17 + bob, 4, 7), Color(CYAN.lerp(Color.WHITE, 0.4), 0.55 * a))
-				ci.draw_rect(Rect2(x + 4, y + 14 + bob, 4, 3), Color(CYAN.lerp(Color.WHITE, 0.4), 0.7 * a))
-	# Arena de roca y cristal negro.
-	ci.draw_rect(Rect2(0, 176, W, 64), Color(0.03, 0.015, 0.06, a))
-	ci.draw_rect(Rect2(0, 176, W, 2), Color(NEXO_GOLD, 0.6 * a))
-	for i in 9:
-		ci.draw_line(Vector2(W * 0.5 + (i - 4) * 14.0, 178), Vector2(W * 0.5 + (i - 4) * 70.0, 240), Color(VIOLET, 0.25 * a), 1.0)
 
 func _select_backdrop() -> void:
 	var i := _select_index()
@@ -1048,9 +1205,9 @@ func _draw_fx() -> void:
 	if t >= T_BLAST and t < T_COLLIDE:
 		_fx_blast()
 	if t >= T_COLLIDE and t < T_RUINS:
-		_fx_world()
+		_fx_invasion()
 	if t >= T_RUINS and t < T_ARENA + 4.0:
-		_fx_ruins()
+		_fx_conquest()
 	if t >= T_SELECT and t < T_CIRCLE:
 		_fx_select()
 	if t >= T_CIRCLE and t < T_BUILD:
@@ -1133,6 +1290,13 @@ func _fx_collider() -> void:
 	_fx.draw_circle(c, 3.0, Color(1, 1, 1, a))
 	if fposmod(t, 1.0) < 0.7:
 		_txt(_fx, c.y + 40.0, "IA · ORIGEN", 8, Color(CYAN, 0.8 * a), 0.0, W, 1)
+	# El objetivo del experimento y el riesgo que aceptan correr.
+	var oa := _ph(2.2, 2.8)
+	if oa > 0.0:
+		_txt(_fx, 66.0, "CONTROL DE LA GRAVEDAD", 8, Color(HKTheme.PAPER, oa * a), 0.0, W, 1)
+	var ra := _ph(3.0, 3.6)
+	if ra > 0.0:
+		_txt(_fx, 78.0, "RIESGO 8 % · ACEPTADO", 8, Color(Color("ffb030"), ra * a), 0.0, W, 1)
 	# Datos del experimento.
 	HKTheme.draw_text(_fx, Vector2(8, 38), "CERN · GINEBRA", 8, Color(HKTheme.PAPER, 0.85 * a), HORIZONTAL_ALIGNMENT_LEFT, 120.0, 1)
 	HKTheme.draw_text(_fx, Vector2(8, 49), "SECTOR 7", 8, Color(HKTheme.MUTED, a), HORIZONTAL_ALIGNMENT_LEFT, 120.0, 1)
@@ -1289,57 +1453,30 @@ func _fx_awaken(dt: float) -> void:
 		var y := fposmod(_h(i + 1.0) * 220.0 + _t * (50.0 + _h(i + 6.0) * 90.0), 240.0)
 		_fx.draw_rect(Rect2(x, y, 2, 5 + _h(i + 3.0) * 8.0), Color(CYAN, 0.35 * f * _ph(1.0, 3.0)))
 
-func _fx_world() -> void:
+## Primer plano de cada frente de la invasión: brasas, cortes de interferencia y el rótulo del frente.
+func _fx_invasion() -> void:
 	var idx := _world_index()
+	if idx < 0:
+		return
 	var w: Array = WORLDS[idx]
 	var lt := _t - float(w[0])
-	_fx.draw_rect(Rect2(0, 0, W, H), w[3])
-	match idx:
-		0:   # auroras cian y hologramas rotos
-			for k in 4:
-				var pts := PackedVector2Array()
-				for x in range(0, int(W) + 12, 12):
-					pts.append(Vector2(x, 22.0 + k * 11.0 + sin(x * 0.03 + _t * 1.3 + k) * 7.0))
-				_fx.draw_polyline(pts, Color(CYAN if k % 2 == 0 else Color("60ff90"), 0.35), 3.0)
-			for k in 3:
-				if _h(floorf(_t * 6.0) + k) > 0.3:
-					_fx.draw_rect(Rect2(40 + k * 90, 80 + k * 14, 50, 30), Color(CYAN, 0.45), false, 1.0)
-		1:   # ceniza naranja
-			for k in 40:
-				var p := Vector2(fposmod(_h(k) * W + _t * 30.0, W), fposmod(_h(k + 5.0) * H + _t * 22.0, H))
-				_fx.draw_rect(Rect2(p, Vector2(1, 1)), Color("ffa040"))
-		2:   # polvo de la estepa
-			for k in 18:
-				var p := Vector2(fposmod(_h(k) * W - _t * 160.0, W + 60.0) - 30.0, 120.0 + _h(k + 2.0) * 90.0)
-				_fx.draw_line(p, p + Vector2(26, 0), Color(0.8, 0.85, 1.0, 0.25), 1.0)
-		3:   # grietas de lava dorada
-			for k in 4:
-				var pts := _crack_points(110.0, 240.0, k * 13.0, 80.0)
-				for j in pts.size():
-					pts[j].x = 40.0 + k * 115.0 + (pts[j].x - W * 0.5)
-				_fx.draw_polyline(pts, Color(NEXO_GOLD, 0.35), 6.0)
-				_fx.draw_polyline(pts, Color("fff0a0"), 1.5)
-		4:   # dos lunas y un cielo desgarrado
-			_fx.draw_circle(Vector2(88, 46), 15, Color("e8e8f8"))
-			_fx.draw_circle(Vector2(82, 42), 3, Color("c8c8dc"))
-			_fx.draw_circle(Vector2(336, 62), 10, Color("d8d0f0"))
-			var tear := _crack_points(0.0, 150.0, 70.0, 70.0)
-			_fx.draw_polyline(tear, Color(VIOLET, 0.5), 6.0)
-			_fx.draw_polyline(tear, Color("02000a"), 2.0)
-	# Cortes de glitch: el tiempo se está rompiendo.
+	for k in 34:
+		var p := Vector2(fposmod(_h(k) * W + _t * (14.0 + _h(k + 3.0) * 30.0), W), fposmod(_h(k + 5.0) * H - _t * (20.0 + _h(k + 1.0) * 40.0), H))
+		_fx.draw_rect(Rect2(p, Vector2(1, 1)), Color(1.0, 0.6, 0.2, 0.7))
 	var q := floorf(_t * 9.0)
 	for k in 2:
-		if _h(q + k * 3.0) > 0.55:
-			var y := _h(q + k) * H
-			_fx.draw_rect(Rect2(0, y, W, 2 + _h(q) * 5.0), Color(CYAN if k == 0 else VIOLET, 0.28))
-	# Rótulo del mundo y destello de entrada.
+		if _h(q + k * 3.0) > 0.6:
+			_fx.draw_rect(Rect2(0, _h(q + k) * H, W, 2 + _h(q) * 4.0), Color(CYAN if k == 0 else VIOLET, 0.22))
 	var shown := int(lt * 30.0)
-	_txt(_fx, 40.0, (w[2] as String).left(shown), 8, HKTheme.GOLD, 0.0, W)
+	var label: String = (w[2] as String).left(shown)
+	var lw := HKTheme.text_width(w[2], 8) + 16.0
+	_fx.draw_rect(Rect2(W * 0.5 - lw * 0.5, 30.0, lw, 15.0), Color(0.03, 0.01, 0.06, 0.65 * minf(lt / 0.4, 1.0)))
+	_txt(_fx, 41.0, label, 8, HKTheme.GOLD, 0.0, W)
 	if lt < 0.3:
 		_fx.draw_rect(Rect2(0, 0, W, H), Color(0.8, 0.7, 1.0, 0.8 * (1.0 - lt / 0.3)))
 
-func _fx_ruins() -> void:
-	# Columnas de luz donde cae cada luchador.
+## La caída de los héroes a la Tierra conquistada.
+func _fx_conquest() -> void:
 	for i in RUINS.size():
 		var lt := _t - (T_RUINS + 0.2 + i * 0.9)
 		if lt > -0.3 and lt < 0.6:
@@ -1348,9 +1485,15 @@ func _fx_ruins() -> void:
 	if _t < T_RUINS + 0.7:
 		_fx.draw_rect(Rect2(0, 0, W, H), Color(1, 0.9, 0.7, 0.6 * (1.0 - (_t - T_RUINS) / 0.7)))
 	if _t < T_RUINS + 4.5:
-		_txt(_fx, 40.0, "UN MISMO CAMPO DE RUINAS", 8, Color(HKTheme.GOLD, 1.0 - _ph(T_RUINS + 3.5, T_RUINS + 4.5)))
+		var ta := 1.0 - _ph(T_RUINS + 3.5, T_RUINS + 4.5)
+		var lw := HKTheme.text_width("LA TIERRA, CONQUISTADA", 8) + 16.0
+		_fx.draw_rect(Rect2(W * 0.5 - lw * 0.5, 30.0, lw, 15.0), Color(0.03, 0.01, 0.06, 0.65 * ta))
+		_txt(_fx, 41.0, "LA TIERRA, CONQUISTADA", 8, Color(HKTheme.GOLD, ta))
 	if _t >= T_JUDGE and _t < T_JUDGE + 0.5:
 		_fx.draw_rect(Rect2(0, 0, W, H), Color(1, 1, 0.9, 0.7 * (1.0 - (_t - T_JUDGE) / 0.5)))
+	for k in 24:
+		var p := Vector2(fposmod(_h(k) * W + _t * (10.0 + _h(k + 3.0) * 20.0), W), fposmod(_h(k + 5.0) * H - _t * (16.0 + _h(k + 1.0) * 30.0), H))
+		_fx.draw_rect(Rect2(p, Vector2(1, 1)), Color(1.0, 0.6, 0.2, 0.6))
 
 func _fx_select() -> void:
 	var i := _select_index()
@@ -1369,7 +1512,7 @@ func _fx_select() -> void:
 		_fx.draw_rect(Rect2(0, 0, W, H), Color(1, 1, 1, 0.3 * (1.0 - lt / 0.1)))
 
 func _fx_circle() -> void:
-	_txt(_fx, 40.0, "QUINCE LUCHADORES. UN SOLO TRONO.", 8, Color(HKTheme.GOLD, _ph(T_CIRCLE + 0.5, T_CIRCLE + 1.5)))
+	_txt(_fx, 40.0, "QUINCE CAMPEONES. UNA SOLA TIERRA.", 8, Color(HKTheme.GOLD, _ph(T_CIRCLE + 0.5, T_CIRCLE + 1.5)))
 	# Nombre del luchador que pasa al frente del círculo.
 	if _t > T_CIRCLE + 2.0:
 		var front := 0
@@ -1434,8 +1577,8 @@ func _fx_logo() -> void:
 			_txt(_fx, 190.0, "[ PRESS START ]", 8, HKTheme.GOLD, 0.0, W, 2)
 	if _t > T_LOGO + 5.0:
 		var qa := maxf(_ph(T_LOGO + 5.0, T_LOGO + 6.5), 0.01)
-		_txt(_fx, 212.0, "¿QUIÉN MERECE CONTROLAR EL DESTINO", 8, Color(HKTheme.PAPER, qa), 0.0, W, 2)
-		_txt(_fx, 224.0, "DE TODA LA HISTORIA?", 8, Color(HKTheme.PAPER, qa), 0.0, W, 2)
+		_txt(_fx, 212.0, "¿QUIÉN SALVARÁ LA TIERRA", 8, Color(HKTheme.PAPER, qa), 0.0, W, 2)
+		_txt(_fx, 224.0, "DE LA HISTORIA REESCRITA?", 8, Color(HKTheme.PAPER, qa), 0.0, W, 2)
 
 func _fx_cards() -> void:
 	for c in CARDS:
