@@ -1,6 +1,6 @@
 ## Recorrido de continuidad del Modo Historia, sin combatir, con todo lo que se ve y se oye, en orden:
 ## mini-intro del Nexo -> por cada época: animación, tarjeta, pantalla del primer rival, escena de diálogo
-## de su jefe (con voz) y los resultados de vencerlo (despedida y fragmento del Reloj) -> el Nexo -> final.
+## de sus creadores del Reloj y de su jefe (con voz) y los resultados de vencerlo (despedida y fragmento del Reloj) -> el Nexo -> final.
 ##   godot --path . res://tests/StoryFlowPreview.tscn -- [--player=napoleon]
 ## Cualquier tecla salta la animación, la tarjeta o la escena en curso; cada pantalla fija dura unos segundos.
 extends Node
@@ -28,6 +28,10 @@ func _ready() -> void:
 		var boss := starts[k]
 		while boss + 1 < Game.arcade_ladder.size() and Game.story_chapter_of(Game.arcade_ladder[boss + 1]) == k:
 			boss += 1
+		# Los creadores del Reloj que aparecen a mitad de la época (su escena de diálogo, con voz).
+		for stage in range(starts[k] + 1, boss):
+			if Game.story_is_creator(stage):
+				await _show_stage(stage)
 		if boss != starts[k]:
 			await _show_stage(boss)
 			await _show_results(boss)
