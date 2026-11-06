@@ -1,0 +1,40 @@
+# HISTORY COMBAT – LISTA DE PENDIENTES
+
+### 1. INTRODUCCIÓN
+
+1. Los cuatro creadores del origen del reloj aparecen superpuestos al texto y sus pies pisan las letras.
+2. Las grietas que dejó el Tiempo Roto son demasiado simples.
+3. Mejorar la calidad de las animaciones de la introducción, ya que actualmente son demasiado simples.
+4. Al comenzar la introducción, el video presenta parpadeos y, en ocasiones, no inicia correctamente. A veces es necesario recargar la página.
+
+### 2. MENÚ ONLINE Y MODO HISTORIA
+
+1. Los jugadores se mueven dentro del recuadro de selección y elegir un personaje resulta demasiado lento.
+2. Mejorar la opción de selección, ya que es demasiado pequeña y no permite distinguir bien a los personajes.
+3. Implementar un selector de épocas que permita elegir un período histórico y muestre los peleadores correspondientes a esa época en un tamaño más grande.
+
+### 3. PERSONAJES
+
+1. Donald Trump no tiene ojos. Corregir su diseño.
+2. Revisar los datos históricos de todos los personajes para verificar que sean correctos, especialmente las fechas, los acontecimientos en los que participaron y quiénes fueron o qué hicieron por el mundo.
+
+### 4. MODALIDAD HISTORIA
+
+1. Actualmente solo hay 3 vidas (revanchas). Si pierdes tres veces, la partida termina. Esto debe cambiarse, ya que es demasiado restrictivo.
+2. Cuando se pelea contra Putin, aparece la referencia «Rusia 1952». Verificar si corresponde a su año de nacimiento o a qué hace referencia.
+
+### 5. TRAMA Y NARRATIVA
+
+1. Cada peleador quiere regresar a su época para corregir sus derrotas y ganar esta vez las batallas que perdió. El jugador debe impedirlo y reparar el tiempo.
+2. Al final, el jugador debe encontrarse con la decisión que ya conocemos.
+3. Las frases de cada peleador deben transmitir su determinación de reescribir su historia y ganar las batallas que perdió.
+4. Las frases de los creadores del Nexo deben mantener su enfoque científico, ya que son científicos y solo aportaron sus conocimientos.
+5. Los creadores del Nexo también deben proporcionar información y consejos sobre cómo ganar cuando el jugador sea derrotado, relacionando sus conocimientos científicos con las líneas de diálogo de cada uno.
+
+### 6. MODO ONLINE
+
+1. Durante algunas partidas online, uno de los jugadores se queda con la pantalla completamente negra y no puede visualizar la pelea.
+2. El problema ocurrió al pasar al segundo round.
+3. El jugador sigue escuchando el combate, pero no ve nada en pantalla y tampoco se desconecta.
+4. Al terminar la pelea, recupera la imagen y puede visualizar la pantalla de resultados.
+5. Corregir el error que provoca la pérdida de imagen durante el combate online.
