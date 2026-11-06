@@ -1203,11 +1203,20 @@ func _test_arcade() -> void:
 	check(rematch_text_is("EL DESTINO"), "historia completada: se ofrece EL DESTINO (final con elección)")
 
 	# --- El jefe de cada época sale reforzado; el Nexo, más aún y con la IA al máximo ---
-	var boss_at := ladder.size() - 2   # el último rival antes del Nexo
+	var boss_at := -1   # el último jefe de época antes del Nexo (tras él viene el creador poseído)
+	for i in ladder.size() - 1:
+		if Game.story_is_chapter_boss(i):
+			boss_at = i
+	check(boss_at >= 0, "hay jefes de época antes del Nexo")
 	Game.arcade_stage = boss_at
 	Game.p2_fighter_id = ladder[boss_at]
 	var boss_base := FighterRegistry.get_by_id(ladder[boss_at]).max_health
 	check(Game.story_is_chapter_boss(boss_at) and Game.p2_data().max_health > boss_base, "el jefe de la época tiene más vida")
+	if Game.story_possession_follows(boss_at):
+		Game.arcade_stage = boss_at + 1
+		Game.p2_fighter_id = ladder[boss_at + 1]
+		var creator_base := FighterRegistry.get_by_id(ladder[boss_at + 1]).max_health
+		check(Game.story_is_creator(boss_at + 1) and Game.p2_data().max_health > creator_base, "el creador poseído también sale reforzado")
 	Game.arcade_stage = ladder.size() - 1
 	Game.p2_fighter_id = ladder[ladder.size() - 1]
 	var nexo_base := FighterRegistry.get_by_id(Game.STORY_NEXO_ID).max_health
