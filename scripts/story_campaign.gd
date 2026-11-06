@@ -9,13 +9,13 @@ const NEXO_NAME := "EL JUICIO DEL NEXO"
 ## RIVALES: villanos, dictadores y ambiciosos, más el creador del Reloj poseído que cierra cada época. Dentro de cada
 ## una se ordenan por año; el jefe (BOSSES) va el último de los rivales y el creador poseído, después de él.
 const CHAPTERS := [
-	["EL MUNDO ACTUAL", [&"kim_jong_un", &"nicolas_maduro", &"osama_bin_laden", &"vladimir_putin", &"pablo_escobar",
+	["EL MUNDO ACTUAL", [&"kim_jong_un", &"nicolas_maduro", &"osama_bin_laden", &"xi_jinping", &"vladimir_putin", &"pablo_escobar",
 		&"donald_trump", &"marie_curie"]],
 	["EL SIGLO XX", [&"saddam_hussein", &"fidel_castro", &"augusto_pinochet", &"benito_mussolini", &"joseph_stalin",
 		&"rasputin", &"adolf_hitler", &"albert_einstein"]],
 	["REVOLUCIONES, IMPERIOS Y DESCUBRIMIENTOS", [&"ivan_el_terrible", &"nostradamus", &"hernan_cortes",
 		&"nicolas_maquiavelo", &"cristobal_colon", &"napoleon", &"nikola_tesla"]],
-	["LA ANTIGÜEDAD Y LA EDAD MEDIA", [&"gengis_kan", &"cleopatra", &"alejandro_magno", &"julio_cesar",
+	["ANTIGÜEDAD, EDAD MEDIA Y RENACIMIENTO", [&"gengis_kan", &"cleopatra", &"alejandro_magno", &"julio_cesar",
 		&"leonardo_da_vinci"]],
 ]
 ## Los buenos y justos: solo se pueden elegir (no son rivales) y están disponibles desde el principio.
@@ -23,7 +23,9 @@ const PLAYABLE_ONLY: Array[StringName] = [
 	&"socrates", &"platon", &"aristoteles", &"confucio", &"sun_tzu", &"buda", &"jesus_de_nazaret", &"boudica",
 	&"juana_de_arco", &"lautaro", &"janequeo", &"galileo_galilei", &"pachacutec", &"moctezuma_ii",
 	&"isaac_newton", &"charles_darwin", &"abraham_lincoln", &"arturo_prat",
-	&"salvador_allende", &"liudmila_pavlichenko", &"mariya_oktyabrskaya", &"papa_francisco", &"isabel_ii", &"xi_jinping",
+	&"salvador_allende", &"liudmila_pavlichenko", &"mariya_oktyabrskaya", &"papa_francisco", &"isabel_ii",
+	&"stephen_hawking", &"alan_turing", &"nelson_mandela", &"martin_luther_king", &"dalai_lama",
+	&"jacobo_grinberg",
 ]
 ## Jefe de cada época (índice -> luchador), el más controvertido de su tiempo; va al final de los rivales.
 const BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"napoleon", 3: &"julio_cesar"}
@@ -34,9 +36,9 @@ const CREATORS: Array[StringName] = [&"nikola_tesla", &"albert_einstein", &"mari
 ## Todos los luchadores quieren volver a su época a corregir su derrota; el jugador debe impedirlo.
 const NEXO_LINES := [
 	["LOS VIVOS QUIEREN MÁS PODER; LOS MUERTOS,", "VOLVER A GANAR. DETENLOS A TODOS."],
-	["LA GRIETA SIGUE ABIERTA. LOS EJÉRCITOS", "AVANZAN SOBRE LAS CIUDADES."],
-	["CORONAS, FLOTAS Y REVOLUCIONES", "QUIEREN REESCRIBIR SU DERROTA."],
-	["EL FRENTE MÁS ANTIGUO. SI SE", "REESCRIBE, TODO LO DEMÁS SE DERRUMBA."],
+	["LA COLISIÓN MEZCLÓ LAS ÉPOCAS. SUS EJÉRCITOS", "AVANZAN SOBRE TUS CIUDADES."],
+	["CORONAS, FLOTAS Y REVOLUCIONES, TRAÍDAS", "DE OTRO TIEMPO, QUIEREN REESCRIBIR SU DERROTA."],
+	["EL FRENTE MÁS ANTIGUO, ARRANCADO DEL PASADO.", "SI SE REESCRIBE, TODO LO DEMÁS SE DERRUMBA."],
 	["SOLO YO SOSTENGO TODAS LAS ÉPOCAS.", "ESTA ES LA PRUEBA FINAL."],
 ]
 ## Reacción del Nexo al empezar un capítulo, según las revanchas gastadas hasta ahora.

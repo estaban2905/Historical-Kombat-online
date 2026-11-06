@@ -14,7 +14,7 @@ const HAIRS := ["3a2418", "1a1a1a", "8a6a3a", "c8a050"]
 const SKINS := ["f0c8a0", "d8a070", "b07848", "8a5a38"]
 
 ## Estilos de soldado: uni=torso, legs, boots, belt, trim, skin, helm (forma),
-## hc (color del casco), plume, weap (arma), shield.
+## hc (color del casco), plume, weap (arma), shield, flag (color de la bandera en la ciudad; por defecto uni).
 const STYLES := {
 	"legion": {"uni": "b03030", "legs": "c8a070", "boots": "5a3a22", "helm": "legion", "hc": "c0c0c8", "plume": "b02828", "weap": "pilum", "shield": "b02828"},
 	"hoplite": {"uni": "c8c0a0", "legs": "d8a878", "boots": "5a3a22", "helm": "corinth", "hc": "c89838", "plume": "c02828", "weap": "pike", "shield": "c89838"},
@@ -28,6 +28,7 @@ const STYLES := {
 	"soviet": {"uni": "6a5a38", "legs": "5a4a30", "helm": "ushanka", "hc": "5a4a30", "weap": "rifle"},
 	"wehr": {"uni": "5a5a48", "legs": "4a4a40", "helm": "steel", "hc": "5a5a58", "weap": "rifle"},
 	"fascist": {"uni": "1a1a1a", "legs": "1a1a1a", "trim": "d8d8d8", "helm": "fez", "hc": "1a1a1a", "weap": "rifle"},
+	"pla": {"uni": "5a6a30", "legs": "4a5a28", "boots": "1a1a1a", "trim": "d8b040", "helm": "cap", "hc": "c02020", "weap": "rifle", "flag": "c02020"},
 	"chinese": {"uni": "b02828", "legs": "7a1818", "trim": "d8b040", "helm": "conical", "hc": "d8b040", "plume": "b02828", "weap": "spear"},
 	"suit": {"uni": "1a1a24", "legs": "1a1a24", "boots": "0a0a0a", "trim": "e8e8e8", "helm": "hair", "hc": "2a2018", "skin": "f0c8a0", "weap": "none"},
 	"marine": {"uni": "1a2a6a", "legs": "c8c8d8", "trim": "e8e8e8", "helm": "cap", "hc": "e8e8e8", "weap": "rifle"},

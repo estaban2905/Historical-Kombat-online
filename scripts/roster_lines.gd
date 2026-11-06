@@ -71,6 +71,24 @@ const VERSUS := {
 	&"vladimir_putin>donald_trump": ["Donald, esto no es un negocio.", "El resultado estaba decidido, Donald."],
 	&"donald_trump>kim_jong_un": ["Hombre Cohete, hoy pierdes el trato.", "¡Otro gran trato! El cohete se quedó en tierra."],
 	&"kim_jong_un>donald_trump": ["Mis cohetes ya apuntan a tu peinado.", "¡Victoria! Que lo transmitan en directo."],
+	# --- Héroes de la actualidad ---
+	&"stephen_hawking>isaac_newton": ["Sir Isaac, tu gravedad tenía un pequeño error.", "Tu manzana cayó; yo caí en un agujero negro."],
+	&"isaac_newton>stephen_hawking": ["Joven, la gravedad la escribí yo primero.", "Las leyes de Newton aún mandan, colega."],
+	&"stephen_hawking>albert_einstein": ["Albert, vamos a ver quién entiende más el tiempo.", "Hasta el tiempo se detuvo para verme ganar."],
+	&"albert_einstein>stephen_hawking": ["Stephen, todo es relativo, hasta tu victoria.", "Tu mente es enorme; mi relatividad, mayor."],
+	&"alan_turing>adolf_hitler": ["Tus códigos eran secretos. Eran.", "Descifré el ruido; ahora descifré tu derrota."],
+	&"alan_turing>albert_einstein": ["Albert, esto lo puede calcular una máquina.", "Calculado: gana el algoritmo."],
+	&"abraham_lincoln>martin_luther_king": ["Doctor, tu sueño también es el mío.", "Un sueño compartido gana más batallas."],
+	&"martin_luther_king>abraham_lincoln": ["Presidente, el sueño que empezó contigo sigue.", "El camino a la igualdad sigue, presidente."],
+	&"nelson_mandela>augusto_pinochet": ["General, el perdón es más fuerte que su uniforme.", "Gané sin rencor. La democracia gana siempre."],
+	&"nelson_mandela>martin_luther_king": ["Doctor, la libertad se construye juntos.", "Dos sueños, una misma libertad."],
+	&"dalai_lama>buda": ["Maestro, caminemos juntos hacia la paz.", "Tu calma me guió en este combate."],
+	&"buda>dalai_lama": ["Joven monje, la paz se encuentra por dentro.", "La calma gana sin hacer ruido."],
+	&"dalai_lama>xi_jinping": ["Presidente, el Tíbet pide diálogo, no fuerza.", "Gané sin odio. El diálogo sigue abierto."],
+	&"jacobo_grinberg>albert_einstein": ["Albert, la conciencia también es un campo.", "La mente observó y el resultado cambió."],
+	&"jacobo_grinberg>dalai_lama": ["Maestro, comparemos meditación y neuronas.", "Dos mentes, una red. Esta vez gané yo."],
+	&"dalai_lama>jacobo_grinberg": ["Doctor, la mente se calma antes de pelear.", "La calma también ordena las neuronas."],
+	&"xi_jinping>dalai_lama": ["Maestro, hoy el combate manda. Nada de rezos.", "Las armas y la armonía no se mezclan."],
 }
 
 static func _key(a: StringName, b: StringName) -> StringName:

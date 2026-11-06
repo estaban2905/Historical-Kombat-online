@@ -28,6 +28,8 @@ var _t: float = 0.0
 var _done: bool = false
 var _portrait: FighterRenderer
 var _portrait_id: StringName = &""
+## Quien habla está a la derecha (el villano y los creadores); el jugador y el Nexo, a la izquierda.
+var _right: bool = false
 var _wrapped: PackedStringArray = PackedStringArray()
 var _voice: AudioStreamPlayer
 var _has_voice: bool = false
@@ -51,6 +53,7 @@ func _show_line() -> void:
 	_t = 0.0
 	_after_voice = 0.0
 	var who: StringName = lines[_i][0]
+	_right = who != StoryScenes.NEXO and who != Game.p1_fighter_id
 	_wrapped = _wrap(str(lines[_i][1]), TEXT_W)
 	_voice.stop()
 	_has_voice = false
@@ -76,8 +79,13 @@ func _show_line() -> void:
 			_portrait.setup(FighterRegistry.get_by_id(who))
 			_portrait.pose_name = &"idle"
 			var s := clampf(110.0 / maxf(_portrait.approx_height(), 1.0), 0.8, 1.6)
-			_portrait.scale = Vector2(s, s)
-			_portrait.position = Vector2(52.0, PANEL_Y + 62.0)
+			# A la derecha mira hacia la izquierda (hacia el jugador).
+			_portrait.scale = Vector2(-s if _right else s, s)
+			_portrait.position = Vector2(W - 52.0 if _right else 52.0, PANEL_Y + 62.0)
+
+## Dónde empieza el texto: junto al retrato de quien habla.
+func _text_x() -> float:
+	return 16.0 if _right else TEXT_X
 
 func _total_chars() -> int:
 	var n := 0
@@ -189,7 +197,7 @@ func _draw() -> void:
 		draw_circle(c, 17.0, Color(VIOLET, 0.7))
 		draw_circle(c, 14.0, NEXO_GOLD)
 		draw_circle(c, 6.0, Color.WHITE)
-	HKTheme.draw_text(self, Vector2(TEXT_X, PANEL_Y + 16.0), name_text, 8, NEXO_GOLD if nexo else HKTheme.GOLD,
+	HKTheme.draw_text(self, Vector2(_text_x(), PANEL_Y + 16.0), name_text, 8, NEXO_GOLD if nexo else HKTheme.GOLD,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 2)
 	var left := _typed()
 	for k in _wrapped.size():
@@ -197,7 +205,7 @@ func _draw() -> void:
 			break
 		var shown := _wrapped[k].substr(0, mini(left, _wrapped[k].length()))
 		left -= _wrapped[k].length()
-		HKTheme.draw_text(self, Vector2(TEXT_X, PANEL_Y + 32.0 + k * 12.0), shown, 8, HKTheme.PAPER,
+		HKTheme.draw_text(self, Vector2(_text_x(), PANEL_Y + 32.0 + k * 12.0), shown, 8, HKTheme.PAPER,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	if _typed() >= _total_chars() and int(_t * 2.0) % 2 == 0:
 		HKTheme.draw_text(self, Vector2(0, H - 8.0), ">", 8, NEXO_GOLD, HORIZONTAL_ALIGNMENT_RIGHT, W - 8.0, 0)
