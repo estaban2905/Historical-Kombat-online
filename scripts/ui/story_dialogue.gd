@@ -56,7 +56,10 @@ func _show_line() -> void:
 	_has_voice = false
 	_cps = CPS
 	var path := "res://assets/sounds/story/scenes/%s_%d.wav" % [scene_id, _i + 1]
-	if scene_id != &"" and ResourceLoader.exists(path):
+	var own_voice: bool = lines[_i].size() > 2   # la línea trae su propia voz (el luchador del jugador)
+	if own_voice:
+		path = str(lines[_i][2])
+	if (scene_id != &"" or own_voice) and ResourceLoader.exists(path):
 		_voice.stream = load(path) as AudioStream
 		_has_voice = true
 		# El texto termina un poco antes que la voz.

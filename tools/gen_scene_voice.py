@@ -126,9 +126,29 @@ def render_line(tmp: Path, speaker: str, text: str, dest: Path) -> None:
     print(dest.name, dur, "s", flush=True)
 
 
+PLAYER_OUT = base.ROOT / "assets" / "sounds" / "story" / "player"
+
+
+def parse_player_lines() -> dict:
+    """id del luchador -> su frase al oponerse a un rival (const PLAYER_LINES de scripts/story_scenes.gd)."""
+    text = SCENES_GD.read_text(encoding="utf-8")
+    start = text.index("const PLAYER_LINES := {")
+    end = text.index("\n}\n", start)
+    return {m.group(1): m.group(2) for m in re.finditer(r'^\t&"(\w+)": "(.*)",$', text[start:end], re.M)}
+
+
 def main() -> None:
     only = sys.argv[1:]
     OUT.mkdir(parents=True, exist_ok=True)
+    if "player" in only:
+        # Solo las frases del luchador del jugador: python tools/gen_scene_voice.py player [id ...]
+        PLAYER_OUT.mkdir(parents=True, exist_ok=True)
+        ids = [i for i in only if i != "player"]
+        with tempfile.TemporaryDirectory() as tmp:
+            for fid, line in parse_player_lines().items():
+                if not ids or fid in ids:
+                    render_line(Path(tmp), fid, line, PLAYER_OUT / f"{fid}.wav")
+        return
     scenes = parse_scenes()
     with tempfile.TemporaryDirectory() as tmp:
         for scene, lines in scenes.items():
