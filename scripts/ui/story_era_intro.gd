@@ -2,7 +2,7 @@
 ##   0 El mundo actual      ciudad de neón, gritos y señal que se corta
 ##   1 El siglo XX          película vieja, relojes al revés y sirenas
 ##   2 Revoluciones         engranajes, chispas y bobinas de Tesla
-##   3 Imperios             un mapa antiguo, una ruta y un barco
+##   3 (sin uso)            mapa antiguo y barco: el modo Historia ya no la usa (ERA_ART la salta)
 ##   4 La antigüedad        sol enorme, columnas y dunas
 ##   5 El Nexo              la grieta se abre y aparece la esfera
 ## Todo se dibuja por código. La voz sale de tools/gen_story_voice.py (mismo texto que ERAS) y la
@@ -42,8 +42,8 @@ const ERAS: Array = [
 ]
 
 var chapter: int = 0
-## Qué animación (índice de ERAS) usa cada época del modo Historia: las épocas 3 y 4 reutilizan la de las revoluciones
-## y la de la antigüedad, y el Nexo la suya.
+## Qué animación (índice de ERAS) usa cada época del modo Historia: la época 3 (la antigüedad) usa la animación 4 y el
+## Nexo la 5; la 3 quedó sin uso al fundirse dos épocas en una.
 const ERA_ART: Array[int] = [0, 1, 2, 4, 5]
 ## >= 0 congela el reloj en ese instante y no reproduce audio (capturas de pantalla).
 var preview_time: float = -1.0
