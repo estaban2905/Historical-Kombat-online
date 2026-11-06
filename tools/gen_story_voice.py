@@ -28,7 +28,7 @@ LINES = [
 ERA_LINES = [
     "Cada época es ahora un fragmento roto. Este lo gobiernan los que gritan más fuerte.",
     "Un siglo de guerras. El tiempo aún sangra.",
-    "Aquí brotaron las ideas que, siglos después, rompieron el tiempo.",
+    "Aquí brotaron las ideas de la ciencia. Algunas terminaron dentro del Reloj.",
     "Reinos, flotas y coronas. Demasiado poder, poca memoria.",
     "La cuna de la historia. Aquí nació el poder, y aquí decides cómo termina.",
     "Has llegado hasta mí. Demuestra que mereces el tiempo.",
