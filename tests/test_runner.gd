@@ -989,6 +989,16 @@ func _test_soak() -> void:
 	check(stuck == 0, "nadie queda atascado en ATAQUE/DAÑO")
 	check(attacks > 50 and counter.hits > 10, "hubo combate real: %d ataques, %d impactos, %d combates completos" % [attacks, counter.hits, matches])
 
+## Desde la pantalla de la historia hasta el combate: Enter salta la tarjeta, avanza las escenas de diálogo y,
+## cuando aparece, pulsa ¡COMBATIR! (la intro y las escenas solo se saltan con Enter).
+func _story_to_fight() -> bool:
+	for i in 150:
+		await frames(24)
+		if scene() == null or scene().name != "Story":
+			break
+		await tap(KEY_ENTER)
+	return await wait_scene("Fight", 240)
+
 ## ¿Sale este luchador como rival en alguna época?
 func _is_story_rival_id(id: StringName) -> bool:
 	for chap in Game.STORY_CHAPTERS:
@@ -1074,10 +1084,7 @@ func _test_arcade() -> void:
 			possession_ok = false
 	check(possession_ok, "el creador poseído entra justo tras el jefe de su época")
 	check(Game.story_chapter_start(0), "el primer combate abre el capítulo I")
-	await tap(KEY_ENTER)   # salta la tarjeta del capítulo
-	await frames(60)
-	await tap(KEY_ENTER)
-	check(await wait_scene("Fight", 240), "COMBATIR empieza el combate")
+	check(await _story_to_fight(), "COMBATIR empieza el combate")
 	var c := _fight()
 	var seen := {}
 	for id in ladder:
@@ -1161,8 +1168,7 @@ func _test_arcade() -> void:
 	await tap(KEY_ENTER)
 	check(await wait_scene("Story", 240), "SIGUIENTE COMBATE abre la línea del tiempo")
 	await frames(10)
-	await tap(KEY_ENTER)
-	check(await wait_scene("Fight", 240), "COMBATIR abre el combate")
+	check(await _story_to_fight(), "COMBATIR abre el combate")
 	c = _fight()
 	check(Game.arcade_stage == 1 and c.p2.data.id == ladder[1], "el segundo combate es contra el segundo rival")
 	var expected_level := 0.5 + 0.5 / (ladder.size() - 1.0)
