@@ -3,7 +3,7 @@
 
 Uso (igual que gen_intro_voice.py, del que reutiliza la voz y los filtros):
     python tools/gen_story_voice.py          # mini-intro (nexo_N.wav) y épocas (era_N.wav)
-    python tools/gen_story_voice.py era      # solo las seis épocas
+    python tools/gen_story_voice.py era      # solo las cinco épocas
     python tools/gen_story_voice.py end      # solo el final
 
 El texto de cada frase es el mismo que se muestra como subtítulo en
@@ -29,7 +29,6 @@ ERA_LINES = [
     "Cada época es ahora un fragmento roto. Este lo gobiernan los que gritan más fuerte.",
     "Un siglo de guerras. El tiempo aún sangra.",
     "Ideas, reinos y flotas: poder de sobra y poca memoria. Aquí se forjó el mundo moderno.",
-    "Reinos, flotas y coronas. Demasiado poder, poca memoria.",
     "La cuna de la historia. Aquí nació el poder, y aquí decides cómo termina.",
     "Has llegado hasta mí. Demuestra que mereces el tiempo.",
 ]
