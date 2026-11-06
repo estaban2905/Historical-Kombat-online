@@ -63,6 +63,8 @@ func _ready() -> void:
 	Game.story_possessed_entry = false
 	_btn.visible = false
 	_back.visible = false
+	if not _auto_fight:
+		_make_map()
 	if not _card:
 		_after_card()
 	if _card:
@@ -81,15 +83,22 @@ func _after_card() -> void:
 		return
 	_after_map()
 
-func _play_map() -> void:
-	_btn.visible = false
-	_back.visible = false
+## El mapa se coloca desde el principio, tapando el escenario de la pelea, y espera (en negro) debajo de la
+## tarjeta del capítulo y de las animaciones: así nunca se ve el combate antes del viaje.
+func _make_map() -> void:
 	var map := StoryWorldMap.new()
+	map.waiting = true
 	_map = map
 	map.finished.connect(func():
 		_map = null
 		_after_map())
 	add_child(map)
+	move_child(map, _overlay.get_index())
+
+func _play_map() -> void:
+	_btn.visible = false
+	_back.visible = false
+	_map.start()
 
 ## Tras el mapa: la escena de diálogo del rival, si tiene, y después el botón de combatir.
 func _after_map() -> void:

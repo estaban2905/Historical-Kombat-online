@@ -184,8 +184,14 @@ func _make_ambience() -> void:
 # =========================================================================
 #  Entrada
 # =========================================================================
+## Espera (tapando lo que hay debajo, en negro) hasta que la pantalla de la historia llame a start().
+var waiting: bool = false
+
+func start() -> void:
+	waiting = false
+
 func _input(event: InputEvent) -> void:
-	if _done:
+	if _done or waiting:
 		return
 	var skip := HKTheme.is_enter(event) or event.is_action_pressed(&"ui_cancel")
 	var m := event as InputEventMouseButton
@@ -200,7 +206,7 @@ func _input(event: InputEvent) -> void:
 #  Animación
 # =========================================================================
 func _process(delta: float) -> void:
-	if _done:
+	if _done or waiting:
 		return
 	_t += delta
 	_update_traveler()
