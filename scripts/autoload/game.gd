@@ -86,6 +86,8 @@ var story_continues_used: int = 0
 ## Solo vale durante la sesión: el servidor guarda la partida con un esquema cerrado (sin este campo), así que
 ## al retomar una partida guardada vuelve a 0.
 var story_creator_losses: int = 0
+## Verdadero al llegar a la pantalla de la historia desde la posesión: el combate sigue solo tras la escena.
+var story_possessed_entry: bool = false
 ## Fichas reforzadas de los jefes (se crean una vez por combate).
 var _boss_cache := {}
 
@@ -163,7 +165,7 @@ func p2_data() -> FighterData:
 func _boss_boost() -> Array:
 	if is_story_nexo_fight():
 		return NEXO_BOOST
-	if story_is_chapter_boss(arcade_stage):
+	if story_is_chapter_boss(arcade_stage) or story_is_creator(arcade_stage):
 		return BOSS_BOOST
 	return []
 
@@ -301,7 +303,8 @@ func start_story(player_id: StringName) -> void:
 func story_ladder_for(player_id: StringName) -> Array[StringName]:
 	var rivals: Array[FighterData] = []
 	for d in FighterRegistry.all():
-		if d.id != player_id:
+		# Solo rivales: los buenos (StoryCampaign.PLAYABLE_ONLY) no están en ninguna época.
+		if d.id != player_id and _is_story_rival(d.id):
 			rivals.append(d)
 	rivals.sort_custom(_story_before)
 	var ladder: Array[StringName] = []
@@ -370,13 +373,24 @@ func story_resume(save: Dictionary) -> bool:
 	p2_fighter_id = arcade_ladder[arcade_stage]
 	return true
 
-## Orden de la escalera: por capítulo del más reciente al más antiguo y, dentro de uno,
-## por año, salvo el jefe designado del capítulo, que va al final.
+## ¿Sale este luchador como rival en alguna época del modo Historia?
+func _is_story_rival(fighter_id: StringName) -> bool:
+	for chapter in STORY_CHAPTERS:
+		if (chapter[1] as Array).has(fighter_id):
+			return true
+	return false
+
+## Orden de la escalera: por época del más reciente al más antiguo y, dentro de una, por año, salvo el jefe de la
+## época (el último de los rivales) y el creador poseído, que cierra la época después de él.
 func _story_before(a: FighterData, b: FighterData) -> bool:
 	var ca := _chapter_of_id(a.id)
 	var cb := _chapter_of_id(b.id)
 	if ca != cb:
 		return ca < cb
+	var creator_a: bool = STORY_CREATORS.has(a.id)
+	var creator_b: bool = STORY_CREATORS.has(b.id)
+	if creator_a != creator_b:
+		return creator_b
 	var boss_a: bool = STORY_BOSSES.get(ca, &"") == a.id
 	var boss_b: bool = STORY_BOSSES.get(cb, &"") == b.id
 	if boss_a != boss_b:
@@ -431,9 +445,29 @@ func story_chapter_name(chapter: int) -> String:
 func story_chapter_start(stage: int) -> bool:
 	return stage == 0 or story_chapter_of(arcade_ladder[stage]) != story_chapter_of(arcade_ladder[stage - 1])
 
-## ¿Es el último combate de su capítulo (el jefe)?
-func story_is_chapter_boss(stage: int) -> bool:
+## ¿Es el último combate de su época (el creador poseído, o el jefe si no hay creador)?
+func story_is_chapter_end(stage: int) -> bool:
 	return stage >= arcade_ladder.size() - 1 or story_chapter_of(arcade_ladder[stage + 1]) != story_chapter_of(arcade_ladder[stage])
+
+## ¿Es el jefe de la época? Es el último rival antes del creador poseído (o el último de la época si no hay creador).
+func story_is_chapter_boss(stage: int) -> bool:
+	if STORY_CREATORS.has(arcade_ladder[stage]):
+		return false
+	return story_is_chapter_end(stage) or story_possession_follows(stage)
+
+## ¿Tras este combate el Nexo posee a un creador del Reloj, que pelea en la misma batalla?
+func story_possession_follows(stage: int) -> bool:
+	return mode == Mode.ARCADE and stage + 1 < arcade_ladder.size() and STORY_CREATORS.has(arcade_ladder[stage + 1]) \
+		and story_chapter_of(arcade_ladder[stage + 1]) == story_chapter_of(arcade_ladder[stage])
+
+## Se vuelve a la pantalla de la historia desde un combate ganado al jefe, sin pasar por los resultados:
+## el creador poseído entra y sigue la pelea. Hace lo mismo que los resultados al ganar (guardar y desbloquear).
+func story_possession_begin() -> void:
+	story_record_win()
+	story_autosave_next()
+	arcade_advance()
+	story_possessed_entry = true
+	goto(SCENE_STORY)
 
 ## ¿Ya se recuperó el fragmento del Reloj de esa época? Se gana al vencer a su jefe: no hace falta guardarlo,
 ## sale de hasta dónde se ha llegado (arcade_stage).

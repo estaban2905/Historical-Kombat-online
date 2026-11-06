@@ -5,34 +5,37 @@ class_name StoryCampaign
 extends RefCounted
 
 const NEXO_NAME := "EL JUICIO DEL NEXO"
-## Épocas (fragmentos del tiempo roto) del más reciente al más antiguo: [nombre, [luchadores]]. Cada una cierra con
-## su jefe (STORY_BOSSES) y dentro de la época se ordenan por año.
+## Épocas (fragmentos del tiempo roto) del más reciente al más antiguo: [nombre, [luchadores]]. Aquí solo están los
+## RIVALES: villanos, dictadores y ambiciosos, más el creador del Reloj poseído que cierra cada época. Dentro de cada
+## una se ordenan por año; el jefe (BOSSES) va el último de los rivales y el creador poseído, después de él.
 const CHAPTERS := [
-	["EL MUNDO ACTUAL", [&"kim_jong_un", &"nicolas_maduro", &"osama_bin_laden", &"xi_jinping", &"vladimir_putin",
-		&"pablo_escobar", &"papa_francisco", &"isabel_ii", &"donald_trump"]],
-	["EL SIGLO XX", [&"saddam_hussein", &"fidel_castro", &"liudmila_pavlichenko", &"augusto_pinochet",
-		&"salvador_allende", &"mariya_oktyabrskaya", &"benito_mussolini", &"joseph_stalin", &"rasputin",
-		&"albert_einstein", &"adolf_hitler"]],
-	["REVOLUCIONES Y PROGRESO", [&"arturo_prat", &"abraham_lincoln", &"charles_darwin", &"nikola_tesla",
-		&"marie_curie", &"napoleon"]],
-	["IMPERIOS Y DESCUBRIMIENTOS", [&"isaac_newton", &"janequeo", &"galileo_galilei", &"lautaro", &"ivan_el_terrible",
-		&"nicolas_maquiavelo", &"nostradamus", &"moctezuma_ii", &"leonardo_da_vinci", &"cristobal_colon", &"pachacutec",
-		&"juana_de_arco", &"gengis_kan", &"hernan_cortes"]],
-	["LA ANTIGÜEDAD", [&"boudica", &"jesus_de_nazaret", &"cleopatra", &"alejandro_magno", &"aristoteles", &"platon",
-		&"socrates", &"sun_tzu", &"confucio", &"buda", &"julio_cesar"]],
+	["EL MUNDO ACTUAL", [&"kim_jong_un", &"nicolas_maduro", &"osama_bin_laden", &"vladimir_putin", &"pablo_escobar",
+		&"donald_trump", &"marie_curie"]],
+	["EL SIGLO XX", [&"saddam_hussein", &"fidel_castro", &"augusto_pinochet", &"benito_mussolini", &"joseph_stalin",
+		&"rasputin", &"adolf_hitler", &"albert_einstein"]],
+	["REVOLUCIONES, IMPERIOS Y DESCUBRIMIENTOS", [&"ivan_el_terrible", &"nostradamus", &"hernan_cortes",
+		&"nicolas_maquiavelo", &"cristobal_colon", &"napoleon", &"nikola_tesla"]],
+	["LA ANTIGÜEDAD Y LA EDAD MEDIA", [&"gengis_kan", &"cleopatra", &"alejandro_magno", &"julio_cesar",
+		&"leonardo_da_vinci"]],
 ]
-## Jefe de cada época (índice -> luchador), el más controvertido de su tiempo; va al final.
-const BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"napoleon", 3: &"hernan_cortes",
-	4: &"julio_cesar"}
-## Los cuatro creadores del Reloj del Origen, repartidos por las épocas.
+## Los buenos y justos: solo se pueden elegir (no son rivales) y están disponibles desde el principio.
+const PLAYABLE_ONLY: Array[StringName] = [
+	&"socrates", &"platon", &"aristoteles", &"confucio", &"sun_tzu", &"buda", &"jesus_de_nazaret", &"boudica",
+	&"juana_de_arco", &"lautaro", &"janequeo", &"galileo_galilei", &"pachacutec", &"moctezuma_ii",
+	&"isaac_newton", &"charles_darwin", &"abraham_lincoln", &"arturo_prat",
+	&"salvador_allende", &"liudmila_pavlichenko", &"mariya_oktyabrskaya", &"papa_francisco", &"isabel_ii", &"xi_jinping",
+]
+## Jefe de cada época (índice -> luchador), el más controvertido de su tiempo; va al final de los rivales.
+const BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"napoleon", 3: &"julio_cesar"}
+## Los cuatro creadores del Reloj del Origen: al vencer al jefe de cada época, el Nexo posee a uno y pelea en la
+## misma batalla. Al vencerlo queda libre (y se desbloquea).
 const CREATORS: Array[StringName] = [&"nikola_tesla", &"albert_einstein", &"marie_curie", &"leonardo_da_vinci"]
 ## Lo que está en juego en cada fragmento del tiempo (la animación de la época ya trae la voz del Nexo).
 ## Todos los luchadores quieren volver a su época a corregir su derrota; el jugador debe impedirlo.
 const NEXO_LINES := [
 	["TODOS QUIEREN VOLVER A SU ÉPOCA", "A CORREGIR SU DERROTA. DETENLOS."],
 	["LA GRIETA SIGUE ABIERTA. CADA UNO", "QUIERE REESCRIBIR SU HISTORIA."],
-	["LOS INVENTOS Y LAS REVOLUCIONES", "QUIEREN CAMBIAR SU FINAL. IMPÍDELO."],
-	["CORONAS Y FLOTAS QUIEREN VOLVER", "Y GANAR LO QUE PERDIERON."],
+	["CORONAS, FLOTAS Y REVOLUCIONES QUIEREN", "VOLVER Y GANAR LO QUE PERDIERON."],
 	["EL FRAGMENTO MÁS ANTIGUO. SI SE", "REESCRIBE, TODO LO DEMÁS SE DERRUMBA."],
 	["SOLO YO SOSTENGO TODAS LAS ÉPOCAS.", "ESTA ES LA PRUEBA FINAL."],
 ]
@@ -46,10 +49,10 @@ const NEXO_REACT_WORN := ["TANTAS CAÍDAS... ¿SEGURO", "QUE MERECES EL NEXO?"]
 const VS := {
 	&"el_nexo": ["SOY LO QUE QUISIERON CONSTRUIR.", "SOY LO QUE RECUERDAN."],
 	# Los creadores del Reloj: científicos que aportaron lo que sabían.
-	&"albert_einstein": ["CREADOR DEL RELOJ, ATADO AL NEXO POR", "SU PROPIA ECUACIÓN. VÉNCELO Y LO LIBERAS."],
-	&"nikola_tesla": ["CREADOR DEL RELOJ, ARRASTRADO POR", "SU PROPIA CORRIENTE. ROMPE SU RITMO."],
-	&"marie_curie": ["CREADORA DEL RELOJ, ATADA A LA ENERGÍA", "QUE ELLA MISMA APORTÓ. LIBÉRALA."],
-	&"leonardo_da_vinci": ["CREADOR DEL RELOJ, PRESO EN LOS", "ENGRANAJES QUE ÉL DISEÑÓ."],
+	&"albert_einstein": ["CREADOR DEL RELOJ, POSEÍDO POR EL NEXO", "A TRAVÉS DE SU PROPIA ECUACIÓN. LIBÉRALO."],
+	&"nikola_tesla": ["CREADOR DEL RELOJ, POSEÍDO POR EL NEXO", "A TRAVÉS DE SU PROPIA CORRIENTE. LIBÉRALO."],
+	&"marie_curie": ["CREADORA DEL RELOJ, POSEÍDA POR EL NEXO", "A TRAVÉS DE SU PROPIA ENERGÍA. LIBÉRALA."],
+	&"leonardo_da_vinci": ["CREADOR DEL RELOJ, POSEÍDO POR EL NEXO", "A TRAVÉS DE SUS PROPIOS ENGRANAJES. LIBÉRALO."],
 	# El mundo actual
 	&"kim_jong_un": ["QUIERE REESCRIBIR LA HISTORIA", "Y CERRAR EL TIEMPO COMO SU FRONTERA."],
 	&"nicolas_maduro": ["QUIERE REESCRIBIR SU HISTORIA", "A PUNTA DE BAILE Y AGUANTE."],

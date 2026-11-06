@@ -140,9 +140,14 @@ func _test_catalogs() -> void:
 	check(dupes.is_empty(), "nadie está en dos épocas (%s)" % ", ".join(dupes))
 	var no_chapter: Array[String] = []
 	for id in ids:
-		if not chapter_of.has(id):
+		if not chapter_of.has(id) and not StoryCampaign.PLAYABLE_ONLY.has(id):
 			no_chapter.append(str(id))
-	check(no_chapter.is_empty(), "todos los luchadores están en una época de STORY_CHAPTERS (faltan: %s)" % ", ".join(no_chapter))
+	check(no_chapter.is_empty(), "todo luchador es rival de una época o solo para elegir (faltan: %s)" % ", ".join(no_chapter))
+	var both: Array[String] = []
+	for id in StoryCampaign.PLAYABLE_ONLY:
+		if chapter_of.has(id):
+			both.append(str(id))
+	check(both.is_empty(), "los de solo elegir no son rivales (%s)" % ", ".join(both))
 	var unknown_in_chapter: Array[String] = []
 	for id in chapter_of:
 		if not FighterRegistry.has(id):
@@ -983,6 +988,13 @@ func _test_soak() -> void:
 	check(stuck == 0, "nadie queda atascado en ATAQUE/DAÑO")
 	check(attacks > 50 and counter.hits > 10, "hubo combate real: %d ataques, %d impactos, %d combates completos" % [attacks, counter.hits, matches])
 
+## ¿Sale este luchador como rival en alguna época?
+func _is_story_rival_id(id: StringName) -> bool:
+	for chap in Game.STORY_CHAPTERS:
+		if (chap[1] as Array).has(id):
+			return true
+	return false
+
 ## Modo Historia (arcade): menú -> selección de J1 -> pantalla de la línea del tiempo ->
 ## combate contra la CPU -> escalera de rivales, continuaciones, jefe secreto y fin de partida.
 func _test_arcade() -> void:
@@ -1012,7 +1024,10 @@ func _test_arcade() -> void:
 	await tap(KEY_U)
 	check(await wait_scene("Story", 240), "con J1 confirmado se muestra la línea del tiempo")
 	var ladder := Game.arcade_ladder
-	var expected := FighterRegistry.all().size()   # todos menos el jugador, más el Nexo al final
+	var rivals_total := 0
+	for chap in Game.STORY_CHAPTERS:
+		rivals_total += (chap[1] as Array).size()
+	var expected := rivals_total - (1 if _is_story_rival_id(Game.p1_fighter_id) else 0) + 1   # rivales menos el jugador, más el Nexo
 	check(ladder.size() == expected, "la escalera tiene %d rivales (%d)" % [expected, ladder.size()])
 	var ordered := true
 	for i in range(1, ladder.size()):
@@ -1025,9 +1040,16 @@ func _test_arcade() -> void:
 			assigned[fid] = assigned.get(fid, 0) + 1
 	var missing := 0
 	for d in FighterRegistry.all():
-		if assigned.get(d.id, 0) != 1:
+		var n: int = assigned.get(d.id, 0)
+		if n != (0 if StoryCampaign.PLAYABLE_ONLY.has(d.id) else 1):
 			missing += 1
-	check(missing == 0, "cada luchador está en un solo capítulo (%d mal asignados)" % missing)
+	check(missing == 0, "cada rival está en una sola época y los de solo elegir en ninguna (%d mal asignados)" % missing)
+	for ch in Game.STORY_CHAPTERS.size():
+		var creators_here := 0
+		for fid in Game.STORY_CHAPTERS[ch][1]:
+			if Game.STORY_CREATORS.has(fid):
+				creators_here += 1
+		check(creators_here == 1, "la época %d tiene un creador del Reloj poseído" % (ch + 1))
 	check(ladder[ladder.size() - 1] == Game.STORY_NEXO_ID, "el Nexo cierra la escalera")
 	check(FighterRegistry.get_by_id(Game.STORY_NEXO_ID).id == Game.STORY_NEXO_ID, "la ficha del Nexo carga")
 	var nexo_in_roster := false
@@ -1044,7 +1066,12 @@ func _test_arcade() -> void:
 			sin_frase += 1
 	check(Game.story_nexo_reaction().is_empty(), "el primer capítulo no tiene reacción del Nexo")
 	check(sin_frase == 0, "todos los rivales tienen su frase de presentación (%d sin ella)" % sin_frase)
-	check(ladder.has(&"jesus_de_nazaret") != (Game.p1_fighter_id == &"jesus_de_nazaret"), "Jesús es un rival normal de la escalera")
+	check(not ladder.has(&"jesus_de_nazaret") and not ladder.has(&"papa_francisco") and not ladder.has(&"lautaro"), "los buenos (Jesús, el Papa, Lautaro) no son rivales")
+	var possession_ok := true
+	for i in ladder.size() - 1:
+		if Game.story_possession_follows(i) and not Game.story_is_chapter_boss(i):
+			possession_ok = false
+	check(possession_ok, "el creador poseído entra justo tras el jefe de su época")
 	check(Game.story_chapter_start(0), "el primer combate abre el capítulo I")
 	await tap(KEY_ENTER)   # salta la tarjeta del capítulo
 	await frames(60)

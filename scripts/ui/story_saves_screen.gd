@@ -184,10 +184,10 @@ func _next_text(ladder: Array[StringName], stage: int) -> String:
 	var tag := ""
 	if id == Game.STORY_NEXO_ID:
 		tag = " · JEFE FINAL"
-	elif stage + 1 < ladder.size() and Game.story_chapter_of(ladder[stage + 1]) != Game.story_chapter_of(id):
-		tag = " · JEFE DE LA EPOCA"
 	elif StoryCampaign.CREATORS.has(id):
-		tag = " · CREADOR DEL RELOJ"
+		tag = " · CREADOR POSEIDO"
+	elif stage + 1 < ladder.size() and (Game.story_chapter_of(ladder[stage + 1]) != Game.story_chapter_of(id) or StoryCampaign.CREATORS.has(ladder[stage + 1])):
+		tag = " · JEFE DE LA EPOCA"
 	return HKTheme.fold("SIGUE: %s%s" % [who, tag])
 
 ## Hace cuánto se guardó, en palabras cortas.

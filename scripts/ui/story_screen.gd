@@ -32,6 +32,7 @@ var _overlay: Control
 ## y el botón esperan. Solo Enter las salta todas.
 var _intro: Node
 var _skip_intros: bool = false
+var _auto_fight: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -56,6 +57,8 @@ func _ready() -> void:
 	add_child(_overlay)
 	_overlay.draw.connect(_draw_card)
 	_card = Game.story_chapter_start(Game.arcade_stage)
+	_auto_fight = Game.story_possessed_entry
+	Game.story_possessed_entry = false
 	_btn.visible = false
 	_back.visible = false
 	if not _card:
@@ -81,6 +84,14 @@ func _after_card() -> void:
 	add_child(d)
 
 func _show_fight_button() -> void:
+	if _auto_fight:
+		# Creador poseído: la pelea sigue enseguida, sin botón.
+		_auto_fight = false
+		await get_tree().create_timer(0.8).timeout
+		if is_inside_tree() and not Game.is_changing_scene():
+			Sfx.play(&"fight")
+			Game.goto(Game.SCENE_FIGHT)
+		return
 	_btn.visible = true
 	_back.visible = true
 	_btn.grab_focus()
@@ -188,7 +199,7 @@ func _draw_timeline() -> void:
 			var lit := Color("fff0a0").lerp(Color.WHITE, 0.5 + 0.5 * sin(_t * 8.0)) if i == cur else HKTheme.MUTED.lightened(0.2)
 			HKTheme.draw_text(self, Vector2(x - 3, BAR_Y + 4), "?", 8, lit, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 			continue
-		var boss := Game.story_is_chapter_boss(i)
+		var boss := Game.story_is_chapter_end(i)
 		var r := 3.0 if boss else 2.0
 		if i < cur:
 			_dot(x, r, DONE, boss)
@@ -245,7 +256,7 @@ func _draw_plate() -> void:
 	elif boss:
 		tag = "JEFE DE LA ÉPOCA"
 	elif Game.story_is_creator(stage):
-		tag = "CREADOR DEL RELOJ"
+		tag = "CREADOR POSEÍDO"
 	if tag != "":
 		_centered(cx, 96, tag, HKTheme.GOLD)
 	HKTheme.draw_text(self, Vector2(cx - 54, 116), "VS", 16, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 108, 3)

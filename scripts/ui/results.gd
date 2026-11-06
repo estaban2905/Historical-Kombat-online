@@ -297,9 +297,9 @@ func _not_saved_reason(reason: String) -> String:
 		"stalled": return "NADIE RESPONDIÓ: DUELO ANULADO"
 	return "ERROR DEL SERVIDOR"
 
-## Al vencer al jefe de una época se recupera el fragmento del Reloj de esa época.
+## Al vencer al último rival de una época (el creador poseído) se recupera el fragmento del Reloj de esa época.
 func _draw_fragment(x0: float, w: float) -> void:
-	if _arcade != &"next" or Game.last_winner != 1 or not Game.story_is_chapter_boss(Game.arcade_stage):
+	if _arcade != &"next" or Game.last_winner != 1 or not Game.story_is_chapter_end(Game.arcade_stage):
 		return
 	var chapter := Game.story_chapter_of(Game.p2_fighter_id)
 	if chapter >= StoryEnding.SHARD_COLORS.size():
