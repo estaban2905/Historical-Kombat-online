@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://dw5hrd24ol3o7"
-path="res://.godot/imported/era_4.wav-0191e646f3b6bc525ba6004c84724855.sample"
+path="res://.godot/imported/era_4.wav-abb664d1e90df0f77467c24f283ff24e.sample"
 
 [deps]
 
 source_file="res://assets/sounds/story/era_4.wav"
-dest_files=["res://.godot/imported/era_4.wav-0191e646f3b6bc525ba6004c84724855.sample"]
+dest_files=["res://.godot/imported/era_4.wav-abb664d1e90df0f77467c24f283ff24e.sample"]
 
 [params]
 

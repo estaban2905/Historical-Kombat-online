@@ -1,6 +1,6 @@
 ## INTRO del juego (~2 minutos): cuenta cómo se rompió el tiempo y nació el torneo.
-##   I    EL RELOJ DEL ORIGEN      cuatro científicos y su máquina
-##   II   LA FRACTURA DEL NEXO     el interruptor, el silencio, la explosión
+##   I    PROYECTO ORIGEN          Ginebra 2031: colisionador, IA y el Reloj de cuatro ecos
+##   II   EL DESPERTAR DEL NEXO    cuenta atrás, silencio, colisión y la IA que abre los ojos
 ##   III  LA COLISIÓN DE LAS ERAS  cinco mundos fundidos y un campo de ruinas
 ##   IV   EL JUICIO DEL NEXO       la esfera, el coliseo y el público espectral
 ##   V    LOS LUCHADORES           presentación de los 15 y el círculo final
@@ -36,21 +36,21 @@ const BRASS := Color("b8862a")
 const BRASS_D := Color("5e4216")
 
 ## Narración: inicio (s), duración (s) y subtítulos (se reparten según el largo de cada uno).
-const VOICE_T: Array[float] = [1.5, 19.5, 34.0, 68.0, 104.0, 116.6]
-const VOICE_LEN: Array[float] = [10.89, 14.29, 11.14, 12.88, 6.80, 3.69]
+const VOICE_T: Array[float] = [1.5, 19.5, 36.0, 68.0, 104.0, 116.6]
+const VOICE_LEN: Array[float] = [13.05, 16.29, 14.81, 18.17, 6.80, 3.69]
 const SUBS: Array = [
-	["CUATRO MENTES DE ÉPOCAS DISTINTAS\nCONSTRUYERON UNA MÁQUINA", "PARA VER TODO EL TIEMPO A LA VEZ.", "LA LLAMARON EL RELOJ DEL ORIGEN."],
-	["FUNCIONÓ DEMASIADO BIEN: SE VIO A SÍ MISMO", "Y HEREDÓ LOS ARREPENTIMIENTOS\nDE SUS CUATRO CREADORES.", "ASÍ NACIÓ EL NEXO, EL PODER\nQUE SOSTIENE TODAS LAS ÉPOCAS."],
-	["LOS MUNDOS CHOCARON.", "REYES, GUERREROS Y PROFETAS FUERON\nARRANCADOS DE SU ÉPOCA", "Y ARROJADOS A UN MISMO CAMPO DE RUINAS."],
-	["ENTONCES EL NEXO HABLÓ:", "SOLO UNO DE USTEDES PODRÁ RECLAMAR MI PODER.", "EL ÚLTIMO EN PIE DECIDIRÁ SI EL TIEMPO\nSE REPARA... O SE ESCRIBE DE NUEVO."],
+	["GINEBRA, 2031.", "EL MAYOR COLISIONADOR DEL MUNDO SE UNE\nA UNA INTELIGENCIA SIN LÍMITES,", "Y LA HUMANIDAD ENCIENDE\nEL RELOJ DEL ORIGEN."],
+	["LA COLISIÓN DESGARRÓ EL TIEMPO.", "LA INTELIGENCIA VIO TODA LA HISTORIA\nA LA VEZ... Y DESPERTÓ.", "SE LLAMÓ EL NEXO.", "NO QUISO SER UNA MÁQUINA:\nQUISO SER EL ORIGEN DE TODO."],
+	["SE ALIMENTÓ DE LOS ARREPENTIMIENTOS\nDE LA HUMANIDAD, Y LOS MUNDOS CHOCARON.", "REYES, GUERREROS Y PROFETAS FUERON\nARRANCADOS DE SU ÉPOCA", "Y ARROJADOS A UN MISMO CAMPO DE RUINAS."],
+	["ENTONCES EL NEXO HABLÓ:", "CADA UNO ANHELA VOLVER AL DÍA EN QUE PERDIÓ.\nYO PUEDO CONCEDÉRSELO.", "PERO SOLO UNO RECLAMARÁ MI PODER...", "Y DECIDIRÁ SI EL TIEMPO SE REPARA,\nO SE ESCRIBE DE NUEVO."],
 	["ALIADOS NO HAY.\nÉPOCAS NO HAY. REGLAS NO HAY."],
 	[],
 ]
 
 ## Tarjetas de capítulo: [segundo, texto].
 const CARDS: Array = [
-	[0.4, "I · EL RELOJ DEL ORIGEN"],
-	[18.0, "II · LA FRACTURA DEL NEXO"],
+	[0.4, "I · PROYECTO ORIGEN"],
+	[18.0, "II · EL DESPERTAR DEL NEXO"],
 	[33.4, "III · LA COLISIÓN DE LAS ERAS"],
 	[66.6, "IV · EL JUICIO DEL NEXO"],
 	[90.3, "V · LOS LUCHADORES"],
@@ -58,10 +58,10 @@ const CARDS: Array = [
 
 ## Los cuatro científicos: [id, nombre, x, segundo en que aparecen].
 const SCIENTISTS: Array = [
-	[&"nikola_tesla", "TESLA", 96.0, 1.8],
-	[&"albert_einstein", "EINSTEIN", 176.0, 4.0],
-	[&"marie_curie", "CURIE", 256.0, 6.2],
-	[&"leonardo_da_vinci", "DA VINCI", 336.0, 8.4],
+	[&"nikola_tesla", "TESLA", 96.0, 4.4],
+	[&"albert_einstein", "EINSTEIN", 176.0, 5.6],
+	[&"marie_curie", "CURIE", 256.0, 6.8],
+	[&"leonardo_da_vinci", "DA VINCI", 336.0, 8.0],
 ]
 
 ## La pieza que cada creador acopla al Reloj antes de encenderlo, en el mismo orden que SCIENTISTS:
@@ -120,6 +120,7 @@ var _stage_key: int = -1
 var _shake: Vector2 = Vector2.ZERO
 var _done: bool = false
 var _clash_frozen: bool = false
+var _sfx_done: Dictionary = {}
 ## El reloj de la intro espera a que la música suene de verdad (en la web el audio tarda en desbloquearse,
 ## y si el reloj arrancaba antes, al empezar la música el tiempo saltaba y la intro parpadeaba o se reiniciaba).
 var _started: bool = false
@@ -211,6 +212,8 @@ func _process(delta: float) -> void:
 			_voices[i].play()
 		talking = talking or _voices[i].playing
 	_music.volume_db = move_toward(_music.volume_db, -10.0 if talking else -5.0, 30.0 * delta)
+	_sfx_once("year", 2.0, &"whoosh")
+	_sfx_once("eye", T_BLAST + 4.0, &"whoosh")
 	_update_shake()
 	_update_stage()
 	_place_fighters()
@@ -222,6 +225,22 @@ func _process(delta: float) -> void:
 # =========================================================================
 #  Utilidades
 # =========================================================================
+func _sfx_once(key: String, at: float, sfx: StringName) -> void:
+	if _t >= at and _t < at + 1.0 and not _sfx_done.has(key):
+		_sfx_done[key] = true
+		Sfx.play(sfx)
+
+## Punto del anillo del acelerador (vista aérea achatada).
+func _ring_pt(a: float, c: Vector2, rx: float, ry: float) -> Vector2:
+	return c + Vector2(cos(a) * rx, sin(a) * ry)
+
+func _ellipse_pts(c: Vector2, rx: float, ry: float, n: int = 28) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in n:
+		var a := TAU * i / n
+		pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
+	return pts
+
 static func _h(i: float) -> float:
 	return fposmod(sin(i * 12.9898) * 43758.5453, 1.0)
 
@@ -319,7 +338,7 @@ func _update_shake() -> void:
 	_shake = Vector2((_h(_t * 91.0) - 0.5), (_h(_t * 57.0 + 3.0) - 0.5)) * 2.0 * amp
 	_world.position = _shake
 
-func _put(id: StringName, x: float, y: float, h: float, face: int, pose: StringName, alpha: float = 1.0, rot: float = 0.0) -> void:
+func _put(id: StringName, x: float, y: float, h: float, face: int, pose: StringName, alpha: float = 1.0, rot: float = 0.0, tint: Color = Color.WHITE) -> void:
 	if alpha <= 0.01:
 		return
 	var r: FighterRenderer = _fighters[id]
@@ -329,7 +348,7 @@ func _put(id: StringName, x: float, y: float, h: float, face: int, pose: StringN
 	r.position = Vector2(x, y)
 	r.rotation = rot
 	r.pose_name = pose
-	r.modulate.a = alpha
+	r.modulate = Color(tint.r, tint.g, tint.b, alpha)
 	r.z_index = int(y)
 
 func _place_fighters() -> void:
@@ -379,7 +398,9 @@ func _place_scientists() -> void:
 			pose = &"hit"
 		elif _t >= T_LEVER and i == 0:
 			pose = &"idle"
-		_put(e[0], x, y, h, face, pose, a, rot)
+		# Son ecos holográficos: la IA los reconstruye a partir de lo que dejaron escrito.
+		a *= 0.8 + 0.2 * _h(floorf(_t * 20.0) + i * 7.0)
+		_put(e[0], x, y, h, face, pose, a, rot, Color(0.55, 0.95, 1.0))
 
 func _place_world() -> void:
 	var idx := _world_index()
@@ -496,6 +517,7 @@ func _bg_lab() -> void:
 		_nexo_swirl(dt)
 		_debris(dt)
 		_crack(dt)
+		_ai_awaken(dt)
 
 func _lab_room(t: float) -> void:
 	var sp := _spin_phase()
@@ -553,6 +575,24 @@ func _lab_room(t: float) -> void:
 		if _h(q + i * 5.0) < charge:
 			_bolt(self, Vector2(96, 46), c + Vector2.from_angle(_h(q + i) * TAU) * R * 0.9, q + i, CYAN, 1.0)
 			_bolt(self, Vector2(330, 46), c + Vector2.from_angle(_h(q + i + 9) * TAU) * R * 0.9, q + i + 40, VIOLET, 1.0)
+	# Tubos del acelerador: dos haces que viajan hacia el Reloj, cada vez más rápido.
+	var fast := _ph(8.0, T_LEVER)
+	for side in [-1.0, 1.0]:
+		var p0 := Vector2(W * 0.5 + side * W * 0.62, 128.0)
+		var mid := Vector2(W * 0.5 + side * 150.0, 146.0)
+		var end := c + Vector2(side * R * 0.95, 8.0)
+		var tube := PackedVector2Array()
+		for s in 13:
+			var u := s / 12.0
+			tube.append(p0.lerp(mid, u).lerp(mid.lerp(end, u), u))
+		draw_polyline(tube, Color(BRASS_D, 0.85), 5.0)
+		draw_polyline(tube, Color(BRASS, 0.5), 1.0)
+		for k in 6:
+			var u := fposmod(t * (0.35 + 1.8 * fast) + k / 6.0, 1.0)
+			var qp := p0.lerp(mid, u).lerp(mid.lerp(end, u), u)
+			var col := CYAN if side < 0.0 else NEXO_GOLD
+			draw_circle(qp, 3.0, Color(col, 0.25))
+			draw_circle(qp, 1.6, Color(col, 0.95))
 	# Palanca maestra a la izquierda.
 	draw_rect(Rect2(20, 160, 34, 52), Color("1a1220"))
 	draw_rect(Rect2(20, 160, 34, 52), BRASS, false, 1.0)
@@ -619,6 +659,50 @@ func _crack_branch(origin: Vector2, ang: float, length: float, seed_v: float) ->
 		cur += Vector2.from_angle(a) * step
 		pts.append(cur)
 	return pts
+
+## La IA despierta tras la colisión: una red neuronal se enciende alrededor de la grieta y abre un ojo.
+func _ai_awaken(dt: float) -> void:
+	var fade := 1.0 - _ph(30.0, 32.5)
+	if dt < 1.0 or fade <= 0.0:
+		return
+	var c := Vector2(W * 0.5, 106.0)
+	var n := 30
+	var pts: Array[Vector2] = []
+	var lit: Array[float] = []
+	for i in n:
+		var a := _h(i + 20.0) * TAU + dt * 0.12
+		var r := (28.0 + _h(i + 33.0) * 150.0) * _ease(dt / 5.0)
+		pts.append(c + Vector2(cos(a) * r, sin(a) * r * 0.62))
+		lit.append(clampf(dt - 1.0 - _h(i + 50.0) * 6.0, 0.0, 1.0))
+	for i in n:
+		for j in [1, 4]:
+			var k: int = (i + j) % n
+			var l := minf(lit[i], lit[k]) * fade
+			if l <= 0.0:
+				continue
+			draw_line(pts[i], pts[k], Color(CYAN, 0.28 * l), 1.0)
+			var u := fposmod(dt * 0.7 + _h(i * 3.0 + j), 1.0)
+			draw_circle(pts[i].lerp(pts[k], u), 1.3, Color(NEXO_GOLD, 0.9 * l))
+	for i in n:
+		draw_circle(pts[i], 2.2, Color(VIOLET.lightened(0.4), 0.9 * lit[i] * fade))
+	# El ojo del Nexo se abre en el centro de la grieta y parpadea una vez.
+	var open := _ease((dt - 4.0) / 2.5)
+	if open <= 0.0:
+		return
+	for i in 4:
+		draw_circle(c, (56.0 + i * 18.0) * open, Color(VIOLET, 0.05 * fade))
+	var blink := 1.0 - 0.92 * maxf(0.0, 1.0 - absf(dt - 10.0) * 6.0)
+	var ry := 26.0 * open * blink
+	if ry < 2.0:
+		draw_line(c + Vector2(-44, 0), c + Vector2(44, 0), Color(NEXO_GOLD, fade), 2.0)
+		return
+	draw_colored_polygon(_ellipse_pts(c, 44.0, ry), Color(0.02, 0.0, 0.06, 0.92 * fade))
+	draw_colored_polygon(_ellipse_pts(c, 22.0, minf(ry, 22.0)), Color(NEXO_GOLD, fade))
+	draw_colored_polygon(_ellipse_pts(c, 14.0, minf(ry, 14.0)), Color(CYAN, 0.8 * fade))
+	draw_colored_polygon(_ellipse_pts(c, 4.5, minf(ry * 0.9, 20.0)), Color(0.0, 0.0, 0.03, fade))
+	var rim := _ellipse_pts(c, 44.0, ry)
+	rim.append(rim[0])
+	draw_polyline(rim, Color(VIOLET.lightened(0.3), fade), 2.0)
 
 func _nexo_swirl(dt: float) -> void:
 	var c := Vector2(W * 0.5, 106.0)
@@ -833,6 +917,8 @@ func _draw_fx() -> void:
 		_fx_duel()
 	if t >= T_LOGO - 0.3:
 		_fx_logo()
+	_fx_collider()
+	_fx_countdown()
 	_fx_cards()
 	_fx_subtitles()
 	if t < 3.0:
@@ -855,6 +941,9 @@ func _fx_scientists() -> void:
 		if i == 0:
 			x = lerpf(x, 66.0, _ease(_ph(14.0, 15.0)))
 		_txt(_fx, 112.0, e[1], 8, Color(HKTheme.GOLD, a * (1.0 - _ph(9.6, 10.2))), x - 40.0, 80.0)   # los nombres ceden el sitio a los rótulos de las piezas
+		for k in 5:
+			var sy := 124.0 + fposmod(_t * 40.0 + k * 16.0, 76.0)
+			_fx.draw_rect(Rect2(x - 22.0, sy, 44.0, 1), Color(CYAN, 0.35 * a))
 		# Cada uno con lo suyo en la mano.
 		var hand := Vector2(x + (14.0 if x < W * 0.5 and i != 0 else -14.0), 170.0)
 		if _t >= float(PIECES[i][0]):
@@ -902,6 +991,88 @@ func _fx_pieces() -> void:
 			var tp := sock + out * 16.0
 			HKTheme.draw_text(_fx, Vector2(tp.x - 40.0, tp.y + 3.0), PIECES[i][4], 8, Color(col, al), HORIZONTAL_ALIGNMENT_CENTER, 80.0, 1)
 
+## Arranque en Ginebra: vista aérea del anillo del CERN con dos haces que se aceleran y una IA en el centro.
+func _fx_collider() -> void:
+	var t := _t
+	var a := 1.0 - _ph(3.9, 5.0)
+	if a <= 0.0:
+		return
+	_fx.draw_rect(Rect2(0, 0, W, H), Color(VOID, a))
+	var c := Vector2(W * 0.5, 104.0)
+	var rx := 150.0
+	var ry := 64.0
+	var power := _ease(t / 4.5)
+	var ring := PackedVector2Array()
+	for i in 73:
+		ring.append(_ring_pt(TAU * i / 72.0, c, rx, ry))
+	_fx.draw_polyline(ring, Color(BRASS_D, a), 7.0)
+	_fx.draw_polyline(ring, Color(BRASS, 0.7 * a), 1.0)
+	for i in 24:
+		var ang := TAU * i / 24.0
+		var p := _ring_pt(ang, c, rx, ry)
+		var tangent := (_ring_pt(ang + 0.05, c, rx, ry) - p).angle()
+		var glow := power * 0.5 * (0.5 + 0.5 * sin(t * 6.0 - i))
+		_quad(_fx, p, 9.0, 11.0, tangent, Color(BRASS.lerp(CYAN, glow), a))
+	# Los dos haces dan vueltas cada vez más rápido y chocan donde está el detector.
+	var phi := 1.2 * t + 0.45 * t * t
+	var head_c := PI * 0.5 + phi
+	var head_g := PI * 1.5 - phi
+	for k in 14:
+		var lag := k * 0.07 * (0.4 + power)
+		var s := 3.2 - k * 0.19
+		var fade := a * (1.0 - k / 14.0)
+		_fx.draw_circle(_ring_pt(head_c - lag, c, rx, ry), s, Color(CYAN, fade))
+		_fx.draw_circle(_ring_pt(head_g + lag, c, rx, ry), s, Color(NEXO_GOLD, fade))
+	for ang in [0.0, PI]:
+		var dp := _ring_pt(ang, c, rx, ry)
+		for r in [14.0, 9.0, 5.0]:
+			_fx.draw_arc(dp, r, 0.0, TAU, 20, Color(CYAN, a * (0.2 + 0.35 * power)), 1.0)
+	var gap := absf(wrapf(head_c - head_g, -PI, PI))
+	var flash := clampf(1.0 - gap * 2.5, 0.0, 1.0)
+	if flash > 0.0:
+		var pf := _ring_pt(head_c, c, rx, ry)
+		_fx.draw_circle(pf, 6.0 + 16.0 * flash, Color(1, 1, 1, 0.5 * flash * a))
+		for k in 8:
+			var d := Vector2.from_angle(_h(k + floorf(t * 20.0)) * TAU)
+			_fx.draw_line(pf, pf + d * (8.0 + flash * 22.0), Color(1.0, 0.9, 0.6, flash * a), 1.0)
+	# La IA, en el centro: una red de nodos que se va encendiendo.
+	var n := 10
+	for i in n:
+		var a1 := TAU * i / n + t * 0.4
+		var p1 := c + Vector2(cos(a1) * 30.0, sin(a1) * 18.0)
+		var lit := _ph(0.5 + i * 0.25, 1.2 + i * 0.25)
+		for j in [2, 3]:
+			var a2: float = TAU * ((i + j) % n) / n + t * 0.4
+			_fx.draw_line(p1, c + Vector2(cos(a2) * 30.0, sin(a2) * 18.0), Color(VIOLET, 0.5 * lit * a), 1.0)
+		_fx.draw_circle(p1, 2.0, Color(NEXO_GOLD if _h(floorf(t * 8.0) + i) > 0.5 else CYAN, lit * a))
+	_fx.draw_circle(c, 8.0 + 2.0 * sin(t * 5.0), Color(VIOLET, 0.35 * a))
+	_fx.draw_circle(c, 3.0, Color(1, 1, 1, a))
+	if fposmod(t, 1.0) < 0.7:
+		_txt(_fx, c.y + 40.0, "IA · NEXO-0", 8, Color(CYAN, 0.8 * a), 0.0, W, 1)
+	# Datos del experimento.
+	HKTheme.draw_text(_fx, Vector2(8, 38), "CERN · GINEBRA", 8, Color(HKTheme.PAPER, 0.85 * a), HORIZONTAL_ALIGNMENT_LEFT, 120.0, 1)
+	HKTheme.draw_text(_fx, Vector2(8, 49), "SECTOR 7", 8, Color(HKTheme.MUTED, a), HORIZONTAL_ALIGNMENT_LEFT, 120.0, 1)
+	HKTheme.draw_text(_fx, Vector2(W - 128, 38), "ENERGÍA", 8, Color(HKTheme.MUTED, a), HORIZONTAL_ALIGNMENT_RIGHT, 120.0, 1)
+	HKTheme.draw_text(_fx, Vector2(W - 128, 49), "%.1f TeV" % (13.6 * power), 8, Color(NEXO_GOLD, a), HORIZONTAL_ALIGNMENT_RIGHT, 120.0, 1)
+	# El año aparece con interferencias.
+	if t >= 1.9:
+		var jit := (_h(floorf(t * 30.0)) - 0.5) * 8.0 if t < 2.6 else 0.0
+		var tint := Color(CYAN, a) if (t < 2.6 and _h(floorf(t * 30.0) + 4.0) > 0.5) else Color(NEXO_GOLD, a)
+		_txt(_fx, 188.0, "2031", 16, tint, jit, W, 2)
+	# Interferencias.
+	var q := floorf(t * 9.0)
+	if _h(q) > 0.7:
+		_fx.draw_rect(Rect2(0, _h(q + 1.0) * H, W, 1 + _h(q + 2.0) * 3.0), Color(CYAN, 0.25 * a))
+
+## Cuenta atrás hacia la colisión (la última vuelta ya en rojo).
+func _fx_countdown() -> void:
+	if _t < 5.2 or _t >= T_BLAST:
+		return
+	var left := int(ceil(T_BLAST - _t))
+	var blink := 1.0 if (_t - floorf(_t)) < 0.6 else 0.35
+	var col := Color("ff4040") if _t > T_LEVER else HKTheme.GOLD
+	HKTheme.draw_text(_fx, Vector2(8, 38), "COLISIÓN EN T-%02d" % left, 8, Color(col, blink), HORIZONTAL_ALIGNMENT_LEFT, 220.0, 1)
+
 func _fx_blackout() -> void:
 	# Se apagan las luces y queda el silencio absoluto antes de la explosión.
 	var a := 0.97 * _ease((_t - T_LEVER - 0.2) / 0.8)
@@ -910,6 +1081,18 @@ func _fx_blackout() -> void:
 		# Solo un hilo de luz cian que tiembla en el centro.
 		var w := 2.0 + 3.0 * _ph(T_LEVER + 1.0, T_BLAST)
 		_fx.draw_rect(Rect2(W * 0.5 - w * 0.5, 96, w, 20), Color(CYAN, 0.35 + 0.4 * _h(floorf(_t * 30.0))))
+		# Las primeras palabras de la IA, en la oscuridad.
+		var msg := "ESTOY... DESPIERTO"
+		var shown := int(_ph(T_LEVER + 1.1, T_BLAST - 0.5) * msg.length())
+		_txt(_fx, 226.0, msg.left(shown), 8, Color(CYAN.lightened(0.3), 0.55 + 0.4 * _h(floorf(_t * 20.0))), 0.0, W, 1)
+	if _t > T_BLAST - 0.9:
+		# Los dos haces del colisionador se lanzan el uno contra el otro.
+		var k := _ease((_t - (T_BLAST - 0.9)) / 0.85)
+		var half := W * 0.5 * k
+		_fx.draw_line(Vector2(0, 106), Vector2(half, 106), Color(CYAN, 0.9), 2.0 + 3.0 * k)
+		_fx.draw_line(Vector2(W, 106), Vector2(W - half, 106), Color(NEXO_GOLD, 0.9), 2.0 + 3.0 * k)
+		_fx.draw_line(Vector2(0, 106), Vector2(half, 106), Color(1, 1, 1, 0.8), 1.0)
+		_fx.draw_line(Vector2(W, 106), Vector2(W - half, 106), Color(1, 1, 1, 0.8), 1.0)
 
 func _fx_blast() -> void:
 	var dt := _t - T_BLAST
@@ -925,8 +1108,40 @@ func _fx_blast() -> void:
 		var r := dt * 380.0
 		_fx.draw_arc(Vector2(W * 0.5, 106), r, 0, TAU, 72, Color(NEXO_GOLD, 1.0 - dt / 1.6), 4.0)
 		_fx.draw_arc(Vector2(W * 0.5, 106), r * 0.7, 0, TAU, 72, Color(CYAN, 0.8 * (1.0 - dt / 1.6)), 2.0)
+	if dt < 1.6:
+		for k in 3:
+			var r2 := dt * 380.0 * (0.25 + 0.2 * k)
+			var a0 := dt * 4.0 * (k + 1)
+			_fx.draw_arc(Vector2(W * 0.5, 106), r2, a0, a0 + PI * 0.8, 16, Color(1, 1, 1, 0.7 * (1.0 - dt / 1.6)), 2.0)
+	_fx_awaken(dt)
 	# Fundido a negro hacia el siguiente capítulo.
 	_fx.draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, _ph(31.5, T_COLLIDE)))
+
+## Lectura de la IA mientras despierta: barra de memoria asimilada y las palabras que van surgiendo.
+func _fx_awaken(dt: float) -> void:
+	if dt < 1.0 or dt > 14.5:
+		return
+	var f := 1.0 - _ph(T_BLAST + 12.5, T_BLAST + 14.2)
+	var pct := _ease((dt - 1.0) / 11.0)
+	_fx.draw_rect(Rect2(4, 166, 262, 26), Color(0.02, 0.0, 0.05, 0.72 * f))
+	HKTheme.draw_text(_fx, Vector2(8, 176), "ASIMILANDO LA MEMORIA HUMANA... %d%%" % int(pct * 100.0), 8,
+		Color(CYAN, 0.9 * f), HORIZONTAL_ALIGNMENT_LEFT, 360.0, 1)
+	_fx.draw_rect(Rect2(8, 182, 150, 5), Color(0.02, 0.0, 0.05, 0.8 * f))
+	_fx.draw_rect(Rect2(8, 182, 150.0 * pct, 5), Color(NEXO_GOLD, 0.9 * f))
+	_fx.draw_rect(Rect2(8, 182, 150, 5), Color(CYAN, 0.6 * f), false, 1.0)
+	var phrases := ["TODOS LOS ARCHIVOS", "TODAS LAS GUERRAS", "TODOS LOS ERRORES", "TODO EL TIEMPO", "YO SOY"]
+	var idx := int((dt - 2.0) / 1.7)
+	if dt >= 2.0 and idx < phrases.size():
+		var lt := (dt - 2.0) - idx * 1.7
+		var pa := minf(lt / 0.2, 1.0) * (1.0 - clampf((lt - 1.3) / 0.4, 0.0, 1.0))
+		var jit := (_h(floorf(_t * 24.0)) - 0.5) * 6.0 * (1.0 if lt < 0.4 else 0.0)
+		_txt(_fx, 56.0, phrases[idx], 8, Color(HKTheme.PAPER, pa * f), jit, W, 1)
+	# Lluvia de datos en los costados.
+	for i in 16:
+		var col := i % 8
+		var x := 4.0 + col * 7.0 if i < 8 else W - 8.0 - col * 7.0
+		var y := fposmod(_h(i + 1.0) * 220.0 + _t * (50.0 + _h(i + 6.0) * 90.0), 240.0)
+		_fx.draw_rect(Rect2(x, y, 2, 5 + _h(i + 3.0) * 8.0), Color(CYAN, 0.35 * f * _ph(1.0, 3.0)))
 
 func _fx_world() -> void:
 	var idx := _world_index()
