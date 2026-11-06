@@ -23,6 +23,7 @@ const CITIES := {
 	&"kim_jong_un": ["PYONGYANG", 125.7, 39.0],
 	&"nicolas_maduro": ["CARACAS", -66.9, 10.5],
 	&"osama_bin_laden": ["ABBOTTABAD", 73.2, 34.2],
+	&"xi_jinping": ["PEKÍN", 116.4, 39.9],
 	&"vladimir_putin": ["MOSCÚ", 37.6, 55.8],
 	&"pablo_escobar": ["MEDELLÍN", -75.6, 6.2],
 	&"donald_trump": ["WASHINGTON", -77.0, 38.9],
