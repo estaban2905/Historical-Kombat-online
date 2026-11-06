@@ -32,6 +32,8 @@ var _overlay: Control
 ## y el botón esperan. Solo Enter las salta todas.
 var _intro: Node
 var _skip_intros: bool = false
+## Mapa del mundo en curso (el viaje hasta la ciudad del rival); mientras existe, el resto espera.
+var _map: StoryWorldMap
 var _auto_fight: bool = false
 
 func _ready() -> void:
@@ -73,6 +75,24 @@ func _ready() -> void:
 
 ## Tras la tarjeta del capítulo: la escena de diálogo del rival, si tiene, y después el botón de combatir.
 func _after_card() -> void:
+	# Antes del rival, el mapa del mundo: el viaje hasta su ciudad. El creador poseído pelea en la misma batalla: sin mapa.
+	if not _auto_fight:
+		_play_map()
+		return
+	_after_map()
+
+func _play_map() -> void:
+	_btn.visible = false
+	_back.visible = false
+	var map := StoryWorldMap.new()
+	_map = map
+	map.finished.connect(func():
+		_map = null
+		_after_map())
+	add_child(map)
+
+## Tras el mapa: la escena de diálogo del rival, si tiene, y después el botón de combatir.
+func _after_map() -> void:
 	var scene := StoryScenes.lines(Game.p2_fighter_id, Game.p1_fighter_id)
 	if scene.is_empty():
 		_show_fight_button()
