@@ -3,6 +3,8 @@
 class_name ThemedStage
 extends Stage
 
+const ATMOSPHERE := preload("res://stages/stage_atmosphere.gd")
+
 ## Personaje al que pertenece el escenario (se asigna antes de añadirlo al árbol).
 var fighter_id: StringName = &"napoleon"
 
@@ -17,3 +19,9 @@ func _ready() -> void:
 		layer.name = String(spec[0]).capitalize()
 		add_child(layer)
 		layer.setup(ops, spec[1])
+	# Atmósfera común: bruma, luz, polvo y viñeta (encima del fondo, debajo de los luchadores).
+	var atm := Node2D.new()
+	atm.set_script(ATMOSPHERE)
+	atm.name = "Atmosphere"
+	add_child(atm)
+	atm.call("setup", floor_y - 38.0)
