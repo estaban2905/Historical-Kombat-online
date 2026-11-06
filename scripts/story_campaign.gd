@@ -46,10 +46,10 @@ const NEXO_REACT_WORN := ["TANTAS CAÍDAS... ¿SEGURO", "QUE MERECES EL NEXO?"]
 const VS := {
 	&"el_nexo": ["SOY LO QUE QUISIERON CONSTRUIR.", "SOY LO QUE RECUERDAN."],
 	# Los creadores del Reloj: científicos que aportaron lo que sabían.
-	&"albert_einstein": ["CREADOR DEL RELOJ: APORTÓ LA RELATIVIDAD.", "PARA ÉL EL TIEMPO SE ESTIRA Y SE CURVA."],
-	&"nikola_tesla": ["CREADOR DEL RELOJ: APORTÓ LA CORRIENTE", "ALTERNA Y LA RESONANCIA."],
-	&"marie_curie": ["CREADORA DEL RELOJ: APORTÓ LA RADIACTIVIDAD", "Y LA MEDIDA DE LA VIDA MEDIA."],
-	&"leonardo_da_vinci": ["CREADOR DEL RELOJ: APORTÓ EL DISEÑO,", "ENGRANAJE POR ENGRANAJE."],
+	&"albert_einstein": ["CREADOR DEL RELOJ, ATADO AL NEXO POR", "SU PROPIA ECUACIÓN. VÉNCELO Y LO LIBERAS."],
+	&"nikola_tesla": ["CREADOR DEL RELOJ, ARRASTRADO POR", "SU PROPIA CORRIENTE. ROMPE SU RITMO."],
+	&"marie_curie": ["CREADORA DEL RELOJ, ATADA A LA ENERGÍA", "QUE ELLA MISMA APORTÓ. LIBÉRALA."],
+	&"leonardo_da_vinci": ["CREADOR DEL RELOJ, PRESO EN LOS", "ENGRANAJES QUE ÉL DISEÑÓ."],
 	# El mundo actual
 	&"kim_jong_un": ["QUIERE REESCRIBIR LA HISTORIA", "Y CERRAR EL TIEMPO COMO SU FRONTERA."],
 	&"nicolas_maduro": ["QUIERE REESCRIBIR SU HISTORIA", "A PUNTA DE BAILE Y AGUANTE."],
@@ -177,13 +177,13 @@ const FAREWELL := {
 	&"benito_mussolini": "EL BALCÓN SE QUEDÓ VACÍO.",
 	&"joseph_stalin": "EL ACERO TAMBIÉN SE DOBLA.",
 	&"rasputin": "NI ASÍ MORIRÉ... PERO DUELE.",
-	&"albert_einstein": "USEN LA CIENCIA CON CUIDADO.",
+	&"albert_einstein": "ME HAS SOLTADO. LA ECUACIÓN YA NO ES SUYA.",
 	&"adolf_hitler": "DOCE AÑOS... Y NI UNO MÁS.",
 	&"arturo_prat": "SIGUE NAVEGANDO. YO YA ABORDÉ.",
 	&"abraham_lincoln": "QUE LA UNIÓN NO SE ROMPA OTRA VEZ.",
 	&"charles_darwin": "ERES EL MÁS ADAPTADO. POR AHORA.",
-	&"nikola_tesla": "ALUMBRA A TODOS, NO SOLO A UNOS.",
-	&"marie_curie": "CUIDA LA LUZ O TE CONSUMIRÁ.",
+	&"nikola_tesla": "MI CORRIENTE VUELVE A SER MÍA. APAGA SU LUZ.",
+	&"marie_curie": "LA ENERGÍA ES MÍA OTRA VEZ. LLÉVALA CONTIGO.",
 	&"napoleon": "WATERLOO SE REPITE... SIEMPRE.",
 	&"isaac_newton": "MIDE BIEN LA GRIETA ANTES DE CERRARLA.",
 	&"janequeo": "MI TIERRA QUEDA EN TUS MANOS.",
@@ -193,7 +193,7 @@ const FAREWELL := {
 	&"nostradamus": "ESTO TAMBIÉN ESTABA ESCRITO.",
 	&"nicolas_maquiavelo": "HICISTE LO QUE HABÍA QUE HACER.",
 	&"moctezuma_ii": "ESTA VEZ, QUE TENOCHTITLAN SE SALVE.",
-	&"leonardo_da_vinci": "OBSERVA, MIDE Y SOLO ENTONCES CONSTRUYE.",
+	&"leonardo_da_vinci": "LIBRE. TODO MECANISMO TIENE UN PUNTO DÉBIL.",
 	&"cristobal_colon": "HAY RUTAS QUE NO TIENEN VUELTA.",
 	&"pachacutec": "QUE EL IMPERIO VIVA EN TU MEMORIA.",
 	&"juana_de_arco": "LAS VOCES DICEN QUE SIGAS.",
@@ -214,5 +214,5 @@ const FAREWELL := {
 ## Lo que dice el Nexo al cambiar de fase en su combate (fase II y fase III): su origen, poco a poco.
 const NEXO_PHASE_LINES := [
 	["SOY LA AMBICIÓN DE QUIENES", "ME CONSTRUYERON."],
-	["SOY LA MEMORIA DE TODAS LAS ÉPOCAS.", "¿PUEDES CARGARLA?"],
+	["SOY LA MEMORIA Y EL ARREPENTIMIENTO", "DE TODAS LAS ÉPOCAS. ¿PUEDES CARGARLOS?"],
 ]
