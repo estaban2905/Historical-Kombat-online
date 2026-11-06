@@ -29,7 +29,7 @@ var _back: BackButton
 ## Capa superior para la tarjeta de capítulo (debe tapar también a los luchadores).
 var _overlay: Control
 ## Animación en curso (mini-intro del Nexo y/o arranque de la época); mientras existe, la tarjeta
-## y el botón esperan. Cualquier tecla las salta todas.
+## y el botón esperan. Solo Enter las salta todas.
 var _intro: Node
 var _skip_intros: bool = false
 
@@ -125,13 +125,13 @@ func _go_back() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if Game.is_changing_scene():
 		return
-	if _card and event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
+	if _card and HKTheme.is_enter(event):
 		_t = maxf(_t, CARD_TIME - CARD_FADE)   # saltar la tarjeta y las animaciones, si las hay
 		_skip_intros = true
 		if _intro:
 			_intro.skip()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"ui_cancel"):
+	elif event.is_action_pressed(&"ui_cancel") and not _card:
 		_go_back()
 		get_viewport().set_input_as_handled()
 

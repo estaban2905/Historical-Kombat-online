@@ -269,12 +269,7 @@ func _place(b: Button, text: String, pos: Vector2, width: float, action: Callabl
 func _unhandled_input(event: InputEvent) -> void:
 	if _step != 2 or _t < 0.4:
 		return
-	var pressed := false
-	if event is InputEventKey:
-		pressed = event.pressed and not event.echo
-	elif event is InputEventMouseButton or event is InputEventJoypadButton:
-		pressed = event.pressed
-	if pressed:
+	if HKTheme.is_enter(event):
 		_go_epilogue()
 		get_viewport().set_input_as_handled()
 
@@ -389,7 +384,7 @@ func _draw_decision() -> void:
 	HKTheme.draw_text(self, Vector2(0, 21), title, 8, Color(info["color"], ta), HORIZONTAL_ALIGNMENT_CENTER, W, 1)
 	_draw_ending_subs(info["subs"])
 	if _t < 3.0:
-		HKTheme.draw_text(self, Vector2(0, 36), "CUALQUIER TECLA: SALTAR", 8, Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)),
+		HKTheme.draw_text(self, Vector2(0, 36), "ENTER: SALTAR", 8, Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)),
 			HORIZONTAL_ALIGNMENT_RIGHT, W - 6, 1)
 	if fade_in < 1.0:
 		draw_rect(Rect2(0, 0, W, H), Color(0.03, 0.02, 0.05, 1.0 - fade_in))

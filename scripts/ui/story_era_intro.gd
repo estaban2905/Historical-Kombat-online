@@ -129,7 +129,7 @@ func _draw() -> void:
 	if a > 0.0:
 		draw_rect(Rect2(0, 0, W, H), Color(0.03, 0.02, 0.05, clampf(a, 0.0, 1.0)))
 	if _t < 3.0:
-		HKTheme.draw_text(self, Vector2(0, 9), "CUALQUIER TECLA: SALTAR", 8,
+		HKTheme.draw_text(self, Vector2(0, 9), "ENTER: SALTAR", 8,
 			Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)), HORIZONTAL_ALIGNMENT_RIGHT, W - 6, 1)
 
 func _draw_title() -> void:

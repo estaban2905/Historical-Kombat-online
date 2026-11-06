@@ -6,7 +6,7 @@
 ##   V    LOS LUCHADORES           presentación de los 15 y el círculo final
 ##   VI   IMPACTO Y LOGOTIPO       choque, corte a negro, HISTORY COMBAT, PRESS START
 ## Todo se dibuja por código sobre el reloj de la música (assets/music/intro.ogg) y la narración
-## (assets/sounds/intro/voice_N.wav). Cualquier tecla salta la intro y va al inicio de sesión.
+## (assets/sounds/intro/voice_N.wav). Solo Enter salta la intro y va al inicio de sesión.
 ## Los instantes T_* deben coincidir con tools/gen_intro_music.py; las voces se regeneran con
 ## tools/gen_intro_voice.py (mismo texto que SUBS).
 extends Control
@@ -172,12 +172,7 @@ func _build_subs() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _done or _t < 0.5:
 		return
-	var pressed := false
-	if event is InputEventKey:
-		pressed = event.pressed and not event.echo
-	elif event is InputEventMouseButton or event is InputEventJoypadButton:
-		pressed = event.pressed
-	if pressed:
+	if HKTheme.is_enter(event):
 		_finish()
 		get_viewport().set_input_as_handled()
 
@@ -841,7 +836,7 @@ func _draw_fx() -> void:
 	_fx_cards()
 	_fx_subtitles()
 	if t < 3.0:
-		HKTheme.draw_text(_fx, Vector2(0, 232), "CUALQUIER TECLA: SALTAR", 8, Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)),
+		HKTheme.draw_text(_fx, Vector2(0, 232), "ENTER: SALTAR", 8, Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)),
 			HORIZONTAL_ALIGNMENT_RIGHT, W - 6, 1)
 	# Fundido inicial desde negro.
 	if t < 1.2:

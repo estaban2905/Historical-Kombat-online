@@ -150,6 +150,12 @@ static func draw_text(ci: CanvasItem, pos: Vector2, text: String, size: int, col
 		ci.draw_string_outline(f, pos.round(), text, align, width, size, outline, INK)
 	ci.draw_string(f, pos.round(), text, align, width, size, color)
 
+## ¿Es la tecla Enter (o Enter del teclado numérico) recién pulsada? Las intros y escenas del modo Historia
+## solo se saltan o avanzan con ella, para no saltarlas sin querer.
+static func is_enter(event: InputEvent) -> bool:
+	var k := event as InputEventKey
+	return k != null and k.pressed and not k.echo and (k.keycode == KEY_ENTER or k.keycode == KEY_KP_ENTER)
+
 static func text_width(text: String, size: int) -> float:
 	var f := font()
 	return f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x if f else 0.0
