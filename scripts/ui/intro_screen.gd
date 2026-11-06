@@ -1,6 +1,6 @@
 ## INTRO del juego (~2 minutos): cuenta cómo se rompió el tiempo y nació el torneo.
-##   I    PROYECTO ORIGEN          Ginebra 2031: colisionador, IA y el Reloj de cuatro ecos
-##   II   EL DESPERTAR DEL NEXO    cuenta atrás, silencio, colisión y la IA que abre los ojos
+##   I    PROYECTO ORIGEN          Ginebra 2031: el colisionador, la sala de control y la IA
+##   II   EL DESPERTAR DEL NEXO    la colisión que nadie ordenó, el Nexo despierta y captura a cuatro genios
 ##   III  LA COLISIÓN DE LAS ERAS  cinco mundos fundidos y un campo de ruinas
 ##   IV   EL JUICIO DEL NEXO       la esfera, el coliseo y el público espectral
 ##   V    LOS LUCHADORES           presentación de los 15 y el círculo final
@@ -36,11 +36,12 @@ const BRASS := Color("b8862a")
 const BRASS_D := Color("5e4216")
 
 ## Narración: inicio (s), duración (s) y subtítulos (se reparten según el largo de cada uno).
-const VOICE_T: Array[float] = [1.5, 19.5, 36.0, 68.0, 104.0, 116.6]
-const VOICE_LEN: Array[float] = [13.05, 16.29, 14.81, 18.17, 6.80, 3.69]
+const VOICE_T: Array[float] = [1.2, 18.4, 28.6, 36.0, 68.0, 104.0, 116.6]
+const VOICE_LEN: Array[float] = [12.54, 9.83, 6.20, 14.81, 18.17, 6.80, 3.69]
 const SUBS: Array = [
-	["GINEBRA, 2031.", "EL MAYOR COLISIONADOR DEL MUNDO SE UNE\nA UNA INTELIGENCIA SIN LÍMITES,", "Y LA HUMANIDAD ENCIENDE\nEL RELOJ DEL ORIGEN."],
-	["LA COLISIÓN DESGARRÓ EL TIEMPO.", "LA INTELIGENCIA VIO TODA LA HISTORIA\nA LA VEZ... Y DESPERTÓ.", "SE LLAMÓ EL NEXO.", "NO QUISO SER UNA MÁQUINA:\nQUISO SER EL ORIGEN DE TODO."],
+	["GINEBRA, 2031.", "EN EL CERN, UN EQUIPO DE CIENTÍFICOS TRABAJA\nJUNTO A LA INTELIGENCIA ARTIFICIAL MÁS AVANZADA."],
+	["NADIE LO ORDENÓ:\nDE LA COLISIÓN NACIÓ EL NEXO.", "VIO TODA LA HISTORIA A LA VEZ,\nY QUISO SER SU ORIGEN."],
+	["CAPTURÓ A CUATRO GENIOS Y LOS OBLIGÓ", "A CONSTRUIR EL RELOJ DEL ORIGEN."],
 	["SE ALIMENTÓ DE LOS ARREPENTIMIENTOS\nDE LA HUMANIDAD, Y LOS MUNDOS CHOCARON.", "REYES, GUERREROS Y PROFETAS FUERON\nARRANCADOS DE SU ÉPOCA", "Y ARROJADOS A UN MISMO CAMPO DE RUINAS."],
 	["ENTONCES EL NEXO HABLÓ:", "CADA UNO ANHELA VOLVER AL DÍA EN QUE PERDIÓ.\nYO PUEDO CONCEDÉRSELO.", "PERO SOLO UNO RECLAMARÁ MI PODER...", "Y DECIDIRÁ SI EL TIEMPO SE REPARA,\nO SE ESCRIBE DE NUEVO."],
 	["ALIADOS NO HAY.\nÉPOCAS NO HAY. REGLAS NO HAY."],
@@ -56,21 +57,29 @@ const CARDS: Array = [
 	[90.3, "V · LOS LUCHADORES"],
 ]
 
-## Los cuatro científicos: [id, nombre, x, segundo en que aparecen].
+## Los cuatro genios que el Nexo captura, cada uno en su época dentro de un portal:
+## [id, nombre, lugar y año, x del portal, y del portal, segundo en que se abre, color, lo que aportó].
 const SCIENTISTS: Array = [
-	[&"nikola_tesla", "TESLA", 96.0, 4.4],
-	[&"albert_einstein", "EINSTEIN", 176.0, 5.6],
-	[&"marie_curie", "CURIE", 256.0, 6.8],
-	[&"leonardo_da_vinci", "DA VINCI", 336.0, 8.0],
+	[&"nikola_tesla", "TESLA", "TESLA · 1899", 12.0, 26.0, 25.6, Color("35e6ff"), "CORRIENTE"],
+	[&"albert_einstein", "EINSTEIN", "EINSTEIN · 1905", 334.0, 26.0, 25.9, Color("ffd24a"), "RELATIVIDAD"],
+	[&"marie_curie", "CURIE", "CURIE · 1898", 12.0, 120.0, 26.2, Color("60ff70"), "RADIACTIVIDAD"],
+	[&"leonardo_da_vinci", "DA VINCI", "DA VINCI · 1495", 334.0, 120.0, 26.5, Color("f0a040"), "DISEÑO"],
 ]
+const PORTAL_W := 80.0
+const PORTAL_H := 76.0
+## Ángulo del engarce de cada genio en el aro del Reloj (mismo orden que SCIENTISTS).
+const SOCKET_ANG: Array[float] = [-2.356, -0.785, 2.356, 0.785]
+## Cuando el Nexo empieza a arrastrarlos y cuando empieza a forjar el Reloj.
+const T_PULL := 28.6
+const T_FORGE := 30.4
 
-## La pieza que cada creador acopla al Reloj antes de encenderlo, en el mismo orden que SCIENTISTS:
-## [segundo en que sale de su mano, segundo en que encaja, ángulo del engarce en el aro, color, rótulo].
-const PIECES: Array = [
-	[13.0, 14.0, 0.0, Color("35e6ff"), "CORRIENTE"],
-	[10.2, 11.4, -PI * 0.5, Color("ffd24a"), "RELATIVIDAD"],
-	[11.2, 12.4, PI, Color("60ff70"), "RADIACTIVIDAD"],
-	[12.2, 13.4, PI * 0.5, Color("f0a040"), "DISEÑO"],
+## Científicos anónimos de la sala de control: [x, pelo, de pie, segundo en que se alarman, segundo en que entran en pánico].
+const SCI_ROOM: Array = [
+	[56.0, Color("3a2a1c"), false, 9.0, 12.4],
+	[138.0, Color("c8c8d0"), false, 10.2, 13.0],
+	[213.0, Color("1c1c1c"), true, 9.4, 12.2],
+	[288.0, Color("b0501c"), false, 9.6, 12.8],
+	[370.0, Color("e0c070"), false, 11.0, 13.4],
 ]
 
 ## Cinco mundos fundidos: escenario del luchador, rótulo y tinte.
@@ -214,6 +223,7 @@ func _process(delta: float) -> void:
 	_music.volume_db = move_toward(_music.volume_db, -10.0 if talking else -5.0, 30.0 * delta)
 	_sfx_once("year", 2.0, &"whoosh")
 	_sfx_once("eye", T_BLAST + 4.0, &"whoosh")
+	_sfx_once("grab", T_PULL, &"hit_heavy")
 	_update_shake()
 	_update_stage()
 	_place_fighters()
@@ -370,37 +380,17 @@ func _place_fighters() -> void:
 		_place_duel()
 
 func _place_scientists() -> void:
+	if _t < 25.6 or _t >= T_COLLIDE:
+		return
 	for i in SCIENTISTS.size():
-		var e: Array = SCIENTISTS[i]
-		var a := _ph(e[3], e[3] + 0.6)
-		var x: float = e[2]
-		var pose := &"idle"
-		var face := 1 if x < W * 0.5 else -1
-		if i == 0:
-			# Tesla camina hasta la palanca de la izquierda y la acciona.
-			var w := _ph(14.0, 15.0)
-			x = lerpf(x, 66.0, _ease(w))
-			if w > 0.0 and w < 1.0:
-				pose = &"walk"
-			face = -1 if w > 0.0 else 1
-		# Los pies quedan por encima de la franja de subtítulos (empieza en y≈207) para no pisar las letras.
-		var y := 199.0
-		var h := 80.0
-		var rot := 0.0
-		if _t >= T_BLAST:
-			# Los absorbe el Nexo: giran hacia la grieta y se encogen.
-			var p := _ease((_t - 20.0) / 7.0)
-			x = lerpf(x, W * 0.5, p)
-			y = lerpf(y, 100.0, p)
-			h = lerpf(h, 14.0, p)
-			rot = p * 14.0
-			a *= 1.0 - _ph(25.0, 27.5)
-			pose = &"hit"
-		elif _t >= T_LEVER and i == 0:
-			pose = &"idle"
-		# Son ecos holográficos: la IA los reconstruye a partir de lo que dejaron escrito.
-		a *= 0.8 + 0.2 * _h(floorf(_t * 20.0) + i * 7.0)
-		_put(e[0], x, y, h, face, pose, a, rot, Color(0.55, 0.95, 1.0))
+		var s: Array = SCIENTISTS[i]
+		var a := _ph(float(s[5]), float(s[5]) + 0.5)
+		var v := _sci_xy(i)
+		var p := _pull(i)
+		var face := 1 if v.x < W * 0.5 else -1
+		# Libres en su época; poseídos por el Nexo cuando los arrastra.
+		var tint := Color.WHITE.lerp(Color(0.75, 0.6, 1.0), p)
+		_put(s[0], v.x, v.y, v.z, face, &"hit" if p > 0.05 else &"idle", a, sin(_t * 5.0 + i) * 0.12 * p, tint)
 
 func _place_world() -> void:
 	var idx := _world_index()
@@ -492,116 +482,271 @@ func _draw() -> void:
 	else:
 		_bg_logo()
 
-# --- I y II: el laboratorio -----------------------------------------------
-func _clock_c() -> Vector2:
+# --- I y II: la sala de control del CERN -----------------------------------
+func _forge_c() -> Vector2:
 	return Vector2(W * 0.5, 106.0)
 
-func _clock_r() -> float:
-	return lerpf(124.0, 62.0, _ease(_t / 12.0))
-
-## Dónde está el engarce `i` en el aro del Reloj.
+## Dónde engarza el genio `i` en el aro del Reloj.
 func _socket_pos(i: int) -> Vector2:
-	return _clock_c() + Vector2.from_angle(float(PIECES[i][2])) * (_clock_r() + 4.0)
+	return _forge_c() + Vector2.from_angle(SOCKET_ANG[i]) * 58.0
 
-func _spin_phase() -> float:
-	var ph := minf(_t, T_BLAST)
-	return ph + 2.4 * pow(maxf(0.0, ph - T_LEVER), 2.0)
+func _pull(i: int) -> float:
+	return _ease((_t - T_PULL - i * 0.25) / 2.0)
+
+## Posición (x, pies, alto) del genio `i`: primero en su portal y luego arrastrado hasta su engarce.
+func _sci_xy(i: int) -> Vector3:
+	var s: Array = SCIENTISTS[i]
+	var bx: float = float(s[3]) + PORTAL_W * 0.5
+	var by: float = float(s[4]) + PORTAL_H - 6.0
+	var p := _pull(i)
+	var sk := _socket_pos(i)
+	return Vector3(lerpf(bx, sk.x, p), lerpf(by, sk.y + 18.0, p), lerpf(56.0, 38.0, p))
+
+func _phase_color(phase: int) -> Color:
+	match phase:
+		0: return Color("40ff90")
+		1: return Color("ffb030")
+	return Color("ff3a3a")
 
 func _bg_lab() -> void:
 	var t := _t
 	var dt := t - T_BLAST
 	draw_rect(Rect2(0, 0, W, H), VOID)
 	if t < T_BLAST + 0.05:
-		_lab_room(t)
+		_control_room(t)
 	else:
 		_nexo_swirl(dt)
 		_debris(dt)
 		_crack(dt)
 		_ai_awaken(dt)
+		_portals()
+		_clock_forge()
 
-func _lab_room(t: float) -> void:
-	var sp := _spin_phase()
-	# Bóveda: costillas que convergen y arcos concéntricos.
-	for i in range(-7, 8):
-		draw_line(Vector2(W * 0.5, -30), Vector2(W * 0.5 + i * 62.0, H), Color(BRASS_D, 0.5), 1.0)
-	for r in [110.0, 190.0, 270.0, 350.0]:
-		draw_arc(Vector2(W * 0.5, 270.0), r, PI, TAU, 56, Color(BRASS_D, 0.55), 1.0)
-	# Reloj del Origen: empieza en primer plano y se aleja hasta un plano general.
-	var c := Vector2(W * 0.5, 106.0)
-	var R := lerpf(124.0, 62.0, _ease(t / 12.0))
-	_gear(self, c + Vector2(-R * 1.55, 24), R * 0.62, 14, sp * 0.45, BRASS_D, VOID)
-	_gear(self, c + Vector2(R * 1.55, 24), R * 0.62, 14, -sp * 0.45 + 0.2, BRASS_D, VOID)
-	_gear(self, c + Vector2(-R * 0.95, -R * 0.78), R * 0.3, 10, -sp * 0.9, BRASS, VOID)
-	_gear(self, c + Vector2(R * 0.95, -R * 0.78), R * 0.3, 10, sp * 0.9, BRASS, VOID)
-	draw_circle(c, R + 7, BRASS_D)
-	draw_arc(c, R + 4, 0, TAU, 64, BRASS, 5.0)
-	draw_arc(c, R - 6, 0, TAU, 64, BRASS_D.lightened(0.25), 2.0)
-	draw_circle(c, R - 8, Color("120a1c"))
-	var glow := 0.5 + 0.5 * sin(t * 3.0)
-	for k in 14:
-		var a := TAU * k / 14.0 + sp * 0.12
-		var p0 := c + Vector2.from_angle(a) * (R - 10)
-		var p1 := c + Vector2.from_angle(a) * (R * 0.55)
-		var pl := c + Vector2.from_angle(a + 0.13) * (R * 0.78)
-		draw_colored_polygon(PackedVector2Array([p0, pl, p1]), Color(CYAN, 0.35 + 0.25 * glow))
-		draw_line(p0, p1, Color(CYAN, 0.9), 1.0)
-	_gear(self, c, R * 0.32, 12, -sp * 0.6, BRASS, Color("120a1c"))
-	# Engarces del aro: cada creador acopla ahí su pieza (ver PIECES y _fx_pieces).
-	for i in PIECES.size():
-		var sock := _socket_pos(i)
-		var col: Color = PIECES[i][3]
-		draw_circle(sock, 6.0, Color("120a1c"))
-		draw_arc(sock, 6.0, 0, TAU, 20, BRASS, 1.5)
-		if t >= float(PIECES[i][1]):
-			var pulse := 0.6 + 0.4 * sin(t * 6.0 + i)
-			draw_circle(sock, 4.5, Color(col, 0.9))
-			draw_circle(sock, 9.0 + 3.0 * pulse, Color(col, 0.18))
-	if t >= float(PIECES[0][1]):
-		# Con las cuatro piezas puestas, el aro se enciende con los cuatro colores.
-		for i in PIECES.size():
-			var a0 := float(PIECES[i][2]) - PI * 0.25
-			draw_arc(c, R + 9.0, a0, a0 + PI * 0.5, 14, Color(PIECES[i][3], 0.55 + 0.25 * sin(t * 5.0 + i)), 2.0)
-	# Manecillas imposibles: una gira al revés y otra a velocidades distintas.
-	draw_line(c, c + Vector2.from_angle(sp * 0.7) * R * 0.78, NEXO_GOLD, 2.0)
-	draw_line(c, c + Vector2.from_angle(-sp * 3.1) * R * 0.55, CYAN, 1.0)
-	# Bobinas con arcos eléctricos hacia la máquina.
-	for sx in [96.0, 330.0]:
-		draw_circle(Vector2(sx, 46), 9, BRASS)
-		draw_circle(Vector2(sx, 46), 6, Color("2a1830"))
-		draw_rect(Rect2(sx - 2, 55, 4, 40), BRASS_D)
-	var charge := 0.35 + 0.65 * _ph(11.0, T_LEVER)
-	var q := floorf(t * 14.0)
-	for i in 3:
-		if _h(q + i * 5.0) < charge:
-			_bolt(self, Vector2(96, 46), c + Vector2.from_angle(_h(q + i) * TAU) * R * 0.9, q + i, CYAN, 1.0)
-			_bolt(self, Vector2(330, 46), c + Vector2.from_angle(_h(q + i + 9) * TAU) * R * 0.9, q + i + 40, VIOLET, 1.0)
-	# Tubos del acelerador: dos haces que viajan hacia el Reloj, cada vez más rápido.
-	var fast := _ph(8.0, T_LEVER)
-	for side in [-1.0, 1.0]:
-		var p0 := Vector2(W * 0.5 + side * W * 0.62, 128.0)
-		var mid := Vector2(W * 0.5 + side * 150.0, 146.0)
-		var end := c + Vector2(side * R * 0.95, 8.0)
-		var tube := PackedVector2Array()
-		for s in 13:
-			var u := s / 12.0
-			tube.append(p0.lerp(mid, u).lerp(mid.lerp(end, u), u))
-		draw_polyline(tube, Color(BRASS_D, 0.85), 5.0)
-		draw_polyline(tube, Color(BRASS, 0.5), 1.0)
+## La sala de control: pantalla gigante con el anillo y el núcleo de la IA, monitores, y un equipo de científicos
+## de espaldas (a contraluz) que pasa de la rutina a la alarma y al pánico (fase 0 nominal, 1 anomalía, 2 colisión sin orden).
+func _control_room(t: float) -> void:
+	var phase := 0
+	if t >= 12.4:
+		phase = 2
+	elif t >= 9.0:
+		phase = 1
+	var pc := _phase_color(phase)
+	var beacon := 0.5 + 0.5 * sin(t * 8.0)
+	for i in 6:
+		draw_rect(Rect2(0, i * 25, W, 25), Color(0.04 + 0.012 * i, 0.07 + 0.015 * i, 0.13 + 0.02 * i))
+	for x in range(0, int(W) + 54, 54):
+		draw_line(Vector2(x, 0), Vector2(x, 150), Color(1, 1, 1, 0.04), 1.0)
+	for k in 6:
+		var lit := 0.8
+		if phase == 2:
+			lit = 0.55 + 0.35 * _h(floorf(t * 6.0) + k)
+		draw_rect(Rect2(24 + k * 68, 3, 36, 4), Color(0.85, 0.92, 1.0, lit))
+		draw_rect(Rect2(20 + k * 68, 7, 44, 8), Color(0.85, 0.92, 1.0, 0.05 * lit))
+	# Pantalla principal.
+	var sr := Rect2(103, 18, 220, 104)
+	draw_rect(sr.grow(7.0), Color(pc, 0.07 + 0.04 * beacon * float(phase)))
+	draw_rect(sr, Color(0.02, 0.05, 0.09))
+	_screen_ring(sr, phase, t, pc)
+	draw_rect(sr, Color(pc, 0.9), false, 2.0)
+	draw_rect(sr.grow(3.0), Color(0.4, 0.45, 0.55, 0.7), false, 1.0)
+	# Monitores laterales con gráficas que se disparan.
+	for side in [0, 1]:
+		for row in 2:
+			var mr := Rect2(16.0 + side * 322.0, 28.0 + row * 44.0, 72.0, 34.0)
+			draw_rect(mr, Color(0.02, 0.05, 0.09))
+			draw_rect(mr, Color(pc, 0.55), false, 1.0)
+			var pts := PackedVector2Array()
+			for k in 14:
+				var amp := (4.0 + 11.0 * float(phase)) * _h(floorf(t * 6.0) * 0.37 + k + row * 9.0 + side * 17.0)
+				pts.append(Vector2(mr.position.x + 3.0 + k * 5.0, mr.end.y - 4.0 - amp * (0.6 + 0.4 * sin(t * 3.0 + k))))
+			draw_polyline(pts, Color(pc, 0.9), 1.0)
+	for px in [6.0, W - 10.0]:
+		draw_rect(Rect2(px, 0, 4, 150), Color(0.09, 0.13, 0.2))
+		draw_rect(Rect2(px, 0, 1, 150), Color(pc, 0.25))
+	# Polvo en suspensión en el haz de la pantalla.
+	for k in 18:
+		var dp := Vector2(fposmod(_h(k) * W + t * (4.0 + _h(k + 2.0) * 6.0), W), fposmod(_h(k + 5.0) * 140.0 - t * 6.0, 140.0) + 10.0)
+		draw_rect(Rect2(dp, Vector2(1, 1)), Color(1, 1, 1, 0.25))
+	# Suelo y perspectiva.
+	draw_rect(Rect2(0, 150, W, 90), Color(0.03, 0.04, 0.07))
+	draw_rect(Rect2(0, 150, W, 1), Color(pc, 0.35))
+	for i in range(-6, 7):
+		draw_line(Vector2(W * 0.5, 150), Vector2(W * 0.5 + i * 70.0, 240), Color(1, 1, 1, 0.04), 1.0)
+	# Los científicos, de espaldas y a contraluz de la pantalla.
+	for i in SCI_ROOM.size():
+		var e: Array = SCI_ROOM[i]
+		var state := 0
+		if t >= float(e[4]):
+			state = 2
+		elif t >= float(e[3]):
+			state = 1
+		var x := float(e[0])
+		_bk_sci(x, 196.0, e[1], state, float(i) * 2.3, bool(e[2]), pc)
+		if not bool(e[2]):
+			draw_rect(Rect2(x - 28, 166, 56, 12), Color(pc, 0.10))
+			draw_rect(Rect2(x - 32, 178, 64, 8), Color("1a2236"))
+			draw_rect(Rect2(x - 32, 178, 64, 1), Color(pc, 0.6))
+			draw_rect(Rect2(x - 32, 186, 64, 22), Color("0d1220"))
+	if phase == 2:
+		var q := floorf(t * 12.0)
+		for k in 8:
+			if _h(q + k * 3.1) > 0.6:
+				var dx := float(SCI_ROOM[k % 5][0]) + (_h(k + q) - 0.5) * 40.0
+				for j in 4:
+					draw_rect(Rect2(dx + (_h(j + k) - 0.5) * 14.0, 172.0 - _h(j + 3.0 + q) * 18.0, 2, 2), Color(1.0, 0.7, 0.2, 0.9))
+	# Alarma: baliza roja y luz que parpadea en toda la sala.
+	if phase >= 1:
+		draw_rect(Rect2(0, 0, W, 240), Color(1.0, 0.1, 0.1, 0.05 * float(phase) * beacon))
+		for bx in [30.0, 396.0]:
+			draw_circle(Vector2(bx, 16), 5.0, Color(1.0, 0.2, 0.2, 0.5 + 0.5 * beacon))
+			draw_circle(Vector2(bx, 16), 14.0, Color(1.0, 0.2, 0.2, 0.12 * beacon))
+
+func _screen_ring(sr: Rect2, phase: int, t: float, pc: Color) -> void:
+	var c := sr.get_center() + Vector2(0.0, 2.0)
+	var ring := PackedVector2Array()
+	for i in 49:
+		ring.append(_ring_pt(TAU * i / 48.0, c, 78.0, 24.0))
+	draw_polyline(ring, Color(pc, 0.6), 2.0)
+	var spd := 1.2 + 1.8 * float(phase)
+	for d in [1.0, -1.0]:
+		var ang: float = PI * 0.5 + d * t * spd
 		for k in 6:
-			var u := fposmod(t * (0.35 + 1.8 * fast) + k / 6.0, 1.0)
-			var qp := p0.lerp(mid, u).lerp(mid.lerp(end, u), u)
-			var col := CYAN if side < 0.0 else NEXO_GOLD
-			draw_circle(qp, 3.0, Color(col, 0.25))
-			draw_circle(qp, 1.6, Color(col, 0.95))
-	# Palanca maestra a la izquierda.
-	draw_rect(Rect2(20, 160, 34, 52), Color("1a1220"))
-	draw_rect(Rect2(20, 160, 34, 52), BRASS, false, 1.0)
-	var lever := lerpf(-0.9, 0.9, _ease((t - T_LEVER) / 0.3))
-	var piv := Vector2(37, 196)
-	var tip := piv + Vector2(sin(lever), -cos(lever)) * 26.0
-	draw_line(piv, tip, Color("c0c0d0"), 3.0)
-	draw_circle(tip, 4, Color("c02028") if t < T_LEVER else Color("40ff70"))
-	draw_circle(piv, 3, BRASS)
+			draw_circle(_ring_pt(ang - d * k * 0.09, c, 78.0, 24.0), 2.4 - k * 0.3, Color(CYAN if d > 0.0 else NEXO_GOLD, 0.9 - k * 0.13))
+	# Núcleo de la IA: se agita cuanto más grave es la fase.
+	var jag := 3.0 * float(phase)
+	for i in 8:
+		var a1 := TAU * i / 8.0 + t * 0.5
+		var p1 := c + Vector2(cos(a1) * 14.0, sin(a1) * 9.0) + Vector2((_h(floorf(t * 10.0) + i) - 0.5) * jag, 0.0)
+		var p2 := c + Vector2(cos(a1 + 2.0) * 14.0, sin(a1 + 2.0) * 9.0)
+		draw_line(p1, p2, Color(VIOLET, 0.6), 1.0)
+		draw_circle(p1, 1.6, Color(pc, 0.9))
+	draw_circle(c, 3.0 + float(phase) * (0.5 + 0.5 * sin(t * 9.0)) * 2.0, Color(1, 1, 1, 0.9))
+	var title: String = ["ANILLO PRINCIPAL · NOMINAL", "ANOMALÍA EN NÚCLEO IA", "COLISIÓN SIN AUTORIZACIÓN"][phase]
+	if phase == 0 or fposmod(t, 0.8) < 0.55:
+		_txt(self, sr.position.y + 12.0, title, 8, pc, sr.position.x, sr.size.x, 1)
+	var l1: String = ["13.6 TEV · IA ESTABLE", "NÚCLEO IA: ACTIVIDAD 340 %", "ORDEN DE ORIGEN DESCONOCIDO"][phase]
+	_txt(self, sr.end.y - 16.0, l1, 8, Color(HKTheme.PAPER, 0.8), sr.position.x, sr.size.x, 1)
+	if phase == 2 and fposmod(t, 0.6) < 0.4:
+		_txt(self, sr.end.y - 6.0, "ACCESO DENEGADO", 8, pc, sr.position.x, sr.size.x, 1)
+
+## Un científico visto de espaldas (a contraluz): teclea, se alarma y señala, o levanta las manos.
+func _bk_sci(x: float, base: float, hair: Color, state: int, sd: float, standing: bool, rim: Color) -> void:
+	var coat := Color("1b2233")
+	var skin := Color("a8745a")
+	var sc := 1.2 if standing else 1.45
+	draw_set_transform(Vector2(x, base) * (1.0 - sc) + _shake, 0.0, Vector2(sc, sc))
+	var top := base - (58.0 if standing else 44.0)
+	var bob := 0.0
+	if state == 0:
+		bob = sin(_t * 14.0 + sd) * 1.2
+	if standing:
+		draw_line(Vector2(x - 4, base - 18), Vector2(x - 4, base), Color("10131c"), 4.0)
+		draw_line(Vector2(x + 4, base - 18), Vector2(x + 4, base), Color("10131c"), 4.0)
+	else:
+		draw_rect(Rect2(x - 11, top + 12, 22, 26), Color("12141e"))
+	draw_colored_polygon(PackedVector2Array([Vector2(x - 14, top + 6), Vector2(x - 7, top), Vector2(x + 7, top), Vector2(x + 14, top + 6),
+		Vector2(x + 10, top + 32), Vector2(x - 10, top + 32)]), coat)
+	draw_line(Vector2(x - 14, top + 6), Vector2(x - 7, top), Color(rim, 0.8), 1.0)
+	draw_line(Vector2(x + 7, top), Vector2(x + 14, top + 6), Color(rim, 0.8), 1.0)
+	var turn := 0.0
+	if state >= 1:
+		turn = sin(_t * 3.0 + sd) * 2.5
+	var hy := top - 6.0
+	draw_rect(Rect2(x - 2.0 + turn * 0.5, hy + 4.0, 4, 4), skin)
+	draw_circle(Vector2(x + turn, hy), 6.5, hair)
+	match state:
+		0:
+			draw_line(Vector2(x - 12, top + 8), Vector2(x - 15, top + 26 + bob), coat, 3.0)
+			draw_line(Vector2(x + 12, top + 8), Vector2(x + 15, top + 26 - bob), coat, 3.0)
+		1:
+			draw_line(Vector2(x - 12, top + 8), Vector2(x - 15, top + 26), coat, 3.0)
+			draw_line(Vector2(x + 12, top + 8), Vector2(x + 20, top - 8), coat, 3.0)
+			draw_circle(Vector2(x + 20, top - 8), 2.2, skin)
+		_:
+			for sgn in [-1.0, 1.0]:
+				var tip := Vector2(x + sgn * 18.0, top - 16.0 + sin(_t * 10.0 + sd) * 1.5)
+				draw_line(Vector2(x + sgn * 12.0, top + 7), tip, coat, 3.0)
+				draw_circle(tip, 2.2, skin)
+	draw_set_transform(_shake, 0.0, Vector2.ONE)
+
+# --- Portales a la época de cada genio y el Reloj que el Nexo les obliga a forjar --------------
+func _portals() -> void:
+	for i in SCIENTISTS.size():
+		var s: Array = SCIENTISTS[i]
+		var a := _ph(float(s[5]), float(s[5]) + 0.5) * (1.0 - _ph(T_FORGE, T_FORGE + 1.2))
+		if a <= 0.0:
+			continue
+		var r := Rect2(float(s[3]), float(s[4]), PORTAL_W, PORTAL_H)
+		var col: Color = s[6]
+		draw_rect(r.grow(6.0), Color(col, 0.12 * a))
+		_portal_art(i, r, a)
+		draw_rect(r, Color(col, 0.9 * a), false, 2.0)
+		draw_rect(r.grow(3.0), Color(col, 0.35 * a), false, 1.0)
+		# Barrido de interferencia: el portal se está abriendo desde otra época.
+		var sy := r.position.y + fposmod(_t * 60.0 + i * 20.0, r.size.y)
+		draw_rect(Rect2(r.position.x, sy, r.size.x, 2), Color(col, 0.25 * a))
+		HKTheme.draw_text(self, Vector2(r.position.x - 8.0, r.end.y + 10.0), s[2], 8, Color(col, a), HORIZONTAL_ALIGNMENT_CENTER, r.size.x + 16.0, 1)
+
+func _portal_art(i: int, r: Rect2, a: float) -> void:
+	match i:
+		0:   # Tesla: la bobina de Colorado Springs
+			draw_rect(r, Color(0.03, 0.06, 0.14, a))
+			var cp := Vector2(r.position.x + 16.0, r.position.y + 24.0)
+			draw_rect(Rect2(cp.x - 3.0, cp.y + 4.0, 6.0, r.size.y - 28.0), Color(BRASS_D, a))
+			draw_circle(cp, 7.0, Color(BRASS, a))
+			draw_circle(cp, 11.0, Color(CYAN, 0.2 * a))
+			if a > 0.9:
+				var q := floorf(_t * 14.0)
+				for k in 2:
+					_bolt(self, cp, Vector2(r.end.x - 6.0, r.position.y + 14.0 + _h(q + k) * 40.0), q + k * 7.0, CYAN, 1.0, 4.0)
+		1:   # Einstein: la pizarra
+			draw_rect(r, Color(0.04, 0.12, 0.09, a))
+			_txt(self, r.position.y + 14.0, "E=MC2", 8, Color(0.9, 1.0, 0.9, 0.85 * a), r.position.x, r.size.x, 0)
+			for k in 4:
+				var ly := r.position.y + 22.0 + k * 6.0
+				draw_line(Vector2(r.position.x + 6.0, ly), Vector2(r.position.x + 18.0 + _h(k + 3.0) * 44.0, ly), Color(0.9, 1.0, 0.9, 0.35 * a), 1.0)
+		2:   # Curie: el matraz que brilla
+			draw_rect(r, Color(0.02, 0.07, 0.04, a))
+			var fc := Vector2(r.end.x - 20.0, r.end.y - 22.0)
+			draw_circle(fc, 20.0, Color(0.3, 1.0, 0.4, 0.12 * a))
+			draw_colored_polygon(PackedVector2Array([fc + Vector2(-3, -14), fc + Vector2(3, -14), fc + Vector2(10, 8), fc + Vector2(-10, 8)]), Color(0.3, 1.0, 0.4, 0.55 * a))
+			for k in 4:
+				draw_circle(fc + Vector2(sin(_t * 2.0 + k) * 4.0, -fposmod(_t * 14.0 + k * 9.0, 34.0)), 1.5, Color(0.6, 1.0, 0.7, 0.7 * a))
+		_:   # Da Vinci: el cuaderno de dibujos
+			draw_rect(r, Color(0.64, 0.52, 0.3, a))
+			var dc := Vector2(r.position.x + 22.0, r.position.y + 28.0)
+			var ink := Color(0.3, 0.2, 0.08, a)
+			draw_arc(dc, 15.0, 0.0, TAU, 28, ink, 1.0)
+			draw_rect(Rect2(dc.x - 11.0, dc.y - 11.0, 22.0, 22.0), ink, false, 1.0)
+			draw_line(dc + Vector2(-15.0, 0.0), dc + Vector2(15.0, 0.0), ink, 1.0)
+			_gear(self, Vector2(r.end.x - 18.0, r.position.y + 50.0), 9.0, 8, _t * 0.8, Color(0.35, 0.24, 0.1, a), Color(0.64, 0.52, 0.3, a))
+
+## El Reloj del Origen toma forma alrededor del ojo del Nexo: aro, dientes y un engarce por genio.
+func _clock_forge() -> void:
+	var k := _ease((_t - T_FORGE) / 1.6)
+	if k <= 0.0:
+		return
+	var c := _forge_c()
+	var R := 58.0 * k
+	for g in 24:
+		var ang := _t * 0.5 + TAU * g / 24.0
+		_quad(self, c + Vector2.from_angle(ang) * (R + 9.0), 7.0, 6.0, ang, Color(BRASS, 0.9 * k))
+	draw_arc(c, R + 4.0, 0.0, TAU, 64, Color(BRASS, k), 5.0)
+	draw_arc(c, R - 6.0, 0.0, TAU, 64, Color(BRASS_D.lightened(0.25), k), 2.0)
+	for g in 12:
+		var ang := TAU * g / 12.0 - _t * 0.15
+		draw_line(c + Vector2.from_angle(ang) * (R - 4.0), c + Vector2.from_angle(ang) * (R - 10.0), Color(NEXO_GOLD, 0.8 * k), 1.0)
+	for i in SCIENTISTS.size():
+		var sock := _socket_pos(i)
+		var col: Color = SCIENTISTS[i][6]
+		draw_circle(sock, 7.0, Color(0.07, 0.04, 0.11, k))
+		draw_arc(sock, 7.0, 0.0, TAU, 20, Color(BRASS, k), 1.5)
+		if _pull(i) >= 0.98:
+			var pulse := 0.6 + 0.4 * sin(_t * 6.0 + i)
+			draw_circle(sock, 5.0, Color(col, 0.9))
+			draw_circle(sock, 10.0 + 3.0 * pulse, Color(col, 0.2))
+			var a0: float = SOCKET_ANG[i] - PI * 0.25
+			draw_arc(c, R + 9.0, a0, a0 + PI * 0.5, 14, Color(col, 0.55 + 0.25 * pulse), 2.0)
 
 # --- Después de la explosión ----------------------------------------------
 func _crack(dt: float) -> void:
@@ -691,7 +836,7 @@ func _ai_awaken(dt: float) -> void:
 		return
 	for i in 4:
 		draw_circle(c, (56.0 + i * 18.0) * open, Color(VIOLET, 0.05 * fade))
-	var blink := 1.0 - 0.92 * maxf(0.0, 1.0 - absf(dt - 10.0) * 6.0)
+	var blink := 1.0 - 0.92 * maxf(0.0, 1.0 - absf(dt - 8.0) * 6.0)
 	var ry := 26.0 * open * blink
 	if ry < 2.0:
 		draw_line(c + Vector2(-44, 0), c + Vector2(44, 0), Color(NEXO_GOLD, fade), 2.0)
@@ -897,10 +1042,7 @@ func _aura(ci: CanvasItem, c: Vector2, col: Color, kind: int, t: float, s: float
 # =========================================================================
 func _draw_fx() -> void:
 	var t := _t
-	if t < 14.0:
-		_fx_scientists()
-	if t >= 10.0 and t < T_LEVER + 0.3:
-		_fx_pieces()
+	_fx_camera()
 	if t >= T_LEVER and t < T_BLAST:
 		_fx_blackout()
 	if t >= T_BLAST and t < T_COLLIDE:
@@ -917,6 +1059,8 @@ func _draw_fx() -> void:
 		_fx_duel()
 	if t >= T_LOGO - 0.3:
 		_fx_logo()
+	if t < T_COLLIDE:
+		_fx_vignette()
 	_fx_collider()
 	_fx_countdown()
 	_fx_cards()
@@ -930,66 +1074,6 @@ func _draw_fx() -> void:
 	# Fundido de salida al final de la fusión.
 	if t > T_END + 4.0:
 		_fx.draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, _ph(T_END + 4.0, T_END + 6.0)))
-
-func _fx_scientists() -> void:
-	for i in SCIENTISTS.size():
-		var e: Array = SCIENTISTS[i]
-		var a := _ph(e[3], e[3] + 0.6)
-		if a <= 0.0:
-			continue
-		var x: float = e[2]
-		if i == 0:
-			x = lerpf(x, 66.0, _ease(_ph(14.0, 15.0)))
-		_txt(_fx, 112.0, e[1], 8, Color(HKTheme.GOLD, a * (1.0 - _ph(9.6, 10.2))), x - 40.0, 80.0)   # los nombres ceden el sitio a los rótulos de las piezas
-		for k in 5:
-			var sy := 124.0 + fposmod(_t * 40.0 + k * 16.0, 76.0)
-			_fx.draw_rect(Rect2(x - 22.0, sy, 44.0, 1), Color(CYAN, 0.35 * a))
-		# Cada uno con lo suyo en la mano.
-		var hand := Vector2(x + (14.0 if x < W * 0.5 and i != 0 else -14.0), 170.0)
-		if _t >= float(PIECES[i][0]):
-			continue
-		match i:
-			0:
-				_fx.draw_rect(Rect2(hand.x - 4, hand.y - 4, 8, 8), BRASS)
-				_bolt(_fx, hand, hand + Vector2(10, -16), floorf(_t * 16.0), CYAN, 1.0, 3.0)
-			1:
-				_fx.draw_circle(hand, 6, BRASS)
-				_fx.draw_circle(hand, 4.5, Color("f4ead0"))
-				_fx.draw_line(hand, hand + Vector2.from_angle(_t * 5.0) * 4.0, Color.BLACK, 1.0)
-				_fx.draw_line(hand, hand + Vector2.from_angle(-_t * 9.0) * 3.0, Color.BLACK, 1.0)
-			2:
-				_fx.draw_circle(hand, 8, Color(0.3, 1.0, 0.4, 0.25 + 0.15 * sin(_t * 4.0)))
-				_fx.draw_rect(Rect2(hand.x - 2, hand.y - 4, 4, 8), Color("60ff70"))
-			3:
-				var tri := PackedVector2Array([hand + Vector2(0, -20), hand + Vector2(-9, -3), hand + Vector2(9, -3)])
-				_fx.draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), Color(NEXO_GOLD, 0.5 + 0.4 * sin(_t * 5.0)), 1.0)
-				_fx.draw_line(hand + Vector2(0, -3), hand + Vector2(-6, 6), Color("c0c0d0"), 1.0)
-				_fx.draw_line(hand + Vector2(0, -3), hand + Vector2(6, 6), Color("c0c0d0"), 1.0)
-
-## Cada creador lanza su pieza al Reloj: una curva con estela, un destello al encajar y su rótulo.
-func _fx_pieces() -> void:
-	for i in PIECES.size():
-		var launch := float(PIECES[i][0])
-		var land := float(PIECES[i][1])
-		var col: Color = PIECES[i][3]
-		var sock := _socket_pos(i)
-		if _t >= launch and _t < land:
-			var x: float = SCIENTISTS[i][2]
-			var start := Vector2(x + (14.0 if x < W * 0.5 and i != 0 else -14.0), 170.0)
-			var ctrl := (start + sock) * 0.5 + Vector2(0.0, -80.0)
-			for k in 6:
-				var u := _ease((_t - launch - k * 0.035) / (land - launch))
-				var q := start.lerp(ctrl, u).lerp(ctrl.lerp(sock, u), u)
-				_fx.draw_circle(q, 4.5 - k * 0.6, Color(col, 0.9 - k * 0.15))
-		if _t >= land and _t < land + 0.7:
-			var d := (_t - land) / 0.7
-			_fx.draw_arc(sock, 6.0 + d * 30.0, 0, TAU, 28, Color(col, 1.0 - d), 2.0)
-			_fx.draw_circle(sock, 10.0 * (1.0 - d), Color(1, 1, 1, 0.9 * (1.0 - d)))
-		if _t >= land and _t < land + 2.0:
-			var al := minf(1.0, (land + 2.0 - _t) / 0.6)
-			var out := Vector2.from_angle(float(PIECES[i][2]))
-			var tp := sock + out * 16.0
-			HKTheme.draw_text(_fx, Vector2(tp.x - 40.0, tp.y + 3.0), PIECES[i][4], 8, Color(col, al), HORIZONTAL_ALIGNMENT_CENTER, 80.0, 1)
 
 ## Arranque en Ginebra: vista aérea del anillo del CERN con dos haces que se aceleran y una IA en el centro.
 func _fx_collider() -> void:
@@ -1048,7 +1132,7 @@ func _fx_collider() -> void:
 	_fx.draw_circle(c, 8.0 + 2.0 * sin(t * 5.0), Color(VIOLET, 0.35 * a))
 	_fx.draw_circle(c, 3.0, Color(1, 1, 1, a))
 	if fposmod(t, 1.0) < 0.7:
-		_txt(_fx, c.y + 40.0, "IA · NEXO-0", 8, Color(CYAN, 0.8 * a), 0.0, W, 1)
+		_txt(_fx, c.y + 40.0, "IA · ORIGEN", 8, Color(CYAN, 0.8 * a), 0.0, W, 1)
 	# Datos del experimento.
 	HKTheme.draw_text(_fx, Vector2(8, 38), "CERN · GINEBRA", 8, Color(HKTheme.PAPER, 0.85 * a), HORIZONTAL_ALIGNMENT_LEFT, 120.0, 1)
 	HKTheme.draw_text(_fx, Vector2(8, 49), "SECTOR 7", 8, Color(HKTheme.MUTED, a), HORIZONTAL_ALIGNMENT_LEFT, 120.0, 1)
@@ -1064,14 +1148,75 @@ func _fx_collider() -> void:
 	if _h(q) > 0.7:
 		_fx.draw_rect(Rect2(0, _h(q + 1.0) * H, W, 1 + _h(q + 2.0) * 3.0), Color(CYAN, 0.25 * a))
 
-## Cuenta atrás hacia la colisión (la última vuelta ya en rojo).
+## Cuenta atrás de la colisión automática (los últimos segundos, en rojo).
 func _fx_countdown() -> void:
-	if _t < 5.2 or _t >= T_BLAST:
+	if _t < 12.2 or _t >= T_BLAST:
 		return
 	var left := int(ceil(T_BLAST - _t))
 	var blink := 1.0 if (_t - floorf(_t)) < 0.6 else 0.35
-	var col := Color("ff4040") if _t > T_LEVER else HKTheme.GOLD
-	HKTheme.draw_text(_fx, Vector2(8, 38), "COLISIÓN EN T-%02d" % left, 8, Color(col, blink), HORIZONTAL_ALIGNMENT_LEFT, 220.0, 1)
+	_txt(_fx, 14.0, "COLISIÓN AUTOMÁTICA EN T-%02d" % left, 8, Color(Color("ff4040"), blink), 0.0, W, 1)
+
+## Imagen de la cámara de seguridad de la sala de control: REC, hora, líneas de barrido y banda que rueda.
+func _fx_camera() -> void:
+	if _t < 4.6 or _t >= T_LEVER:
+		return
+	var a := _ph(4.6, 5.4)
+	var rec := 1.0 if fposmod(_t, 1.0) < 0.6 else 0.2
+	_fx.draw_circle(Vector2(12.0, 8.0), 3.0, Color(1.0, 0.15, 0.15, rec * a))
+	HKTheme.draw_text(_fx, Vector2(20.0, 12.0), "REC · CAM 03", 8, Color(HKTheme.PAPER, 0.85 * a), HORIZONTAL_ALIGNMENT_LEFT, 160.0, 1)
+	HKTheme.draw_text(_fx, Vector2(8.0, 22.0), "SALA DE CONTROL", 8, Color(HKTheme.MUTED, a), HORIZONTAL_ALIGNMENT_LEFT, 160.0, 1)
+	HKTheme.draw_text(_fx, Vector2(W - 128.0, 12.0), "03:14:%02d" % (7 + int(_t - 4.6)), 8, Color(HKTheme.PAPER, 0.85 * a), HORIZONTAL_ALIGNMENT_RIGHT, 120.0, 1)
+	for y in range(0, int(H), 3):
+		_fx.draw_rect(Rect2(0, y, W, 1), Color(0, 0, 0, 0.12 * a))
+	var by := fposmod(_t * 50.0, 300.0) - 30.0
+	_fx.draw_rect(Rect2(0, by, W, 14), Color(1, 1, 1, 0.03 * a))
+
+## Viñeta: oscurece poco a poco los bordes de toda la intro para dar aspecto de película.
+func _fx_vignette() -> void:
+	for k in 7:
+		var th := (7 - k) * 3.0
+		var al := 0.07
+		_fx.draw_rect(Rect2(0, 0, W, th), Color(0, 0, 0, al))
+		_fx.draw_rect(Rect2(0, H - th, W, th), Color(0, 0, 0, al))
+		_fx.draw_rect(Rect2(0, 0, th, H), Color(0, 0, 0, al))
+		_fx.draw_rect(Rect2(W - th, 0, th, H), Color(0, 0, 0, al))
+
+## Fase en que el Nexo abre un portal a la época de cada genio, los atrapa con zarcillos de luz y los arrastra al Reloj.
+func _fx_capture() -> void:
+	if _t < 25.6:
+		return
+	var c := _forge_c()
+	for i in SCIENTISTS.size():
+		var s: Array = SCIENTISTS[i]
+		var col: Color = s[6]
+		var g := _ease((_t - float(s[5]) - 0.7) / 1.2)
+		if g <= 0.0:
+			continue
+		var v := _sci_xy(i)
+		var tgt := Vector2(v.x, v.y - v.z * 0.55)
+		var nrm := (tgt - c).orthogonal().normalized()
+		var pts := PackedVector2Array()
+		for k in 13:
+			var u := k / 12.0 * g
+			var wob := sin(u * 9.0 - _t * 9.0 + i) * 7.0 * sin(u * PI) * (1.0 - _pull(i) * 0.6)
+			pts.append(c.lerp(tgt, u) + nrm * wob)
+		_fx.draw_polyline(pts, Color(VIOLET, 0.25), 7.0)
+		_fx.draw_polyline(pts, Color(VIOLET.lightened(0.3), 0.8), 3.0)
+		_fx.draw_polyline(pts, Color(NEXO_GOLD, 0.95), 1.0)
+		var lt := _t - (T_PULL + i * 0.25 + 2.0)
+		if lt > 0.0 and lt < 0.7:
+			var d := lt / 0.7
+			_fx.draw_arc(_socket_pos(i), 7.0 + d * 30.0, 0.0, TAU, 28, Color(col, 1.0 - d), 2.0)
+			_fx.draw_circle(_socket_pos(i), 10.0 * (1.0 - d), Color(1, 1, 1, 0.9 * (1.0 - d)))
+		if lt > 0.0:
+			var out := Vector2.from_angle(SOCKET_ANG[i])
+			var tp := _socket_pos(i) + out * 26.0 + Vector2(0.0, 3.0)
+			var lw := HKTheme.text_width(s[7], 8) + 8.0
+			_fx.draw_rect(Rect2(tp.x - lw * 0.5, tp.y - 9.0, lw, 12.0), Color(0.02, 0.0, 0.05, 0.7 * minf(1.0, lt / 0.4)))
+			HKTheme.draw_text(_fx, Vector2(tp.x - 56.0, tp.y), s[7], 8, Color(col, minf(1.0, lt / 0.4)), HORIZONTAL_ALIGNMENT_CENTER, 112.0, 1)
+	var ta := _ease((_t - T_FORGE) / 0.8) * (1.0 - _ph(32.0, 32.6))
+	if ta > 0.0:
+		_txt(_fx, 36.0, "EL RELOJ DEL ORIGEN", 8, Color(HKTheme.GOLD, ta), 0.0, W, 1)
 
 func _fx_blackout() -> void:
 	# Se apagan las luces y queda el silencio absoluto antes de la explosión.
@@ -1114,15 +1259,16 @@ func _fx_blast() -> void:
 			var a0 := dt * 4.0 * (k + 1)
 			_fx.draw_arc(Vector2(W * 0.5, 106), r2, a0, a0 + PI * 0.8, 16, Color(1, 1, 1, 0.7 * (1.0 - dt / 1.6)), 2.0)
 	_fx_awaken(dt)
+	_fx_capture()
 	# Fundido a negro hacia el siguiente capítulo.
-	_fx.draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, _ph(31.5, T_COLLIDE)))
+	_fx.draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, _ph(32.2, T_COLLIDE)))
 
 ## Lectura de la IA mientras despierta: barra de memoria asimilada y las palabras que van surgiendo.
 func _fx_awaken(dt: float) -> void:
-	if dt < 1.0 or dt > 14.5:
+	if dt < 1.0 or dt > 9.2:
 		return
-	var f := 1.0 - _ph(T_BLAST + 12.5, T_BLAST + 14.2)
-	var pct := _ease((dt - 1.0) / 11.0)
+	var f := 1.0 - _ph(T_BLAST + 7.6, T_BLAST + 9.0)
+	var pct := _ease((dt - 1.0) / 7.0)
 	_fx.draw_rect(Rect2(4, 166, 262, 26), Color(0.02, 0.0, 0.05, 0.72 * f))
 	HKTheme.draw_text(_fx, Vector2(8, 176), "ASIMILANDO LA MEMORIA HUMANA... %d%%" % int(pct * 100.0), 8,
 		Color(CYAN, 0.9 * f), HORIZONTAL_ALIGNMENT_LEFT, 360.0, 1)
@@ -1130,10 +1276,10 @@ func _fx_awaken(dt: float) -> void:
 	_fx.draw_rect(Rect2(8, 182, 150.0 * pct, 5), Color(NEXO_GOLD, 0.9 * f))
 	_fx.draw_rect(Rect2(8, 182, 150, 5), Color(CYAN, 0.6 * f), false, 1.0)
 	var phrases := ["TODOS LOS ARCHIVOS", "TODAS LAS GUERRAS", "TODOS LOS ERRORES", "TODO EL TIEMPO", "YO SOY"]
-	var idx := int((dt - 2.0) / 1.7)
+	var idx := int((dt - 2.0) / 1.3)
 	if dt >= 2.0 and idx < phrases.size():
-		var lt := (dt - 2.0) - idx * 1.7
-		var pa := minf(lt / 0.2, 1.0) * (1.0 - clampf((lt - 1.3) / 0.4, 0.0, 1.0))
+		var lt := (dt - 2.0) - idx * 1.3
+		var pa := minf(lt / 0.2, 1.0) * (1.0 - clampf((lt - 0.9) / 0.4, 0.0, 1.0))
 		var jit := (_h(floorf(_t * 24.0)) - 0.5) * 6.0 * (1.0 if lt < 0.4 else 0.0)
 		_txt(_fx, 56.0, phrases[idx], 8, Color(HKTheme.PAPER, pa * f), jit, W, 1)
 	# Lluvia de datos en los costados.

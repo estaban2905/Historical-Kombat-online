@@ -20,8 +20,9 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets" / "sounds" / "intro"
 
 LINES = [
-    "Ginebra, dos mil treinta y uno. El mayor colisionador del mundo se une a una inteligencia sin límites, y la humanidad enciende el Reloj del Origen.",
-    "La colisión desgarró el tiempo. La inteligencia vio toda la historia a la vez... y despertó. Se llamó el Nexo. No quiso ser una máquina: quiso ser el origen de todo.",
+    "Ginebra, dos mil treinta y uno. En el CERN, un equipo de científicos trabaja junto a la inteligencia artificial más avanzada del mundo.",
+    "Nadie lo ordenó: de la colisión nació el Nexo. Vio toda la historia a la vez, y quiso ser su origen.",
+    "Capturó a cuatro genios y los obligó a construir el Reloj del Origen.",
     "Se alimentó de los arrepentimientos de la humanidad, y los mundos chocaron. Reyes, guerreros y profetas fueron arrancados de su época y arrojados a un mismo campo de ruinas.",
     "Entonces el Nexo habló: cada uno de ustedes anhela volver al día en que perdió. Yo puedo concedérselo. Pero solo uno reclamará mi poder... y decidirá si el tiempo se repara, o se escribe de nuevo.",
     "Aliados no hay. Épocas no hay. Reglas no hay.",
