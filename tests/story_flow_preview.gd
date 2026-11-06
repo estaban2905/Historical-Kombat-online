@@ -1,7 +1,7 @@
 ## Recorrido de continuidad del Modo Historia, sin combatir, con todo lo que se ve y se oye, en orden:
 ## mini-intro del Nexo -> por cada época: animación, tarjeta, pantalla del primer rival, escena de diálogo
 ## de sus creadores del Reloj y de su jefe (con voz) y los resultados de vencerlo (despedida y fragmento del Reloj) -> el Nexo -> final.
-##   godot --path . res://tests/StoryFlowPreview.tscn -- [--player=napoleon]
+##   godot --path . res://tests/StoryFlowPreview.tscn -- [--player=napoleon] [--scenes]
 ## Cualquier tecla salta la animación, la tarjeta o la escena en curso; cada pantalla fija dura unos segundos.
 extends Node
 
@@ -16,6 +16,10 @@ func _ready() -> void:
 		if arg.begins_with("--player="):
 			player = StringName(arg.trim_prefix("--player="))
 	Game.start_story(player)
+	if OS.get_cmdline_user_args().has("--scenes"):
+		await _all_scenes(player)
+		get_tree().quit()
+		return
 	var starts: Array[int] = []
 	for i in Game.arcade_ladder.size():
 		if Game.story_chapter_start(i):
@@ -37,11 +41,18 @@ func _ready() -> void:
 			await _show_results(boss)
 	add_child((load(Game.SCENE_STORY_ENDING) as PackedScene).instantiate())
 
+## Modo --scenes: solo las escenas de diálogo de cada rival (sin animaciones de época), una tras otra, en orden de escalera.
+func _all_scenes(player: StringName) -> void:
+	for stage in Game.arcade_ladder.size():
+		if not StoryScenes.lines(Game.arcade_ladder[stage], player).is_empty():
+			await _show_stage(stage, true)
+
 ## La pantalla de historia de ese combate, esperando a que acaben animaciones, tarjeta y diálogo.
-func _show_stage(stage: int) -> void:
+func _show_stage(stage: int, skip_intros: bool = false) -> void:
 	Game.arcade_stage = stage
 	Game.p2_fighter_id = Game.arcade_ladder[stage]
 	var scene := (load(Game.SCENE_STORY) as PackedScene).instantiate()
+	scene._skip_intros = skip_intros
 	add_child(scene)
 	var waited := 0.0
 	while is_instance_valid(scene) and waited < 90.0:
