@@ -151,7 +151,11 @@ func _advance_round_end() -> void:
 					match_winner = 1 if wins[1] > wins[2] else 2
 				phase = Phase.MATCH_END
 				combat.present(Game, &"set_match_result", [match_winner, wins[1], wins[2]])
-				combat.present(Game, &"goto", [Game.SCENE_RESULTS])
+				if match_winner == 1 and Game.story_possession_follows(Game.arcade_stage):
+					# Al vencer al jefe de la época, el Nexo posee a un creador: la pelea sigue sin resultados.
+					combat.present(Game, &"story_possession_begin")
+				else:
+					combat.present(Game, &"goto", [Game.SCENE_RESULTS])
 			# Cada ronda se juega en el escenario de un luchador distinto (ver Game.stage_owner).
 			elif combat.stage_changes_for(round_number + 1):
 				# El fundido es solo visual; el cambio de escenario espera ticks fijos.
@@ -162,8 +166,10 @@ func _advance_round_end() -> void:
 				_next_round()
 		2:
 			combat.swap_stage(round_number + 1)
-			combat.present(Game, &"fade_from_black", [0.22])
 			_next_round()
+			# Después de _next_round(): start_round() vacía la cola de eventos (reset_round) y borraría este
+			# fundido, dejando la pantalla en negro mientras el combate sigue (bug online del round 2).
+			combat.present(Game, &"fade_from_black", [0.22])
 
 func _next_round() -> void:
 	round_number += 1

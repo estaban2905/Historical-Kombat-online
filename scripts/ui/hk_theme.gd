@@ -1,9 +1,9 @@
 ## Estilo visual común de la interfaz (fuente pixel y tema de botones).
-## Fuente: "Press Start 2P" (SIL Open Font License, ver assets/fonts).
+## Fuente: "Silkscreen" (SIL Open Font License, ver assets/fonts): pixel, más estrecha y nítida que Press Start 2P.
 class_name HKTheme
 extends RefCounted
 
-const FONT_PATH := "res://assets/fonts/PressStart2P-Regular.ttf"
+const FONT_PATH := "res://assets/fonts/Silkscreen-Regular.ttf"
 
 const GOLD := Color("f0c040")
 const GOLD_DARK := Color("a06818")
@@ -149,6 +149,12 @@ static func draw_text(ci: CanvasItem, pos: Vector2, text: String, size: int, col
 	if outline > 0:
 		ci.draw_string_outline(f, pos.round(), text, align, width, size, outline, INK)
 	ci.draw_string(f, pos.round(), text, align, width, size, color)
+
+## ¿Es la tecla Enter (o Enter del teclado numérico) recién pulsada? Las intros y escenas del modo Historia
+## solo se saltan o avanzan con ella, para no saltarlas sin querer.
+static func is_enter(event: InputEvent) -> bool:
+	var k := event as InputEventKey
+	return k != null and k.pressed and not k.echo and (k.keycode == KEY_ENTER or k.keycode == KEY_KP_ENTER)
 
 static func text_width(text: String, size: int) -> float:
 	var f := font()

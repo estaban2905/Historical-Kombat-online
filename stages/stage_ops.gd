@@ -122,12 +122,28 @@ func _crowd_style(i: int, seed: int) -> Dictionary:
 #  Fondo y paisaje (estático)
 # --------------------------------------------------------------------------
 func op_sky(cols: Array, h: int = 176) -> void:
-	var bh := ceili(float(h) / cols.size())
-	for i in cols.size():
-		draw_rect(Rect2(0, i * bh, W, bh), _c(cols[i]))
+	var n := cols.size()
+	if n == 1:
+		draw_rect(Rect2(0, 0, W, h), _c(cols[0]))
+		return
+	# Degradado fino fila a fila, con una calima clara pegada al horizonte.
+	for y in h:
+		var u := float(y) / float(maxi(h - 1, 1)) * float(n - 1)
+		var i := mini(int(u), n - 2)
+		draw_rect(Rect2(0, y, W, 1), _c(cols[i]).lerp(_c(cols[i + 1]), u - float(i)))
+	var hz := _c(cols[n - 1]).lightened(0.3)
+	for k in 16:
+		hz.a = 0.03 * float(16 - k)
+		draw_rect(Rect2(0, h - 16 + k, W, 1), hz)
 
 func op_rect(x, y, w, h, col) -> void:
 	_rect(x, y, w, h, col)
+	if w >= 8 and h >= 6:
+		# Luz en el borde de arriba y sombra abajo: da volumen a muros y edificios.
+		var c := _c(col)
+		draw_rect(Rect2(floorf(x), floorf(y), floorf(w), 0.5), c.lightened(0.2))
+		draw_rect(Rect2(floorf(x), floorf(y) + floorf(h) - 1.0, floorf(w), 1.0), c.darkened(0.16))
+		draw_rect(Rect2(floorf(x) + floorf(w) - 1.0, floorf(y) + 0.5, 1.0, floorf(h) - 1.5), c.darkened(0.08))
 
 func op_rects(list: Array) -> void:
 	for r in list:
@@ -169,25 +185,49 @@ func op_glow(x, y, r, col, pulse := 0.15) -> void:
 		draw_circle(Vector2(x, y), r * k * (1.0 - i * 0.22), c)
 
 func op_clouds(n: int, seed: int, ymin: int, ymax: int, col, shade, speed := 2.0) -> void:
+	var cc := _c(col)
+	var sc := _c(shade)
 	for i in n:
 		var w := 22.0 + _h(i, seed + 2) * 26.0
 		var x := fposmod(_h(i, seed) * (W + 80.0) + _t * speed * (0.6 + _h(i, seed + 4)), W + 80.0) - 50.0
 		var y := floorf(ymin + _h(i, seed + 1) * (ymax - ymin))
-		draw_rect(Rect2(floorf(x), y, w, 3), _c(col))
-		draw_rect(Rect2(floorf(x) + 4, y - 2, w - 10, 2), _c(col))
-		draw_rect(Rect2(floorf(x) + 6, y + 3, w - 6, 1), _c(shade))
+		var fx := floorf(x)
+		draw_rect(Rect2(fx, y, w, 3), cc)
+		draw_rect(Rect2(fx + 4, y - 2, w - 10, 2), cc)
+		# Penachos redondos arriba, con luz en la cima.
+		for k in 3:
+			var bx := fx + w * (0.22 + 0.28 * k)
+			var br := 3.0 + float((k + i) % 2) * 1.5
+			draw_circle(Vector2(bx, y - 1.0), br, cc)
+			draw_rect(Rect2(floorf(bx) - 1.0, y - 1.0 - br, 2, 0.5), cc.lightened(0.25))
+		# Panza en sombra, en dos tonos.
+		draw_rect(Rect2(fx + 6, y + 3, w - 6, 1), sc)
+		draw_rect(Rect2(fx + 8, y + 2, w - 12, 1), cc.lerp(sc, 0.5))
+		draw_rect(Rect2(fx + 2, y + 1, 3, 1), cc.lerp(sc, 0.3))
 
-## Silueta de montañas/colinas. rough>1 = más picudas.
 func op_mount(base: int, amp: float, col, seed: float = 1.0, snow := "", rough: float = 1.0) -> void:
 	var c := _c(col)
 	for x in range(0, W, 2):
 		var n := 0.45 + 0.28 * sin(x * 0.018 * rough + seed) + 0.18 * sin(x * 0.047 * rough + seed * 2.3) + 0.08 * sin(x * 0.11 * rough + seed * 4.1)
 		var h := int(amp * n)
 		draw_rect(Rect2(x, base - h, 2, h + 2), c)
+		# Cresta iluminada y vetas de roca en sombra.
+		draw_rect(Rect2(x, base - h, 2, 1), c.lightened(0.2))
+		if _h(x / 2, int(seed * 7.0)) > 0.78:
+			draw_rect(Rect2(x, base - h + int(h * 0.2), 1, int(h * 0.32)), c.darkened(0.16))
+		elif _h(x / 2, int(seed * 3.0) + 5) > 0.88:
+			draw_rect(Rect2(x + 1, base - h + int(h * 0.1), 1, int(h * 0.22)), c.lightened(0.1))
+		# Bruma de la distancia al pie de la montaña.
+		var hz := c.lightened(0.22)
+		hz.a = 0.3
+		draw_rect(Rect2(x, base - h * 0.24, 2, h * 0.24 + 2), hz)
 		if snow != "" and h > amp * 0.62:
-			draw_rect(Rect2(x, base - h, 2, int((h - amp * 0.62) * 0.55) + 1), _c(snow))
+			var sh := int((h - amp * 0.62) * 0.55) + 1
+			var sc := _c(snow)
+			draw_rect(Rect2(x, base - h, 2, sh), sc)
+			draw_rect(Rect2(x, base - h, 2, 1), sc.lightened(0.3))
+			draw_rect(Rect2(x + 1, base - h + 1, 1, maxi(sh - 1, 1)), sc.darkened(0.1))
 
-## Hilera de edificios. ruin = parte superior rota; win = color de ventanas.
 func op_skyline(base: int, col, seed: int, wmin: int, wmax: int, hmin: int, hmax: int, win := "", ruin := false, roof := false) -> void:
 	var c := _c(col)
 	var x := -6
@@ -199,18 +239,35 @@ func op_skyline(base: int, col, seed: int, wmin: int, wmax: int, hmin: int, hmax
 			for cx in range(0, w, 3):
 				var cut := int(_h(i * 31 + cx, seed + 2) * 14.0)
 				draw_rect(Rect2(x + cx, base - h + cut, 3, h - cut + 2), c)
+				draw_rect(Rect2(x + cx, base - h + cut, 3, 1), c.lightened(0.1))
 		else:
 			draw_rect(Rect2(x, base - h, w, h + 2), c)
-			draw_rect(Rect2(x, base - h, w, 1), c.lightened(0.15))
+			draw_rect(Rect2(x, base - h, w, 1), c.lightened(0.18))
+			draw_rect(Rect2(x + w - 2, base - h, 2, h + 2), c.darkened(0.14))
+			# Más oscuro hacia la calle.
+			var sd := c.darkened(0.3)
+			sd.a = 0.28
+			draw_rect(Rect2(x, base - h * 0.3, w, h * 0.3 + 2), sd)
 			if roof:
 				for r in 4:
 					draw_rect(Rect2(x + r, base - h - 4 + r, w - r * 2, 1), c.darkened(0.1))
+			else:
+				# Azotea: antena o caja de aire.
+				var k := _h(i, seed + 8)
+				if k > 0.7:
+					draw_rect(Rect2(x + w / 2, base - h - 5, 1, 5), c.darkened(0.2))
+					draw_rect(Rect2(x + w / 2 - 1, base - h - 5, 3, 1), c.darkened(0.2))
+				elif k > 0.4:
+					draw_rect(Rect2(x + 2, base - h - 2, 4, 2), c.darkened(0.12))
 		if win != "":
 			var wc := _c(win)
 			for wy in range(base - h + 4, base - 3, 5):
-				for wx in range(x + 2, x + w - 2, 4):
-					if _h(wx * 7 + wy, seed + 3) > 0.45:
-						draw_rect(Rect2(wx, wy, 2, 2), wc)
+				for wx in range(x + 2, x + w - 3, 4):
+					var r := _h(wx * 7 + wy, seed + 3)
+					if r > 0.45:
+						var lit := wc if r > 0.62 else wc.darkened(0.3)
+						draw_rect(Rect2(wx, wy, 2, 2), lit)
+						draw_rect(Rect2(wx, wy, 2, 0.5), lit.lightened(0.3))
 		x += w + int(_h(i, seed + 5) * 3.0)
 		i += 1
 
@@ -222,14 +279,26 @@ func op_grid(x, y, cols: int, rows: int, sx, sy, w, h, col) -> void:
 
 func op_col(x, top, bottom, width, marble := "ddd0b4", dark := "b8a888", light := "fff4dc") -> void:
 	var h: float = bottom - top
-	draw_rect(Rect2(x - width / 2 - 3, bottom - 5, width + 6, 5), _c(dark))
-	draw_rect(Rect2(x - width / 2 - 4, top, width + 8, 4), _c(marble))
-	draw_rect(Rect2(x - width / 2 - 4, top - 2, width + 8, 2), _c(light))
-	draw_rect(Rect2(x - width / 2, top + 4, width, h - 9), _c(marble))
+	var m := _c(marble)
+	var d := _c(dark)
+	var l := _c(light)
+	draw_rect(Rect2(x - width / 2 - 3, bottom - 5, width + 6, 5), d)
+	draw_rect(Rect2(x - width / 2 - 3, bottom - 5, width + 6, 1), m)
+	draw_rect(Rect2(x - width / 2 - 4, top, width + 8, 4), m)
+	draw_rect(Rect2(x - width / 2 - 4, top - 2, width + 8, 2), l)
+	draw_rect(Rect2(x - width / 2 - 4, top + 3, width + 8, 1), d)
+	# Volutas del capitel.
+	draw_rect(Rect2(x - width / 2 - 3, top + 1, 2, 2), d)
+	draw_rect(Rect2(x + width / 2 + 1, top + 1, 2, 2), d)
+	draw_rect(Rect2(x - width / 2, top + 4, width, h - 9), m)
 	for fx in range(int(x - width / 2) + 1, int(x + width / 2) - 1, 3):
-		draw_rect(Rect2(fx, top + 4, 1, h - 9), _c(dark))
-	draw_rect(Rect2(x + width / 2 - 2, top + 4, 2, h - 9), _c(dark))
-	draw_rect(Rect2(x - width / 2, top + 4, 1, h - 9), _c(light))
+		draw_rect(Rect2(fx, top + 4, 1, h - 9), d)
+	draw_rect(Rect2(x + width / 2 - 2, top + 4, 2, h - 9), d)
+	draw_rect(Rect2(x - width / 2, top + 4, 1, h - 9), l)
+	# Entasis: el fuste se oscurece hacia el pie.
+	var sh := d.darkened(0.2)
+	sh.a = 0.3
+	draw_rect(Rect2(x - width / 2, bottom - 14, width, 9), sh)
 
 func op_arch(x, base, w, h, col) -> void:
 	var c := _c(col)
@@ -267,8 +336,19 @@ func op_hemi(x, base, r, c1, c2, lantern := "") -> void:
 		draw_rect(Rect2(x - 1, base - r - 14, 2, 6), _c(lantern))
 
 func op_tent(x, base, w, h, c1, c2 := "") -> void:
-	draw_colored_polygon(PackedVector2Array([Vector2(x - w / 2.0, base), Vector2(x, base - h), Vector2(x, base)]), _c(c1))
-	draw_colored_polygon(PackedVector2Array([Vector2(x, base - h), Vector2(x + w / 2.0, base), Vector2(x, base)]), _c(c2 if c2 != "" else c1))
+	var a := _c(c1)
+	var b := _c(c2 if c2 != "" else c1)
+	draw_colored_polygon(PackedVector2Array([Vector2(x - w / 2.0, base), Vector2(x, base - h), Vector2(x, base)]), a)
+	draw_colored_polygon(PackedVector2Array([Vector2(x, base - h), Vector2(x + w / 2.0, base), Vector2(x, base)]), b)
+	# Aristas, costuras, abertura y pértiga.
+	draw_line(Vector2(x - w / 2.0, base), Vector2(x, base - h), a.lightened(0.25), 0.5)
+	draw_line(Vector2(x, base - h), Vector2(x + w / 2.0, base), b.darkened(0.25), 0.5)
+	for k in range(1, 4):
+		var u := k / 4.0
+		draw_line(Vector2(x, base - h), Vector2(x - w / 2.0 * u, base), a.darkened(0.12), 0.5)
+		draw_line(Vector2(x, base - h), Vector2(x + w / 2.0 * u, base), b.darkened(0.12), 0.5)
+	draw_rect(Rect2(x - 2, base - h * 0.4, 4, h * 0.4), a.darkened(0.45))
+	draw_rect(Rect2(x, base - h - 2, 0.5, 3), _c("3a2a1a"))
 
 func op_yurt(x, base, w, c1, c2) -> void:
 	var h := int(w * 0.42)
@@ -305,41 +385,87 @@ func op_palm(x, base, h, trunk := "7a5a38", leaf := "3a8a3a") -> void:
 func op_pine(x, base, h, col, snow := "") -> void:
 	var tiers := 4
 	var th: float = h / float(tiers)
+	var c := _c(col)
 	for k in tiers:
 		var y: float = base - h + k * th * 0.85
 		var w := 7.0 + k * 6.0
-		draw_colored_polygon(PackedVector2Array([Vector2(x - w / 2, y + th * 1.2), Vector2(x, y), Vector2(x + w / 2, y + th * 1.2)]), _c(col))
+		draw_colored_polygon(PackedVector2Array([Vector2(x - w / 2, y + th * 1.2), Vector2(x, y), Vector2(x + w / 2, y + th * 1.2)]), c)
+		# Mitad trasera en sombra, mitad delantera con luz, y puntas de las ramas.
+		draw_colored_polygon(PackedVector2Array([Vector2(x, y), Vector2(x + w / 2, y + th * 1.2), Vector2(x, y + th * 1.2)]), c.darkened(0.2))
+		draw_line(Vector2(x - w / 2, y + th * 1.2), Vector2(x, y), c.lightened(0.2), 0.5)
+		for j in 3:
+			draw_rect(Rect2(x - w / 2.0 + j * w / 3.0, y + th * 1.2, 2, 1), c.darkened(0.25))
 		if snow != "":
 			draw_colored_polygon(PackedVector2Array([Vector2(x - w * 0.22, y + th * 0.45), Vector2(x, y), Vector2(x + w * 0.22, y + th * 0.45)]), _c(snow))
+			draw_rect(Rect2(x - w * 0.22, y + th * 0.45, w * 0.44, 0.5), _c(snow).darkened(0.12))
 	draw_rect(Rect2(x - 1, base - 3, 3, 3), _c("4a2e1a"))
+	draw_rect(Rect2(x - 1, base - 3, 1, 3), _c("6a4a2a"))
 
 func op_tree(x, base, h, leaf, trunk := "5a3a22") -> void:
 	var c := _c(leaf)
-	draw_rect(Rect2(x - 1, base - h * 0.55, 3, h * 0.55), _c(trunk))
+	var t := _c(trunk)
+	draw_rect(Rect2(x - 1, base - h * 0.55, 3, h * 0.55), t)
+	draw_rect(Rect2(x + 1, base - h * 0.55, 1, h * 0.55), t.darkened(0.3))
+	draw_rect(Rect2(x - 1, base - h * 0.55, 1, h * 0.55), t.lightened(0.18))
+	draw_rect(Rect2(x - 2, base - 2, 5, 2), t.darkened(0.15))
 	draw_circle(Vector2(x, base - h * 0.62), h * 0.34, c.darkened(0.18))
 	draw_circle(Vector2(x - h * 0.2, base - h * 0.5), h * 0.24, c.darkened(0.1))
 	draw_circle(Vector2(x + h * 0.2, base - h * 0.52), h * 0.24, c)
 	draw_circle(Vector2(x - 2, base - h * 0.72), h * 0.2, c.lightened(0.12))
+	# Hojas sueltas: luces arriba a la izquierda y sombras debajo a la derecha.
+	var sd := int(x * 3.0)
+	for k in int(h * 0.5):
+		var a := _h(k, sd) * TAU
+		var r: float = _h(k, sd + 1) * h * 0.34
+		var px: float = x + cos(a) * r
+		var py: float = base - h * 0.62 + sin(a) * r * 0.9
+		if (px < x and py < base - h * 0.62) or _h(k, sd + 2) > 0.8:
+			draw_rect(Rect2(floorf(px), floorf(py), 2, 1), c.lightened(0.22))
+		else:
+			draw_rect(Rect2(floorf(px), floorf(py), 2, 1), c.darkened(0.32))
 
 func op_wall(y, h, c1, c2, merlon := true) -> void:
-	draw_rect(Rect2(0, y, W, h), _c(c1))
-	draw_rect(Rect2(0, y, W, 2), _c(c1).lightened(0.15))
+	var a := _c(c1)
+	var b := _c(c2)
+	draw_rect(Rect2(0, y, W, h), a)
+	draw_rect(Rect2(0, y, W, 2), a.lightened(0.15))
 	if merlon:
 		for x in range(0, W, 12):
-			draw_rect(Rect2(x, y - 5, 7, 5), _c(c1))
-			draw_rect(Rect2(x, y - 5, 7, 1), _c(c1).lightened(0.15))
+			draw_rect(Rect2(x, y - 5, 7, 5), a)
+			draw_rect(Rect2(x, y - 5, 7, 1), a.lightened(0.18))
+			draw_rect(Rect2(x + 6, y - 5, 1, 5), a.darkened(0.15))
 	for row in range(1, int(h / 5.0)):
-		draw_rect(Rect2(0, y + row * 5, W, 1), _c(c2))
+		draw_rect(Rect2(0, y + row * 5, W, 1), b)
 		for x in range((row % 2) * 6, W, 12):
-			draw_rect(Rect2(x, y + (row - 1) * 5, 1, 5), _c(c2))
+			draw_rect(Rect2(x, y + (row - 1) * 5, 1, 5), b)
+			# Sillares con tonos distintos y desconchones.
+			var r := _h(x + row * 31, 17)
+			if r > 0.7:
+				draw_rect(Rect2(x + 2, y + (row - 1) * 5 + 1, 8, 3), a.lightened(0.07))
+			elif r < 0.2:
+				draw_rect(Rect2(x + 3, y + (row - 1) * 5 + 2, 3, 1), b.darkened(0.2))
+	var sd := b.darkened(0.3)
+	sd.a = 0.3
+	draw_rect(Rect2(0, y + h - 6, W, 6), sd)
 
 func op_tower(x, base, w, h, c1, c2, roof := "") -> void:
-	draw_rect(Rect2(x - w / 2.0, base - h, w, h), _c(c1))
-	draw_rect(Rect2(x + w / 2.0 - 3, base - h, 3, h), _c(c2))
+	var a := _c(c1)
+	var b := _c(c2)
+	draw_rect(Rect2(x - w / 2.0, base - h, w, h), a)
+	draw_rect(Rect2(x + w / 2.0 - 3, base - h, 3, h), b)
+	draw_rect(Rect2(x - w / 2.0, base - h, 1, h), a.lightened(0.18))
+	# Hiladas de sillares y almenas con luz.
+	for row in range(4, int(h), 5):
+		draw_rect(Rect2(x - w / 2.0, base - h + row, w, 0.5), a.darkened(0.2))
+		for bx in range(int(x - w / 2.0) + (row % 10) / 2, int(x + w / 2.0), 7):
+			draw_rect(Rect2(bx, base - h + row - 5, 0.5, 5), a.darkened(0.16))
 	for mx in range(int(x - w / 2.0), int(x + w / 2.0), 6):
-		draw_rect(Rect2(mx, base - h - 4, 4, 4), _c(c1))
-	draw_rect(Rect2(x - 3, base - 9, 6, 9), _c(c2).darkened(0.4))
-	draw_rect(Rect2(x - 1, base - h * 0.6, 3, 5), _c(c2).darkened(0.4))
+		draw_rect(Rect2(mx, base - h - 4, 4, 4), a)
+		draw_rect(Rect2(mx, base - h - 4, 4, 1), a.lightened(0.2))
+	draw_rect(Rect2(x - 3, base - 9, 6, 9), b.darkened(0.4))
+	draw_rect(Rect2(x - 3, base - 9, 6, 1), b.darkened(0.1))
+	draw_rect(Rect2(x - 1, base - h * 0.6, 3, 5), b.darkened(0.4))
+	draw_rect(Rect2(x - 1, base - h * 0.6, 3, 0.5), a.lightened(0.3))
 	if roof != "":
 		op_tent(x, base - h - 4, w + 6, w * 0.7, roof, str(_c(roof).darkened(0.2).to_html()))
 
@@ -459,6 +585,54 @@ func op_ground(y: int, kind: String, c1, c2, c3 := "", seed: int = 1) -> void:
 			var alt := _c(c3) if c3 != "" else a.lightened(0.15)
 			for i in 120:
 				draw_rect(Rect2(rng.randi_range(0, W), rng.randi_range(y + 4, H), rng.randi_range(1, 4), 1), b if rng.randf() < 0.6 else alt)
+	_ground_detail(y, kind, a, b, rng)
+
+## Detalle del suelo: texturas según el tipo y degradado de profundidad (luz en el horizonte, sombra cerca de la cámara).
+func _ground_detail(y: int, kind: String, a: Color, b: Color, rng: RandomNumberGenerator) -> void:
+	var greenish := a.g > a.r * 1.05 and a.g > a.b * 1.05
+	match kind:
+		"slabs":
+			for i in 14:
+				# Grietas finas y manchas de musgo.
+				var px := float(rng.randi_range(4, W - 20))
+				var py := float(rng.randi_range(y + 6, H - 6))
+				for k in 5:
+					var nx := px + rng.randf_range(1.0, 4.0)
+					var ny := py + rng.randf_range(-1.5, 1.5)
+					draw_line(Vector2(px, py), Vector2(nx, ny), b.darkened(0.3), 0.5)
+					px = nx
+					py = ny
+			var moss := Color(0.3, 0.45, 0.22, 0.35)
+			for i in 26:
+				draw_rect(Rect2(rng.randi_range(0, W), rng.randi_range(y + 4, H - 2), rng.randi_range(2, 5), 1), moss)
+		"planks":
+			for i in 90:
+				draw_rect(Rect2(rng.randi_range(0, W), rng.randi_range(y + 4, H - 2), rng.randi_range(6, 26), 0.5), a.darkened(0.18))
+			for i in 24:
+				draw_rect(Rect2(rng.randi_range(0, W), rng.randi_range(y + 4, H - 2), 1, 1), b.darkened(0.45))
+		"checker":
+			var gl := Color(1, 1, 1, 0.07)
+			for k in 7:
+				var gx := float(k) * 70.0 - 20.0
+				draw_colored_polygon(PackedVector2Array([Vector2(gx, y + 2), Vector2(gx + 16, y + 2), Vector2(gx - 24, H), Vector2(gx - 40, H)]), gl)
+		_:
+			for i in 70:
+				var tx := rng.randi_range(0, W)
+				var ty := rng.randi_range(y + 4, H - 3)
+				if greenish:
+					# Matas de hierba: una hoja oscura y otra clara.
+					draw_rect(Rect2(tx, ty - 2, 0.5, 2), a.darkened(0.3))
+					draw_rect(Rect2(tx + 1, ty - 3, 0.5, 3), a.lightened(0.2))
+				else:
+					# Guijarros con su sombra.
+					draw_rect(Rect2(tx, ty, 2, 1), a.lightened(0.16))
+					draw_rect(Rect2(tx, ty + 1, 2, 0.5), a.darkened(0.3))
+	var lt := a.lightened(0.3)
+	for k in 8:
+		lt.a = 0.14 - k * 0.016
+		draw_rect(Rect2(0, y + 2 + k, W, 1), lt)
+	for k in 34:
+		draw_rect(Rect2(0, H - 34 + k, W, 1), Color(0, 0, 0, 0.0075 * k))
 
 ## Agua con olas animadas.
 func op_waves(y: int, h: int, c1, c2, c3) -> void:
@@ -470,6 +644,19 @@ func op_waves(y: int, h: int, c1, c2, c3) -> void:
 		for k in 9:
 			var x := fposmod(k * 53.0 + r * 17.0 + _t * (6.0 + r * 2.0), W + 20.0) - 10.0
 			draw_rect(Rect2(floorf(x), y + r * 4 + 1, 6 + (r % 3) * 3, 1), _c(c3))
+	# Línea de espuma en la orilla y destellos que titilan.
+	var foam := _c(c3).lightened(0.4)
+	foam.a = 0.7
+	draw_rect(Rect2(0, y, W, 1), foam)
+	var sp := _c(c3).lightened(0.7)
+	for k in 16:
+		var a := fposmod(_t * 1.3 + _h(k, 31) * 6.0, 2.0)
+		if a < 0.5:
+			sp.a = 1.0 - a * 2.0
+			draw_rect(Rect2(floorf(_h(k, 33) * W), y + 2 + floorf(_h(k, 34) * (h - 4)), 2, 1), sp)
+	var dp := _c(c1).darkened(0.35)
+	dp.a = 0.25
+	draw_rect(Rect2(0, y + h - 6, W, 6), dp)
 
 # --------------------------------------------------------------------------
 #  Cuerpos de sprite: soldados y criaturas (origen en los pies)

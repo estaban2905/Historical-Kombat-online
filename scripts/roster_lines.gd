@@ -41,6 +41,10 @@ const VERSUS := {
 	# --- Estrategia ---
 	&"sun_tzu>nicolas_maquiavelo": ["Conozco tu Príncipe. Y también tu derrota.", "El arte de la guerra supera al arte del poder."],
 	&"nicolas_maquiavelo>sun_tzu": ["Maestro chino, el poder no es filosofía.", "Mejor temido que amado... y yo gano."],
+	&"nostradamus>nicolas_maquiavelo": ["Ya vi tu final, príncipe de las intrigas.", "Lo escribí: tu plan fracasa hoy."],
+	&"nicolas_maquiavelo>nostradamus": ["Tus profecías no pueden con mi estrategia.", "Predecir es fácil. Ganar, no."],
+	&"galileo_galilei>nostradamus": ["Yo miro estrellas; tú inventas destinos.", "El cielo se mide, no se adivina."],
+	&"nostradamus>galileo_galilei": ["Las estrellas ya me lo dijeron, Galileo.", "Lo vi en el cielo: hoy pierdes."],
 	&"confucio>sun_tzu": ["Maestro de la guerra, la virtud vence al arte.", "El orden y la virtud se imponen."],
 	&"sun_tzu>confucio": ["Maestro del orden, la guerra se gana pensando.", "Gané antes de empezar. Perdone, maestro."],
 	# --- Ciencia ---

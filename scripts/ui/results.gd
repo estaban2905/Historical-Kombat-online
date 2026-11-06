@@ -87,7 +87,7 @@ func _setup_buttons() -> void:
 		&"retry":
 			# La revancha se descuenta ya, al perder: recargar no la devuelve.
 			Game.story_autosave_retry()
-			btn_rematch.text = "CONTINUAR (%d)" % Game.arcade_continues
+			btn_rematch.text = "REVANCHA"
 			btn_rematch.pressed.connect(func():
 				Game.arcade_use_continue()
 				Game.goto(Game.SCENE_FIGHT))
@@ -226,6 +226,7 @@ func _draw() -> void:
 		var quote := RosterLines.win(_winner_data.id, loser.id, _winner_data.victory_quote)
 		_draw_wrapped(Vector2(x0 + 8, 92), "\"%s\"" % quote, w - 16, Color("e8d8b8"))
 		_draw_farewell(x0, w)
+		_draw_defeat_tip(x0, w)
 		_draw_fragment(x0, w)
 	HKTheme.draw_text(self, Vector2(x0, 74), "RONDAS  %d - %d" % [Game.last_p1_rounds, Game.last_p2_rounds], 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER, w)
 	if _arcade != &"":
@@ -296,9 +297,9 @@ func _not_saved_reason(reason: String) -> String:
 		"stalled": return "NADIE RESPONDIÓ: DUELO ANULADO"
 	return "ERROR DEL SERVIDOR"
 
-## Al vencer al jefe de una época se recupera el fragmento del Reloj de esa época.
+## Al vencer al último rival de una época (el creador poseído) se recupera el fragmento del Reloj de esa época.
 func _draw_fragment(x0: float, w: float) -> void:
-	if _arcade != &"next" or Game.last_winner != 1 or not Game.story_is_chapter_boss(Game.arcade_stage):
+	if _arcade != &"next" or Game.last_winner != 1 or not Game.story_is_chapter_end(Game.arcade_stage):
 		return
 	var chapter := Game.story_chapter_of(Game.p2_fighter_id)
 	if chapter >= StoryEnding.SHARD_COLORS.size():
@@ -317,6 +318,14 @@ func _draw_farewell(x0: float, w: float) -> void:
 		return
 	HKTheme.draw_text(self, Vector2(x0, 126), "%s:" % rival.short_name.to_upper(), 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
 	_draw_wrapped(Vector2(x0 + 8, 137), "\"%s\"" % StoryCampaign.FAREWELL[rival.id], w - 16, HKTheme.PAPER.darkened(0.1))
+
+## Tras perder en el modo Historia, uno de los creadores del Reloj da un consejo científico para ganar.
+func _draw_defeat_tip(x0: float, w: float) -> void:
+	if _arcade != &"retry":
+		return
+	var tip := Game.story_defeat_tip()
+	HKTheme.draw_text(self, Vector2(x0, 118), "CONSEJO DE %s:" % str(tip[0]).to_upper(), 8, HKTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER, w, 1)
+	_draw_wrapped(Vector2(x0 + 8, 129), "\"%s\"" % tip[1], w - 16, HKTheme.PAPER.darkened(0.1))
 
 ## Líneas finales al ganar el último combate del modo Historia.
 func _epilogue() -> PackedStringArray:

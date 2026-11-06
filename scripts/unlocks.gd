@@ -9,11 +9,9 @@
 class_name Unlocks
 extends RefCounted
 
-## Los 12 luchadores con los que se empieza. El resto se desbloquea venciéndolo en el modo Historia.
-const STARTERS: Array[StringName] = [
-	&"papa_francisco", &"albert_einstein", &"rasputin", &"nikola_tesla", &"abraham_lincoln", &"napoleon",
-	&"leonardo_da_vinci", &"gengis_kan", &"lautaro", &"juana_de_arco", &"cleopatra", &"alejandro_magno",
-]
+## Los buenos y justos con los que se empieza (no son rivales en el modo Historia: ver StoryCampaign.PLAYABLE_ONLY).
+## El resto (villanos, ambiciosos y los creadores del Reloj) se desbloquea venciéndolo en el modo Historia.
+const STARTERS: Array[StringName] = StoryCampaign.PLAYABLE_ONLY
 
 ## Los finales del modo Historia, en el orden en que se muestran, y cuál es el oculto (sale como "???" hasta verlo).
 const ENDINGS: Array[StringName] = [&"repair", &"rewrite", &"free"]

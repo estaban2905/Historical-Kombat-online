@@ -51,7 +51,9 @@ enum Difficulty { EASY, NORMAL, HARD }
 const DIFFICULTY_NAMES: Array[String] = ["FÁCIL", "NORMAL", "DIFÍCIL"]
 ## Nivel base de la IA (0..1) por dificultad; el arcade lo sube en cada combate.
 const DIFFICULTY_LEVEL: Array[float] = [0.2, 0.5, 0.8]
-## Revanchas por capítulo del modo Historia (se recuperan al empezar cada capítulo).
+## Las revanchas del modo Historia son ilimitadas: perder nunca termina la partida.
+## La constante solo se conserva por compatibilidad con partidas guardadas; el contador de revanchas
+## gastadas (story_continues_used) sigue alimentando las reacciones del Nexo.
 const ARCADE_CONTINUES := 3
 ## Jefe final: el Nexo cierra la escalera tras la última época.
 const STORY_NEXO_ID := FighterRegistry.NEXO_ID
@@ -64,8 +66,6 @@ const STORY_NEXO_LINES := StoryCampaign.NEXO_LINES
 const STORY_NEXO_REACT_FLAWLESS := StoryCampaign.NEXO_REACT_FLAWLESS
 const STORY_NEXO_REACT_WOUNDED := StoryCampaign.NEXO_REACT_WOUNDED
 const STORY_NEXO_REACT_WORN := StoryCampaign.NEXO_REACT_WORN
-const STORY_VS := StoryCampaign.VS
-const STORY_VS_PAIR := StoryCampaign.VS_PAIR
 ## Refuerzo [vida, fuerza, resistencia] del jefe de cada época.
 const BOSS_BOOST := [1.12, 1.05, 1.0]
 ## Refuerzo del Nexo, el jefe final (sus fases lo suben aún más durante el combate).
@@ -80,6 +80,12 @@ var arcade_stage: int = 0
 var arcade_continues: int = ARCADE_CONTINUES
 ## Revanchas gastadas en toda la partida.
 var story_continues_used: int = 0
+## Veces que un creador del Reloj te venció: con 0 se abre el final oculto (liberarlos sin que te venzan).
+## Solo vale durante la sesión: el servidor guarda la partida con un esquema cerrado (sin este campo), así que
+## al retomar una partida guardada vuelve a 0.
+var story_creator_losses: int = 0
+## Verdadero al llegar a la pantalla de la historia desde la posesión: el combate sigue solo tras la escena.
+var story_possessed_entry: bool = false
 ## Fichas reforzadas de los jefes (se crean una vez por combate).
 var _boss_cache := {}
 
@@ -157,16 +163,19 @@ func p2_data() -> FighterData:
 func _boss_boost() -> Array:
 	if is_story_nexo_fight():
 		return NEXO_BOOST
-	if story_is_chapter_boss(arcade_stage):
+	if story_is_chapter_boss(arcade_stage) or story_is_creator(arcade_stage):
 		return BOSS_BOOST
 	return []
 
 ## Luchador cuyo escenario se usa en la ronda dada. En versus, la ronda 1
-## es el escenario de P1, la 2 el de P2, y así alternando. En arcade, todas
-## las rondas son en el escenario del rival.
+## es el escenario de P1, la 2 el de P2, y así alternando. En el modo Historia (arcade), todas las
+## rondas son en la ciudad invadida con el ejército del rival ("city:<id>"), salvo el Nexo, que
+## pelea en su propia Torre del Reloj.
 func stage_owner(round_number: int) -> StringName:
 	if mode == Mode.ARCADE:
-		return p2_fighter_id
+		if is_story_nexo_fight():
+			return p2_fighter_id
+		return StringName(StageDefsCity.PREFIX + String(p2_fighter_id))
 	return p1_fighter_id if round_number % 2 == 1 else p2_fighter_id
 
 ## Reto entre amigos en curso: código de la sala privada y nombre del amigo ("" = ninguno: cola pública).
@@ -286,6 +295,7 @@ func start_story(player_id: StringName) -> void:
 	arcade_stage = 0
 	arcade_continues = ARCADE_CONTINUES
 	story_continues_used = 0
+	story_creator_losses = 0
 	_boss_cache.clear()
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
@@ -294,7 +304,8 @@ func start_story(player_id: StringName) -> void:
 func story_ladder_for(player_id: StringName) -> Array[StringName]:
 	var rivals: Array[FighterData] = []
 	for d in FighterRegistry.all():
-		if d.id != player_id:
+		# Solo rivales: los buenos (StoryCampaign.PLAYABLE_ONLY) no están en ninguna época.
+		if d.id != player_id and _is_story_rival(d.id):
 			rivals.append(d)
 	rivals.sort_custom(_story_before)
 	var ladder: Array[StringName] = []
@@ -334,7 +345,6 @@ func story_autosave_next() -> void:
 ## Guarda la partida como quedará al gastar una revancha (sin gastarla todavía).
 func story_autosave_retry() -> void:
 	var s := story_snapshot()
-	s["continues"] = maxi(arcade_continues - 1, 0)
 	s["continues_used"] = story_continues_used + 1
 	Backend.save_story(s)
 
@@ -364,13 +374,24 @@ func story_resume(save: Dictionary) -> bool:
 	p2_fighter_id = arcade_ladder[arcade_stage]
 	return true
 
-## Orden de la escalera: por capítulo del más reciente al más antiguo y, dentro de uno,
-## por año, salvo el jefe designado del capítulo, que va al final.
+## ¿Sale este luchador como rival en alguna época del modo Historia?
+func _is_story_rival(fighter_id: StringName) -> bool:
+	for chapter in STORY_CHAPTERS:
+		if (chapter[1] as Array).has(fighter_id):
+			return true
+	return false
+
+## Orden de la escalera: por época del más reciente al más antiguo y, dentro de una, por año, salvo el jefe de la
+## época (el último de los rivales) y el creador poseído, que cierra la época después de él.
 func _story_before(a: FighterData, b: FighterData) -> bool:
 	var ca := _chapter_of_id(a.id)
 	var cb := _chapter_of_id(b.id)
 	if ca != cb:
 		return ca < cb
+	var creator_a: bool = STORY_CREATORS.has(a.id)
+	var creator_b: bool = STORY_CREATORS.has(b.id)
+	if creator_a != creator_b:
+		return creator_b
 	var boss_a: bool = STORY_BOSSES.get(ca, &"") == a.id
 	var boss_b: bool = STORY_BOSSES.get(cb, &"") == b.id
 	if boss_a != boss_b:
@@ -391,13 +412,14 @@ func story_nexo_reaction() -> Array:
 		return STORY_NEXO_REACT_FLAWLESS
 	return STORY_NEXO_REACT_WOUNDED if story_continues_used <= 2 else STORY_NEXO_REACT_WORN
 
-## Frase de presentación del rival: la del duelo concreto con el jugador si existe,
-## y si no la del propio rival (vacía si no tiene).
-func story_vs_lines(fighter_id: StringName) -> Array:
-	for key in ["%s|%s" % [p1_fighter_id, fighter_id], "%s|%s" % [fighter_id, p1_fighter_id]]:
-		if STORY_VS_PAIR.has(key):
-			return STORY_VS_PAIR[key]
-	return STORY_VS.get(fighter_id, [])
+## Consejo de uno de los creadores del Reloj tras una derrota: [nombre, texto]. Rota de creador y de consejo
+## según las revanchas gastadas, para que cada derrota enseñe algo distinto.
+func story_defeat_tip() -> Array:
+	var tips: Array = StoryCampaign.DEFEAT_TIPS
+	var entry: Array = tips[story_continues_used % tips.size()]
+	var list: Array = entry[1]
+	var d := FighterRegistry.get_by_id(entry[0])
+	return [d.short_name, list[(story_continues_used / tips.size()) % list.size()]]
 
 ## Época (índice en STORY_CHAPTERS) a la que pertenece un luchador.
 func story_chapter_of(fighter_id: StringName) -> int:
@@ -416,9 +438,29 @@ func story_chapter_name(chapter: int) -> String:
 func story_chapter_start(stage: int) -> bool:
 	return stage == 0 or story_chapter_of(arcade_ladder[stage]) != story_chapter_of(arcade_ladder[stage - 1])
 
-## ¿Es el último combate de su capítulo (el jefe)?
-func story_is_chapter_boss(stage: int) -> bool:
+## ¿Es el último combate de su época (el creador poseído, o el jefe si no hay creador)?
+func story_is_chapter_end(stage: int) -> bool:
 	return stage >= arcade_ladder.size() - 1 or story_chapter_of(arcade_ladder[stage + 1]) != story_chapter_of(arcade_ladder[stage])
+
+## ¿Es el jefe de la época? Es el último rival antes del creador poseído (o el último de la época si no hay creador).
+func story_is_chapter_boss(stage: int) -> bool:
+	if STORY_CREATORS.has(arcade_ladder[stage]):
+		return false
+	return story_is_chapter_end(stage) or story_possession_follows(stage)
+
+## ¿Tras este combate el Nexo posee a un creador del Reloj, que pelea en la misma batalla?
+func story_possession_follows(stage: int) -> bool:
+	return mode == Mode.ARCADE and stage + 1 < arcade_ladder.size() and STORY_CREATORS.has(arcade_ladder[stage + 1]) \
+		and story_chapter_of(arcade_ladder[stage + 1]) == story_chapter_of(arcade_ladder[stage])
+
+## Se vuelve a la pantalla de la historia desde un combate ganado al jefe, sin pasar por los resultados:
+## el creador poseído entra y sigue la pelea. Hace lo mismo que los resultados al ganar (guardar y desbloquear).
+func story_possession_begin() -> void:
+	story_record_win()
+	story_autosave_next()
+	arcade_advance()
+	story_possessed_entry = true
+	goto(SCENE_STORY)
 
 ## ¿Ya se recuperó el fragmento del Reloj de esa época? Se gana al vencer a su jefe: no hace falta guardarlo,
 ## sale de hasta dónde se ha llegado (arcade_stage).
@@ -449,7 +491,7 @@ func arcade_outcome() -> StringName:
 		if arcade_stage < arcade_ladder.size() - 1:
 			return &"next"
 		return &"complete"
-	return &"retry" if arcade_continues > 0 else &"over"
+	return &"retry"
 
 func arcade_advance() -> void:
 	arcade_stage = mini(arcade_stage + 1, arcade_ladder.size() - 1)
@@ -459,5 +501,6 @@ func arcade_advance() -> void:
 		arcade_continues = ARCADE_CONTINUES
 
 func arcade_use_continue() -> void:
-	arcade_continues = maxi(arcade_continues - 1, 0)
+	if story_is_creator(arcade_stage):
+		story_creator_losses += 1
 	story_continues_used += 1

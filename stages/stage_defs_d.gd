@@ -16,12 +16,13 @@ static func get_def(id: StringName) -> Dictionary:
 		&"nicolas_maquiavelo": return _maquiavelo()
 		&"mariya_oktyabrskaya": return _mariya()
 		&"liudmila_pavlichenko": return _liudmila()
+		&"nostradamus": return _nostradamus()
 		&"el_nexo": return _nexo()
 	return {}
 
 static func _nexo() -> Dictionary:
 	return {
-		"name": "LA GRIETA DEL NEXO",
+		"name": "LA TORRE DEL RELOJ",
 		"back": [
 			["sky", ["05020a", "0a0415", "12081f", "1c0c2c", "2a1238"], 176],
 			["stars", 60, 3, 120, "ffe8a0"],
@@ -30,6 +31,7 @@ static func _nexo() -> Dictionary:
 			["poly", [196, 0, 206, 60, 200, 110, 213, 176, 226, 110, 220, 60, 230, 0], "2a1238"],
 			["poly", [206, 0, 211, 60, 208, 110, 213, 150, 218, 110, 215, 60, 220, 0], "ffd24a"],
 			["rect", 30, 120, 18, 56, "160c1c"], ["rect", 370, 108, 22, 68, "160c1c"],
+			["gear", 90, 104, 34, "5e4216", 0.5], ["gear", 336, 104, 34, "5e4216", -0.5],
 			["ground", 176, "noise", "0c060f", "1a0c22", "2a1238", 97],
 		],
 		"mid": [
@@ -286,5 +288,22 @@ static func _liudmila() -> Dictionary:
 		],
 		"fx": [
 			["embers", 12, "ff9040", 12],
+		],
+	}
+
+static func _nostradamus() -> Dictionary:
+	return {
+		"name": "SALON-DE-PROVENCE · OBSERVATORIO",
+		"back": [
+			["sky", ["05061a", "0a0e2a", "141a3c", "1e2650", "2a3262"], 176],
+			["stars", 70, 3, 120, "fff0c0"],
+			["disc", 300, 40, 14, "e8e4d0", "fffbe8"],
+			["mount", 140, 30, "1a1a3a", 3.6, "", 0.8],
+			["tower", 110, 120, 22, 80, "3a3a5a", "2a2a48", "1a1a30"],
+			["dome", 110, 120, 20, "4a4a7a", "3a3a62", "c0a040"],
+			["ground", 176, "slabs", "4a4a5a", "3a3a4a", "2a2a38", 120],
+		],
+		"mid": [
+			["birds", 3, 24, 20, 60, 14, "1a1a2a", 1.0],
 		],
 	}

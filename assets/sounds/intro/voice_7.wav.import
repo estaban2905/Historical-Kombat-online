@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://btcev1tgde44y"
-path="res://.godot/imported/era_6.wav-a52cdaa0c946ada2b00c5a5e5aa53c82.sample"
+uid="uid://cndp31neuwjfu"
+path="res://.godot/imported/voice_7.wav-6b0995a36c292d6dfd6e8974aaafda10.sample"
 
 [deps]
 
-source_file="res://assets/sounds/story/era_6.wav"
-dest_files=["res://.godot/imported/era_6.wav-a52cdaa0c946ada2b00c5a5e5aa53c82.sample"]
+source_file="res://assets/sounds/intro/voice_7.wav"
+dest_files=["res://.godot/imported/voice_7.wav-6b0995a36c292d6dfd6e8974aaafda10.sample"]
 
 [params]
 

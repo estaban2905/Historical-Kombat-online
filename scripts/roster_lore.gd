@@ -9,20 +9,20 @@ extends RefCounted
 
 const LORE := {
 	&"donald_trump": [
-		"Empresario inmobiliario y presidente número 45 de Estados Unidos. Famoso por la televisión, los rascacielos y su voz.",
+		"Empresario inmobiliario y presidente número 45 y 47 de Estados Unidos. Famoso por la televisión, los rascacielos y su voz.",
 		"Levantó un imperio de torres con su apellido y llegó a la Casa Blanca en 2016. Volvió a ganar en 2024.",
 		"Un megáfono gigante lanza una onda sonora que empuja al rival.",
 		"Levanta un muro que avanza y bloquea el paso del rival.",
 	],
 	&"kim_jong_un": [
-		"Líder supremo de Corea del Norte desde 2011. Heredó el poder de su padre y su abuelo.",
+		"Líder supremo de Corea del Norte desde 2011. Heredó el poder de su padre, Kim Jong-il; su abuelo fundó el país.",
 		"Impulsó el programa de misiles de su país y lo mantiene cerrado al mundo. Aquí lo da todo con cohetes.",
 		"Un desfile de soldados avanza y golpea a quien se cruce.",
 		"Lanza una andanada de cohetes que caen sobre el rival.",
 	],
 	&"vladimir_putin": [
-		"Presidente de Rusia desde el año 2000. Antes fue agente del KGB y cinturón negro de judo.",
-		"Gobierna Rusia hace más de dos décadas y ordenó la invasión de Ucrania en 2022.",
+		"Gobierna Rusia desde 1999: presidente desde 2000 (fue primer ministro de 2008 a 2012). Antes fue agente del KGB y cinturón negro de judo.",
+		"Lleva más de dos décadas en el poder y ordenó la invasión de Ucrania en 2022.",
 		"Una mirada helada congela al rival y lo deja lento.",
 		"Un oso siberiano carga contra el rival y lo arrolla.",
 	],
@@ -123,7 +123,7 @@ const LORE := {
 		"Una luz divina cae sobre el rival.",
 	],
 	&"buda": [
-		"Siddhartha Gautama, príncipe de la India que dejó el palacio para buscar la verdad.",
+		"Siddhartha Gautama, príncipe del norte de la India (hoy Nepal) que dejó el palacio para buscar la verdad.",
 		"Alcanzó la iluminación bajo un árbol y fundó el budismo. Predicó el camino del medio.",
 		"Un rayo de iluminación sale disparado de su frente.",
 		"La iluminación envuelve al rival y lo deja flotando.",
@@ -147,7 +147,7 @@ const LORE := {
 		"Lanza una lluvia de billetes que golpea al rival.",
 	],
 	&"albert_einstein": [
-		"Físico alemán, autor de la teoría de la relatividad. Premio Nobel de Física en 1921.",
+		"Físico nacido en Alemania, autor de la teoría de la relatividad. Premio Nobel de Física en 1921.",
 		"Cambió nuestra idea del espacio, el tiempo y la energía con la famosa fórmula E=mc².",
 		"Un rayo de energía E=mc² cruza la pantalla.",
 		"La relatividad dobla el tiempo y deja lento al rival.",
@@ -274,12 +274,12 @@ const LORE := {
 	],
 	&"isaac_newton": [
 		"Físico y matemático inglés. Según la leyenda, una manzana que caía le hizo pensar en la gravedad.",
-		"Formuló las leyes del movimiento y la gravitación universal, e inventó el cálculo.",
+		"Formuló las leyes del movimiento y la gravitación universal, y desarrolló el cálculo a la vez que Leibniz.",
 		"Lanza una manzana que gira hacia el rival.",
 		"Levanta al rival, lo deja flotando y lo estrella contra el suelo.",
 	],
 	&"hernan_cortes": [
-		"Conquistador español nacido en Medellín. Llegó a México en 1519 con unos cientos de soldados.",
+		"Conquistador español nacido en Medellín (Extremadura). Llegó a México en 1519 con unos 500 soldados.",
 		"Con aliados indígenas tomó Tenochtitlán en 1521 y puso fin al Imperio mexica.",
 		"Un disparo de arcabuz cruza la pantalla.",
 		"Jinetes y soldados con pica atraviesan la pantalla arrollando al rival.",
@@ -295,6 +295,12 @@ const LORE := {
 		"Escribió El príncipe, un manual de poder tan crudo que su apellido acabó siendo un adjetivo.",
 		"Se lanza hacia delante con una puñalada traicionera.",
 		"Deja una ilusión, reaparece tras el rival, lo atrapa en un cepo y lo apuñala.",
+	],
+	&"nostradamus": [
+		"Médico y astrólogo francés del siglo XVI. Estudió medicina y trató a enfermos durante epidemias de peste.",
+		"Publicó Las Profecías, cuartetas enigmáticas que la gente aún interpreta como predicciones.",
+		"Una visión de energía violeta cruza la pantalla.",
+		"Un ojo se abre sobre el rival, lo ralentiza y la profecía se cumple en tres golpes.",
 	],
 	&"mariya_oktyabrskaya": [
 		"Tanquista soviética. Al saber que su marido había muerto en la guerra, vendió todo lo que tenía.",
@@ -344,6 +350,7 @@ const ULT_LORE := {
 	&"hernan_cortes": "La flota aparece tras el rival y lo arrastra en una ola enorme.",
 	&"moctezuma_ii": "Un disco solar de energía cae sobre el rival y lo lanza fuera de la pantalla.",
 	&"nicolas_maquiavelo": "El príncipe se abre y atrapa al rival entre sus páginas.",
+	&"nostradamus": "Una esfera de cristal enorme muestra las Centurias y encierra al rival en su visión.",
 	&"mariya_oktyabrskaya": "El tanque aparece en primer plano y un cañonazo hunde al rival en una nube de humo.",
 	&"liudmila_pavlichenko": "La pantalla se oscurece, aparece la mira y un disparo deja al rival humeando.",
 }

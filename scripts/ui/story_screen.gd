@@ -2,7 +2,7 @@
 ##   Arriba   la línea del tiempo: un punto por rival, de hoy (izquierda) al origen (derecha),
 ##            agrupados en capítulos (I, II, III...). Dorado = vencido, parpadeo = combate actual,
 ##            rombo = jefe de la época, "?" = el Nexo, el combate final.
-##   Centro   tu luchador y el rival sobre el escenario del rival, con su nombre y época.
+##   Centro   tu luchador y el rival sobre la ciudad invadida por su ejército (la Torre del Reloj, el Nexo), con su nombre y época.
 ##   Al empezar un capítulo nuevo se muestra primero su tarjeta de título.
 ## COMBATIR (o ENTER) empieza el combate; ESC o VOLVER regresa a la selección de luchador (o al menú).
 extends Control
@@ -29,15 +29,16 @@ var _back: BackButton
 ## Capa superior para la tarjeta de capítulo (debe tapar también a los luchadores).
 var _overlay: Control
 ## Animación en curso (mini-intro del Nexo y/o arranque de la época); mientras existe, la tarjeta
-## y el botón esperan. Cualquier tecla las salta todas.
+## y el botón esperan. Solo Enter las salta todas.
 var _intro: Node
 var _skip_intros: bool = false
+var _auto_fight: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var rival := Game.p2_data()
-	_load_stage(rival.id)
+	_load_stage(Game.stage_owner(1))
 	_add_fighter(Game.p1_data(), PLAYER_X, 1)
 	_add_fighter(rival, RIVAL_X, -1)
 	_btn = Button.new()
@@ -56,6 +57,8 @@ func _ready() -> void:
 	add_child(_overlay)
 	_overlay.draw.connect(_draw_card)
 	_card = Game.story_chapter_start(Game.arcade_stage)
+	_auto_fight = Game.story_possessed_entry
+	Game.story_possessed_entry = false
 	_btn.visible = false
 	_back.visible = false
 	if not _card:
@@ -81,6 +84,14 @@ func _after_card() -> void:
 	add_child(d)
 
 func _show_fight_button() -> void:
+	if _auto_fight:
+		# Creador poseído: la pelea sigue enseguida, sin botón.
+		_auto_fight = false
+		await get_tree().create_timer(0.8).timeout
+		if is_inside_tree() and not Game.is_changing_scene():
+			Sfx.play(&"fight")
+			Game.goto(Game.SCENE_FIGHT)
+		return
 	_btn.visible = true
 	_back.visible = true
 	_btn.grab_focus()
@@ -125,13 +136,13 @@ func _go_back() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if Game.is_changing_scene():
 		return
-	if _card and event.is_pressed() and not event.is_echo() and not event is InputEventMouseMotion:
+	if _card and HKTheme.is_enter(event):
 		_t = maxf(_t, CARD_TIME - CARD_FADE)   # saltar la tarjeta y las animaciones, si las hay
 		_skip_intros = true
 		if _intro:
 			_intro.skip()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"ui_cancel"):
+	elif event.is_action_pressed(&"ui_cancel") and not _card:
 		_go_back()
 		get_viewport().set_input_as_handled()
 
@@ -188,7 +199,7 @@ func _draw_timeline() -> void:
 			var lit := Color("fff0a0").lerp(Color.WHITE, 0.5 + 0.5 * sin(_t * 8.0)) if i == cur else HKTheme.MUTED.lightened(0.2)
 			HKTheme.draw_text(self, Vector2(x - 3, BAR_Y + 4), "?", 8, lit, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 			continue
-		var boss := Game.story_is_chapter_boss(i)
+		var boss := Game.story_is_chapter_end(i)
 		var r := 3.0 if boss else 2.0
 		if i < cur:
 			_dot(x, r, DONE, boss)
@@ -245,7 +256,7 @@ func _draw_plate() -> void:
 	elif boss:
 		tag = "JEFE DE LA ÉPOCA"
 	elif Game.story_is_creator(stage):
-		tag = "CREADOR DEL RELOJ"
+		tag = "CREADOR POSEÍDO"
 	if tag != "":
 		_centered(cx, 96, tag, HKTheme.GOLD)
 	HKTheme.draw_text(self, Vector2(cx - 54, 116), "VS", 16, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 108, 3)
@@ -255,12 +266,6 @@ func _draw_plate() -> void:
 		y += 10.0
 	_centered(cx, y + 2.0, d.country.to_upper(), HKTheme.GOLD)
 	_centered(cx, y + 12.0, d.era, HKTheme.MUTED.lightened(0.25))
-	# La frase del rival va en una franja a todo lo ancho: no cabe en la placa.
-	var lines := Game.story_vs_lines(d.id)
-	if not lines.is_empty():
-		draw_rect(Rect2(0, 187, 426, 22), SHADE)
-		for i in lines.size():
-			_centered(213.0, 196.0 + i * 9.0, lines[i], Color("ff9070") if boss else HKTheme.PAPER.darkened(0.15))
 
 ## Tarjeta de título del capítulo, a pantalla completa, que se desvanece.
 func _draw_card() -> void:
@@ -270,7 +275,7 @@ func _draw_card() -> void:
 	var chapter := Game.story_chapter_of(Game.arcade_ladder[Game.arcade_stage])
 	_overlay.draw_rect(Rect2(0, 0, 426, 240), Color(0.03, 0.02, 0.05, a))
 	var fade := Color(1, 1, 1, a)
-	var title := "FRAGMENTO %s" % ROMAN[mini(chapter, ROMAN.size() - 1)] if chapter < Game.STORY_CHAPTERS.size() else "EL NEXO"
+	var title := "FRENTE %s" % ROMAN[mini(chapter, ROMAN.size() - 1)] if chapter < Game.STORY_CHAPTERS.size() else "EL NEXO"
 	HKTheme.draw_text(_overlay, Vector2(0, 104), title, 16, HKTheme.GOLD * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 3 if a > 0.5 else 0)
 	HKTheme.draw_text(_overlay, Vector2(0, 126), Game.story_chapter_name(chapter), 8, HKTheme.PAPER * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 2 if a > 0.5 else 0)
 	var first := Game.arcade_stage
@@ -289,8 +294,8 @@ func _draw_card() -> void:
 	var react := Game.story_nexo_reaction()
 	for i in react.size():
 		HKTheme.draw_text(_overlay, Vector2(0, 208 + i * 11), react[i], 8, HKTheme.GOLD.darkened(0.1) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
-	var count := "EL COMBATE FINAL · %d REVANCHAS" % Game.arcade_continues if final \
-		else "%d COMBATES · %d REVANCHAS" % [last - first + 1, Game.arcade_continues]
+	var count := "EL COMBATE FINAL · REVANCHAS ILIMITADAS" if final \
+		else "%d COMBATES · REVANCHAS ILIMITADAS" % [last - first + 1]
 	HKTheme.draw_text(_overlay, Vector2(0, 158), count, 8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 
 func _centered(cx: float, y: float, text: String, color: Color) -> void:

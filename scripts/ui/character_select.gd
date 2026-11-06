@@ -1,25 +1,38 @@
 ## Selección de luchador para el modo Historia, el Duelo online y el entrenamiento (y el modo de dos
 ## jugadores en el mismo equipo que usan las pruebas).
-## Rejilla de 54 casillas: las de los personajes y el resto bloqueadas ("?") como adelanto del roster.
+## Selector de épocas: una pestaña por período histórico y, debajo, solo los luchadores de esa época en casillas grandes.
 ## En el modo Historia, los luchadores que aún no se han ganado también salen bloqueados (ver Unlocks);
 ## en el duelo online con ranking están los 50 abiertos.
-##   J1: A/D/W/S mover · U confirmar · J cancelar
-##   J2: Flechas mover · Num1 (o Supr) confirmar · Num4 (o Insert) cancelar
-##   Ratón: pasar por una casilla la señala, clic izquierdo elige y VOLVER (o clic derecho) vuelve
+##   J1: A/D/W/S mover · U confirmar · J cancelar · I/K cambiar de época (o W en la fila de arriba)
+##   J2: Flechas mover · Num1 (o Supr) confirmar · Num4 (o Insert) cancelar · Num2/Num5 cambiar de época
+##   Ratón: pasar por una casilla la señala, clic izquierdo elige (o elige época en las pestañas)
+##   A/D al llegar al borde de una época pasan a la siguiente, así se recorre todo el plantel seguido.
 ##   ESC: volver al menú
 class_name CharacterSelect
 extends Control
 
-const COLS := 9
-const ROWS := 6
-const CELL := Vector2(22, 18)
-const GRID_ORIGIN := Vector2(114, 34)
+const COLS := 5
+const ROWS := 3
+const CELL := Vector2(39, 30)
+const GRID_ORIGIN := Vector2(115, 43)
+## Aumento del busto dentro de cada casilla (cabeza y hombros).
+const BUST_SCALE := 1.45
+## Épocas: [nombre, año mínimo, año máximo] según el año de nacimiento de cada luchador.
+const ERAS: Array = [
+	["ANTIGÜEDAD", -100000, 499],
+	["MEDIEVAL", 500, 1600],
+	["MODERNA", 1601, 1869],
+	["SIGLO XX", 1870, 1939],
+	["ACTUAL", 1940, 100000],
+]
+const TAB_Y := 25.0
+const TAB_H := 13.0
 const P1_COLOR := Color("e83a3a")
 const P2_COLOR := Color("3a8af0")
 const SHADE := Color(0.05, 0.02, 0.07, 0.78)
 ## Placas de información de cada jugador (a los lados de la rejilla).
 const PLATE_W := 104.0
-const PLATE_Y := 27.0
+const PLATE_Y := 43.0
 const PREVIEW_X := [62.0, 364.0]
 ## Alto en pantalla del luchador de la vista previa.
 const PREVIEW_H := 104.0
@@ -50,6 +63,13 @@ var _stage_wait: float = 0.0
 var _drawn_key: Array = []
 var _drawn_blink: int = -1
 var _wrap_cache: Dictionary = {}
+## Épocas: índices del plantel de cada una (ordenados por año), época mostrada, jugador que mira la rejilla y
+## quién tiene el foco en las pestañas (en vez de en las casillas).
+var _era_lists: Array = []
+var _view_era: int = -1
+var _focus_p: int = 1
+var _tabs: Array[bool] = [false, false, false]
+var _cells: Dictionary = {}             # índice del plantel -> casilla con el busto
 ## Historia: las partidas guardadas por id de luchador. Se leen del equipo al abrir y, con sesión, se
 ## completan con las de la cuenta; hasta entonces no se sabe si el luchador elegido ya tiene una.
 var _saves: Dictionary = {}
@@ -74,11 +94,14 @@ func _ready() -> void:
 		cursor[2] = _first_unlocked((cursor[1] + 1) % roster.size())
 		if cursor[2] == cursor[1]:
 			cursor[2] = (cursor[1] + 1) % roster.size()
+	_build_eras()
+	_view_era = _era_of(cursor[1])
 	_load_stage(roster[cursor[1]].id if cursor[1] < roster.size() else roster[0].id)
 	for i in roster.size():
 		if not _is_locked(i):
 			_preload_queue.append(roster[i].id)
 	_build_cells()
+	_layout_cells()
 	_back =BackButton.add_to(self, _on_back)
 	_overlay = Control.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -112,10 +135,12 @@ func _load_saves() -> void:
 	saves_loaded.emit()
 
 ## ¿Esta casilla es un luchador que todavía no se puede usar? Solo en el modo Historia.
+## En el modo Historia solo se puede elegir a los buenos (StoryCampaign.PLAYABLE_ONLY); los villanos, ambiciosos y
+## creadores son los rivales y no salen en la rejilla, aunque ya los hayas vencido en otra partida.
 func _is_locked(i: int) -> bool:
 	if i >= roster.size() or Game.mode != Game.Mode.ARCADE:
 		return false
-	return not Unlocks.fighter_unlocked(roster[i].id)
+	return not Unlocks.STARTERS.has(roster[i].id)
 
 ## La primera casilla desde `from` (dando la vuelta) con un luchador utilizable.
 func _first_unlocked(from: int) -> int:
@@ -125,13 +150,63 @@ func _first_unlocked(from: int) -> int:
 			return i
 	return from
 
+## Reparte el plantel por épocas (por año de nacimiento) y lo ordena dentro de cada una.
+func _build_eras() -> void:
+	_era_lists = []
+	for e in ERAS:
+		_era_lists.append([])
+	for i in roster.size():
+		if _is_locked(i):
+			continue   # en la historia, los rivales no se muestran
+		var y := roster[i].year
+		for k in ERAS.size():
+			if y >= int(ERAS[k][1]) and y <= int(ERAS[k][2]):
+				(_era_lists[k] as Array).append(i)
+				break
+	for l in _era_lists:
+		(l as Array).sort_custom(func(a: int, b: int) -> bool:
+			return roster[a].year < roster[b].year or (roster[a].year == roster[b].year and a < b))
+
+func _era_of(idx: int) -> int:
+	for k in _era_lists.size():
+		if (_era_lists[k] as Array).has(idx):
+			return k
+	return 0
+
+func _slot_of(idx: int) -> int:
+	return (_era_lists[_era_of(idx)] as Array).find(idx)
+
+## Siguiente (dir 1) o anterior (dir -1) luchador; al salir de una época pasa a la vecina que tenga gente.
+func _step(c: int, dir: int) -> int:
+	var e := _era_of(c)
+	var s := _slot_of(c) + dir
+	var list: Array = _era_lists[e]
+	if s >= 0 and s < list.size():
+		return list[s]
+	for _k in _era_lists.size():
+		e = (e + dir + _era_lists.size()) % _era_lists.size()
+		list = _era_lists[e]
+		if not list.is_empty():
+			return list[0] if dir > 0 else list[list.size() - 1]
+	return c
+
+## Salta a la época vecina conservando la posición dentro de la rejilla en lo posible.
+func _hop_era(c: int, dir: int) -> int:
+	var slot := _slot_of(c)
+	var e := _era_of(c)
+	for _k in _era_lists.size():
+		e = (e + dir + _era_lists.size()) % _era_lists.size()
+		var list: Array = _era_lists[e]
+		if not list.is_empty():
+			return list[mini(slot, list.size() - 1)]
+	return c
+
 func _build_cells() -> void:
 	for i in roster.size():
 		if _is_locked(i):
 			continue
 		var cell := Control.new()
 		cell.clip_contents = true
-		cell.position = _cell_pos(i) + Vector2(1, 1)
 		cell.size = CELL - Vector2(2, 2)
 		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(cell)
@@ -140,12 +215,24 @@ func _build_cells() -> void:
 		# Retrato fijo: se dibuja una vez en setup(); sin _process no se redibuja cada frame.
 		bust.set_process(false)
 		bust.setup(roster[i])
-		# Pies fuera de la casilla: solo se ve cabeza y hombros.
-		bust.position = Vector2(CELL.x * 0.5 - 2, bust.approx_height() + 1)
+		bust.scale = Vector2(BUST_SCALE, BUST_SCALE)
+		# Pies fuera de la casilla: solo se ve cabeza y hombros, grandes.
+		bust.position = Vector2(cell.size.x * 0.5 - 2.0 * BUST_SCALE, bust.approx_height() * BUST_SCALE + 1.0)
 		cell.add_child(bust)
+		_cells[i] = cell
 
+## Muestra solo las casillas de la época actual, en su sitio.
+func _layout_cells() -> void:
+	for i in _cells:
+		var cell: Control = _cells[i]
+		cell.visible = _era_of(i) == _view_era
+		if cell.visible:
+			cell.position = _cell_pos(i) + Vector2(1, 1)
+
+## Posición de la casilla de un luchador en la rejilla de su época.
 func _cell_pos(i: int) -> Vector2:
-	return GRID_ORIGIN + Vector2(i % COLS, i / COLS) * CELL
+	var slot := _slot_of(i)
+	return GRID_ORIGIN + Vector2(slot % COLS, slot / COLS) * CELL
 
 func _refresh_preview(p: int) -> void:
 	var r: FighterRenderer = _previews[p]
@@ -217,7 +304,11 @@ func _process(delta: float) -> void:
 		if _stage_wait <= 0.0:
 			_load_stage(_stage_pending)
 			_stage_pending = &""
-	var key := [cursor[1], cursor[2], confirmed[1], confirmed[2], _starting]
+	var want := _era_of(cursor[_focus_p])
+	if want != _view_era:
+		_view_era = want
+		_layout_cells()
+	var key := [cursor[1], cursor[2], confirmed[1], confirmed[2], _starting, _view_era, _tabs[1], _tabs[2]]
 	var blink := int(_t * 6.0) % 2
 	if key != _drawn_key:
 		_drawn_key = key
@@ -230,27 +321,50 @@ func _process(delta: float) -> void:
 func _handle_player(p: int) -> void:
 	var inp: InputManager = _inputs[p]
 	if not confirmed[p]:
-		var moved := false
 		var c: int = cursor[p]
+		var list: Array = _era_lists[_era_of(c)]
+		var slot := _slot_of(c)
+		var moved := false
 		if inp.just_pressed(&"left"):
-			c = (c - 1 + COLS * ROWS) % (COLS * ROWS); moved = true
+			c = _hop_era(c, -1) if _tabs[p] else _step(c, -1); moved = true
 		elif inp.just_pressed(&"right"):
-			c = (c + 1) % (COLS * ROWS); moved = true
+			c = _hop_era(c, 1) if _tabs[p] else _step(c, 1); moved = true
+		elif inp.just_pressed(&"punch_heavy"):
+			c = _hop_era(c, 1); moved = true
+		elif inp.just_pressed(&"kick_heavy"):
+			c = _hop_era(c, -1); moved = true
 		elif inp.just_pressed(&"jump"):
-			c = (c - COLS + COLS * ROWS) % (COLS * ROWS); moved = true
+			if _tabs[p]:
+				pass
+			elif slot < COLS:
+				_set_tabs(p, true)
+			else:
+				c = list[slot - COLS]; moved = true
 		elif inp.just_pressed(&"crouch"):
-			c = (c + COLS) % (COLS * ROWS); moved = true
+			if _tabs[p]:
+				_set_tabs(p, false)
+			elif slot / COLS < (list.size() - 1) / COLS:
+				c = list[mini(slot + COLS, list.size() - 1)]; moved = true
 		if moved:
 			_move_cursor(p, c)
 		if inp.just_pressed(&"punch_light"):
-			_confirm(p)
+			if _tabs[p]:
+				_set_tabs(p, false)
+			else:
+				_confirm(p)
 	elif inp.just_pressed(&"kick_light"):
 		confirmed[p] = false
 		Sfx.play(&"select")
 		_refresh_preview(p)
 
+func _set_tabs(p: int, on: bool) -> void:
+	_tabs[p] = on
+	_focus_p = p
+	Sfx.play(&"select")
+
 func _move_cursor(p: int, c: int) -> void:
 	cursor[p] = c
+	_focus_p = p
 	Sfx.play(&"select")
 	if c < roster.size() and not _is_locked(c):
 		_stage_pending = roster[c].id
@@ -267,25 +381,44 @@ func _confirm(p: int) -> void:
 	else:
 		Sfx.play(&"denied")
 
-## La casilla bajo `pos` (-1 si está fuera de la rejilla).
+## La casilla bajo `pos` de la época mostrada (índice del plantel; -1 si está fuera de la rejilla o vacía).
 func _cell_at(pos: Vector2) -> int:
 	var rel := pos - GRID_ORIGIN
 	if rel.x < 0.0 or rel.y < 0.0:
 		return -1
 	var col := int(rel.x / CELL.x)
 	var row := int(rel.y / CELL.y)
-	return row * COLS + col if col < COLS and row < ROWS else -1
+	if col >= COLS or row >= ROWS or _view_era < 0:
+		return -1
+	var slot := row * COLS + col
+	var list: Array = _era_lists[_view_era]
+	return list[slot] if slot < list.size() else -1
 
-## Ratón: pasar por una casilla mueve el cursor de J1 y un clic izquierdo lo elige.
+## Pestaña de época bajo `pos` (-1 si no hay).
+func _tab_at(pos: Vector2) -> int:
+	if pos.y < TAB_Y or pos.y > TAB_Y + TAB_H or pos.x < 6.0 or pos.x > 420.0:
+		return -1
+	return clampi(int((pos.x - 6.0) / (414.0 / ERAS.size())), 0, ERAS.size() - 1)
+
+## Ratón: pasar por una casilla mueve el cursor de J1 y un clic izquierdo lo elige; las pestañas cambian de época.
 func _gui_input(event: InputEvent) -> void:
 	if _starting or _asking or _dialog != null or confirmed[1]:
 		return
 	var click := event as InputEventMouseButton
 	if not event is InputEventMouseMotion and (click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT):
 		return
-	var c := _cell_at((event as InputEventMouse).position)
+	var at := (event as InputEventMouse).position
+	var tab := _tab_at(at)
+	if tab >= 0:
+		if click != null and tab != _era_of(cursor[1]) and not (_era_lists[tab] as Array).is_empty():
+			var list: Array = _era_lists[tab]
+			_tabs[1] = false
+			_move_cursor(1, list[mini(_slot_of(cursor[1]), list.size() - 1)])
+		return
+	var c := _cell_at(at)
 	if c < 0:
 		return
+	_tabs[1] = false
 	if c != cursor[1]:
 		_move_cursor(1, c)
 	if click != null:
@@ -410,30 +543,47 @@ func _draw() -> void:
 	if _any_locked():
 		HKTheme.draw_text(self, Vector2(0, 15), "%d/%d" % [Unlocks.fighters_unlocked(), FighterRegistry.all().size()], 8,
 			HKTheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, 420, 1)
-	# Rejilla (fondo continuo para que no se vea el escenario entre casillas)
+	_draw_tabs()
+	# Rejilla de la época mostrada (fondo continuo para que no se vea el escenario entre casillas)
+	var list: Array = _era_lists[_view_era] if _view_era >= 0 else []
 	var grid := Rect2(GRID_ORIGIN - Vector2(2, 2), CELL * Vector2(COLS, ROWS) + Vector2(3, 3))
 	draw_rect(grid, HKTheme.INK)
-	for i in COLS * ROWS:
-		var pos := _cell_pos(i)
+	for slot in COLS * ROWS:
+		var pos := GRID_ORIGIN + Vector2(slot % COLS, slot / COLS) * CELL
 		var r := Rect2(pos, CELL - Vector2(1, 1))
 		draw_rect(r, HKTheme.INK)
-		if i < roster.size() and not _is_locked(i):
+		if slot < list.size() and not _is_locked(list[slot]):
 			draw_rect(r.grow(-1), Color("4a2a38"))
-		elif i < roster.size():
-			# Luchador por ganar: casilla oscura con el "?" más claro que las vacías.
+		elif slot < list.size():
+			# Luchador por ganar: casilla oscura con "?".
 			draw_rect(r.grow(-1), Color("26162c"))
-			HKTheme.draw_text(self, pos + Vector2(0, 14), "?", 8, Color("8a6a7a"), HORIZONTAL_ALIGNMENT_CENTER, CELL.x - 1, 0)
+			HKTheme.draw_text(self, pos + Vector2(0, 19), "?", 16, Color("8a6a7a"), HORIZONTAL_ALIGNMENT_CENTER, CELL.x - 1, 0)
 		else:
 			draw_rect(r.grow(-1), Color("1c1220"))
-			HKTheme.draw_text(self, pos + Vector2(0, 14), "?", 8, Color("4a3a48"), HORIZONTAL_ALIGNMENT_CENTER, CELL.x - 1, 0)
 	# Placas de información de cada jugador y frases de presentación
 	for p in [1, 2]:
 		_draw_plate(p)
 	_draw_quotes(grid.end.y + 6.0)
-	var hint := "J1: WASD+U   ESC: VOLVER" if _cpu else "J1: WASD+U   J2: FLECHAS+NUM1   ESC: VOLVER"
+	var hint := "WASD+U · ÉPOCA: I/K" if _cpu else "WASD+U · FLECHAS+NUM1 · ÉPOCA: I/K, NUM2/5"
 	if Game.mode == Game.Mode.TRAINING:
-		hint = "J1: WASD+U  MUÑECO: FLECHAS+NUM1  ESC: VOLVER"
-	HKTheme.draw_text(self, Vector2(0, 233), hint, 8, HKTheme.MUTED.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER, 426, 1)
+		hint = "WASD+U · MUÑECO: FLECHAS+NUM1 · ÉPOCA: I/K"
+	HKTheme.draw_text(self, Vector2(70, 233), hint, 8, HKTheme.MUTED.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER, 356, 1)
+
+## Barra de épocas: la mostrada va resaltada y cada jugador marca la suya con una franja de su color.
+func _draw_tabs() -> void:
+	var w := 414.0 / ERAS.size()
+	for e in ERAS.size():
+		var r := Rect2(6.0 + e * w, TAB_Y, w - 2.0, TAB_H)
+		var on := e == _view_era
+		draw_rect(r, SHADE if not on else Color("4a2a38"))
+		draw_rect(r, HKTheme.GOLD if on else HKTheme.GOLD_DARK.darkened(0.3), false, 1.0)
+		HKTheme.draw_text(self, Vector2(r.position.x, r.position.y + 10.0), ERAS[e][0], 8,
+			HKTheme.GOLD if on else HKTheme.MUTED.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 1)
+		# Franja de color bajo la pestaña de la época de cada jugador (J1 a la izquierda, J2 a la derecha).
+		for p in ([1] if _cpu else [1, 2]):
+			if _era_of(cursor[p]) == e:
+				var half := r.size.x * (1.0 if _cpu else 0.5)
+				draw_rect(Rect2(r.position.x + (0.0 if p == 1 else r.size.x - half), r.end.y - 2.0, half, 2.0), P1_COLOR if p == 1 else P2_COLOR)
 
 ## Placa compacta de un jugador: etiqueta (y "LISTO") arriba y, debajo, nombre, país y época.
 func _draw_plate(p: int) -> void:
@@ -453,16 +603,8 @@ func _draw_plate(p: int) -> void:
 			lines = [["BLOQUEADO", HKTheme.MUTED], ["VENCELO EN", HKTheme.PAPER], ["EL MODO", HKTheme.PAPER], ["HISTORIA", HKTheme.PAPER]]
 		elif idx < roster.size():
 			var d := roster[idx]
+			# Solo el nombre: el resto (país, época, pasiva) está en PERSONAJES y la época en la pestaña.
 			lines.append([d.short_name, HKTheme.PAPER])
-			for l in _wrap(d.country.to_upper(), PLATE_W - 8.0):
-				lines.append([l, HKTheme.GOLD])
-			for l in _wrap(d.era, PLATE_W - 8.0):
-				lines.append([l, HKTheme.MUTED.lightened(0.25)])
-			# Nombre de su pasiva (si tiene); el detalle está en PERSONAJES.
-			for l in _wrap(Passives.display_name(d.passive), PLATE_W - 8.0):
-				lines.append([l, Color("60d060")])
-			if _is_story() and _saves.has(str(d.id)):
-				lines.append(["GUARDADA · COMBATE %d" % (int(_saves[str(d.id)]["stage"]) + 1), Color("60d060")])
 		else:
 			lines.append(["BLOQUEADO", HKTheme.MUTED])
 	var box := Rect2(x0, PLATE_Y, PLATE_W, 6.0 + (lines.size() + 1) * 10.0)
@@ -534,6 +676,8 @@ func _wrap_lines(text: String, width: float) -> PackedStringArray:
 	return lines
 
 func _any_locked() -> bool:
+	if Game.mode == Game.Mode.ARCADE:
+		return false   # no se ven bloqueados: solo salen los que se pueden elegir
 	for i in roster.size():
 		if _is_locked(i):
 			return true
@@ -544,9 +688,17 @@ func _draw_cursors() -> void:
 	if _starting:
 		HKTheme.draw_text(_overlay, Vector2(0, 100), "VS", 32, HKTheme.BLOOD, HORIZONTAL_ALIGNMENT_CENTER, 426, 4)
 	for p in ([1] if _cpu else [1, 2]):
-		var pos := _cell_pos(cursor[p])
 		var col: Color = P1_COLOR if p == 1 else P2_COLOR
 		var blink := confirmed[p] or int(_t * 6.0) % 2 == 0
+		if _tabs[p]:
+			# Foco en las pestañas: parpadea el borde de la época de este jugador.
+			var tw := 414.0 / ERAS.size()
+			if blink:
+				_overlay.draw_rect(Rect2(6.0 + _era_of(cursor[p]) * tw - 1.0, TAB_Y - 1.0, tw, TAB_H + 2.0), col, false, 2.0)
+			continue
+		if _era_of(cursor[p]) != _view_era:
+			continue
+		var pos := _cell_pos(cursor[p])
 		var r := Rect2(pos - Vector2(1, 1), CELL + Vector2(1, 1))
 		if not _cpu and cursor[1] == cursor[2]:
 			# Casilla compartida: cada uno pinta media.

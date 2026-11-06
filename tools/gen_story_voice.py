@@ -3,7 +3,7 @@
 
 Uso (igual que gen_intro_voice.py, del que reutiliza la voz y los filtros):
     python tools/gen_story_voice.py          # mini-intro (nexo_N.wav) y épocas (era_N.wav)
-    python tools/gen_story_voice.py era      # solo las seis épocas
+    python tools/gen_story_voice.py era      # solo las cinco épocas
     python tools/gen_story_voice.py end      # solo el final
 
 El texto de cada frase es el mismo que se muestra como subtítulo en
@@ -21,23 +21,22 @@ OUT = base.ROOT / "assets" / "sounds" / "story"
 LINES = [
     "El tiempo te eligió.",
     "Solo uno reclamará mi poder.",
-    "¿Quién merece controlar el destino de toda la historia?",
+    "¿Salvarás la Tierra... o tomarás mi lugar?",
 ]
 
-# Una por época, en el orden de Game.STORY_CHAPTERS, y la última para el combate final.
+# Una por frente de la invasión, en el orden de Game.STORY_CHAPTERS, y la última para el combate final.
 ERA_LINES = [
-    "Cada época es ahora un fragmento roto. Este lo gobiernan los que gritan más fuerte.",
-    "Un siglo de guerras. El tiempo aún sangra.",
-    "Aquí brotaron las ideas que, siglos después, rompieron el tiempo.",
-    "Reinos, flotas y coronas. Demasiado poder, poca memoria.",
-    "La cuna de la historia. Aquí nació el poder, y aquí decides cómo termina.",
-    "Has llegado hasta mí. Demuestra que mereces el tiempo.",
+    "Los ejércitos ya están aquí. Este frente lo gobiernan los que gritan más fuerte.",
+    "Un siglo de guerras cae sobre tus ciudades. El tiempo aún sangra.",
+    "Ideas, reinos y flotas invaden tu mundo: poder de sobra y poca memoria.",
+    "La cuna de la historia marcha sobre la Tierra. Aquí nació el poder, y aquí decides cómo termina.",
+    "Has llegado a mi torre. Demuestra que mereces el tiempo.",
 ]
 
 # Final del modo Historia (scripts/ui/story_ending.gd): 1 y 2 antes de elegir, y la de cada decisión:
 # 3 reparar, 4 reescribir, 5 liberar (el final oculto).
 END_LINES = [
-    "Me has vencido. Todas las épocas cayeron ante ti, y ahora esperan.",
+    "Me has vencido. Los ejércitos se desvanecen y la Tierra respira.",
     "El poder del Nexo es tuyo. ¿Qué harás con el tiempo?",
     "Que cada uno vuelva a su tiempo. Que el mundo recuerde sus errores, y aprenda de ellos.",
     "Que el tiempo sea tuyo. Pero quien escribe la historia a su imagen, termina repitiéndola.",

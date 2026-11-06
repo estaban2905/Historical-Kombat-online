@@ -174,7 +174,7 @@ func _draw_card(c: Control, s: Dictionary, d: FighterData, ladder: Array[StringN
 		if Game.story_chapter_of(ladder[i]) != Game.story_chapter_of(ladder[i - 1]):
 			c.draw_rect(Rect2(bx + bw * float(i) / span, 30, 1, 6), HKTheme.MUTED)
 	HKTheme.draw_text(c, Vector2(0, 25), "C%d/%d" % [stage + 1, total], 8, HKTheme.PAPER.darkened(0.2), HORIZONTAL_ALIGNMENT_RIGHT, right, 1)
-	var info := "REV %d/%d · %s" % [int(s["continues"]), Game.ARCADE_CONTINUES, _ago(int(s["saved_at"]))]
+	var info := "REV %d · %s" % [int(s.get("continues_used", 0)), _ago(int(s["saved_at"]))]
 	HKTheme.draw_text(c, Vector2(0, 37), info, 8, HKTheme.MUTED.lightened(0.15), HORIZONTAL_ALIGNMENT_RIGHT, right, 1)
 
 ## "SIGUE: <rival>" (y si es jefe de época, creador o el Nexo) para la partida elegida.
@@ -184,10 +184,10 @@ func _next_text(ladder: Array[StringName], stage: int) -> String:
 	var tag := ""
 	if id == Game.STORY_NEXO_ID:
 		tag = " · JEFE FINAL"
-	elif stage + 1 < ladder.size() and Game.story_chapter_of(ladder[stage + 1]) != Game.story_chapter_of(id):
-		tag = " · JEFE DE LA EPOCA"
 	elif StoryCampaign.CREATORS.has(id):
-		tag = " · CREADOR DEL RELOJ"
+		tag = " · CREADOR POSEIDO"
+	elif stage + 1 < ladder.size() and (Game.story_chapter_of(ladder[stage + 1]) != Game.story_chapter_of(id) or StoryCampaign.CREATORS.has(ladder[stage + 1])):
+		tag = " · JEFE DE LA EPOCA"
 	return HKTheme.fold("SIGUE: %s%s" % [who, tag])
 
 ## Hace cuánto se guardó, en palabras cortas.

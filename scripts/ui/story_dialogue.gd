@@ -1,6 +1,6 @@
 ## Escena de diálogo del MODO HISTORIA: un panel oscuro abajo con el retrato de quien habla
-## (o la esfera del Nexo) y su frase, que se escribe sola. Cualquier tecla o clic la completa y
-## pasa a la siguiente; ESC salta toda la escena. `lines` = [[id, texto], ...] se asigna antes de
+## (o la esfera del Nexo) y su frase, que se escribe sola. Enter la completa y
+## pasa a la siguiente (solo Enter: ESC y el ratón no la saltan). `lines` = [[id, texto], ...] se asigna antes de
 ## añadirla al árbol. `finished` se emite al acabar.
 ## Si existe assets/sounds/story/scenes/<scene_id>_<n>.wav (tools/gen_scene_voice.py), cada frase suena con
 ## la voz de quien habla: el texto se escribe al ritmo de la voz y la escena avanza sola al acabar.
@@ -56,7 +56,10 @@ func _show_line() -> void:
 	_has_voice = false
 	_cps = CPS
 	var path := "res://assets/sounds/story/scenes/%s_%d.wav" % [scene_id, _i + 1]
-	if scene_id != &"" and ResourceLoader.exists(path):
+	var own_voice: bool = lines[_i].size() > 2   # la línea trae su propia voz (el luchador del jugador)
+	if own_voice:
+		path = str(lines[_i][2])
+	if (scene_id != &"" or own_voice) and ResourceLoader.exists(path):
 		_voice.stream = load(path) as AudioStream
 		_has_voice = true
 		# El texto termina un poco antes que la voz.
@@ -105,16 +108,7 @@ func _finish() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _done:
 		return
-	if event.is_action_pressed(&"ui_cancel"):
-		_finish()
-		get_viewport().set_input_as_handled()
-		return
-	var pressed := false
-	if event is InputEventKey:
-		pressed = event.pressed and not event.echo
-	elif event is InputEventMouseButton or event is InputEventJoypadButton:
-		pressed = event.pressed
-	if pressed:
+	if HKTheme.is_enter(event):
 		_advance()
 		get_viewport().set_input_as_handled()
 
@@ -207,4 +201,4 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
 	if _typed() >= _total_chars() and int(_t * 2.0) % 2 == 0:
 		HKTheme.draw_text(self, Vector2(0, H - 8.0), ">", 8, NEXO_GOLD, HORIZONTAL_ALIGNMENT_RIGHT, W - 8.0, 0)
-	HKTheme.draw_text(self, Vector2(8, H - 8.0), "ESC: SALTAR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+	HKTheme.draw_text(self, Vector2(8, H - 8.0), "ENTER: CONTINUAR", 8, HKTheme.MUTED, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)

@@ -6,7 +6,7 @@
 ##   2  la animación         cualquier tecla la salta
 ##   3  el epílogo           CONTINUAR
 ##   4  la lección del tiempo  VER CRÉDITOS
-## LIBERAR solo aparece si se llegó hasta aquí sin gastar ninguna revancha.
+## LIBERAR solo aparece si ningún creador del Reloj venció al jugador (ver Game.story_creator_losses).
 ## La voz sale de tools/gen_story_voice.py (end_1 a end_5, mismo texto que los subtítulos).
 class_name StoryEnding
 extends Control
@@ -23,7 +23,7 @@ const CLOCK_C := Vector2(213.0, 70.0)
 const CLOCK_R := 38.0
 
 const NEXO_LINES: Array = [
-	["ME HAS VENCIDO. TODAS LAS ÉPOCAS", "CAYERON ANTE TI Y AHORA ESPERAN."],
+	["ME HAS VENCIDO. LOS EJÉRCITOS SE", "DESVANECEN Y LA TIERRA RESPIRA."],
 	["EL PODER DEL NEXO ES TUYO.", "¿QUÉ HARÁS CON EL TIEMPO?"],
 ]
 ## Por decisión: voz (end_N), título, color del título y subtítulos de la animación.
@@ -112,6 +112,12 @@ const EPILOGUES := {
 		"EL CIELO ES SUYO,\nPERO DEJA DE\nPREGUNTAR."],
 	&"ivan_el_terrible": ["GOBIERNA SIN MIEDO\nY APRENDE QUE EL TERROR\nNO ES RESPETO.",
 		"EL MIEDO REINA\nPARA SIEMPRE\nSOBRE TODA RUSIA."],
+	&"nostradamus": ["REESCRIBE SUS CENTURIAS:
+EL FUTURO NO ESTÁ
+ESCRITO DE ANTEMANO.",
+		"SU PROFECÍA SE CUMPLE
+Y NADIE SABE SI LA VIO
+O LA PROVOCÓ."],
 	&"nicolas_maquiavelo": ["ESCRIBE UN LIBRO NUEVO:\nEL FIN NO JUSTIFICA\nTODOS LOS MEDIOS.",
 		"TODO SALE COMO ÉL\nLO PLANEÓ, Y NADIE\nPUEDE CONFIAR."],
 	&"moctezuma_ii": ["SALVA TENOCHTITLAN\nSABIENDO QUE EL\nDIÁLOGO PROTEGE.",
@@ -188,8 +194,9 @@ func _say(n: int, delay: float) -> void:
 	_voice_at = delay
 	_voice_started = false
 
+## El tercer camino se abre si ningún creador del Reloj te venció: así los liberaste a todos.
 func _free_unlocked() -> bool:
-	return Game.story_continues_used == 0
+	return Game.story_creator_losses == 0
 
 func _next() -> void:
 	Sfx.play(&"confirm")
@@ -262,12 +269,7 @@ func _place(b: Button, text: String, pos: Vector2, width: float, action: Callabl
 func _unhandled_input(event: InputEvent) -> void:
 	if _step != 2 or _t < 0.4:
 		return
-	var pressed := false
-	if event is InputEventKey:
-		pressed = event.pressed and not event.echo
-	elif event is InputEventMouseButton or event is InputEventJoypadButton:
-		pressed = event.pressed
-	if pressed:
+	if HKTheme.is_enter(event):
 		_go_epilogue()
 		get_viewport().set_input_as_handled()
 
@@ -332,9 +334,14 @@ func _draw_nexo_speech() -> void:
 	HKTheme.draw_text(self, Vector2(0, 56), "EL NEXO", 16, NEXO_GOLD * Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_CENTER, W, 3)
 	for i in lines.size():
 		HKTheme.draw_text(self, Vector2(0, 100 + i * 14), lines[i], 8, HKTheme.PAPER * Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_CENTER, W, 2)
+	if _step == 0:
+		# Lo que el Nexo calla: por qué el tiempo eligió a este luchador (sin voz; el audio no cambia).
+		var note := ["LOS CREADORES YA NO ESTÁN ATADOS.", "SOLO TÚ ACEPTASTE TU DERROTA: POR ESO NO PUDE CONTROLARTE."]
+		for i in note.size():
+			HKTheme.draw_text(self, Vector2(0, 146 + i * 12), note[i], 8, Color("70e0ff") * Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_CENTER, W, 1)
 	if _step == 1:
 		if _free_unlocked():
-			HKTheme.draw_text(self, Vector2(0, 140), "NO GASTASTE NINGUNA REVANCHA: SE ABRE UN TERCER CAMINO.", 8,
+			HKTheme.draw_text(self, Vector2(0, 140), "LIBERASTE A LOS CREADORES SIN QUE TE VENCIERAN: SE ABRE UN TERCER CAMINO.", 8,
 				Color("70e0ff"), HORIZONTAL_ALIGNMENT_CENTER, W, 1)
 		else:
 			HKTheme.draw_text(self, Vector2(0, 140), "TU DECISIÓN CAMBIARÁ TODAS LAS ÉPOCAS.", 8,
@@ -377,7 +384,7 @@ func _draw_decision() -> void:
 	HKTheme.draw_text(self, Vector2(0, 21), title, 8, Color(info["color"], ta), HORIZONTAL_ALIGNMENT_CENTER, W, 1)
 	_draw_ending_subs(info["subs"])
 	if _t < 3.0:
-		HKTheme.draw_text(self, Vector2(0, 36), "CUALQUIER TECLA: SALTAR", 8, Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)),
+		HKTheme.draw_text(self, Vector2(0, 36), "ENTER: SALTAR", 8, Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)),
 			HORIZONTAL_ALIGNMENT_RIGHT, W - 6, 1)
 	if fade_in < 1.0:
 		draw_rect(Rect2(0, 0, W, H), Color(0.03, 0.02, 0.05, 1.0 - fade_in))

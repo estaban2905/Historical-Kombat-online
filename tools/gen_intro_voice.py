@@ -20,11 +20,12 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets" / "sounds" / "intro"
 
 LINES = [
-    "Cuatro mentes de épocas distintas construyeron una máquina para ver todo el tiempo a la vez. La llamaron el Reloj del Origen.",
-    "Funcionó... demasiado bien. Rompió el tiempo, y de la grieta nació el Nexo, el poder que sostiene todas las épocas.",
-    "Los mundos chocaron. Reyes, guerreros y profetas fueron arrancados de su época y arrojados a un mismo campo de ruinas.",
-    "Entonces el Nexo habló: solo uno de ustedes podrá reclamar mi poder. El último en pie decidirá si el tiempo se repara... o se escribe de nuevo.",
-    "Aliados no hay. Épocas no hay. Reglas no hay.",
+    "Ginebra, dos mil treinta y uno. En el CERN, un equipo de científicos intenta controlar la gravedad. Es un riesgo enorme, pero lo corren igual.",
+    "Nadie lo ordenó: de la colisión nació el Nexo. Vio toda la historia a la vez, y quiso ser su origen.",
+    "Capturó a cuatro genios y los obligó a construir el Reloj del Origen.",
+    "De la grieta cayeron los imperios y los ejércitos de todas las épocas. Hoy marchan sobre la Tierra, y las ciudades arden.",
+    "El Nexo habló al mundo: cada uno anhela volver al día en que perdió. Quien conquiste la Tierra, regresará. Pero solo uno reclamará mi poder... y decidirá si el tiempo se repara, o se escribe de nuevo.",
+    "La resistencia se levanta. Solo uno detendrá al Nexo.",
     "La historia se escribe a golpes.",
 ]
 

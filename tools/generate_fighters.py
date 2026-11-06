@@ -82,7 +82,7 @@ def W(**kw):
 #  Personajes (los nº 1 y 11 del roster ya existen a mano).
 # --------------------------------------------------------------------------
 CHARACTERS = [
-    dict(id="kim_jong_un", name="KIM JONG-UN", short="KIM", country="Corea del Norte", era="1984 –",
+    dict(id="kim_jong_un", name="KIM JONG-UN", short="KIM", country="Corea del Norte", era="Nació en 1984",
          intro="¡Mi peinado es un arma nuclear!",
          victory="Otro éxito rotundo. Que nadie diga lo contrario.",
          bio="Líder supremo con pasión por los misiles y los peinados atrevidos.",
@@ -94,7 +94,7 @@ CHARACTERS = [
          s1=P(name="Misil Balístico", anim="cannon", style="orb", color="ff5030", speed=220, dmg=15),
          s2=D(name="Desfile Militar", anim="rush", dmg=18, dash=280),
          ult="Misil Intercontinental"),
-    dict(id="vladimir_putin", name="VLADIMIR PUTIN", short="PUTIN", country="Rusia", era="1952 –",
+    dict(id="vladimir_putin", name="VLADIMIR PUTIN", short="PUTIN", country="Rusia", era="Nació en 1952",
          intro="Cinturón negro de judo. Te lo advierto.",
          victory="Ni siquiera despeiné mi cara de póker.",
          bio="Maestro del judo y de la mirada gélida. Pelea sin quitarse la camisa. Casi.",
@@ -106,7 +106,7 @@ CHARACTERS = [
          s1=P(name="Mirada de Hielo", anim="cast", style="orb", color="80d8ff", speed=210, dmg=14),
          s2=L(name="Llave de Judo", anim="cast", dmg=18, launch=-330),
          ult="Llave de Judo"),
-    dict(id="xi_jinping", name="XI JINPING", short="XI JINPING", country="China", era="1953 –",
+    dict(id="xi_jinping", name="XI JINPING", short="XI JINPING", country="China", era="Nació en 1953",
          intro="Mi muralla es más alta que tu guardia.",
          victory="La armonía se impone. Siempre.",
          bio="Dirigente de la gran potencia asiática. Defensa de hierro y paciencia infinita.",
@@ -118,7 +118,7 @@ CHARACTERS = [
          s1=P(name="Ruta de la Seda", anim="cast", style="spin", color="e0c040", speed=200, dmg=14),
          s2=S(name="Gran Muralla", anim="straight", dmg=20),
          ult="Gran Cortafuegos"),
-    dict(id="nicolas_maduro", name="NICOLÁS MADURO", short="MADURO", country="Venezuela", era="1962 –",
+    dict(id="nicolas_maduro", name="NICOLÁS MADURO", short="MADURO", country="Venezuela", era="Nació en 1962",
          intro="¡Pelea, pueblo, pelea!",
          victory="Victoria total. Los datos lo confirman.",
          bio="Ex conductor de autobús convertido en político. Bigote legendario y mucho aguante.",
@@ -191,7 +191,7 @@ CHARACTERS = [
          s1=P(name="Mirada Fulminante", anim="cast", style="orb", color="ffe080", speed=210, dmg=14),
          s2=D(name="Tormenta del Desierto", anim="rush", dmg=17, dash=300),
          ult="Eclipse del Desierto"),
-    dict(id="gengis_kan", name="GENGIS KAN", short="GENGIS KAN", country="Imperio mongol", era="1162 – 1227",
+    dict(id="gengis_kan", name="GENGIS KAN", short="GENGIS KAN", country="Imperio mongol", era="c. 1162 – 1227",
          intro="Mi horda no pide permiso.",
          victory="Otra tierra conquistada. Siguiente.",
          bio="Fundador del mayor imperio continuo de la historia. Jinete implacable.",
@@ -276,7 +276,7 @@ CHARACTERS = [
          s1=P(name="Discurso de Gettysburg", anim="cast", style="soundwave", speed=225, dmg=15),
          s2=L(name="Hachazo de Leñador", anim="staff", dmg=18, launch=-340),
          ult="Emancipación Fulminante"),
-    dict(id="jesus_de_nazaret", name="JESÚS DE NAZARET", short="JESÚS", country="Judea", era="4 a.C.–30 d.C.",
+    dict(id="jesus_de_nazaret", name="JESÚS DE NAZARET", short="JESÚS", country="Judea", era="c. 4 a.C. – 30 d.C.",
          intro="La paz sea contigo.",
          victory="Perdono, ¡pero igual gané!",
          bio="Maestro de Galilea. Aquí pelea con luz y bondad, poniendo la otra mejilla... al final.",
@@ -300,7 +300,7 @@ CHARACTERS = [
          s1=P(name="Esfera del Nexo", anim="cast", style="orb", color="ffd24a", speed=230, dmg=15),
          s2=None,
          ult="Todas las Épocas"),
-    dict(id="buda", name="BUDA", short="BUDA", country="India", era="563 – 483 a.C.",
+    dict(id="buda", name="BUDA", short="BUDA", country="India", era="c. 563 – 483 a.C.",
          intro="Respira. Y recibe.",
          victory="El camino del medio pasa por tu cara.",
          bio="El Iluminado. Tan sereno que nada parece afectarle. Casi nada.",
@@ -312,7 +312,7 @@ CHARACTERS = [
          s1=P(name="Rayo de Iluminación", anim="cast", style="orb", color="ffd040", speed=210, dmg=14),
          s2=S(name="Loto Aplastante", anim="cast", dmg=20),
          ult="Nirvana"),
-    dict(id="papa_francisco", name="PAPA FRANCISCO", short="FRANCISCO", country="Vaticano", era="1936 – 2025",
+    dict(id="papa_francisco", name="PAPA FRANCISCO", short="FRANCISCO", country="Argentina / Vaticano", era="1936 – 2025",
          intro="¡Hagan lío!",
          victory="Recen por mí. Ahora mismo.",
          bio="El papa argentino, humilde y cercano. Su Papamóvil acelera más de lo que parece.",
@@ -360,7 +360,7 @@ CHARACTERS = [
          s1=P(name="Rayo E=mc²", anim="cast", style="orb", color="60a0ff", speed=225, dmg=15),
          s2=L(name="Dilatación del Tiempo", anim="cast", dmg=18, launch=-330),
          ult="E = mc²"),
-    dict(id="nikola_tesla", name="NIKOLA TESLA", short="TESLA", country="Serbia", era="1856 – 1943",
+    dict(id="nikola_tesla", name="NIKOLA TESLA", short="TESLA", country="Croacia / EE. UU.", era="1856 – 1943",
          intro="¡Voy a electrificarte!",
          victory="Edison nunca habría ganado así.",
          bio="Inventor de la corriente alterna. Lanza rayos de verdad (más o menos).",
@@ -654,6 +654,17 @@ CHARACTERS = [
          s1=P(name="Disparo Certero", anim="rifle", style="bolt", color="fff0a0", speed=330, dmg=14),
          s2=W(name="x", anim="rifle", power="x", dmg=1),
          ult="Mira Telescópica"),
+    dict(id="nostradamus", name="NOSTRADAMUS", short="NOSTRADAMUS", country="Francia", era="1503 – 1566",
+         intro="x", victory="x",
+         bio="Médico y astrólogo francés autor de Las Profecías. Dicen que vio el futuro... y que ya sabe cómo acaba este combate.",
+         arch="sage", build="slim",
+         skin="e8c8a0", hair="d8d4cc", coat="2a2a6a", trim="c0a040", shirt="1a1a4a", accent="8a5ad0",
+         pants="2a2a6a", boots="1a1a1a", hat="2a2a6a",
+         hair_style="long", hat_style="turban", beard="long", chest="robe",
+         moves=("Gesto Profético", "Bastón del Astrólogo", "Patada del Presagio", "Patada del Eclipse"),
+         s1=P(name="Visión Fugaz", anim="cast", style="orb", color="b080ff", speed=210, dmg=14),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Las Centurias"),
 ]
 
 
@@ -676,11 +687,11 @@ def vec(x, y):
 
 def year_of(era):
     """Año de referencia para ordenar la línea de tiempo del modo Historia: el de
-    nacimiento (negativo si es a.C.). Ej.: "1769 – 1821" -> 1769, "69 – 30 a.C." -> -69."""
+    nacimiento (negativo si es a.C.). Ej.: "1769 – 1821" -> 1769, "69 – 30 a.C." -> -69, "Nació en 1952" -> 1952, "c. 1162 – 1227" -> 1162."""
     special = {"Todas las eras": 0, "Siglo XXI": 1946, "m. 61 d.C.": 61, "c. 1600": 1600}
     if era in special:
         return special[era]
-    n = int(re.match(r"\s*(\d+)", era).group(1))
+    n = int(re.search(r"\d+", era).group(0))
     first = era.split("–")[0] if "–" in era else era
     return -n if ("a.C." in first or era.strip().endswith("a.C.")) else n
 
@@ -820,6 +831,7 @@ PROFILES = {
     "nicolas_maquiavelo": _pf("speed", "low", "LK", "Zancadilla Florentina", ("INTRIGA", "LP LK HK", 3.0), ("EL FIN", "LK LP HP S2", 7.0), anim={"LP": "dagger", "HP": "dagger"}),
     "mariya_oktyabrskaya": _pf("heavy", "oh", "HP", "Culatazo Blindado", ("ORUGA", "LP HP HK", 4.5), ("FRENTE ORIENTAL", "LK LP HP S1", 8.0), anim={"HP": "pistol"}),
     "liudmila_pavlichenko": _pf("zoner", "low", "LK", "Barrido de Trinchera", ("TRINCHERA", "LK LP HP", 3.0), ("SEVASTOPOL", "LP LK HP S1", 6.5), anim={"HP": "rifle"}),
+    "nostradamus": _pf("mystic", "oh", "HP", "Bastonazo del Destino", ("PRESAGIO", "LP HP HK", 3.5), ("CENTURIA", "LK LP HP S2", 7.0)),
 }
 
 
@@ -851,6 +863,7 @@ TWEAKS = {
     "nicolas_maquiavelo": {"HP": (0, 0, 0.9, 1.0)},                               # poca fuerza física
     "mariya_oktyabrskaya": {"HP": (1, 1, 1.1, 1.0)},                              # golpes de tanquista
     "liudmila_pavlichenko": {"HP": (0, 1, 1.0, 1.15)},                            # culatazo largo, recuperación lenta
+    "nostradamus": {"LP": (1, 1, 1.0, 0.95), "HP": (1, 0, 1.0, 1.05)},               # golpes lentos, ya sabe dónde caerán
 }
 
 
@@ -990,6 +1003,7 @@ ULTS = {
     "nicolas_maquiavelo": ("trap", "prince_book", "e8c040", "140608", "dagger"),
     "mariya_oktyabrskaya": ("snipe", "tank", "ff9040", "1a1408", "pistol"),
     "liudmila_pavlichenko": ("snipe", "scope", "ff4040", "000000", "rifle"),
+    "nostradamus": ("trap", "crystal_ball", "b080ff", "0a061a", "cast"),
 }
 
 
@@ -1214,6 +1228,7 @@ LOOKS = {
                           hat_style="none", jewelry="cross", jewelry_color="e8c040"),
     "mariya_oktyabrskaya": dict(female=True),
     "liudmila_pavlichenko": dict(female=True, outfit="skirt", outfit_color="5a5a3a"),
+    "nostradamus": dict(outfit="gown", outfit_color="2a2a6a", cape="1a1a4a", jewelry="necklace", jewelry_color="c0a040"),
     # --- Túnicas, capas y joyas de los nuevos ---
     "socrates": dict(outfit="skirt", outfit_color="e8e2d0"),
     "platon": dict(outfit="skirt", outfit_color="ece6d4", cape="3a5a9a"),
@@ -1299,6 +1314,7 @@ QUOTES = {
     "nicolas_maquiavelo": ("¡En este combate, la estrategia lo es todo!", "¡El fin justifica la estrategia!"),
     "mariya_oktyabrskaya": ("¡Mi tanque abrirá el camino hacia la victoria!", "¡Misión cumplida! ¡El enemigo ha sido aplastado!"),
     "liudmila_pavlichenko": ("Un solo disparo es suficiente.", "Objetivo eliminado. Siguiente."),
+    "nostradamus": ("Ya vi cómo termina este combate... y no te gustará.", "Lo escribí en mis Centurias: la victoria era mía."),
 }
 
 # Frase que se grita al lanzar el poder especial (special_2). Vacía = no dice nada.
@@ -1323,6 +1339,7 @@ POWER_QUOTES = {
     "nicolas_maquiavelo": "¡Que caigan en mi trampa!",
     "mariya_oktyabrskaya": "¡Enciende los motores!",
     "liudmila_pavlichenko": "¡No fallaré!",
+    "nostradamus": "¡Lo he visto en mis profecías!",
     "abraham_lincoln": "¡Hacha por la libertad!",
     "adolf_hitler": "¡Que empiece el desorden!",
     "albert_einstein": "¡Todo es relativo!",
@@ -1397,6 +1414,7 @@ PASSIVES = {
     "napoleon": "waterloo",
     "nicolas_maduro": "aguante",
     "nicolas_maquiavelo": "el_fin_justifica",
+    "nostradamus": "lo_habia_previsto",
     "nikola_tesla": "corriente_alterna",
     "osama_bin_laden": "fugitivo",
     "pablo_escobar": "plata_o_plomo",
@@ -1452,6 +1470,7 @@ IDLE_STYLES = {
     "napoleon": "hand_in_coat",
     "nicolas_maduro": "bouncy",
     "nicolas_maquiavelo": "scholar",
+    "nostradamus": "prayer",
     "nikola_tesla": "scholar",
     "osama_bin_laden": "stalk",
     "pablo_escobar": "arms_crossed",
@@ -1571,6 +1590,7 @@ POWERS = {
     "nicolas_maquiavelo": W(name="El Príncipe", anim="dagger", power="the_prince", dmg=20, status="root", status_frames=70),
     "mariya_oktyabrskaya": W(name="Tanque Fighting Girlfriend", anim="cast", power="t34", dmg=22),
     "liudmila_pavlichenko": W(name="Disparo de la Muerte", anim="rifle", power="death_shot", dmg=21, status="slow", status_frames=120),
+    "nostradamus": W(name="Profecía Cumplida", anim="cast", power="prophecy", dmg=20, status="slow", status_frames=100),
 }
 
 # Especiales 1 que se cambian para no repetir el estilo del poder nuevo.

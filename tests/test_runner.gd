@@ -13,6 +13,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# El runner deja de ser la "escena actual" para sobrevivir a los cambios de escena.
 	get_tree().current_scene = null
+	# Las partidas de Historia de las pruebas van a su propio archivo: así no pisan las reales ni se arrastran de una corrida a otra.
+	Backend.story_path = "user://story_runner.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Backend.story_path))
 	_run.call_deferred()
 
 func check(cond: bool, label: String) -> void:
@@ -76,7 +79,7 @@ func _test_resources() -> void:
 		var ps := load(path) as PackedScene
 		check(ps != null and ps.can_instantiate(), "escena carga: " + path)
 	var roster := FighterRegistry.all()
-	check(roster.size() == 50, "roster con 50 luchadores (%d)" % roster.size())
+	check(roster.size() == 51, "roster con 51 luchadores (%d)" % roster.size())
 	var seen := {}
 	for d in roster:
 		check(not seen.has(d.id), "id único: %s" % d.id)
@@ -140,9 +143,14 @@ func _test_catalogs() -> void:
 	check(dupes.is_empty(), "nadie está en dos épocas (%s)" % ", ".join(dupes))
 	var no_chapter: Array[String] = []
 	for id in ids:
-		if not chapter_of.has(id):
+		if not chapter_of.has(id) and not StoryCampaign.PLAYABLE_ONLY.has(id):
 			no_chapter.append(str(id))
-	check(no_chapter.is_empty(), "todos los luchadores están en una época de STORY_CHAPTERS (faltan: %s)" % ", ".join(no_chapter))
+	check(no_chapter.is_empty(), "todo luchador es rival de una época o solo para elegir (faltan: %s)" % ", ".join(no_chapter))
+	var both: Array[String] = []
+	for id in StoryCampaign.PLAYABLE_ONLY:
+		if chapter_of.has(id):
+			both.append(str(id))
+	check(both.is_empty(), "los de solo elegir no son rivales (%s)" % ", ".join(both))
 	var unknown_in_chapter: Array[String] = []
 	for id in chapter_of:
 		if not FighterRegistry.has(id):
@@ -155,14 +163,7 @@ func _test_catalogs() -> void:
 	for id in Game.STORY_CREATORS:
 		if not FighterRegistry.has(id):
 			bad_ref.append("creador %s" % id)
-	for id in Game.STORY_VS:
-		if id != Game.STORY_NEXO_ID and not FighterRegistry.has(id):
-			bad_ref.append("frase de %s" % id)
-	for pair in Game.STORY_VS_PAIR:
-		for id in str(pair).split("|"):
-			if not FighterRegistry.has(StringName(id)):
-				bad_ref.append("pareja %s" % pair)
-	check(bad_ref.is_empty(), "jefes, creadores y frases apuntan a luchadores que existen (%s)" % ", ".join(bad_ref))
+	check(bad_ref.is_empty(), "jefes y creadores apuntan a luchadores que existen (%s)" % ", ".join(bad_ref))
 	# Textos de la pantalla de personajes.
 	var no_lore: Array[String] = []
 	for id in ids:
@@ -330,11 +331,12 @@ func _test_profile_helpers() -> void:
 	var starters_exist := true
 	for id in Unlocks.STARTERS:
 		starters_exist = starters_exist and FighterRegistry.has(id)
-	check(Unlocks.STARTERS.size() == 12 and starters_exist, "se empieza con 12 luchadores y todos existen en el plantel")
-	check(Unlocks.fighters_unlocked() == 12, "al principio hay 12 desbloqueados")
-	check(Unlocks.fighter_unlocked(&"nikola_tesla") and not Unlocks.fighter_unlocked(&"donald_trump"), "Tesla es inicial y Trump no")
+	check(Unlocks.STARTERS.size() == StoryCampaign.PLAYABLE_ONLY.size() and starters_exist, "se empieza con los buenos (%d) y todos existen en el plantel" % Unlocks.STARTERS.size())
+	var base_unlocked := Unlocks.STARTERS.size()
+	check(Unlocks.fighters_unlocked() == base_unlocked, "al principio solo están desbloqueados los iniciales")
+	check(Unlocks.fighter_unlocked(&"lautaro") and not Unlocks.fighter_unlocked(&"donald_trump") and not Unlocks.fighter_unlocked(&"nikola_tesla"), "Lautaro es inicial; Trump y Tesla se desbloquean en la historia")
 	check(Unlocks.add("fighter", "donald_trump") and not Unlocks.add("fighter", "donald_trump"), "añadir devuelve true solo la primera vez")
-	check(Unlocks.fighter_unlocked(&"donald_trump") and Unlocks.fighters_unlocked() == 13, "lo ganado cuenta como desbloqueado")
+	check(Unlocks.fighter_unlocked(&"donald_trump") and Unlocks.fighters_unlocked() == base_unlocked + 1, "lo ganado cuenta como desbloqueado")
 	Backend.user_id = "cuenta-a"
 	check(not Unlocks.fighter_unlocked(&"donald_trump"), "otra cuenta no hereda lo del invitado")
 	Unlocks.add("ending", "repair")
@@ -353,17 +355,17 @@ func _test_profile_helpers() -> void:
 	Game.story_record_win()
 	check(not Unlocks.has("fighter", "el_nexo"), "vencer al Nexo no lo desbloquea como luchador")
 	Game.mode = Game.Mode.VERSUS
-	Game.p2_fighter_id = &"boudica"
+	Game.p2_fighter_id = &"kim_jong_un"
 	Game.story_record_win()
-	check(not Unlocks.fighter_unlocked(&"boudica"), "fuera de la historia no se desbloquea nada")
+	check(not Unlocks.fighter_unlocked(&"kim_jong_un"), "fuera de la historia no se desbloquea nada")
 	# La selección de personaje consulta cada casilla en cada redibujo: no puede leer el archivo cada vez.
 	var reads_before := Unlocks.disk_reads
 	for i in 100:
 		Unlocks.fighters_unlocked()
 		Unlocks.has("fighter", "donald_trump")
 	check(Unlocks.disk_reads == reads_before, "consultar desbloqueos no vuelve a leer el archivo (%d lecturas)" % (Unlocks.disk_reads - reads_before))
-	Unlocks.add("fighter", "boudica")
-	check(Unlocks.fighter_unlocked(&"boudica") and Unlocks.disk_reads == reads_before, "lo recién desbloqueado se ve sin releer el archivo")
+	Unlocks.add("fighter", "kim_jong_un")
+	check(Unlocks.fighter_unlocked(&"kim_jong_un") and Unlocks.disk_reads == reads_before, "lo recién desbloqueado se ve sin releer el archivo")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Unlocks.path = old_unlocks_path
 	Backend.user_id = old_user
@@ -421,17 +423,17 @@ func _test_profile_helpers() -> void:
 	Unlocks.path = "user://unlocks_guest_test.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Backend.user_id = ""
-	Unlocks.add("fighter", "boudica")
+	Unlocks.add("fighter", "kim_jong_un")
 	Unlocks.add("ending", "repair")
 	check(not Unlocks.adopt_guest(), "sin sesión no se pasa nada")
 	Backend.user_id = "cuenta-a"
 	Unlocks.add("ending", "repair")
 	check(Unlocks.adopt_guest(), "al entrar en una cuenta, lo del invitado se le pasa")
-	check(Unlocks.fighter_unlocked(&"boudica") and Unlocks.as_dicts().size() == 2, "la cuenta tiene lo suyo y lo del invitado, sin duplicar")
+	check(Unlocks.fighter_unlocked(&"kim_jong_un") and Unlocks.as_dicts().size() == 2, "la cuenta tiene lo suyo y lo del invitado, sin duplicar")
 	check(not Unlocks.adopt_guest(), "pasarlo otra vez no añade nada")
 	Backend.user_id = "cuenta-b"
 	Unlocks.adopt_guest()
-	check(not Unlocks.fighter_unlocked(&"boudica"), "lo del invitado va a una sola cuenta, no a todas")
+	check(not Unlocks.fighter_unlocked(&"kim_jong_un"), "lo del invitado va a una sola cuenta, no a todas")
 	Backend.user_id = ""
 	check(Unlocks.items().is_empty(), "el invitado queda vacío tras pasarlo")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
@@ -477,21 +479,33 @@ func _test_locked_select() -> void:
 	check(Unlocks.fighter_unlocked(sel.roster[sel.cursor[1]].id), "el cursor empieza en un luchador desbloqueado (Trump está bloqueado)")
 	sel.cursor[1] = FighterRegistry.index_of(&"donald_trump")
 	await tap(KEY_U)
+	await frames(15)   # deja que la selección consuma la pulsación mientras el cursor sigue en el bloqueado
 	check(not sel.confirmed[1] and is_instance_valid(sel) and scene() == sel, "con U sobre un bloqueado no se confirma ni empieza la historia")
-	# Recorre toda la rejilla con D pulsando U en cada bloqueado: ninguno se confirma.
-	var tried := 0
-	for i in CharacterSelect.COLS * CharacterSelect.ROWS:
-		await tap(KEY_D)
-		var c: int = sel.cursor[1]
-		if c < sel.roster.size() and not Unlocks.fighter_unlocked(sel.roster[c].id):
-			await tap(KEY_U)
-			tried += 1
-			if sel.confirmed[1]:
-				break
-	check(tried == FighterRegistry.all().size() - Unlocks.STARTERS.size() and not sel.confirmed[1],
-		"ninguno de los %d bloqueados se confirma con el teclado" % tried)
-	await tap(KEY_ESCAPE)
-	check(await wait_scene("MainMenu"), "ESC vuelve al menú")
+	# La rejilla solo muestra a los buenos: ningún villano, ambicioso ni creador, y están todos los buenos.
+	var shown := 0
+	var only_good := true
+	for l in sel._era_lists:
+		for idx in l:
+			shown += 1
+			if not Unlocks.STARTERS.has(sel.roster[idx].id):
+				only_good = false
+	check(only_good and shown == Unlocks.STARTERS.size(),
+		"en la historia solo se muestran los buenos (%d de %d), nunca un villano, ambicioso o creador" % [shown, Unlocks.STARTERS.size()])
+	# Y al moverse con D el cursor nunca cae en un rival (pocas pulsaciones y largas: en modo sin ventana las rápidas se pierden).
+	var never_rival := true
+	for i in 6:
+		await tap(KEY_D, 6)
+		if not is_instance_valid(sel) or scene() != sel:
+			never_rival = false
+			break
+		if not Unlocks.STARTERS.has(sel.roster[sel.cursor[1]].id):
+			never_rival = false
+	check(never_rival, "moviéndose con D el cursor nunca cae en un rival")
+	# Aunque ya se haya vencido a alguien en otra partida, sigue sin poder elegirse.
+	Unlocks.add("fighter", "adolf_hitler")
+	check(not Unlocks.STARTERS.has(&"adolf_hitler") and sel._is_locked(FighterRegistry.index_of(&"adolf_hitler")), "haber vencido a Hitler no lo hace elegible en la historia")
+	await tap(KEY_ESCAPE, 6)
+	check(await wait_scene("MainMenu", 240), "ESC vuelve al menú")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Unlocks.path = old_path
 	Backend.user_id = old_user
@@ -545,7 +559,9 @@ func _test_menu_to_fight() -> void:
 	get_tree().change_scene_to_file(Game.SCENE_MENU)
 	check(await wait_scene("MainMenu"), "el juego arranca en el menú principal")
 	var play := scene().get_node("Buttons/Play") as Button
-	check(play.has_focus(), "ARCADE tiene el foco")
+	# Con una partida guardada en el equipo el foco es de CONTINUAR (a propósito); si no, de ARCADE.
+	var cont := scene().get_node("Buttons/Continue") as Button
+	check(play.has_focus() or (cont.visible and cont.has_focus()), "el menú abre con el foco en ARCADE (o en CONTINUAR si hay partida guardada)")
 	check(scene().get_node_or_null("Buttons/Versus") == null, "el menú ya no tiene VERSUS LOCAL")
 	# Las pruebas de combate usan el modo de dos jugadores en el mismo equipo (fuera del menú).
 	Game.mode = Game.Mode.VERSUS
@@ -983,6 +999,23 @@ func _test_soak() -> void:
 	check(stuck == 0, "nadie queda atascado en ATAQUE/DAÑO")
 	check(attacks > 50 and counter.hits > 10, "hubo combate real: %d ataques, %d impactos, %d combates completos" % [attacks, counter.hits, matches])
 
+## Desde la pantalla de la historia hasta el combate: Enter salta la tarjeta, avanza las escenas de diálogo y,
+## cuando aparece, pulsa ¡COMBATIR! (la intro y las escenas solo se saltan con Enter).
+func _story_to_fight() -> bool:
+	for i in 150:
+		await frames(24)
+		if scene() == null or scene().name != "Story":
+			break
+		await tap(KEY_ENTER)
+	return await wait_scene("Fight", 240)
+
+## ¿Sale este luchador como rival en alguna época?
+func _is_story_rival_id(id: StringName) -> bool:
+	for chap in Game.STORY_CHAPTERS:
+		if (chap[1] as Array).has(id):
+			return true
+	return false
+
 ## Modo Historia (arcade): menú -> selección de J1 -> pantalla de la línea del tiempo ->
 ## combate contra la CPU -> escalera de rivales, continuaciones, jefe secreto y fin de partida.
 func _test_arcade() -> void:
@@ -1012,7 +1045,10 @@ func _test_arcade() -> void:
 	await tap(KEY_U)
 	check(await wait_scene("Story", 240), "con J1 confirmado se muestra la línea del tiempo")
 	var ladder := Game.arcade_ladder
-	var expected := FighterRegistry.all().size()   # todos menos el jugador, más el Nexo al final
+	var rivals_total := 0
+	for chap in Game.STORY_CHAPTERS:
+		rivals_total += (chap[1] as Array).size()
+	var expected := rivals_total - (1 if _is_story_rival_id(Game.p1_fighter_id) else 0) + 1   # rivales menos el jugador, más el Nexo
 	check(ladder.size() == expected, "la escalera tiene %d rivales (%d)" % [expected, ladder.size()])
 	var ordered := true
 	for i in range(1, ladder.size()):
@@ -1025,9 +1061,16 @@ func _test_arcade() -> void:
 			assigned[fid] = assigned.get(fid, 0) + 1
 	var missing := 0
 	for d in FighterRegistry.all():
-		if assigned.get(d.id, 0) != 1:
+		var n: int = assigned.get(d.id, 0)
+		if n != (0 if StoryCampaign.PLAYABLE_ONLY.has(d.id) else 1):
 			missing += 1
-	check(missing == 0, "cada luchador está en un solo capítulo (%d mal asignados)" % missing)
+	check(missing == 0, "cada rival está en una sola época y los de solo elegir en ninguna (%d mal asignados)" % missing)
+	for ch in Game.STORY_CHAPTERS.size():
+		var creators_here := 0
+		for fid in Game.STORY_CHAPTERS[ch][1]:
+			if Game.STORY_CREATORS.has(fid):
+				creators_here += 1
+		check(creators_here == 1, "la época %d tiene un creador del Reloj poseído" % (ch + 1))
 	check(ladder[ladder.size() - 1] == Game.STORY_NEXO_ID, "el Nexo cierra la escalera")
 	check(FighterRegistry.get_by_id(Game.STORY_NEXO_ID).id == Game.STORY_NEXO_ID, "la ficha del Nexo carga")
 	var nexo_in_roster := false
@@ -1038,25 +1081,27 @@ func _test_arcade() -> void:
 		var boss: StringName = Game.STORY_BOSSES[ch]
 		var at := ladder.find(boss)
 		check(at == -1 or Game.story_is_chapter_boss(at), "%s cierra su capítulo" % boss)
-	var sin_frase := 0
-	for id in ladder:
-		if Game.story_vs_lines(id).size() != 2:
-			sin_frase += 1
 	check(Game.story_nexo_reaction().is_empty(), "el primer capítulo no tiene reacción del Nexo")
-	check(sin_frase == 0, "todos los rivales tienen su frase de presentación (%d sin ella)" % sin_frase)
-	check(ladder.has(&"jesus_de_nazaret") != (Game.p1_fighter_id == &"jesus_de_nazaret"), "Jesús es un rival normal de la escalera")
+	var sin_escena := 0
+	for id in ladder:
+		if StoryScenes.lines(id, Game.p1_fighter_id).is_empty():
+			sin_escena += 1
+	check(sin_escena == 0, "todos los rivales tienen su escena de diálogo (%d sin ella)" % sin_escena)
+	check(not ladder.has(&"jesus_de_nazaret") and not ladder.has(&"papa_francisco") and not ladder.has(&"lautaro"), "los buenos (Jesús, el Papa, Lautaro) no son rivales")
+	var possession_ok := true
+	for i in ladder.size() - 1:
+		if Game.story_possession_follows(i) and not Game.story_is_chapter_boss(i):
+			possession_ok = false
+	check(possession_ok, "el creador poseído entra justo tras el jefe de su época")
 	check(Game.story_chapter_start(0), "el primer combate abre el capítulo I")
-	await tap(KEY_ENTER)   # salta la tarjeta del capítulo
-	await frames(60)
-	await tap(KEY_ENTER)
-	check(await wait_scene("Fight", 240), "COMBATIR empieza el combate")
+	check(await _story_to_fight(), "COMBATIR empieza el combate")
 	var c := _fight()
 	var seen := {}
 	for id in ladder:
 		seen[id] = true
 	check(seen.size() == ladder.size() and not seen.has(Game.p1_fighter_id), "rivales sin repetir y sin incluir al jugador")
 	check(c.p2.data.id == ladder[0] and Game.arcade_stage == 0, "el primer rival es el primero de la escalera")
-	check(c.stage_name() == StageRegistry.name_for(ladder[0]) and Game.stage_owner(2) == ladder[0], "arcade: el rival aparece en su propio escenario")
+	check(c.stage_name() == StageRegistry.name_for(Game.stage_owner(2)) and Game.stage_owner(2) == StringName(StageDefsCity.PREFIX + String(ladder[0])), "arcade: el rival aparece en la ciudad invadida por su ejército")
 	check(c.ai != null and not c.p2.input.use_keyboard, "P2 lo maneja la CPU y no el teclado")
 	check(absf(c.ai.level - 0.5) < 0.001, "nivel de IA NORMAL = 0.5 (%.2f)" % c.ai.level)
 	check(await _wait_fight_phase(), "ROUND 1 / FIGHT!")
@@ -1133,8 +1178,7 @@ func _test_arcade() -> void:
 	await tap(KEY_ENTER)
 	check(await wait_scene("Story", 240), "SIGUIENTE COMBATE abre la línea del tiempo")
 	await frames(10)
-	await tap(KEY_ENTER)
-	check(await wait_scene("Fight", 240), "COMBATIR abre el combate")
+	check(await _story_to_fight(), "COMBATIR abre el combate")
 	c = _fight()
 	check(Game.arcade_stage == 1 and c.p2.data.id == ladder[1], "el segundo combate es contra el segundo rival")
 	var expected_level := 0.5 + 0.5 / (ladder.size() - 1.0)
@@ -1145,23 +1189,20 @@ func _test_arcade() -> void:
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
 	check(await wait_scene("Results"), "resultados tras perder")
 	rematch = scene().get_node("Buttons/Rematch") as Button
-	check(rematch.text == "CONTINUAR (3)", "tras perder se ofrece CONTINUAR (%s)" % rematch.text)
+	check(rematch.text == "REVANCHA", "tras perder se ofrece REVANCHA (%s)" % rematch.text)
 	await frames(5)
 	await tap(KEY_ENTER)
-	check(await wait_scene("Fight", 240), "CONTINUAR repite el combate")
-	check(Game.arcade_continues == 2 and Game.arcade_stage == 1 and _fight().p2.data.id == ladder[1], "gasta una revancha y repite el mismo rival")
+	check(await wait_scene("Fight", 240), "REVANCHA repite el combate")
+	check(Game.story_continues_used == 1 and Game.arcade_stage == 1 and _fight().p2.data.id == ladder[1], "cuenta la revancha y repite el mismo rival")
 
-	# --- Sin revanchas: fin de la partida ---
-	Game.arcade_continues = 0
+	# --- Revanchas ilimitadas: perder nunca termina la partida ---
 	Game.set_match_result(2, 0, 2)
-	check(Game.arcade_outcome() == &"over", "sin revanchas el arcade termina")
+	check(Game.arcade_outcome() == &"retry", "las revanchas son ilimitadas: perder siempre permite reintentar")
 	get_tree().change_scene_to_file(Game.SCENE_RESULTS)
-	check(await wait_scene("Results"), "resultados con partida terminada")
+	check(await wait_scene("Results"), "resultados tras otra derrota")
 	rematch = scene().get_node("Buttons/Rematch") as Button
-	check(not rematch.visible and (scene().get_node("Buttons/Menu") as Button).has_focus(), "solo queda volver al menú")
+	check(rematch.visible and rematch.text == "REVANCHA", "sigue ofreciendo REVANCHA")
 	await frames(5)
-	await tap(KEY_ENTER)
-	check(await wait_scene("MainMenu"), "vuelve al menú principal")
 
 	# --- Ganar el último combate completa el arcade ---
 	Game.arcade_stage = ladder.size() - 1
@@ -1172,11 +1213,20 @@ func _test_arcade() -> void:
 	check(rematch_text_is("EL DESTINO"), "historia completada: se ofrece EL DESTINO (final con elección)")
 
 	# --- El jefe de cada época sale reforzado; el Nexo, más aún y con la IA al máximo ---
-	var boss_at := ladder.size() - 2   # el último rival antes del Nexo
+	var boss_at := -1   # el último jefe de época antes del Nexo (tras él viene el creador poseído)
+	for i in ladder.size() - 1:
+		if Game.story_is_chapter_boss(i):
+			boss_at = i
+	check(boss_at >= 0, "hay jefes de época antes del Nexo")
 	Game.arcade_stage = boss_at
 	Game.p2_fighter_id = ladder[boss_at]
 	var boss_base := FighterRegistry.get_by_id(ladder[boss_at]).max_health
 	check(Game.story_is_chapter_boss(boss_at) and Game.p2_data().max_health > boss_base, "el jefe de la época tiene más vida")
+	if Game.story_possession_follows(boss_at):
+		Game.arcade_stage = boss_at + 1
+		Game.p2_fighter_id = ladder[boss_at + 1]
+		var creator_base := FighterRegistry.get_by_id(ladder[boss_at + 1]).max_health
+		check(Game.story_is_creator(boss_at + 1) and Game.p2_data().max_health > creator_base, "el creador poseído también sale reforzado")
 	Game.arcade_stage = ladder.size() - 1
 	Game.p2_fighter_id = ladder[ladder.size() - 1]
 	var nexo_base := FighterRegistry.get_by_id(Game.STORY_NEXO_ID).max_health

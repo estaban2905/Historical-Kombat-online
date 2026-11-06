@@ -27,7 +27,7 @@ const VIOLET := Color("9a4dff")
 const NEXO_INTRO: Array = [
 	[2.2, 3.05, "EL TIEMPO TE ELIGIÓ."],
 	[5.6, 3.74, "SOLO UNO RECLAMARÁ MI PODER."],
-	[9.6, 5.07, "¿QUIÉN MERECE CONTROLAR EL DESTINO\nDE TODA LA HISTORIA?"],
+	[9.6, 4.63,"¿SALVARÁS LA TIERRA...\nO TOMARÁS MI LUGAR?"],
 ]
 
 var _t: float = 0.0
@@ -186,7 +186,7 @@ func _draw_text() -> void:
 	if _t < 2.0:
 		HKTheme.draw_text(self, Vector2(0, 20), "EL NEXO OBSERVA A %s" % d.short_name.to_upper(), 8, Color(VIOLET.lightened(0.4), _ph(0.3, 1.0)), HORIZONTAL_ALIGNMENT_CENTER, W, 1)
 	if _t < 3.0:
-		HKTheme.draw_text(self, Vector2(0, 232), "CUALQUIER TECLA: SALTAR", 8, Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)), HORIZONTAL_ALIGNMENT_RIGHT, W - 6, 1)
+		HKTheme.draw_text(self, Vector2(0, 232), "ENTER: SALTAR", 8, Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)), HORIZONTAL_ALIGNMENT_RIGHT, W - 6, 1)
 	# Subtítulo del Nexo.
 	for s in NEXO_INTRO:
 		var end: float = s[0] + s[1] + 0.3

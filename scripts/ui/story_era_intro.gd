@@ -2,9 +2,8 @@
 ##   0 El mundo actual      ciudad de neón, gritos y señal que se corta
 ##   1 El siglo XX          película vieja, relojes al revés y sirenas
 ##   2 Revoluciones         engranajes, chispas y bobinas de Tesla
-##   3 Imperios             un mapa antiguo, una ruta y un barco
-##   4 La antigüedad        sol enorme, columnas y dunas
-##   5 El Nexo              la grieta se abre y aparece la esfera
+##   3 La antigüedad        sol enorme, columnas y dunas
+##   4 El Nexo              la grieta se abre y aparece la esfera
 ## Todo se dibuja por código. La voz sale de tools/gen_story_voice.py (mismo texto que ERAS) y la
 ## música es un tramo de la intro (assets/music/intro.ogg). `finished` se emite al acabar o al
 ## saltarla (skip()). `chapter` se asigna antes de añadirla al árbol.
@@ -27,18 +26,16 @@ const VIOLET := Color("9a4dff")
 
 ## Por época: título, subtítulos (mismo texto que la voz) y duración de la voz (s).
 const ERAS: Array = [
-	{"title": "FRAGMENTO I · EL MUNDO ACTUAL", "len": 8.41,
-		"subs": ["CADA ÉPOCA ES AHORA UN FRAGMENTO ROTO.", "ESTE LO GOBIERNAN LOS QUE GRITAN MÁS FUERTE."]},
-	{"title": "FRAGMENTO II · EL SIGLO XX", "len": 5.60,
-		"subs": ["UN SIGLO DE GUERRAS.", "EL TIEMPO AÚN SANGRA."]},
-	{"title": "FRAGMENTO III · REVOLUCIONES Y PROGRESO", "len": 6.78,
-		"subs": ["AQUÍ BROTARON LAS IDEAS QUE,", "SIGLOS DESPUÉS, ROMPIERON EL TIEMPO."]},
-	{"title": "FRAGMENTO IV · IMPERIOS Y DESCUBRIMIENTOS", "len": 7.85,
-		"subs": ["REINOS, FLOTAS Y CORONAS.", "DEMASIADO PODER, POCA MEMORIA."]},
-	{"title": "FRAGMENTO V · LA ANTIGÜEDAD", "len": 7.82,
-		"subs": ["LA CUNA DE LA HISTORIA.", "AQUÍ NACIÓ EL PODER, Y AQUÍ DECIDES CÓMO TERMINA."]},
-	{"title": "EL JUICIO DEL NEXO", "len": 6.10,
-		"subs": ["HAS LLEGADO HASTA MÍ.", "DEMUESTRA QUE MERECES EL TIEMPO."]},
+	{"title": "FRENTE I · EL MUNDO ACTUAL", "len": 8.02,
+		"subs": ["LOS EJÉRCITOS YA ESTÁN AQUÍ.", "ESTE FRENTE LO GOBIERNAN", "LOS QUE GRITAN MÁS FUERTE."]},
+	{"title": "FRENTE II · EL SIGLO XX", "len": 7.17,
+		"subs": ["UN SIGLO DE GUERRAS CAE SOBRE TUS CIUDADES.", "EL TIEMPO AÚN SANGRA."]},
+	{"title": "FRENTE III · REVOLUCIONES, IMPERIOS Y DESCUBRIMIENTOS", "len": 7.38,
+		"subs": ["IDEAS, REINOS Y FLOTAS INVADEN TU MUNDO:", "PODER DE SOBRA Y POCA MEMORIA."]},
+	{"title": "FRENTE IV · LA ANTIGÜEDAD Y LA EDAD MEDIA", "len": 9.19,
+		"subs": ["LA CUNA DE LA HISTORIA MARCHA SOBRE LA TIERRA.", "AQUÍ NACIÓ EL PODER, Y AQUÍ DECIDES CÓMO TERMINA."]},
+	{"title": "EL JUICIO DEL NEXO", "len": 6.13,
+		"subs": ["HAS LLEGADO A MI TORRE.", "DEMUESTRA QUE MERECES EL TIEMPO."]},
 ]
 
 var chapter: int = 0
@@ -119,8 +116,7 @@ func _draw() -> void:
 		0: _draw_modern()
 		1: _draw_century()
 		2: _draw_industry()
-		3: _draw_discovery()
-		4: _draw_ancient()
+		3: _draw_ancient()
 		_: _draw_nexo()
 	_draw_title()
 	_draw_subtitles()
@@ -129,7 +125,7 @@ func _draw() -> void:
 	if a > 0.0:
 		draw_rect(Rect2(0, 0, W, H), Color(0.03, 0.02, 0.05, clampf(a, 0.0, 1.0)))
 	if _t < 3.0:
-		HKTheme.draw_text(self, Vector2(0, 9), "CUALQUIER TECLA: SALTAR", 8,
+		HKTheme.draw_text(self, Vector2(0, 9), "ENTER: SALTAR", 8,
 			Color(HKTheme.MUTED, 1.0 - _ph(2.0, 3.0)), HORIZONTAL_ALIGNMENT_RIGHT, W - 6, 1)
 
 func _draw_title() -> void:
@@ -375,62 +371,7 @@ func _draw_industry() -> void:
 	draw_rect(Rect2(0, 200, W, 40), Color("0e0a07"))
 	_vignette(0.8)
 
-# --- IV · Imperios y descubrimientos: un mapa antiguo y un barco ----------
-func _draw_discovery() -> void:
-	draw_rect(Rect2(0, 0, W, H), Color("d8c090"))
-	for i in 7:
-		draw_circle(Vector2(W * 0.5, 120.0), 260.0 - i * 24.0, Color(0.45, 0.3, 0.12, 0.06))
-	# Cuadrícula tenue y continentes.
-	for x in range(20, int(W), 40):
-		draw_line(Vector2(x, 0), Vector2(x, H), Color(0.4, 0.28, 0.14, 0.18), 1.0)
-	for y in range(20, int(H), 40):
-		draw_line(Vector2(0, y), Vector2(W, y), Color(0.4, 0.28, 0.14, 0.18), 1.0)
-	var land := Color("b89a5a")
-	var edge := Color("6a4a24")
-	var masses := [
-		[Vector2(30, 70), Vector2(90, 50), Vector2(130, 80), Vector2(120, 130), Vector2(70, 150), Vector2(40, 120)],
-		[Vector2(320, 60), Vector2(390, 48), Vector2(410, 100), Vector2(380, 150), Vector2(330, 130)],
-		[Vector2(170, 170), Vector2(240, 160), Vector2(270, 195), Vector2(210, 205)],
-	]
-	for m in masses:
-		var pts := PackedVector2Array(m)
-		draw_colored_polygon(pts, land)
-		var loop := pts.duplicate()
-		loop.append(pts[0])
-		draw_polyline(loop, edge, 2.0)
-	# La ruta se va dibujando, punteada, hasta el barco.
-	var a := Vector2(130, 110)
-	var b := Vector2(322, 96)
-	var p := _ease(_t / 6.0)
-	var n := int(46 * p)
-	var head := a
-	for i in n:
-		var k := float(i) / 45.0
-		var pt := a.lerp(b, k) + Vector2(0, -sin(k * PI) * 34.0)
-		draw_circle(pt, 1.4, Color("8a1c1c"))
-		head = pt
-	# Barco: casco y dos velas que cabecean.
-	var bob := sin(_t * 3.0) * 2.0
-	var sp := head + Vector2(0, bob)
-	draw_colored_polygon(PackedVector2Array([sp + Vector2(-12, 0), sp + Vector2(12, 0), sp + Vector2(8, 7), sp + Vector2(-8, 7)]), Color("4a2a14"))
-	draw_line(sp + Vector2(0, 0), sp + Vector2(0, -22), Color("3a2210"), 1.5)
-	draw_colored_polygon(PackedVector2Array([sp + Vector2(1, -21), sp + Vector2(12, -8), sp + Vector2(1, -8)]), Color("f4ecd8"))
-	draw_colored_polygon(PackedVector2Array([sp + Vector2(-1, -19), sp + Vector2(-10, -8), sp + Vector2(-1, -8)]), Color("e8dcc0"))
-	# Rosa de los vientos.
-	var rc := Vector2(364, 188)
-	draw_arc(rc, 24.0, 0, TAU, 40, edge, 1.5)
-	for k in 8:
-		var ang := _t * 0.15 + TAU * k / 8.0
-		var r2 := 22.0 if k % 2 == 0 else 13.0
-		draw_line(rc, rc + Vector2.from_angle(ang) * r2, Color("8a1c1c") if k % 2 == 0 else edge, 2.0 if k % 2 == 0 else 1.0)
-	# Monstruos marinos: olas dibujadas a mano.
-	for k in 5:
-		var wx := 160.0 + k * 22.0
-		var wy := 120.0 + (k % 2) * 6.0
-		draw_arc(Vector2(wx, wy), 5.0, PI, TAU, 10, Color("4a6a8a", 0.6), 1.5)
-	_vignette(1.2)
-
-# --- V · La antigüedad: sol enorme, columnas y dunas ----------------------
+# --- IV · La antigüedad: sol enorme, columnas y dunas ----------------------
 func _draw_ancient() -> void:
 	_bands(["f6c860", "f2b448", "ec9a38", "d87a2e", "a8522c"], 0, 176)
 	var sc := Vector2(W * 0.5, 104.0)

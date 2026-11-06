@@ -54,6 +54,23 @@ VOICES = {
 }
 
 
+FEMALE = {"cleopatra", "juana_de_arco", "boudica", "isabel_ii", "janequeo", "mariya_oktyabrskaya", "liudmila_pavlichenko"}
+
+
+def voice_for(speaker: str) -> tuple:
+    """Voz propia si la tiene; si no, una por defecto (Raul o Sabina) con tono y ritmo repartidos por el id."""
+    if speaker in VOICES:
+        return VOICES[speaker]
+    h = sum(ord(c) for c in speaker)
+    rate = 0.88 + (h % 7) * 0.025
+    pitch = 0.85 + (h % 5) * 0.05
+    tone = 0.88 + (h % 6) * 0.04
+    voice = "Sabina" if speaker in FEMALE else "Raul"
+    if voice == "Sabina":
+        tone += 0.08
+    return (voice, round(rate, 3), round(pitch, 2), _f(round(tone, 3), "", "aecho=0.7:0.6:60:0.1"))
+
+
 def parse_scenes() -> dict:
     """escena -> [(quién habla, texto)] leído de scripts/story_scenes.gd."""
     text = SCENES_GD.read_text(encoding="utf-8")
@@ -86,7 +103,7 @@ def ps_for(voice: str, rate: float, pitch: float) -> str:
 
 
 def render_line(tmp: Path, speaker: str, text: str, dest: Path) -> None:
-    voice, rate, pitch, filt = VOICES[speaker]
+    voice, rate, pitch, filt = voice_for(speaker)
     script = tmp / ("tts_%s_%s_%s.ps1" % (voice, rate, pitch))
     script.write_text(ps_for(voice, rate, pitch), encoding="utf-8-sig")
     txt = tmp / "line.txt"
@@ -109,9 +126,42 @@ def render_line(tmp: Path, speaker: str, text: str, dest: Path) -> None:
     print(dest.name, dur, "s", flush=True)
 
 
+PLAYER_OUT = base.ROOT / "assets" / "sounds" / "story" / "player"
+VOICES["heroe_m"] = ("Raul", 0.95, 0.95, _f(0.97, "", "aecho=0.7:0.6:50:0.1"))
+VOICES["heroe_f"] = ("Sabina", 0.95, 1.0, _f(1.03, "", "aecho=0.7:0.6:50:0.1"))
+
+
+def parse_player_replies() -> dict:
+    """rival -> respuesta del luchador del jugador ([PLAYER, "..."] en SCENES de scripts/story_scenes.gd)."""
+    text = SCENES_GD.read_text(encoding="utf-8")
+    start = text.index("const SCENES := {")
+    end = text.index("\n}\n", start)
+    out: dict = {}
+    current = None
+    for line in text[start:end].splitlines():
+        key = re.match(r'^\t&"(\w+)": \[$', line)
+        if key:
+            current = key.group(1)
+            continue
+        row = re.match(r'^\t\t\[PLAYER, "(.*)"\],$', line)
+        if row and current:
+            out[current] = row.group(1)
+    return out
+
+
 def main() -> None:
     only = sys.argv[1:]
     OUT.mkdir(parents=True, exist_ok=True)
+    if "player" in only:
+        # Solo las respuestas del jugador: python tools/gen_scene_voice.py player [rival ...]
+        PLAYER_OUT.mkdir(parents=True, exist_ok=True)
+        ids = [i for i in only if i != "player"]
+        with tempfile.TemporaryDirectory() as tmp:
+            for rival, line in parse_player_replies().items():
+                if not ids or rival in ids:
+                    render_line(Path(tmp), "heroe_m", line, PLAYER_OUT / f"{rival}_m.wav")
+                    render_line(Path(tmp), "heroe_f", line, PLAYER_OUT / f"{rival}_f.wav")
+        return
     scenes = parse_scenes()
     with tempfile.TemporaryDirectory() as tmp:
         for scene, lines in scenes.items():
