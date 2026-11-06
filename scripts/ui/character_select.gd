@@ -135,10 +135,12 @@ func _load_saves() -> void:
 	saves_loaded.emit()
 
 ## ¿Esta casilla es un luchador que todavía no se puede usar? Solo en el modo Historia.
+## En el modo Historia solo se puede elegir a los buenos (StoryCampaign.PLAYABLE_ONLY); los villanos, ambiciosos y
+## creadores son los rivales y no salen en la rejilla, aunque ya los hayas vencido en otra partida.
 func _is_locked(i: int) -> bool:
 	if i >= roster.size() or Game.mode != Game.Mode.ARCADE:
 		return false
-	return not Unlocks.fighter_unlocked(roster[i].id)
+	return not Unlocks.STARTERS.has(roster[i].id)
 
 ## La primera casilla desde `from` (dando la vuelta) con un luchador utilizable.
 func _first_unlocked(from: int) -> int:
@@ -154,6 +156,8 @@ func _build_eras() -> void:
 	for e in ERAS:
 		_era_lists.append([])
 	for i in roster.size():
+		if _is_locked(i):
+			continue   # en la historia, los rivales no se muestran
 		var y := roster[i].year
 		for k in ERAS.size():
 			if y >= int(ERAS[k][1]) and y <= int(ERAS[k][2]):
@@ -672,6 +676,8 @@ func _wrap_lines(text: String, width: float) -> PackedStringArray:
 	return lines
 
 func _any_locked() -> bool:
+	if Game.mode == Game.Mode.ARCADE:
+		return false   # no se ven bloqueados: solo salen los que se pueden elegir
 	for i in roster.size():
 		if _is_locked(i):
 			return true

@@ -477,18 +477,20 @@ func _test_locked_select() -> void:
 	sel.cursor[1] = FighterRegistry.index_of(&"donald_trump")
 	await tap(KEY_U)
 	check(not sel.confirmed[1] and is_instance_valid(sel) and scene() == sel, "con U sobre un bloqueado no se confirma ni empieza la historia")
-	# Recorre todo el plantel con D (al acabar una época pasa a la siguiente) pulsando U en cada bloqueado: ninguno se confirma.
-	var tried := 0
-	for i in FighterRegistry.all().size():
+	# Recorre con D todo lo que se muestra (al acabar una época pasa a la siguiente): solo salen los buenos, nunca un rival.
+	var visited := {}
+	var only_good := true
+	for i in Unlocks.STARTERS.size() + 2:
 		await tap(KEY_D)
 		var c: int = sel.cursor[1]
-		if c < sel.roster.size() and not Unlocks.fighter_unlocked(sel.roster[c].id):
-			await tap(KEY_U)
-			tried += 1
-			if sel.confirmed[1]:
-				break
-	check(tried == FighterRegistry.all().size() - Unlocks.STARTERS.size() and not sel.confirmed[1],
-		"ninguno de los %d bloqueados se confirma con el teclado" % tried)
+		visited[c] = true
+		if c >= sel.roster.size() or not Unlocks.STARTERS.has(sel.roster[c].id):
+			only_good = false
+	check(only_good and visited.size() == Unlocks.STARTERS.size(),
+		"en la historia solo se puede elegir a los buenos (%d), nunca a un villano, ambicioso o creador" % visited.size())
+	# Aunque ya se haya vencido a alguien en otra partida, sigue sin poder elegirse.
+	Unlocks.add("fighter", "adolf_hitler")
+	check(not Unlocks.STARTERS.has(&"adolf_hitler") and sel._is_locked(FighterRegistry.index_of(&"adolf_hitler")), "haber vencido a Hitler no lo hace elegible en la historia")
 	await tap(KEY_ESCAPE)
 	check(await wait_scene("MainMenu"), "ESC vuelve al menú")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
