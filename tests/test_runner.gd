@@ -476,23 +476,33 @@ func _test_locked_select() -> void:
 	check(Unlocks.fighter_unlocked(sel.roster[sel.cursor[1]].id), "el cursor empieza en un luchador desbloqueado (Trump está bloqueado)")
 	sel.cursor[1] = FighterRegistry.index_of(&"donald_trump")
 	await tap(KEY_U)
+	await frames(15)   # deja que la selección consuma la pulsación mientras el cursor sigue en el bloqueado
 	check(not sel.confirmed[1] and is_instance_valid(sel) and scene() == sel, "con U sobre un bloqueado no se confirma ni empieza la historia")
-	# Recorre con D todo lo que se muestra (al acabar una época pasa a la siguiente): solo salen los buenos, nunca un rival.
-	var visited := {}
+	# La rejilla solo muestra a los buenos: ningún villano, ambicioso ni creador, y están todos los buenos.
+	var shown := 0
 	var only_good := true
-	for i in Unlocks.STARTERS.size() + 2:
-		await tap(KEY_D)
-		var c: int = sel.cursor[1]
-		visited[c] = true
-		if c >= sel.roster.size() or not Unlocks.STARTERS.has(sel.roster[c].id):
-			only_good = false
-	check(only_good and visited.size() == Unlocks.STARTERS.size(),
-		"en la historia solo se puede elegir a los buenos (%d), nunca a un villano, ambicioso o creador" % visited.size())
+	for l in sel._era_lists:
+		for idx in l:
+			shown += 1
+			if not Unlocks.STARTERS.has(sel.roster[idx].id):
+				only_good = false
+	check(only_good and shown == Unlocks.STARTERS.size(),
+		"en la historia solo se muestran los buenos (%d de %d), nunca un villano, ambicioso o creador" % [shown, Unlocks.STARTERS.size()])
+	# Y al moverse con D el cursor nunca cae en un rival (pocas pulsaciones y largas: en modo sin ventana las rápidas se pierden).
+	var never_rival := true
+	for i in 6:
+		await tap(KEY_D, 6)
+		if not is_instance_valid(sel) or scene() != sel:
+			never_rival = false
+			break
+		if not Unlocks.STARTERS.has(sel.roster[sel.cursor[1]].id):
+			never_rival = false
+	check(never_rival, "moviéndose con D el cursor nunca cae en un rival")
 	# Aunque ya se haya vencido a alguien en otra partida, sigue sin poder elegirse.
 	Unlocks.add("fighter", "adolf_hitler")
 	check(not Unlocks.STARTERS.has(&"adolf_hitler") and sel._is_locked(FighterRegistry.index_of(&"adolf_hitler")), "haber vencido a Hitler no lo hace elegible en la historia")
-	await tap(KEY_ESCAPE)
-	check(await wait_scene("MainMenu"), "ESC vuelve al menú")
+	await tap(KEY_ESCAPE, 6)
+	check(await wait_scene("MainMenu", 240), "ESC vuelve al menú")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Unlocks.path = old_path
 	Backend.user_id = old_user
