@@ -335,11 +335,12 @@ func _test_profile_helpers() -> void:
 	var starters_exist := true
 	for id in Unlocks.STARTERS:
 		starters_exist = starters_exist and FighterRegistry.has(id)
-	check(Unlocks.STARTERS.size() == 12 and starters_exist, "se empieza con 12 luchadores y todos existen en el plantel")
-	check(Unlocks.fighters_unlocked() == 12, "al principio hay 12 desbloqueados")
-	check(Unlocks.fighter_unlocked(&"nikola_tesla") and not Unlocks.fighter_unlocked(&"donald_trump"), "Tesla es inicial y Trump no")
+	check(Unlocks.STARTERS.size() == StoryCampaign.PLAYABLE_ONLY.size() and starters_exist, "se empieza con los buenos (%d) y todos existen en el plantel" % Unlocks.STARTERS.size())
+	var base_unlocked := Unlocks.STARTERS.size()
+	check(Unlocks.fighters_unlocked() == base_unlocked, "al principio solo están desbloqueados los iniciales")
+	check(Unlocks.fighter_unlocked(&"lautaro") and not Unlocks.fighter_unlocked(&"donald_trump") and not Unlocks.fighter_unlocked(&"nikola_tesla"), "Lautaro es inicial; Trump y Tesla se desbloquean en la historia")
 	check(Unlocks.add("fighter", "donald_trump") and not Unlocks.add("fighter", "donald_trump"), "añadir devuelve true solo la primera vez")
-	check(Unlocks.fighter_unlocked(&"donald_trump") and Unlocks.fighters_unlocked() == 13, "lo ganado cuenta como desbloqueado")
+	check(Unlocks.fighter_unlocked(&"donald_trump") and Unlocks.fighters_unlocked() == base_unlocked + 1, "lo ganado cuenta como desbloqueado")
 	Backend.user_id = "cuenta-a"
 	check(not Unlocks.fighter_unlocked(&"donald_trump"), "otra cuenta no hereda lo del invitado")
 	Unlocks.add("ending", "repair")
@@ -358,17 +359,17 @@ func _test_profile_helpers() -> void:
 	Game.story_record_win()
 	check(not Unlocks.has("fighter", "el_nexo"), "vencer al Nexo no lo desbloquea como luchador")
 	Game.mode = Game.Mode.VERSUS
-	Game.p2_fighter_id = &"boudica"
+	Game.p2_fighter_id = &"kim_jong_un"
 	Game.story_record_win()
-	check(not Unlocks.fighter_unlocked(&"boudica"), "fuera de la historia no se desbloquea nada")
+	check(not Unlocks.fighter_unlocked(&"kim_jong_un"), "fuera de la historia no se desbloquea nada")
 	# La selección de personaje consulta cada casilla en cada redibujo: no puede leer el archivo cada vez.
 	var reads_before := Unlocks.disk_reads
 	for i in 100:
 		Unlocks.fighters_unlocked()
 		Unlocks.has("fighter", "donald_trump")
 	check(Unlocks.disk_reads == reads_before, "consultar desbloqueos no vuelve a leer el archivo (%d lecturas)" % (Unlocks.disk_reads - reads_before))
-	Unlocks.add("fighter", "boudica")
-	check(Unlocks.fighter_unlocked(&"boudica") and Unlocks.disk_reads == reads_before, "lo recién desbloqueado se ve sin releer el archivo")
+	Unlocks.add("fighter", "kim_jong_un")
+	check(Unlocks.fighter_unlocked(&"kim_jong_un") and Unlocks.disk_reads == reads_before, "lo recién desbloqueado se ve sin releer el archivo")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Unlocks.path = old_unlocks_path
 	Backend.user_id = old_user
@@ -426,17 +427,17 @@ func _test_profile_helpers() -> void:
 	Unlocks.path = "user://unlocks_guest_test.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
 	Backend.user_id = ""
-	Unlocks.add("fighter", "boudica")
+	Unlocks.add("fighter", "kim_jong_un")
 	Unlocks.add("ending", "repair")
 	check(not Unlocks.adopt_guest(), "sin sesión no se pasa nada")
 	Backend.user_id = "cuenta-a"
 	Unlocks.add("ending", "repair")
 	check(Unlocks.adopt_guest(), "al entrar en una cuenta, lo del invitado se le pasa")
-	check(Unlocks.fighter_unlocked(&"boudica") and Unlocks.as_dicts().size() == 2, "la cuenta tiene lo suyo y lo del invitado, sin duplicar")
+	check(Unlocks.fighter_unlocked(&"kim_jong_un") and Unlocks.as_dicts().size() == 2, "la cuenta tiene lo suyo y lo del invitado, sin duplicar")
 	check(not Unlocks.adopt_guest(), "pasarlo otra vez no añade nada")
 	Backend.user_id = "cuenta-b"
 	Unlocks.adopt_guest()
-	check(not Unlocks.fighter_unlocked(&"boudica"), "lo del invitado va a una sola cuenta, no a todas")
+	check(not Unlocks.fighter_unlocked(&"kim_jong_un"), "lo del invitado va a una sola cuenta, no a todas")
 	Backend.user_id = ""
 	check(Unlocks.items().is_empty(), "el invitado queda vacío tras pasarlo")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Unlocks.path))
