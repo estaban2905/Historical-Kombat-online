@@ -10,7 +10,7 @@ const NEXO := &"el_nexo"
 const PLAYER := &"@jugador"
 
 const SCENES := {
-	# --- Los creadores del Reloj, en el orden en que se encuentran (hacia atrás en el tiempo) ---
+	# --- Los creadores del Reloj (en la historia se encuentran en otro orden: Curie, Einstein, Tesla y Leonardo) ---
 	&"albert_einstein": [
 		[&"albert_einstein", "EL NEXO ME ARRANCÓ DE BERNA, 1905, Y USA MI PROPIA ECUACIÓN PARA ATARME."],
 		[&"albert_einstein", "EL TIEMPO ES RELATIVO Y EL NEXO LO ESTIRA A SU ANTOJO. VENCE A MI SOMBRA Y ME LIBERAS."],

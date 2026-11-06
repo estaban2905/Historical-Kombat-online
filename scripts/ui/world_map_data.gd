@@ -17,7 +17,7 @@ const NEXO_LONLAT := Vector2(163.0, -4.0)
 static func project(lon: float, lat: float) -> Vector2:
 	return Vector2((lon + 180.0) * K, Y_TOP + (LAT_TOP - lat) * K)
 
-## Ciudad de cada rival: [nombre, longitud, latitud]. Los creadores del Reloj no están: pelean en la misma
+## Ciudad de cada rival: [nombre, longitud, latitud]. Es la del lugar que nombra su escena de diálogo (story_scenes.gd). Los creadores del Reloj no están: pelean en la misma
 ## batalla que el jefe de su época y comparten su ciudad.
 const CITIES := {
 	&"kim_jong_un": ["PYONGYANG", 125.7, 39.0],
@@ -26,22 +26,22 @@ const CITIES := {
 	&"vladimir_putin": ["MOSCÚ", 37.6, 55.8],
 	&"pablo_escobar": ["MEDELLÍN", -75.6, 6.2],
 	&"donald_trump": ["WASHINGTON", -77.0, 38.9],
-	&"saddam_hussein": ["BAGDAD", 44.4, 33.3],
-	&"fidel_castro": ["LA HABANA", -82.4, 23.1],
+	&"saddam_hussein": ["KUWAIT", 48.0, 29.4],
+	&"fidel_castro": ["SANTIAGO DE CUBA", -75.8, 20.0],
 	&"augusto_pinochet": ["SANTIAGO", -70.7, -33.4],
-	&"benito_mussolini": ["MILÁN", 9.2, 45.5],
-	&"joseph_stalin": ["STALINGRADO", 44.5, 48.7],
+	&"benito_mussolini": ["ROMA", 12.5, 41.9],
+	&"joseph_stalin": ["MOSCÚ", 37.6, 55.8],
 	&"rasputin": ["SAN PETERSBURGO", 30.3, 59.9],
-	&"adolf_hitler": ["BERLÍN", 13.4, 52.5],
-	&"ivan_el_terrible": ["KAZÁN", 49.1, 55.8],
-	&"nostradamus": ["SALON-DE-PROVENCE", 5.1, 43.6],
+	&"adolf_hitler": ["STALINGRADO", 44.5, 48.7],
+	&"ivan_el_terrible": ["LIVONIA", 25.5, 57.0],
+	&"nostradamus": ["AGEN", 0.6, 44.2],
 	&"hernan_cortes": ["TENOCHTITLAN", -99.1, 19.4],
 	&"nicolas_maquiavelo": ["FLORENCIA", 11.3, 43.8],
-	&"cristobal_colon": ["LA ESPAÑOLA", -70.0, 19.0],
+	&"cristobal_colon": ["SANTO DOMINGO", -69.9, 18.5],
 	&"napoleon": ["WATERLOO", 4.4, 50.7],
-	&"gengis_kan": ["KARAKORUM", 102.8, 47.2],
-	&"cleopatra": ["ALEJANDRÍA", 29.9, 31.2],
-	&"alejandro_magno": ["PERSÉPOLIS", 52.9, 29.9],
+	&"gengis_kan": ["REINO XIA", 106.2, 38.5],
+	&"cleopatra": ["ACCIO", 20.7, 39.0],
+	&"alejandro_magno": ["BABILONIA", 44.4, 32.5],
 	&"julio_cesar": ["ROMA", 12.5, 41.9],
 }
 const NEXO_CITY := "LA TORRE DEL RELOJ"

@@ -114,6 +114,12 @@ func _build_nodes() -> void:
 			var c := WorldMapData.city_of(id)
 			n["pos"] = WorldMapData.project(c[1], c[2])
 			n["name"] = c[0]
+		# Dos rivales en la misma ciudad (Roma, Moscú...) se separan un poco para que se vean los dos.
+		var spot: Vector2 = n["pos"]
+		for other in _nodes:
+			if other.pos.distance_to(spot) < 3.5:
+				spot += Vector2(3.5, 2.5)
+		n["pos"] = spot
 		_nodes.append(n)
 		_node_of_stage.append(_nodes.size() - 1)
 	_legs.append({})
