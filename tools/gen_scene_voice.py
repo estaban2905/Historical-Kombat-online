@@ -127,27 +127,40 @@ def render_line(tmp: Path, speaker: str, text: str, dest: Path) -> None:
 
 
 PLAYER_OUT = base.ROOT / "assets" / "sounds" / "story" / "player"
+VOICES["heroe_m"] = ("Raul", 0.95, 0.95, _f(0.97, "", "aecho=0.7:0.6:50:0.1"))
+VOICES["heroe_f"] = ("Sabina", 0.95, 1.0, _f(1.03, "", "aecho=0.7:0.6:50:0.1"))
 
 
-def parse_player_lines() -> dict:
-    """id del luchador -> su frase al oponerse a un rival (const PLAYER_LINES de scripts/story_scenes.gd)."""
+def parse_player_replies() -> dict:
+    """rival -> respuesta del luchador del jugador ([PLAYER, "..."] en SCENES de scripts/story_scenes.gd)."""
     text = SCENES_GD.read_text(encoding="utf-8")
-    start = text.index("const PLAYER_LINES := {")
+    start = text.index("const SCENES := {")
     end = text.index("\n}\n", start)
-    return {m.group(1): m.group(2) for m in re.finditer(r'^\t&"(\w+)": "(.*)",$', text[start:end], re.M)}
+    out: dict = {}
+    current = None
+    for line in text[start:end].splitlines():
+        key = re.match(r'^\t&"(\w+)": \[$', line)
+        if key:
+            current = key.group(1)
+            continue
+        row = re.match(r'^\t\t\[PLAYER, "(.*)"\],$', line)
+        if row and current:
+            out[current] = row.group(1)
+    return out
 
 
 def main() -> None:
     only = sys.argv[1:]
     OUT.mkdir(parents=True, exist_ok=True)
     if "player" in only:
-        # Solo las frases del luchador del jugador: python tools/gen_scene_voice.py player [id ...]
+        # Solo las respuestas del jugador: python tools/gen_scene_voice.py player [rival ...]
         PLAYER_OUT.mkdir(parents=True, exist_ok=True)
         ids = [i for i in only if i != "player"]
         with tempfile.TemporaryDirectory() as tmp:
-            for fid, line in parse_player_lines().items():
-                if not ids or fid in ids:
-                    render_line(Path(tmp), fid, line, PLAYER_OUT / f"{fid}.wav")
+            for rival, line in parse_player_replies().items():
+                if not ids or rival in ids:
+                    render_line(Path(tmp), "heroe_m", line, PLAYER_OUT / f"{rival}_m.wav")
+                    render_line(Path(tmp), "heroe_f", line, PLAYER_OUT / f"{rival}_f.wav")
         return
     scenes = parse_scenes()
     with tempfile.TemporaryDirectory() as tmp:

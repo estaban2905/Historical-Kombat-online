@@ -6,7 +6,7 @@ class_name StoryScenes
 extends RefCounted
 
 const NEXO := &"el_nexo"
-## Hablante que se sustituye por el luchador que elige el jugador (sin voz: la escena es la misma para todos).
+## Hablante que se sustituye por el luchador que elige el jugador (voz de héroe o de heroína, ver lines()).
 const PLAYER := &"@jugador"
 
 const SCENES := {
@@ -241,62 +241,6 @@ const SCENES := {
 		[NEXO, "VENCERME ES CARGAR CON ELLOS. ¿PUEDES?"],
 	],
 }
-## Lo que dice el luchador que elige el jugador al oponerse a cada rival (con voz propia: assets/sounds/story/player/<id>.wav,
-## tools/gen_scene_voice.py). Después viene la respuesta concreta a ese rival (sin voz).
-const PLAYER_LINES := {
-	&"abraham_lincoln": "LA UNIÓN SE SALVÓ COMO SE SALVÓ. NO CAMBIARÁS NI UN CAPÍTULO.",
-	&"adolf_hitler": "¡LO QUE PASÓ, PASÓ! NO ME GUSTA, PERO NO TE DEJARÉ CAMBIARLO.",
-	&"albert_einstein": "EL PASADO ES UNA CONSTANTE. NO VOY A PERMITIR QUE LO ALTERES.",
-	&"alejandro_magno": "MI IMPERIO SE REPARTIÓ Y ASÍ DEBÍA SER. NO LO REHARÁS.",
-	&"aristoteles": "LO ACONTECIDO ES LA MATERIA DE LA HISTORIA. NO LA ALTERARÁS.",
-	&"arturo_prat": "¡LO QUE FUE, FUE! NO TE DEJARÉ REESCRIBIR LA HISTORIA.",
-	&"augusto_pinochet": "LO HECHO SE QUEDA. NO TE DEJARÉ CAMBIAR LA HISTORIA.",
-	&"benito_mussolini": "LO QUE FUE, FUE. NO TE DEJARÉ REESCRIBIR NI UNA SOLA PÁGINA.",
-	&"boudica": "MI DERROTA ES MI HISTORIA. NO LA REESCRIBIRÁS.",
-	&"buda": "TODO PASA Y NADA SE REPITE. NO TE DEJARÉ ATARTE AL PASADO.",
-	&"charles_darwin": "TODO SE ADAPTA, MENOS EL PASADO. NO LO CAMBIARÁS.",
-	&"cleopatra": "EGIPTO CAYÓ Y YO ACEPTÉ MI DESTINO. NO REESCRIBIRÁS EL TIEMPO.",
-	&"confucio": "EL ORDEN DEL TIEMPO ES SAGRADO. NO LO ROMPERÁS.",
-	&"cristobal_colon": "LO QUE DESCUBRÍ YA NO TIENE VUELTA. NO REESCRIBIRÁS NADA.",
-	&"donald_trump": "LA HISTORIA ES UN GRAN TRATO Y YA ESTÁ FIRMADO. NO LO VAS A CAMBIAR.",
-	&"fidel_castro": "LA HISTORIA ME ABSOLVERÁ, Y NO LA DEJARÉ REESCRIBIR.",
-	&"galileo_galilei": "AUNQUE ME CALLARON, LA TIERRA SE MUEVE. LA HISTORIA SE QUEDA.",
-	&"gengis_kan": "LO QUE ESTÁ ESCRITO EN LA ESTEPA NO SE BORRA. NO LO CAMBIARÁS.",
-	&"hernan_cortes": "LO HECHO, HECHO ESTÁ. NO TE DEJARÉ DESHACERLO.",
-	&"isaac_newton": "TODA ACCIÓN TIENE SU REACCIÓN. NO CAMBIARÁS LO QUE FUE.",
-	&"isabel_ii": "EL TIEMPO PASA Y LA HISTORIA SE QUEDA COMO ESTÁ. NO LA CAMBIARÁS.",
-	&"ivan_el_terrible": "EL TIEMPO ES DEL ZAR Y YO NO LO PERMITIRÉ. NO CAMBIARÁS NADA.",
-	&"janequeo": "MI TIERRA RECUERDA Y YO TAMBIÉN. NO TE DEJARÉ BORRAR LA HISTORIA.",
-	&"jesus_de_nazaret": "LO ESCRITO ESTÁ ESCRITO. NO PERMITIRÉ QUE LO CAMBIES.",
-	&"joseph_stalin": "EL ACERO NO SE DOBLA Y LA HISTORIA TAMPOCO. NO LA CAMBIARÁS.",
-	&"juana_de_arco": "LAS VOCES ME DICEN QUE TE DETENGA. LA HISTORIA SE QUEDA COMO FUE.",
-	&"julio_cesar": "VINE, VI Y VENCÍ... Y TAMBIÉN CAÍ. NO TOCARÁS MI HISTORIA.",
-	&"kim_jong_un": "LO QUE PASÓ, PASÓ. NO TE DEJARÉ ABRIR EL TIEMPO A TU ANTOJO.",
-	&"lautaro": "CADA CAÍDA ENSEÑÓ A MI PUEBLO. NO TE DEJARÉ BORRARLAS.",
-	&"leonardo_da_vinci": "OBSERVÉ LA HISTORIA Y NO HAY ERROR QUE CORREGIR. NO LA CAMBIARÁS.",
-	&"liudmila_pavlichenko": "LO QUE PASÓ, PASÓ. NO TE DEJARÉ CAMBIARLO.",
-	&"marie_curie": "LO QUE EL TIEMPO CONSUMIÓ NO VUELVE. NO TE DEJARÉ CAMBIARLO.",
-	&"mariya_oktyabrskaya": "MI TANQUE LLEGÓ HASTA DONDE DEBÍA. NO TOCARÁS LA HISTORIA.",
-	&"moctezuma_ii": "TENOCHTITLAN LLEVA SU HISTORIA EN EL AGUA. NO LA BORRARÁS.",
-	&"napoleon": "YO ESCRIBÍ MI GLORIA Y TAMBIÉN MI CAÍDA. NO TOCARÁS NI UNA LÍNEA.",
-	&"nicolas_maduro": "¡AGUANTE, HERMANO! LO QUE PASÓ NO SE BORRA. TE DETENDRÉ.",
-	&"nicolas_maquiavelo": "NI SIQUIERA YO CAMBIARÍA ESTE FINAL. TE DETENDRÉ.",
-	&"nikola_tesla": "TODO LO QUE FUE, FUE. NO TE DEJARÉ ROMPER EL RITMO DEL TIEMPO.",
-	&"nostradamus": "YA LO VI: LA HISTORIA SE QUEDA COMO ESTÁ, Y TÚ NO LA CAMBIARÁS.",
-	&"osama_bin_laden": "LO QUE PASÓ NO SE DESHACE. TE DETENDRÉ.",
-	&"pablo_escobar": "LO QUE SE ESCRIBIÓ CON PLATA O PLOMO NO SE BORRA. TE DETENDRÉ.",
-	&"pachacutec": "EL TAHUANTINSUYO VIVE EN LA MEMORIA. NO LA REESCRIBIRÁS.",
-	&"papa_francisco": "HAY HERIDAS QUE ENSEÑAN. NO TE DEJARÉ BORRARLAS.",
-	&"platon": "LAS IDEAS ETERNAS NO SE REESCRIBEN. LA HISTORIA TAMPOCO.",
-	&"rasputin": "SOBREVIVÍ A TODO MENOS A MI HISTORIA. NO LA CAMBIARÁS.",
-	&"saddam_hussein": "LAS ARENAS YA ENTERRARON ESO. NO LO DESENTERRARÁS.",
-	&"salvador_allende": "LA HISTORIA ES NUESTRA Y LA HACEN LOS PUEBLOS. NO LA BORRARÁS.",
-	&"socrates": "SOLO SÉ QUE NO SÉ NADA, PERO SÉ QUE NO DEBES CAMBIAR EL PASADO.",
-	&"sun_tzu": "LA MEJOR VICTORIA ES DETENERTE SIN REESCRIBIR NADA.",
-	&"vladimir_putin": "LA HISTORIA NO SE DEVUELVE. TÚ NO TOMARÁS EL TIEMPO.",
-	&"xi_jinping": "EL TIEMPO ES PACIENTE Y YO TAMBIÉN. NO VAS A ROMPERLO.",
-}
-
 ## Si quien juega es uno de los creadores del Reloj, el Nexo le habla distinto.
 const NEXO_TO_CREATOR := [
 	[NEXO, "TÚ ME DISTE FORMA Y ESTÁS ATADO A MÍ. ¿VAS A ROMPER LO QUE CREASTE?"],
@@ -317,10 +261,10 @@ static func lines(rival: StringName, player: StringName) -> Array:
 	var out: Array = []
 	for l in SCENES.get(rival, []):
 		if l[0] == PLAYER:
-			# Primero su frase de siempre, con voz; después la respuesta concreta a este rival.
-			out.append([player, PLAYER_LINES.get(player, "NO TE LO PERMITIRÉ. LA HISTORIA YA ESTÁ ESCRITA."),
-				"res://assets/sounds/story/player/%s.wav" % player])
-			out.append([player, l[1]])
+			# La respuesta concreta al rival, con voz de héroe o de heroína según el luchador elegido
+			# (assets/sounds/story/player/<rival>_m.wav o _f.wav; las genera tools/gen_scene_voice.py).
+			var sex := "f" if FighterRegistry.get_by_id(player).female else "m"
+			out.append([player, l[1], "res://assets/sounds/story/player/%s_%s.wav" % [rival, sex]])
 		else:
 			out.append([l[0], l[1]])
 	return out
