@@ -38,6 +38,8 @@ static func draw(ci: CanvasItem, style: StringName, t: float, prog: float, a: fl
 		&"wall": _wall(ci, prog, a, box)
 		&"ice_burst": _ice_burst(ci, prog, a)
 		&"gravity": _gravity(ci, t, prog)
+		&"blackhole": _blackhole(ci, t, box)
+		&"mindweb": _mindweb(ci, t, prog, box)
 		&"timefield": _timefield(ci, t, prog)
 		&"lightburst": _lightburst(ci, prog, a)
 		&"smoke": _smoke(ci, t, col)
@@ -446,6 +448,49 @@ static func _gravity(ci: CanvasItem, t: float, prog: float) -> void:
 		var x := -15.0 + i * 10.0
 		var y := 22.0 - fmod(t * 60.0 + i * 15.0, 50.0)
 		_poly(ci, [Vector2(x - 3, y + 3), Vector2(x + 3, y + 3), Vector2(x, y - 3)], Color("b070ff"), false)
+
+## Grinberg: red de luz turquesa entre puntos (neuronas) que parpadean alrededor del rival.
+static func _mindweb(ci: CanvasItem, t: float, prog: float, box: Vector2) -> void:
+	var k := _ease(prog)
+	var pts: Array = []
+	for i in 9:
+		var ang := i * 2.399 + t * 0.8
+		var rr := (0.25 + 0.75 * float((i * 37) % 10) / 9.0) * box.x * 0.5 * k
+		pts.append(Vector2(cos(ang) * rr, sin(ang) * rr * 1.25))
+	for i in pts.size():
+		for j in range(i + 1, pts.size()):
+			var d := (pts[i] as Vector2).distance_to(pts[j])
+			if d < box.x * 0.75:
+				var al := (0.25 + 0.5 * (0.5 + 0.5 * sin(t * 9.0 + i + j))) * k
+				ci.draw_line(pts[i], pts[j], Color(0.25, 0.85, 0.8, al), 1.0)
+	for i in pts.size():
+		var p: Vector2 = pts[i]
+		var glow := 0.5 + 0.5 * sin(t * 7.0 + i * 1.7)
+		ci.draw_rect(Rect2(p - Vector2(2, 2), Vector2(4, 4)), Color(0.15, 0.1, 0.2, k))
+		ci.draw_rect(Rect2(p - Vector2(1, 1), Vector2(2, 2)), Color(0.5 + 0.5 * glow, 1.0, 0.95, k))
+	ci.draw_circle(Vector2(0, -box.y * 0.3), 3.0 * k, Color(1, 1, 1, 0.8 * k))
+
+## Hawking: agujero negro que crece, gira con su disco de acreción y se desvanece tras estallar.
+static func _blackhole(ci: CanvasItem, t: float, box: Vector2) -> void:
+	var grow := clampf(t / 0.25, 0.0, 1.0)
+	var fade := clampf((1.25 - t) / 0.25, 0.0, 1.0)
+	var r := box.x * 0.5 * grow * (1.0 + 0.12 * sin(t * 18.0) * (1.0 if t > 0.9 else 0.0))
+	var a := fade
+	ci.draw_circle(Vector2.ZERO, r * 1.6, Color(0.5, 0.2, 1.0, 0.16 * a))
+	for i in 3:
+		var rr := r * (1.0 + 0.22 * i)
+		var spin := t * (4.0 + i * 2.5) * (1 if i % 2 == 0 else -1)
+		var c: Color = [Color(1.0, 0.6, 0.2, 0.9), Color(0.8, 0.4, 1.0, 0.8), Color(0.4, 0.8, 1.0, 0.7)][i]
+		c.a *= a
+		ci.draw_arc(Vector2.ZERO, rr, spin, spin + 3.6, 20, c, 2.0)
+	# Polvo que cae hacia el centro.
+	for i in 10:
+		var ph := fmod(t * 1.6 + i * 0.1, 1.0)
+		var ang := i * 2.399 + t * 5.0
+		var d := Vector2(cos(ang), sin(ang)) * r * (2.2 - ph * 1.7)
+		ci.draw_rect(Rect2(d - Vector2(1, 1), Vector2(2, 2)), Color(1, 0.9, 1, 0.8 * a * grow))
+	ci.draw_circle(Vector2.ZERO, r * 0.7, Color(0.02, 0.01, 0.04, a))
+	ci.draw_arc(Vector2.ZERO, r * 0.7, 0.0, TAU, 24, Color(0.9, 0.7, 1.0, 0.9 * a), 1.0)
 
 static func _timefield(ci: CanvasItem, t: float, prog: float) -> void:
 	var r := 28.0 * _ease(prog)

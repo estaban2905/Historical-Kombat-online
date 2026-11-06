@@ -1376,6 +1376,12 @@ POWER_QUOTES = {
 # Pasiva de cada luchador (ids de scripts/passives.gd). Los dos hechos a mano (Napoleón y Trump) la
 # llevan en su .tres, que el script no toca; se listan aquí solo para tener la tabla completa.
 PASSIVES = {
+    "stephen_hawking": "horizonte_de_sucesos",
+    "alan_turing": "enigma_descifrado",
+    "nelson_mandela": "veintisiete_anos",
+    "martin_luther_king": "marcha_pacifica",
+    "dalai_lama": "paz_interior",
+    "jacobo_grinberg": "mente_expandida",
     "abraham_lincoln": "casa_en_pie",
     "adolf_hitler": "berrinche_final",
     "albert_einstein": "energia_es_masa",
@@ -1666,6 +1672,134 @@ def wrap_lines(text, width=21):
         else:
             line = test
     return lines + (1 if line else 0)
+
+
+# --------------------------------------------------------------------------
+#  Héroes de la actualidad (siglos XX y XXI): ciencia, política y espiritualidad.
+#  Reutilizan poderes y ultimates ya hechos con otro nombre: el agujero negro de Hawking es la gravedad de Galileo,
+#  la Máquina Enigma de Turing son los tres golpes calculados de Aristóteles, la Reconciliación de Mandela es el escudo
+#  que devuelve el golpe de Allende, el sueño de King es la onda de voz de Mussolini y la Rueda del Dharma de
+#  Dalai Lama son los símbolos luminosos de Confucio.
+# --------------------------------------------------------------------------
+CHARACTERS.extend([
+    dict(id="stephen_hawking", name="STEPHEN HAWKING", short="HAWKING", country="Reino Unido", era="1942 – 2018",
+         intro="x", victory="x",
+         bio="Físico británico de los agujeros negros y del origen del universo. Su mente viajó mucho más lejos que su cuerpo.",
+         arch="zoner", build="slim",
+         skin="f0d0b0", hair="6a4a30", coat="3a3a4a", trim="9a9aa8", shirt="dcdce4", accent="9a4dff",
+         pants="2a2a34", boots="141414", hat="141414",
+         hair_style="sidepart", hat_style="none", beard="none", chest="plain",
+         moves=("Golpe Cuántico", "Singularidad", "Patada de Horizonte", "Patada Gravitatoria"),
+         s1=P(name="Radiación de Hawking", anim="cast", style="orb", color="9a4dff", speed=215, dmg=14),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Horizonte de Sucesos"),
+    dict(id="alan_turing", name="ALAN TURING", short="TURING", country="Reino Unido", era="1912 – 1954",
+         intro="x", victory="x",
+         bio="Matemático que descifró el código Enigma y sentó las bases de la computación. Se adelantó a su tiempo.",
+         arch="agile", build="slim",
+         skin="f0d0b0", hair="2a2018", coat="5a4a3a", trim="8a7a62", shirt="f0f0ea", accent="35e6ff",
+         pants="3a3a40", boots="2a1a10", hat="141414",
+         hair_style="sidepart", hat_style="none", beard="none", chest="tie",
+         moves=("Golpe Binario", "Puño Algorítmico", "Patada Enigma", "Patada Computada"),
+         s1=P(name="Bomba Criptológica", anim="cannon", style="ball", color="35e6ff", speed=215, dmg=14),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Máquina Universal"),
+    dict(id="nelson_mandela", name="NELSON MANDELA", short="MANDELA", country="Sudáfrica", era="1918 – 2013",
+         intro="x", victory="x",
+         bio="Boxeador, abogado y presidente de Sudáfrica. Pasó 27 años preso y salió a construir la paz.",
+         arch="tank", build="tall",
+         skin="5a3828", hair="d8d8d8", coat="c06a20", trim="e0b040", shirt="c06a20", accent="20a050",
+         pants="2a2a30", boots="141010", hat="141414",
+         hair_style="short", hat_style="none", beard="none", chest="plain",
+         moves=("Gancho de Robben", "Puño de Libertad", "Patada Madiba", "Patada de Reconciliación"),
+         s1=L(name="Gancho de Boxeador", anim="straight", dmg=17, launch=-320),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Madiba Libre"),
+    dict(id="martin_luther_king", name="MARTIN LUTHER KING JR.", short="M. L. KING", country="Estados Unidos", era="1929 – 1968",
+         intro="x", victory="x",
+         bio="Pastor y líder de los derechos civiles. Lideró marchas pacíficas y pronunció «Tengo un sueño».",
+         arch="balanced", build="tall",
+         skin="6a4630", hair="14100c", coat="20202a", trim="3a3a48", shirt="f0f0f0", accent="c8a030",
+         pants="20202a", boots="141010", hat="141414",
+         hair_style="short", hat_style="none", beard="mustache", chest="tie",
+         moves=("Palma de Memphis", "Puño de la Marcha", "Patada Pacífica", "Patada del Sueño"),
+         s1=P(name="Voz del Pueblo", anim="megaphone", style="soundwave", speed=225, dmg=15),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Gran Marcha"),
+    dict(id="dalai_lama", name="DALAI LAMA", short="DALAI LAMA", country="Tíbet", era="Nació en 1935",
+         intro="x", victory="x",
+         bio="Líder espiritual del budismo tibetano y Nobel de la Paz. Predica la compasión desde el exilio.",
+         arch="sage", build="normal",
+         skin="c89868", hair="2a2018", coat="8a1a22", trim="e0a020", shirt="e0a020", accent="e0a020",
+         pants="8a1a22", boots="a07a4a", hat="141414",
+         hair_style="bald", hat_style="none", beard="none", chest="robe",
+         moves=("Palma de Compasión", "Puño Sereno", "Patada del Dharma", "Patada del Himalaya"),
+         s1=P(name="Rayo de Compasión", anim="cast", style="orb", color="ff9030", speed=210, dmg=14),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Rueda de la Vida"),
+    dict(id="jacobo_grinberg", name="JACOBO GRINBERG", short="GRINBERG", country="México", era="Nació en 1946",
+         intro="x", victory="x",
+         bio="Neurofisiólogo mexicano que investigó la conciencia. Desapareció en 1994 y su paradero sigue siendo un misterio.",
+         arch="sage", build="normal",
+         skin="c8a07c", hair="2a1c14", coat="5a4a3a", trim="40d0c0", shirt="e8e8f0", accent="40d0c0",
+         pants="2a2a34", boots="2a1c14", hat="141414",
+         hair_style="short", hat_style="none", beard="none", chest="plain",
+         moves=("Palma Sintérgica", "Puño de la Conciencia", "Patada de la Retícula", "Patada Neuronal"),
+         s1=P(name="Pulso Neuronal", anim="cast", style="orb", speed=200, dmg=14),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Campo Sintérgico"),
+])
+PROFILES.update({
+    "stephen_hawking": _pf("scholar", "oh", "HP", "Golpe de Singularidad", ("SINGULARIDAD", "LP HP HK", 3.0), ("HORIZONTE", "LK LP HP S1", 6.5)),
+    "alan_turing": _pf("scholar", "low", "LK", "Patada Algorítmica", ("ALGORITMO", "LP HP HK", 3.0), ("ENIGMA", "LK LP HP S1", 6.5)),
+    "nelson_mandela": _pf("brawler", "low", "LK", "Barrido Madiba", ("MADIBA", "LK LP HP", 3.0), ("LIBERTAD", "LP LK HP HK", 6.0)),
+    "martin_luther_king": _pf("zoner", "oh", "HP", "Golpe de Marcha", ("MARCHA", "LP HP HK", 3.5), ("SUEÑO", "LK LP HP S1", 6.5)),
+    "dalai_lama": _pf("mystic", "low", "LK", "Patada del Loto", ("COMPASIÓN", "LP LK HP", 3.0), ("DHARMA", "LP LK HP S1", 7.0)),
+    "jacobo_grinberg": _pf("mystic", "low", "LK", "Barrido de Conciencia", ("RETÍCULA", "LP LK HP", 3.0), ("SINTERGIA", "LP LK HP S1", 6.5)),
+})
+ULTS.update({
+    "stephen_hawking": ("spacetime", "", "9a4dff", "070312", "cast"),
+    "alan_turing": ("trap", "blackboard", "35e6ff", "04141a", "cast"),
+    "nelson_mandela": ("miracle", "", "ffd24a", "1a1408", "cast"),
+    "martin_luther_king": ("wave", "", "ffd070", "1a1408", "megaphone"),
+    "dalai_lama": ("light", "", "ff9030", "1a0a04", "cast"),
+    "jacobo_grinberg": ("light", "", "40d0c0", "041a18", "cast"),
+})
+QUOTES.update({
+    "stephen_hawking": ("Mi mente viaja más rápido que tus puños.", "Hasta los agujeros negros se evaporan."),
+    "alan_turing": ("Calculé tu derrota antes de empezar.", "Una máquina no se equivoca. Yo tampoco."),
+    "nelson_mandela": ("Veintisiete años preso no me quitaron las ganas.", "Gané sin odio. Pero gané."),
+    "martin_luther_king": ("¡Tengo un sueño: tu derrota!", "El arco de la historia se inclina hacia la justicia."),
+    "dalai_lama": ("La compasión también sabe pelear.", "Te perdono... pero ya perdiste."),
+    "jacobo_grinberg": ("La conciencia no termina en el cerebro.", "La mente lo creó. La mente lo ganó."),
+})
+POWERS.update({
+    "stephen_hawking": W(name="Agujero Negro", anim="cast", power="black_hole", dmg=18),
+    "alan_turing": W(name="Máquina Enigma", anim="cast", power="logic", dmg=20),
+    "nelson_mandela": W(name="Reconciliación", anim="cast", power="chilean_way", dmg=18),
+    "martin_luther_king": W(name="Tengo un Sueño", anim="megaphone", power="big_speech", dmg=20),
+    "dalai_lama": W(name="Rueda del Dharma", anim="cast", power="celestial_order", dmg=20),
+    "jacobo_grinberg": W(name="Red Sintérgica", anim="cast", power="mind_web", dmg=16, status="invert", status_frames=150),
+})
+POWER_QUOTES.update({
+    "stephen_hawking": "¡Cae al horizonte de sucesos!",
+    "alan_turing": "¡Código descifrado!",
+    "nelson_mandela": "¡Reconciliación!",
+    "martin_luther_king": "¡Tengo un sueño!",
+    "dalai_lama": "¡Om mani padme hum!",
+    "jacobo_grinberg": "¡La conciencia es un campo!",
+})
+IDLE_STYLES.update({
+    "stephen_hawking": "scholar",
+    "alan_turing": "scholar",
+    "nelson_mandela": "boxer",
+    "martin_luther_king": "relaxed",
+    "dalai_lama": "prayer",
+})
+LOOKS.update({
+    "stephen_hawking": dict(glasses="thick"),
+    "dalai_lama": dict(glasses="round"),
+})
 
 
 def validate(c):

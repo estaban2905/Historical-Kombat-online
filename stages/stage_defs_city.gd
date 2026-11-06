@@ -13,7 +13,7 @@ const ARMY := {
 	&"napoleon": "musket", &"ivan_el_terrible": "cossack", &"rasputin": "cossack", &"hernan_cortes": "conquistador",
 	&"cristobal_colon": "sailor", &"nicolas_maquiavelo": "florentine", &"nostradamus": "robe",
 	&"adolf_hitler": "wehr", &"joseph_stalin": "soviet", &"benito_mussolini": "fascist", &"saddam_hussein": "iraqi",
-	&"fidel_castro": "guerrilla", &"augusto_pinochet": "chilean", &"vladimir_putin": "rusguard", &"kim_jong_un": "kpa",
+	&"fidel_castro": "guerrilla", &"augusto_pinochet": "chilean", &"vladimir_putin": "rusguard", &"xi_jinping": "pla", &"kim_jong_un": "kpa",
 	&"nicolas_maduro": "chavista", &"osama_bin_laden": "mujahid", &"pablo_escobar": "sicario", &"donald_trump": "suit",
 	&"albert_einstein": "scientist", &"nikola_tesla": "scientist", &"marie_curie": "scientist", &"leonardo_da_vinci": "scientist",
 }
@@ -45,6 +45,7 @@ static func get_def(id: StringName) -> Dictionary:
 	var style: String = ARMY.get(rival, "militia")
 	var st: Dictionary = StageOps.STYLES.get(style, StageOps.STYLES["legion"])
 	var uni: String = st.get("uni", "b03030")
+	var flag_col: String = st.get("flag", uni)
 	var trim: String = st.get("trim", "e6b43c")
 	var sd: int = absi(String(rival).hash()) % 50
 	var back: Array = [
@@ -72,7 +73,7 @@ static func get_def(id: StringName) -> Dictionary:
 	var mid: Array = [
 		["smoke", 70, 120, 5, "3a3430", 56, 1.4], ["smoke", 300, 100, 5, "3a3430", 60, 1.4],
 		["fire", 40, 176, 12], ["fire", 392, 176, 12],
-		["flag", 22, 176, 80, 30, 18, uni, "", trim], ["flag", 404, 176, 80, 30, 18, uni, "", trim],
+		["flag", 22, 176, 80, 30, 18, flag_col, "", trim], ["flag", 404, 176, 80, 30, 18, flag_col, "", trim],
 		["formation", 6, 90, 184, 15, style, sd, 0.9, 2, 4, true],
 		["formation", 340, 420, 184, 15, style, sd + 3, 0.9, 2, 4, true],
 	]

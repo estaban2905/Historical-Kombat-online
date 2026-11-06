@@ -195,6 +195,24 @@ static func cast(cm: CombatManager, f: Fighter, atk: AttackData) -> void:
 			_spawn(cm, f, atk, {"art": &"gravity", "at_opp": true, "off": Vector2(0, -36), "box": Vector2(46, 72),
 				"delay": 16, "show": true, "life": 24, "pierce": true, "knock": 0.0, "stun": 95,
 				"sound": &"confirm"})
+		&"mind_web":
+			# Grinberg: una red de luz une su mente con la del rival; pierde el control de sus movimientos (invert).
+			# El estado alterado lo aplica el primer golpe; el segundo lo refresca.
+			_spawn(cm, f, atk, {"art": &"mindweb", "at_opp": true, "off": Vector2(0, -40), "box": Vector2(62, 84),
+				"delay": 14, "show": true, "life": 44, "pierce": true, "rehit": 20, "max_hits": 2,
+				"share": 0.5, "knock": 0.0, "stun": 22, "sound": &"confirm"})
+		&"black_hole":
+			# Hawking: se abre un agujero negro delante de él, tira del rival hacia sí (tres tirones) y estalla
+			# lanzándolo por los aires. Daño: 3 tirones de 0,1 + estallido de 0,6.
+			var hole := Vector2(46, -40)
+			_visual(cm, f, f.position + Vector2(hole.x * f.facing, hole.y), {"art": &"blackhole", "box": Vector2(56, 56),
+				"life": 76, "show": true, "sound": &"confirm"})
+			_spawn(cm, f, atk, {"art": &"", "at_opp": true, "off": Vector2(0, -36), "box": Vector2(60, 80),
+				"delay": 14, "life": 44, "pierce": true, "rehit": 14, "max_hits": 3, "pull": true,
+				"share": 0.1, "knock": 190.0, "stun": 18, "nostatus": true})
+			_spawn(cm, f, atk, {"art": &"boom", "color": Color("b070ff"), "off": hole, "box": Vector2(120, 100),
+				"delay": 58, "life": 16, "pierce": true, "radial": true, "share": 0.6, "knock": 230.0,
+				"launch": -300.0, "stun": 44, "shake": 6.0, "sound": &"hit_heavy", "nostatus": true})
 		&"wild_evolution":
 			# Darwin: una pandilla de monos salta sobre el rival.
 			_spawn(cm, f, atk, {"art": &"monkeys", "at_opp": true, "off": Vector2(0, -18), "box": Vector2(46, 40),

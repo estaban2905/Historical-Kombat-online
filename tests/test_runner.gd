@@ -1,5 +1,5 @@
 ## Pruebas automáticas de extremo a extremo (sin ventana).
-## Uso:  godot --headless --path . res://tests/TestRunner.tscn
+## Uso:  godot --headless --path . res://tests/TestRunner.tscn [-- --only=historia]
 ## Simula pulsaciones REALES de teclado (InputEventKey con las teclas del
 ## Input Map) y recorre: menú -> selección -> combate -> rondas -> resultados.
 extends Node
@@ -56,6 +56,14 @@ func wait_scene(scene_name: String, max_frames: int = 120) -> bool:
 # ==========================================================================
 func _run() -> void:
 	print("\n=== HISTORY COMBAT · PRUEBAS AUTOMÁTICAS ===")
+	if OS.get_cmdline_user_args().has("--only=historia"):
+		# Solo el modo Historia (va al final de la lista y es lo que más tarda en llegar).
+		await frames(30)
+		await _test_arcade()
+		_test_story_choice()
+		print("\n=== RESULTADO: %d OK, %d FALLOS ===" % [passed, failed])
+		get_tree().quit(1 if failed > 0 else 0)
+		return
 	_test_resources()
 	_test_catalogs()
 	_test_profile_helpers()
@@ -68,6 +76,7 @@ func _run() -> void:
 	await _test_rounds_and_results()
 	await _test_soak()
 	await _test_arcade()
+	_test_story_choice()
 	print("\n=== RESULTADO: %d OK, %d FALLOS ===" % [passed, failed])
 	get_tree().quit(1 if failed > 0 else 0)
 
@@ -79,7 +88,7 @@ func _test_resources() -> void:
 		var ps := load(path) as PackedScene
 		check(ps != null and ps.can_instantiate(), "escena carga: " + path)
 	var roster := FighterRegistry.all()
-	check(roster.size() == 51, "roster con 51 luchadores (%d)" % roster.size())
+	check(roster.size() == 57, "roster con 57 luchadores (%d)" % roster.size())
 	var seen := {}
 	for d in roster:
 		check(not seen.has(d.id), "id único: %s" % d.id)
@@ -805,6 +814,7 @@ func _test_powers() -> void:
 		var energy_before := c.p1.energy
 		var min_y1 := 0.0
 		var min_y2 := 0.0
+		var min_x2 := 9999.0
 		var max_slow := 0
 		var max_invert := 0
 		var max_root := 0
@@ -816,6 +826,7 @@ func _test_powers() -> void:
 			await frames(1)
 			min_y1 = minf(min_y1, c.p1.position.y - c.p1.floor_y)
 			min_y2 = minf(min_y2, c.p2.position.y - c.p2.floor_y)
+			min_x2 = minf(min_x2, c.p2.position.x)
 			max_slow = maxi(max_slow, c.p2.slow_frames)
 			max_invert = maxi(max_invert, c.p2.invert_frames)
 			max_root = maxi(max_root, c.p2.root_frames)
@@ -836,6 +847,10 @@ func _test_powers() -> void:
 			&"andean_quake": check(min_y2 < -5.0, "%s: el terremoto lanza al rival (%.1f px)" % [d.id, min_y2])
 			&"dark_hypnosis": check(max_invert > 0, "%s: invierte los controles del rival" % d.id)
 			&"gravity_flip": check(min_y2 < -5.0, "%s: el rival flota (%.1f px)" % [d.id, min_y2])
+			&"mind_web": check(max_invert > 0, "%s: la red sintérgica invierte los controles del rival" % d.id)
+			&"black_hole":
+				check(min_x2 < 70.0 + 160.0 - 20.0, "%s: el agujero negro atrae al rival (x mín. %.0f)" % [d.id, min_x2])
+				check(min_y2 < -5.0, "%s: el estallido lanza al rival (%.1f px)" % [d.id, min_y2])
 			&"enlightenment": check(min_y1 < -5.0, "%s: se eleva (%.1f px)" % [d.id, min_y1])
 			&"desert_ghost": check(swapped, "%s: reaparece detrás del rival" % d.id)
 			&"divine_light": check(c.p1.energy > energy_before - atk.energy_cost + 20.0, "%s: recupera energía (%.0f)" % [d.id, c.p1.energy])
@@ -1233,6 +1248,74 @@ func _test_arcade() -> void:
 	check(Game.is_story_nexo_fight() and Game.p2_data().max_health > nexo_base * 1.4, "el Nexo tiene mucha más vida")
 	check(Game.ai_level() == 1.0, "el Nexo usa la IA al máximo")
 	check(Game.story_chapter_of(Game.STORY_NEXO_ID) == Game.STORY_CHAPTERS.size(), "el Nexo tiene su propio capítulo")
+	# La IA depende de cuántos villanos se han vencido, no de su lugar en la lista.
+	Game.p2_fighter_id = ladder[2]
+	Game.story_beaten.clear()
+	Game.story_beaten[0] = true
+	Game.story_beaten[1] = true
+	Game.arcade_stage = 2
+	var lvl_a := Game.ai_level()
+	Game.story_beaten.clear()
+	Game.story_beaten[3] = true
+	Game.story_beaten[5] = true
+	Game.arcade_stage = 4
+	check(is_equal_approx(lvl_a, Game.ai_level()), "la IA no cambia con el orden en que se vencen los villanos")
+	Game.story_beaten[4] = true
+	check(Game.ai_level() > lvl_a, "la IA sube al vencer más villanos")
+	Game.story_beaten.clear()
+	Game.mode = Game.Mode.VERSUS
+
+## Modo Historia: el jugador elige a quién detener dentro de cada época y debe vencerlos a todos (el jefe, el último)
+## antes de pasar a la siguiente. Solo lógica: sin pantallas.
+func _test_story_choice() -> void:
+	print("\n# Historia: elegir a quién detener")
+	Game.mode = Game.Mode.ARCADE
+	Game.start_story(&"napoleon")
+	var ladder := Game.arcade_ladder
+	var ch0: Array[int] = []
+	for i in ladder.size():
+		if Game.story_chapter_of(ladder[i]) == 0 and not Game.story_is_creator(i):
+			ch0.append(i)
+	var boss0: int = -1
+	for i in ch0:
+		if Game.story_is_chapter_boss(i):
+			boss0 = i
+	var others: Array[int] = ch0.filter(func(i): return i != boss0)
+	check(boss0 >= 0 and others.size() >= 3, "la primera época tiene varios villanos y un jefe (%d)" % others.size())
+	check(Game.story_candidates() == others, "al empezar se puede elegir a cualquiera menos al jefe")
+	check(not Game.story_available(boss0), "el jefe está bloqueado al principio")
+	check(Game.story_chapter_fresh() and Game.story_beaten.is_empty(), "al empezar la época es nueva y no hay combates ganados")
+	check(Game.story_frontier() == 0 and Game.story_snapshot()["stage"] == 0, "se guarda el primer combate sin ganar")
+	# Elegir al último de la lista: no obliga a seguir el orden.
+	var pick: int = others[others.size() - 1]
+	Game.story_pick(pick)
+	check(Game.arcade_stage == pick and Game.p2_fighter_id == ladder[pick], "se puede elegir a un villano que no es el primero")
+	Game.arcade_advance()
+	check(Game.story_beaten.has(pick) and Game.story_last_won == pick, "vencerlo lo marca como liberado")
+	check(Game.arcade_stage != pick and Game.story_available(Game.arcade_stage), "después se ofrece otro villano")
+	check(not Game.story_chapter_fresh(), "la época ya no es nueva")
+	check(Game.story_snapshot()["stage"] == 0, "lo guardado sigue siendo el primer combate sin ganar")
+	# Vencer a todos menos al jefe, en orden libre.
+	var left: Array[int] = others.filter(func(i): return i != pick)
+	left.reverse()
+	for k in left.size():
+		check(not Game.story_available(boss0), "el jefe sigue bloqueado con %d villanos por vencer" % (left.size() - k))
+		Game.story_pick(left[k])
+		Game.arcade_advance()
+	check(Game.story_available(boss0) and Game.story_candidates() == [boss0], "al vencer a todos los demás solo queda el jefe")
+	check(Game.arcade_stage == boss0, "el jefe es lo que se ofrece")
+	# Al caer el jefe entra solo el creador poseído y, al vencerlo, empieza la época siguiente.
+	var chapter_before := Game.story_current_chapter()
+	Game.arcade_advance()
+	check(Game.story_is_creator(Game.arcade_stage), "al caer el jefe entra el creador poseído")
+	check(Game.story_candidates().is_empty(), "el creador no se elige: entra solo")
+	Game.arcade_advance()
+	check(Game.story_current_chapter() == chapter_before + 1, "vencido el creador se pasa a la época siguiente")
+	check(Game.story_chapter_fresh() and not Game.story_candidates().is_empty(), "la nueva época ofrece sus villanos")
+	check(Game.story_fragment_earned(0), "se recupera el fragmento del Reloj de la época vencida")
+	# Retomar la partida: lo guardado es el primer combate sin ganar y los anteriores cuentan como vencidos.
+	var save := Game.story_snapshot()
+	check(Game.story_resume(save) and Game.story_beaten.size() == int(save["stage"]), "al retomar, todo lo anterior está vencido")
 	Game.mode = Game.Mode.VERSUS
 
 ## Daño máximo extra que puede sumar la pasiva del atacante durante la prueba (la radiación de Curie).

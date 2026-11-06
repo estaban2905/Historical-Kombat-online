@@ -335,7 +335,7 @@ func _epilogue() -> PackedStringArray:
 	return PackedStringArray()
 
 func _arcade_status() -> String:
-	var fight := "COMBATE %d/%d" % [Game.arcade_stage + 1, Game.arcade_ladder.size()]
+	var fight := "COMBATE %d/%d" % [Game.story_fight_number(), Game.arcade_ladder.size()]
 	match _arcade:
 		&"complete":
 			return "¡HISTORIA COMPLETADA!"

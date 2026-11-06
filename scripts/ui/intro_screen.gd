@@ -4,7 +4,7 @@
 ##   III  LA INVASIÓN              los ejércitos de todas las épocas toman las ciudades de la Tierra
 ##   IV   EL ULTIMÁTUM DEL NEXO    la Tierra conquistada y el Nexo habla al mundo
 ##   V    LA RESISTENCIA           el último bastión entre ruinas
-##   VI   LOS CAMPEONES            presentación de los 15 héroes, la Torre del Reloj y el círculo final
+##   VI   LOS CAMPEONES            presentación de los campeones, la Torre del Reloj y el círculo final
 ##   VI   IMPACTO Y LOGOTIPO       choque, corte a negro, HISTORY COMBAT, PRESS START
 ## Todo se dibuja por código sobre el reloj de la música (assets/music/intro.ogg) y la narración
 ## (assets/sounds/intro/voice_N.wav). Solo Enter salta la intro y va al inicio de sesión.
@@ -38,12 +38,12 @@ const BRASS_D := Color("5e4216")
 
 ## Narración: inicio (s), duración (s) y subtítulos (se reparten según el largo de cada uno).
 const VOICE_T: Array[float] = [1.2, 18.4, 28.6, 36.0, 68.0, 104.0, 116.6]
-const VOICE_LEN: Array[float] = [14.40, 9.83, 6.20, 11.10, 18.33, 6.76, 3.69]
+const VOICE_LEN: Array[float] = [15.48, 9.83, 6.20, 13.68, 18.33, 6.76, 3.69]
 const SUBS: Array = [
-	["GINEBRA, 2031.", "EN EL CERN, UN EQUIPO DE CIENTÍFICOS INTENTA\nCONTROLAR LA GRAVEDAD.", "ES UN RIESGO ENORME,\nPERO LO CORREN IGUAL."],
+	["GINEBRA, 2031.", "POLÍTICOS Y EMPRESARIOS CODICIOSOS QUIEREN\nCONTROLAR LA GRAVEDAD, POR DINERO Y PODER.", "PRESIONAN AL CERN, QUE ARRIESGA TODO."],
 	["NADIE LO ORDENÓ:\nDE LA COLISIÓN NACIÓ EL NEXO.", "VIO TODA LA HISTORIA A LA VEZ,\nY QUISO SER SU ORIGEN."],
 	["CAPTURÓ A CUATRO GENIOS Y LOS OBLIGÓ", "A CONSTRUIR EL RELOJ DEL ORIGEN."],
-	["DE LA GRIETA CAYERON LOS IMPERIOS\nY LOS EJÉRCITOS DE TODAS LAS ÉPOCAS.", "HOY MARCHAN SOBRE LA TIERRA,\nY LAS CIUDADES ARDEN."],
+	["LA COLISIÓN MEZCLÓ LAS ÉPOCAS: DE LA GRIETA\nCAYERON LOS IMPERIOS Y LOS EJÉRCITOS DE TODOS LOS TIEMPOS.", "HOY MARCHAN SOBRE LA TIERRA,\nY LAS CIUDADES ARDEN."],
 	["EL NEXO HABLÓ AL MUNDO:", "CADA UNO ANHELA VOLVER AL DÍA EN QUE PERDIÓ.", "QUIEN CONQUISTE LA TIERRA, REGRESARÁ.", "PERO SOLO UNO RECLAMARÁ MI PODER...", "Y DECIDIRÁ SI EL TIEMPO SE REPARA,\nO SE ESCRIBE DE NUEVO."],
 	["LA RESISTENCIA SE LEVANTA.\nSOLO UNO DETENDRÁ AL NEXO."],
 	[],
@@ -612,10 +612,10 @@ func _screen_ring(sr: Rect2, phase: int, t: float, pc: Color) -> void:
 		draw_line(p1, p2, Color(VIOLET, 0.6), 1.0)
 		draw_circle(p1, 1.6, Color(pc, 0.9))
 	draw_circle(c, 3.0 + float(phase) * (0.5 + 0.5 * sin(t * 9.0)) * 2.0, Color(1, 1, 1, 0.9))
-	var title: String = ["CONTROL DE GRAVEDAD · OK", "ANOMALÍA GRAVITATORIA", "COLISIÓN SIN AUTORIZACIÓN"][phase]
+	var title: String = ["GRAVEDAD = DINERO Y PODER", "ANOMALÍA GRAVITATORIA", "COLISIÓN SIN AUTORIZACIÓN"][phase]
 	if phase == 0 or fposmod(t, 0.8) < 0.55:
 		_txt(self, sr.position.y + 12.0, title, 8, pc, sr.position.x, sr.size.x, 1)
-	var l1: String = ["RIESGO ACEPTADO · 13.6 TEV", "NÚCLEO IA: ACTIVIDAD 340 %", "ORDEN DE ORIGEN DESCONOCIDO"][phase]
+	var l1: String = ["PRESIÓN POLÍTICA · RIESGO ACEPTADO","NÚCLEO IA: ACTIVIDAD 340 %", "ORDEN DE ORIGEN DESCONOCIDO"][phase]
 	_txt(self, sr.end.y - 16.0, l1, 8, Color(HKTheme.PAPER, 0.8), sr.position.x, sr.size.x, 1)
 	if phase == 2 and fposmod(t, 0.6) < 0.4:
 		_txt(self, sr.end.y - 6.0, "ACCESO DENEGADO", 8, pc, sr.position.x, sr.size.x, 1)
@@ -1293,10 +1293,10 @@ func _fx_collider() -> void:
 	# El objetivo del experimento y el riesgo que aceptan correr.
 	var oa := _ph(2.2, 2.8)
 	if oa > 0.0:
-		_txt(_fx, 66.0, "CONTROL DE LA GRAVEDAD", 8, Color(HKTheme.PAPER, oa * a), 0.0, W, 1)
+		_txt(_fx, 66.0, "CONTROL DE LA GRAVEDAD = DINERO Y PODER", 8, Color(HKTheme.PAPER, oa * a), 0.0, W, 1)
 	var ra := _ph(3.0, 3.6)
 	if ra > 0.0:
-		_txt(_fx, 78.0, "RIESGO 8 % · ACEPTADO", 8, Color(Color("ffb030"), ra * a), 0.0, W, 1)
+		_txt(_fx, 78.0, "PRESIÓN DE INVERSORES Y POLÍTICOS · RIESGO 8 % ACEPTADO", 8, Color(Color("ffb030"), ra * a), 0.0, W, 1)
 	# Datos del experimento.
 	HKTheme.draw_text(_fx, Vector2(8, 38), "CERN · GINEBRA", 8, Color(HKTheme.PAPER, 0.85 * a), HORIZONTAL_ALIGNMENT_LEFT, 120.0, 1)
 	HKTheme.draw_text(_fx, Vector2(8, 49), "SECTOR 7", 8, Color(HKTheme.MUTED, a), HORIZONTAL_ALIGNMENT_LEFT, 120.0, 1)
@@ -1512,7 +1512,7 @@ func _fx_select() -> void:
 		_fx.draw_rect(Rect2(0, 0, W, H), Color(1, 1, 1, 0.3 * (1.0 - lt / 0.1)))
 
 func _fx_circle() -> void:
-	_txt(_fx, 40.0, "QUINCE CAMPEONES. UNA SOLA TIERRA.", 8, Color(HKTheme.GOLD, _ph(T_CIRCLE + 0.5, T_CIRCLE + 1.5)))
+	_txt(_fx, 40.0, "LOS CAMPEONES DE TODAS LAS ÉPOCAS. UNA SOLA TIERRA.", 8, Color(HKTheme.GOLD, _ph(T_CIRCLE + 0.5, T_CIRCLE + 1.5)))
 	# Nombre del luchador que pasa al frente del círculo.
 	if _t > T_CIRCLE + 2.0:
 		var front := 0

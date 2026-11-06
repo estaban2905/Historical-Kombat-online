@@ -18,6 +18,12 @@ static func get_def(id: StringName) -> Dictionary:
 		&"liudmila_pavlichenko": return _liudmila()
 		&"nostradamus": return _nostradamus()
 		&"el_nexo": return _nexo()
+		&"stephen_hawking": return _hawking()
+		&"alan_turing": return _turing()
+		&"nelson_mandela": return _mandela()
+		&"martin_luther_king": return _king()
+		&"dalai_lama": return _dalai()
+		&"jacobo_grinberg": return _grinberg()
 	return {}
 
 static func _nexo() -> Dictionary:
@@ -307,3 +313,117 @@ static func _nostradamus() -> Dictionary:
 			["birds", 3, 24, 20, 60, 14, "1a1a2a", 1.0],
 		],
 	}
+
+static func _hawking() -> Dictionary:
+	return {
+		"name": "CAMBRIDGE · 1974",
+		"back": [
+			["sky", ["05020f", "0a0420", "140838", "1e0e50", "2a1668"], 176],
+			["stars", 70, 3, 120, "ffe8ff"],
+			["glow", 213, 80, 110, "9a4dff", 0.22],
+			["disc", 213, 70, 24, "07030f", "1a0a30"],
+			["rect", 40, 112, 96, 64, "2a2a3a"], ["tent", 88, 112, 106, 24, "3a3a4a", "2a2a3a"],
+			["grid", 48, 122, 5, 2, 16, 16, 8, 10, "e8d890"],
+			["rect", 300, 124, 80, 52, "2a2a3a"], ["grid", 306, 132, 4, 2, 17, 14, 7, 8, "e8d890"],
+			["ground", 176, "noise", "1a1a2a", "10101c", "2a2a40", 201],
+		],
+		"mid": [
+			["orbit", 213, 70, 38, 12, 3.0, 2, "ffd070"],
+			["birds", 2, 19, 24, 70, 12, "2a2a2a", 0.6],
+		],
+	}
+
+static func _turing() -> Dictionary:
+	return {
+		"name": "BLETCHLEY PARK · 1942",
+		"back": [
+			["sky", ["5a6a7a", "6e7e8e", "8292a2", "98a8b6", "b0bfcb"], 176],
+			["clouds", 5, 18, 8, 50, "c8d0d8", "a8b2bc", 1.2],
+			["rect", 80, 96, 150, 80, "8a5a3a"], ["tent", 155, 96, 164, 26, "4a3a32", "3a2e28"],
+			["grid", 90, 108, 8, 3, 16, 16, 8, 10, "e8d890"],
+			["rect", 270, 120, 100, 56, "7a4e32"], ["tent", 320, 120, 110, 18, "4a3a32", "3a2e28"],
+			["grid", 280, 130, 5, 2, 16, 14, 8, 8, "e8d890"],
+			["tree", 40, 176, 100, "3a5a2a", "3a2a1a"], ["tree", 395, 176, 90, "3a5a2a", "3a2a1a"],
+			["ground", 176, "noise", "4a5a38", "36442a", "5a6a46", 202],
+		],
+		"mid": [
+			["birds", 3, 19, 24, 70, 12, "2a2a2a", 1.0],
+			["formation", 30, 120, 184, 30, "scientist", 203, 1.0, 1, 4, false, 1, "none"],
+		],
+	}
+
+static func _mandela() -> Dictionary:
+	return {
+		"name": "PRETORIA · 1994",
+		"back": [
+			["sky", ["4a8ad0", "68a2dc", "88bae6", "a8d0ee", "c8e2f4"], 176],
+			["disc", 340, 44, 16, "fff4c0"],
+			["rect", 120, 100, 180, 76, "d8c8a0"], ["tent", 210, 100, 196, 24, "8a6a4a", "6a4a32"],
+			["grid", 132, 112, 8, 2, 20, 22, 12, 12, "5a4a3a"],
+			["rect", 60, 124, 36, 52, "d8c8a0"], ["rect", 324, 124, 36, 52, "d8c8a0"],
+			["palm", 36, 176, 70], ["palm", 400, 176, 62],
+			["ground", 176, "noise", "7a9a4a", "5a7a36", "8aaa58", 204],
+		],
+		"mid": [
+			["clouds", 4, 18, 8, 50, "ffffff", "d8e4f0", 1.6],
+			["flag", 213, 176, 96, 30, 20, "20a050", "f0d020"],
+			["birds", 3, 19, 24, 70, 12, "2a2a2a", 1.0],
+		],
+	}
+
+static func _king() -> Dictionary:
+	return {
+		"name": "WASHINGTON · 1963",
+		"back": [
+			["sky", ["5a98d8", "74aee2", "90c2ea", "acd4f0", "c8e4f6"], 176],
+			["clouds", 4, 18, 8, 50, "ffffff", "d8e4f0", 1.4],
+			["rect", 100, 96, 226, 80, "e8e4d8"], ["tent", 213, 96, 240, 24, "d0ccc0", "b8b4a8"],
+			["rect", 112, 106, 12, 70, "f4f0e4"], ["rect", 152, 106, 12, 70, "f4f0e4"], ["rect", 192, 106, 12, 70, "f4f0e4"],
+			["rect", 232, 106, 12, 70, "f4f0e4"], ["rect", 272, 106, 12, 70, "f4f0e4"], ["rect", 306, 106, 12, 70, "f4f0e4"],
+			["tree", 40, 176, 100, "3a7a2a", "5a3a22"], ["tree", 396, 176, 96, "3a7a2a", "5a3a22"],
+			["ground", 176, "noise", "7a9a58", "5a7a40", "8aaa68", 205],
+		],
+		"mid": [
+			["birds", 4, 19, 24, 70, 12, "2a2a2a", 1.0],
+			["formation", 30, 370, 184, 24, "scientist", 206, 1.0, 1, 4, false, 1, "none"],
+		],
+	}
+
+static func _dalai() -> Dictionary:
+	return {
+		"name": "DHARAMSALA · HIMALAYA",
+		"back": [
+			["sky", ["7a9ad0", "98b4dc", "b4cce6", "d0e0f0", "e8f0f8"], 176],
+			["disc", 90, 46, 16, "fff4d0"],
+			["mount", 150, 70, "e8eef6", 2.4, "", 0.5], ["mount", 164, 54, "b8c8dc", 5.2, "", 0.7],
+			["mount", 176, 36, "6a7a8a", 3.6, "", 0.9],
+			["rect", 150, 112, 120, 64, "a02828"], ["tent", 210, 112, 134, 26, "e0a020", "c08818"],
+			["grid", 160, 124, 5, 2, 18, 16, 8, 10, "f0d070"],
+			["ground", 176, "noise", "8a8a6a", "6a6a52", "a0a07e", 207],
+		],
+		"mid": [
+			["clouds", 5, 18, 8, 50, "ffffff", "d8e4f0", 1.0],
+			["flag", 92, 176, 70, 24, 16, "2a60c0", "e0c020"],
+			["flag", 330, 176, 70, 24, 16, "c02020", "f0f0f0"],
+			["birds", 3, 19, 24, 70, 12, "2a2a2a", 1.0],
+		],
+	}
+
+static func _grinberg() -> Dictionary:
+	return {
+		"name": "CIUDAD UNIVERSITARIA · MÉXICO",
+		"back": [
+			["sky", ["3a2a5a", "6a3a6a", "a85a70", "d88a6a", "f0b878"], 176],
+			["disc", 330, 52, 14, "ffe8b0"],
+			["mount", 120, 80, "e8eef6", 2.6, "", 0.5], ["mount", 136, 62, "8a7a9a", 5.0, "", 0.7],
+			["mount", 176, 40, "4a3a5a", 3.4, "", 0.9],
+			["rect", 130, 100, 160, 76, "9a7a5a"], ["tent", 210, 100, 176, 20, "6a4a3a", "523830"],
+			["grid", 142, 110, 7, 3, 20, 16, 10, 10, "f0d890"],
+			["palm", 60, 176, 70], ["palm", 380, 176, 64],
+			["ground", 176, "noise", "7a6a4a", "5a4c36", "8a7a58", 208],
+		],
+		"mid": [
+			["birds", 3, 24, 20, 60, 14, "2a1a2a", 1.0],
+		],
+	}
+

@@ -15,6 +15,8 @@ const DEFAULTS := {
 	"charles_darwin": ["napoleon", 36],
 	"gengis_kan": ["napoleon", 50],
 	"albert_einstein": ["napoleon", 36],
+	"stephen_hawking": ["napoleon", 60],
+	"jacobo_grinberg": ["napoleon", 55],
 }
 
 var out_dir: String = "user://power_shots"

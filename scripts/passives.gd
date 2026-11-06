@@ -126,6 +126,13 @@ const INFO := {
 	&"plata_o_plomo": ["PLATA O PLOMO", "Cada golpe que conecta le da 5 de energía extra."],
 	&"judoca": ["JUDOCA", "A corta distancia pega un 20% más fuerte."],
 	&"francotiradora": ["FRANCOTIRADORA", "Desde lejos (más de 120 px) pega un 25% más fuerte."],
+	# --- Héroes de la actualidad ---
+	&"horizonte_de_sucesos": ["HORIZONTE DE SUCESOS", "Sus poderes y proyectiles hacen un 20% más de daño."],
+	&"enigma_descifrado": ["ENIGMA DESCIFRADO", "Su primer golpe limpio de cada ronda pega un 30% más."],
+	&"veintisiete_anos": ["VEINTISIETE AÑOS", "Con menos del 40% de vida, recibe un 20% menos de daño."],
+	&"marcha_pacifica": ["MARCHA PACÍFICA", "Al recibir un golpe gana 6 de energía extra."],
+	&"paz_interior": ["PAZ INTERIOR", "Recupera 0,5 de vida por segundo si no está en peligro."],
+	&"mente_expandida": ["MENTE EXPANDIDA", "Su energía se recupera 2 puntos más rápido por segundo."],
 }
 
 ## id → [efecto, parámetro a, parámetro b]. Ver el comentario de cada efecto arriba.
@@ -188,6 +195,13 @@ const CFG := {
 	&"plata_o_plomo": [ENERGY_ON_HIT, 5.0, 0.0],
 	&"judoca": [RANGE_NEAR, 40.0, 0.2],
 	&"francotiradora": [RANGE_FAR, 120.0, 0.25],
+	# --- Héroes de la actualidad ---
+	&"horizonte_de_sucesos": [PROJECTILE_DAMAGE, 0.2, 0.0],
+	&"enigma_descifrado": [OPENING, 0.3, 0.0],
+	&"veintisiete_anos": [REDUCE_LOW_HP, 0.4, 0.2],
+	&"marcha_pacifica": [PAIN_ENERGY, 6.0, 0.0],
+	&"paz_interior": [REGEN, 0.5, 0.0],
+	&"mente_expandida": [ENERGY_REGEN, 2.0, 0.0],
 }
 
 # --- Consultas ------------------------------------------------------------------

@@ -34,7 +34,7 @@ const LORE := {
 	],
 	&"nicolas_maduro": [
 		"Fue conductor de autobús y sindicalista antes de llegar a presidente de Venezuela en 2013.",
-		"Heredó el cargo de Hugo Chávez y gobernó en medio de una crisis económica y política.",
+		"Gobernó en plena crisis hasta enero de 2026, cuando EE. UU. lo capturó. Espera juicio y se declara inocente.",
 		"Lanza arepas que rebotan y golpean al rival.",
 		"Un baile sorpresa desconcierta al rival y le hace perder el control.",
 	],
@@ -313,6 +313,42 @@ const LORE := {
 		"Defendió Odesa y Sebastopol y fue una de las tiradoras más certeras de la historia.",
 		"Un disparo certero que cruza la pantalla.",
 		"Fija al rival en su mira, el tiempo se ralentiza y una bala de energía lo atraviesa.",
+	],
+	&"stephen_hawking": [
+		"Físico británico que estudió los agujeros negros y el origen del universo. Enfermó muy joven y aun así siguió investigando.",
+		"Demostró que los agujeros negros emiten radiación y escribió Breve historia del tiempo para explicar el cosmos a todos.",
+		"Lanza una esfera violeta de radiación que cruza la pantalla.",
+		"Abre un agujero negro delante de él: tira del rival hacia su centro tres veces y estalla, lanzándolo por los aires.",
+	],
+	&"alan_turing": [
+		"Matemático británico, padre de la informática. Imaginó una máquina capaz de calcular cualquier cosa calculable.",
+		"En la Segunda Guerra Mundial descifró los mensajes de la máquina Enigma y acortó la guerra.",
+		"Lanza una bomba criptológica que explota al llegar al rival.",
+		"Analiza al rival y descarga tres golpes calculados al milímetro.",
+	],
+	&"nelson_mandela": [
+		"Abogado y boxeador sudafricano. Luchó contra el apartheid y pasó 27 años en prisión, la mayoría en Robben Island.",
+		"Al salir fue presidente de Sudáfrica (1994-1999) y eligió la reconciliación en vez de la venganza. Nobel de la Paz en 1993.",
+		"Un gancho de boxeador que lanza al rival por los aires.",
+		"Levanta un escudo que absorbe un golpe y lo devuelve como una onda de energía.",
+	],
+	&"martin_luther_king": [
+		"Pastor estadounidense y líder del movimiento por los derechos civiles. Defendió la lucha pacífica contra la segregación.",
+		"En 1963 pronunció «Tengo un sueño» ante 250.000 personas. Nobel de la Paz en 1964, fue asesinado en 1968.",
+		"Una onda de voz que cruza la pantalla.",
+		"Un grito enorme crea una onda sonora gigante que empuja al rival.",
+	],
+	&"dalai_lama": [
+		"Líder espiritual del budismo tibetano y Premio Nobel de la Paz en 1989. Vive en el exilio desde 1959.",
+		"Predica la compasión y el diálogo. Para su pueblo es la reencarnación de un maestro que elige volver para ayudar.",
+		"Un rayo de energía naranja que cruza la pantalla.",
+		"Símbolos luminosos de la Rueda del Dharma golpean al rival y lo empujan.",
+	],
+	&"jacobo_grinberg": [
+		"Neurofisiólogo mexicano que investigó la conciencia y la meditación. Fundó su propia teoría, la «sintérgica».",
+		"Desapareció en 1994 y nunca se supo qué le pasó. Muchas de sus ideas no están aceptadas por la ciencia.",
+		"Un orbe de luz turquesa que cruza la pantalla.",
+		"Teje una red de luz entre su mente y la del rival: el rival pierde el control de sus movimientos.",
 	],
 }
 
