@@ -54,6 +54,23 @@ VOICES = {
 }
 
 
+FEMALE = {"cleopatra", "juana_de_arco", "boudica", "isabel_ii", "janequeo", "mariya_oktyabrskaya", "liudmila_pavlichenko"}
+
+
+def voice_for(speaker: str) -> tuple:
+    """Voz propia si la tiene; si no, una por defecto (Raul o Sabina) con tono y ritmo repartidos por el id."""
+    if speaker in VOICES:
+        return VOICES[speaker]
+    h = sum(ord(c) for c in speaker)
+    rate = 0.88 + (h % 7) * 0.025
+    pitch = 0.85 + (h % 5) * 0.05
+    tone = 0.88 + (h % 6) * 0.04
+    voice = "Sabina" if speaker in FEMALE else "Raul"
+    if voice == "Sabina":
+        tone += 0.08
+    return (voice, round(rate, 3), round(pitch, 2), _f(round(tone, 3), "", "aecho=0.7:0.6:60:0.1"))
+
+
 def parse_scenes() -> dict:
     """escena -> [(quién habla, texto)] leído de scripts/story_scenes.gd."""
     text = SCENES_GD.read_text(encoding="utf-8")
@@ -86,7 +103,7 @@ def ps_for(voice: str, rate: float, pitch: float) -> str:
 
 
 def render_line(tmp: Path, speaker: str, text: str, dest: Path) -> None:
-    voice, rate, pitch, filt = VOICES[speaker]
+    voice, rate, pitch, filt = voice_for(speaker)
     script = tmp / ("tts_%s_%s_%s.ps1" % (voice, rate, pitch))
     script.write_text(ps_for(voice, rate, pitch), encoding="utf-8-sig")
     txt = tmp / "line.txt"
