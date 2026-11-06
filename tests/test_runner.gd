@@ -13,6 +13,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	# El runner deja de ser la "escena actual" para sobrevivir a los cambios de escena.
 	get_tree().current_scene = null
+	# Las partidas de Historia de las pruebas van a su propio archivo: así no pisan las reales ni se arrastran de una corrida a otra.
+	Backend.story_path = "user://story_runner.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Backend.story_path))
 	_run.call_deferred()
 
 func check(cond: bool, label: String) -> void:

@@ -54,6 +54,14 @@ static func get_def(id: StringName) -> Dictionary:
 		["skyline", 176, v["far"], sd + 1, 16, 26, 36, 80, "", true],
 		["skyline", 176, v["near"], sd + 2, 14, 22, 40, 100, v["win"], true],
 	]
+	# Kim aprovecha el caos para multiplicar su arsenal: misiles listos para despegar entre las ruinas.
+	var missile_smoke: Array = []
+	if rival == &"kim_jong_un":
+		for mx in [52, 150, 276, 376]:
+			back.append(["rect", mx - 3, 118, 6, 58, "c8c8d0"])
+			back.append(["poly", [mx - 3, 118, mx, 104, mx + 3, 118], "c02020"])
+			back.append(["rect", mx - 6, 164, 12, 12, "6a6a78"])
+			missile_smoke.append(["smoke", mx, 176, 4, "9a9288", 40, 1.0])
 	if v.get("pyramids", false):
 		back.append(["pyramid", 80, 176, 90, "c9a050", "a07a34"])
 		back.append(["pyramid", 346, 176, 70, "c9a050", "a07a34"])
@@ -68,6 +76,7 @@ static func get_def(id: StringName) -> Dictionary:
 		["formation", 6, 90, 184, 15, style, sd, 0.9, 2, 4, true],
 		["formation", 340, 420, 184, 15, style, sd + 3, 0.9, 2, 4, true],
 	]
+	mid.append_array(missile_smoke)
 	if v.get("cannons", false):
 		mid.append(["cannonfire", 30, 176, 1, 5.0, 0.0])
 		mid.append(["cannonfire", 396, 176, -1, 6.0, 1.0])

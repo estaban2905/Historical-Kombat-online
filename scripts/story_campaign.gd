@@ -33,7 +33,7 @@ const CREATORS: Array[StringName] = [&"nikola_tesla", &"albert_einstein", &"mari
 ## Lo que está en juego en cada fragmento del tiempo (la animación de la época ya trae la voz del Nexo).
 ## Todos los luchadores quieren volver a su época a corregir su derrota; el jugador debe impedirlo.
 const NEXO_LINES := [
-	["TODOS QUIEREN CONQUISTAR LA TIERRA", "PARA VOLVER A GANAR. DETENLOS."],
+	["LOS VIVOS QUIEREN MÁS PODER; LOS MUERTOS,", "VOLVER A GANAR. DETENLOS A TODOS."],
 	["LA GRIETA SIGUE ABIERTA. LOS EJÉRCITOS", "AVANZAN SOBRE LAS CIUDADES."],
 	["CORONAS, FLOTAS Y REVOLUCIONES", "QUIEREN REESCRIBIR SU DERROTA."],
 	["EL FRENTE MÁS ANTIGUO. SI SE", "REESCRIBE, TODO LO DEMÁS SE DERRUMBA."],

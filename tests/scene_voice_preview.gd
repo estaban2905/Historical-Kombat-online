@@ -5,6 +5,8 @@
 extends Node
 
 func _ready() -> void:
+	# Las vistas previas no guardan en la partida real del jugador.
+	Backend.story_path = "user://story_preview.cfg"
 	var player := &"napoleon"
 	var rival := &"albert_einstein"
 	for arg in OS.get_cmdline_user_args():

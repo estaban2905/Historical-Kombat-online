@@ -11,6 +11,8 @@ const RESULTS_TIME := 4.5
 const CONTINUES: Array[int] = [0, 0, 0, 1, 1, 2]
 
 func _ready() -> void:
+	# Las vistas previas no guardan en la partida real del jugador.
+	Backend.story_path = "user://story_preview.cfg"
 	var player := &"napoleon"
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--player="):
