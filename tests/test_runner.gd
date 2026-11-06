@@ -1098,7 +1098,7 @@ func _test_arcade() -> void:
 		seen[id] = true
 	check(seen.size() == ladder.size() and not seen.has(Game.p1_fighter_id), "rivales sin repetir y sin incluir al jugador")
 	check(c.p2.data.id == ladder[0] and Game.arcade_stage == 0, "el primer rival es el primero de la escalera")
-	check(c.stage_name() == StageRegistry.name_for(ladder[0]) and Game.stage_owner(2) == ladder[0], "arcade: el rival aparece en su propio escenario")
+	check(c.stage_name() == StageRegistry.name_for(Game.stage_owner(2)) and Game.stage_owner(2) == StringName(StageDefsCity.PREFIX + String(ladder[0])), "arcade: el rival aparece en la ciudad invadida por su ejército")
 	check(c.ai != null and not c.p2.input.use_keyboard, "P2 lo maneja la CPU y no el teclado")
 	check(absf(c.ai.level - 0.5) < 0.001, "nivel de IA NORMAL = 0.5 (%.2f)" % c.ai.level)
 	check(await _wait_fight_phase(), "ROUND 1 / FIGHT!")

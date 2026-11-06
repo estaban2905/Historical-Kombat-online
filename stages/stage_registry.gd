@@ -1,4 +1,4 @@
-## Catálogo de escenarios: cada luchador tiene el suyo.
+## Catálogo de escenarios: cada luchador tiene el suyo y, en el modo Historia, la ciudad invadida del rival ("city:<id>").
 ## Las definiciones están en stage_defs_a.gd ... stage_defs_d.gd (listas de
 ## operaciones de dibujo). Julio César usa el Coliseo original.
 class_name StageRegistry
@@ -15,7 +15,9 @@ static func def_for(fighter_id: StringName) -> Dictionary:
 	if fighter_id == COLOSSEUM_OWNER:
 		return {}
 	if not _cache.has(fighter_id):
-		var d := StageDefsA.get_def(fighter_id)
+		var d := StageDefsCity.get_def(fighter_id)
+		if d.is_empty():
+			d = StageDefsA.get_def(fighter_id)
 		if d.is_empty():
 			d = StageDefsB.get_def(fighter_id)
 		if d.is_empty():

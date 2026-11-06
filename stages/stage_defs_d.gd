@@ -22,7 +22,7 @@ static func get_def(id: StringName) -> Dictionary:
 
 static func _nexo() -> Dictionary:
 	return {
-		"name": "LA GRIETA DEL NEXO",
+		"name": "LA TORRE DEL RELOJ",
 		"back": [
 			["sky", ["05020a", "0a0415", "12081f", "1c0c2c", "2a1238"], 176],
 			["stars", 60, 3, 120, "ffe8a0"],
@@ -31,6 +31,7 @@ static func _nexo() -> Dictionary:
 			["poly", [196, 0, 206, 60, 200, 110, 213, 176, 226, 110, 220, 60, 230, 0], "2a1238"],
 			["poly", [206, 0, 211, 60, 208, 110, 213, 150, 218, 110, 215, 60, 220, 0], "ffd24a"],
 			["rect", 30, 120, 18, 56, "160c1c"], ["rect", 370, 108, 22, 68, "160c1c"],
+			["gear", 90, 104, 34, "5e4216", 0.5], ["gear", 336, 104, 34, "5e4216", -0.5],
 			["ground", 176, "noise", "0c060f", "1a0c22", "2a1238", 97],
 		],
 		"mid": [

@@ -26,16 +26,16 @@ const VIOLET := Color("9a4dff")
 
 ## Por época: título, subtítulos (mismo texto que la voz) y duración de la voz (s).
 const ERAS: Array = [
-	{"title": "FRAGMENTO I · EL MUNDO ACTUAL", "len": 8.41,
-		"subs": ["CADA ÉPOCA ES AHORA UN FRAGMENTO ROTO.", "ESTE LO GOBIERNAN LOS QUE GRITAN MÁS FUERTE."]},
-	{"title": "FRAGMENTO II · EL SIGLO XX", "len": 5.60,
-		"subs": ["UN SIGLO DE GUERRAS.", "EL TIEMPO AÚN SANGRA."]},
-	{"title": "FRAGMENTO III · REVOLUCIONES, IMPERIOS Y DESCUBRIMIENTOS", "len": 9.56,
-		"subs": ["IDEAS, REINOS Y FLOTAS: PODER DE SOBRA", "Y POCA MEMORIA. AQUÍ SE FORJÓ EL MUNDO MODERNO."]},
-	{"title": "FRAGMENTO IV · LA ANTIGÜEDAD Y LA EDAD MEDIA", "len": 7.82,
-		"subs": ["LA CUNA DE LA HISTORIA.", "AQUÍ NACIÓ EL PODER, Y AQUÍ DECIDES CÓMO TERMINA."]},
-	{"title": "EL JUICIO DEL NEXO", "len": 6.10,
-		"subs": ["HAS LLEGADO HASTA MÍ.", "DEMUESTRA QUE MERECES EL TIEMPO."]},
+	{"title": "FRENTE I · EL MUNDO ACTUAL", "len": 8.02,
+		"subs": ["LOS EJÉRCITOS YA ESTÁN AQUÍ.", "ESTE FRENTE LO GOBIERNAN", "LOS QUE GRITAN MÁS FUERTE."]},
+	{"title": "FRENTE II · EL SIGLO XX", "len": 7.17,
+		"subs": ["UN SIGLO DE GUERRAS CAE SOBRE TUS CIUDADES.", "EL TIEMPO AÚN SANGRA."]},
+	{"title": "FRENTE III · REVOLUCIONES, IMPERIOS Y DESCUBRIMIENTOS", "len": 7.38,
+		"subs": ["IDEAS, REINOS Y FLOTAS INVADEN TU MUNDO:", "PODER DE SOBRA Y POCA MEMORIA."]},
+	{"title": "FRENTE IV · LA ANTIGÜEDAD Y LA EDAD MEDIA", "len": 9.19,
+		"subs": ["LA CUNA DE LA HISTORIA MARCHA SOBRE LA TIERRA.", "AQUÍ NACIÓ EL PODER, Y AQUÍ DECIDES CÓMO TERMINA."]},
+	{"title": "EL JUICIO DEL NEXO", "len": 6.13,
+		"subs": ["HAS LLEGADO A MI TORRE.", "DEMUESTRA QUE MERECES EL TIEMPO."]},
 ]
 
 var chapter: int = 0

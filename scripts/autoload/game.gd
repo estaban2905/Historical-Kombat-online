@@ -168,11 +168,14 @@ func _boss_boost() -> Array:
 	return []
 
 ## Luchador cuyo escenario se usa en la ronda dada. En versus, la ronda 1
-## es el escenario de P1, la 2 el de P2, y así alternando. En arcade, todas
-## las rondas son en el escenario del rival.
+## es el escenario de P1, la 2 el de P2, y así alternando. En el modo Historia (arcade), todas las
+## rondas son en la ciudad invadida con el ejército del rival ("city:<id>"), salvo el Nexo, que
+## pelea en su propia Torre del Reloj.
 func stage_owner(round_number: int) -> StringName:
 	if mode == Mode.ARCADE:
-		return p2_fighter_id
+		if is_story_nexo_fight():
+			return p2_fighter_id
+		return StringName(StageDefsCity.PREFIX + String(p2_fighter_id))
 	return p1_fighter_id if round_number % 2 == 1 else p2_fighter_id
 
 ## Reto entre amigos en curso: código de la sala privada y nombre del amigo ("" = ninguno: cola pública).

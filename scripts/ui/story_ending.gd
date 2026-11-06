@@ -23,7 +23,7 @@ const CLOCK_C := Vector2(213.0, 70.0)
 const CLOCK_R := 38.0
 
 const NEXO_LINES: Array = [
-	["ME HAS VENCIDO. TODAS LAS ÉPOCAS", "CAYERON ANTE TI Y AHORA ESPERAN."],
+	["ME HAS VENCIDO. LOS EJÉRCITOS SE", "DESVANECEN Y LA TIERRA RESPIRA."],
 	["EL PODER DEL NEXO ES TUYO.", "¿QUÉ HARÁS CON EL TIEMPO?"],
 ]
 ## Por decisión: voz (end_N), título, color del título y subtítulos de la animación.

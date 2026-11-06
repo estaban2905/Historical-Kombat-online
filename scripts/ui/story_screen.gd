@@ -2,7 +2,7 @@
 ##   Arriba   la línea del tiempo: un punto por rival, de hoy (izquierda) al origen (derecha),
 ##            agrupados en capítulos (I, II, III...). Dorado = vencido, parpadeo = combate actual,
 ##            rombo = jefe de la época, "?" = el Nexo, el combate final.
-##   Centro   tu luchador y el rival sobre el escenario del rival, con su nombre y época.
+##   Centro   tu luchador y el rival sobre la ciudad invadida por su ejército (la Torre del Reloj, el Nexo), con su nombre y época.
 ##   Al empezar un capítulo nuevo se muestra primero su tarjeta de título.
 ## COMBATIR (o ENTER) empieza el combate; ESC o VOLVER regresa a la selección de luchador (o al menú).
 extends Control
@@ -38,7 +38,7 @@ func _ready() -> void:
 	theme = HKTheme.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var rival := Game.p2_data()
-	_load_stage(rival.id)
+	_load_stage(Game.stage_owner(1))
 	_add_fighter(Game.p1_data(), PLAYER_X, 1)
 	_add_fighter(rival, RIVAL_X, -1)
 	_btn = Button.new()
@@ -275,7 +275,7 @@ func _draw_card() -> void:
 	var chapter := Game.story_chapter_of(Game.arcade_ladder[Game.arcade_stage])
 	_overlay.draw_rect(Rect2(0, 0, 426, 240), Color(0.03, 0.02, 0.05, a))
 	var fade := Color(1, 1, 1, a)
-	var title := "FRAGMENTO %s" % ROMAN[mini(chapter, ROMAN.size() - 1)] if chapter < Game.STORY_CHAPTERS.size() else "EL NEXO"
+	var title := "FRENTE %s" % ROMAN[mini(chapter, ROMAN.size() - 1)] if chapter < Game.STORY_CHAPTERS.size() else "EL NEXO"
 	HKTheme.draw_text(_overlay, Vector2(0, 104), title, 16, HKTheme.GOLD * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 3 if a > 0.5 else 0)
 	HKTheme.draw_text(_overlay, Vector2(0, 126), Game.story_chapter_name(chapter), 8, HKTheme.PAPER * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 2 if a > 0.5 else 0)
 	var first := Game.arcade_stage
