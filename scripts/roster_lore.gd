@@ -314,6 +314,36 @@ const LORE := {
 		"Un disparo certero que cruza la pantalla.",
 		"Fija al rival en su mira, el tiempo se ralentiza y una bala de energía lo atraviesa.",
 	],
+	&"stephen_hawking": [
+		"Físico británico que estudió los agujeros negros y el origen del universo. Enfermó muy joven y aun así siguió investigando.",
+		"Demostró que los agujeros negros emiten radiación y escribió Breve historia del tiempo para explicar el cosmos a todos.",
+		"Lanza una esfera violeta de radiación que cruza la pantalla.",
+		"Abre un agujero negro bajo el rival: lo levanta, lo deja flotando y lo estrella contra el suelo.",
+	],
+	&"alan_turing": [
+		"Matemático británico, padre de la informática. Imaginó una máquina capaz de calcular cualquier cosa calculable.",
+		"En la Segunda Guerra Mundial descifró los mensajes de la máquina Enigma y acortó la guerra.",
+		"Lanza una bomba criptológica que explota al llegar al rival.",
+		"Analiza al rival y descarga tres golpes calculados al milímetro.",
+	],
+	&"nelson_mandela": [
+		"Abogado y boxeador sudafricano. Luchó contra el apartheid y pasó 27 años en prisión, la mayoría en Robben Island.",
+		"Al salir fue presidente de Sudáfrica (1994-1999) y eligió la reconciliación en vez de la venganza. Nobel de la Paz en 1993.",
+		"Un gancho de boxeador que lanza al rival por los aires.",
+		"Levanta un escudo que absorbe un golpe y lo devuelve como una onda de energía.",
+	],
+	&"martin_luther_king": [
+		"Pastor estadounidense y líder del movimiento por los derechos civiles. Defendió la lucha pacífica contra la segregación.",
+		"En 1963 pronunció «Tengo un sueño» ante 250.000 personas. Nobel de la Paz en 1964, fue asesinado en 1968.",
+		"Una onda de voz que cruza la pantalla.",
+		"Un grito enorme crea una onda sonora gigante que empuja al rival.",
+	],
+	&"dalai_lama": [
+		"Líder espiritual del budismo tibetano y Premio Nobel de la Paz en 1989. Vive en el exilio desde 1959.",
+		"Predica la compasión y el diálogo. Para su pueblo es la reencarnación de un maestro que elige volver para ayudar.",
+		"Un rayo de energía naranja que cruza la pantalla.",
+		"Símbolos luminosos de la Rueda del Dharma golpean al rival y lo empujan.",
+	],
 }
 
 ## Fatalities caricaturescas: descripción propia del ultimate (si no, sale de ULT_TEXT).

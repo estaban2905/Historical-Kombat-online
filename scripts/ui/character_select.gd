@@ -22,8 +22,8 @@ const ERAS: Array = [
 	["ANTIGÜEDAD", -100000, 499],
 	["MEDIEVAL", 500, 1600],
 	["MODERNA", 1601, 1869],
-	["SIGLO XX", 1870, 1939],
-	["ACTUAL", 1940, 100000],
+	["SIGLO XX", 1870, 1914],
+	["ACTUAL", 1915, 100000],
 ]
 const TAB_Y := 25.0
 const TAB_H := 13.0

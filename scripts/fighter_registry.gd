@@ -59,6 +59,11 @@ const ROSTER: Array[String] = [
 	"res://fighters/mariya_oktyabrskaya/mariya_oktyabrskaya.tres",
 	"res://fighters/liudmila_pavlichenko/liudmila_pavlichenko.tres",
 	"res://fighters/nostradamus/nostradamus.tres",
+	"res://fighters/stephen_hawking/stephen_hawking.tres",
+	"res://fighters/alan_turing/alan_turing.tres",
+	"res://fighters/nelson_mandela/nelson_mandela.tres",
+	"res://fighters/martin_luther_king/martin_luther_king.tres",
+	"res://fighters/dalai_lama/dalai_lama.tres",
 ]
 
 ## El jefe final del modo Historia no está en ROSTER: no se puede elegir ni sale en los menús.

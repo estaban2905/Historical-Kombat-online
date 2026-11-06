@@ -24,6 +24,7 @@ const PLAYABLE_ONLY: Array[StringName] = [
 	&"juana_de_arco", &"lautaro", &"janequeo", &"galileo_galilei", &"pachacutec", &"moctezuma_ii",
 	&"isaac_newton", &"charles_darwin", &"abraham_lincoln", &"arturo_prat",
 	&"salvador_allende", &"liudmila_pavlichenko", &"mariya_oktyabrskaya", &"papa_francisco", &"isabel_ii",
+	&"stephen_hawking", &"alan_turing", &"nelson_mandela", &"martin_luther_king", &"dalai_lama",
 ]
 ## Jefe de cada época (índice -> luchador), el más controvertido de su tiempo; va al final de los rivales.
 const BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"napoleon", 3: &"julio_cesar"}

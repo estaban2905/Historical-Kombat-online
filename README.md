@@ -14,7 +14,7 @@ Incluye:
 
 - Menú principal (MODO HISTORIA, DUELO ONLINE, **ENTRENAMIENTO**, DIFICULTAD, PERSONAJES, CONTROLES, CRÉDITOS).
 - Selección de luchador para 2 jugadores (rejilla de 54 casillas, 50 disponibles).
-- **51 luchadores** (ver lista en la sección 7), cada uno con silueta, colores, estadísticas, ataques, especiales y escenario propios. Trump y Napoleón se hicieron a mano; los otros 49 se generan con `tools/generate_fighters.py`.
+- **56 luchadores** (ver lista en la sección 7), cada uno con silueta, colores, estadísticas, ataques, especiales y escenario propios. Trump y Napoleón se hicieron a mano; los otros 54 se generan con `tools/generate_fighters.py`.
 - Escenario: **El Coliseo Romano** (gradas con público animado, columnas, palco imperial, braseros, suelo de piedra).
 - Movimiento: caminar, saltar (vertical o con dirección), agacharse.
 - 6 ataques por jugador: 2 puños, 2 patadas, 2 especiales (proyectiles, lanzador y embestida).
