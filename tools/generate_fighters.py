@@ -1376,6 +1376,12 @@ POWER_QUOTES = {
 # Pasiva de cada luchador (ids de scripts/passives.gd). Los dos hechos a mano (Napoleón y Trump) la
 # llevan en su .tres, que el script no toca; se listan aquí solo para tener la tabla completa.
 PASSIVES = {
+    "stephen_hawking": "horizonte_de_sucesos",
+    "alan_turing": "enigma_descifrado",
+    "nelson_mandela": "veintisiete_anos",
+    "martin_luther_king": "marcha_pacifica",
+    "dalai_lama": "paz_interior",
+    "jacobo_grinberg": "mente_expandida",
     "abraham_lincoln": "casa_en_pie",
     "adolf_hitler": "berrinche_final",
     "albert_einstein": "energia_es_masa",
@@ -1731,6 +1737,17 @@ CHARACTERS.extend([
          s1=P(name="Rayo de Compasión", anim="cast", style="orb", color="ff9030", speed=210, dmg=14),
          s2=W(name="x", anim="cast", power="x", dmg=1),
          ult="Rueda de la Vida"),
+    dict(id="jacobo_grinberg", name="JACOBO GRINBERG", short="GRINBERG", country="México", era="Nació en 1946",
+         intro="x", victory="x",
+         bio="Neurofisiólogo mexicano que investigó la conciencia. Desapareció en 1994 y su paradero sigue siendo un misterio.",
+         arch="sage", build="normal",
+         skin="c8a07c", hair="2a1c14", coat="5a4a3a", trim="40d0c0", shirt="e8e8f0", accent="40d0c0",
+         pants="2a2a34", boots="2a1c14", hat="141414",
+         hair_style="short", hat_style="none", beard="none", chest="plain",
+         moves=("Palma Sintérgica", "Puño de la Conciencia", "Patada de la Retícula", "Patada Neuronal"),
+         s1=P(name="Pulso Neuronal", anim="cast", style="orb", speed=200, dmg=14),
+         s2=W(name="x", anim="cast", power="x", dmg=1),
+         ult="Campo Sintérgico"),
 ])
 PROFILES.update({
     "stephen_hawking": _pf("scholar", "oh", "HP", "Golpe de Singularidad", ("SINGULARIDAD", "LP HP HK", 3.0), ("HORIZONTE", "LK LP HP S1", 6.5)),
@@ -1738,6 +1755,7 @@ PROFILES.update({
     "nelson_mandela": _pf("brawler", "low", "LK", "Barrido Madiba", ("MADIBA", "LK LP HP", 3.0), ("LIBERTAD", "LP LK HP HK", 6.0)),
     "martin_luther_king": _pf("zoner", "oh", "HP", "Golpe de Marcha", ("MARCHA", "LP HP HK", 3.5), ("SUEÑO", "LK LP HP S1", 6.5)),
     "dalai_lama": _pf("mystic", "low", "LK", "Patada del Loto", ("COMPASIÓN", "LP LK HP", 3.0), ("DHARMA", "LP LK HP S1", 7.0)),
+    "jacobo_grinberg": _pf("mystic", "low", "LK", "Barrido de Conciencia", ("RETÍCULA", "LP LK HP", 3.0), ("SINTERGIA", "LP LK HP S1", 6.5)),
 })
 ULTS.update({
     "stephen_hawking": ("spacetime", "", "9a4dff", "070312", "cast"),
@@ -1745,6 +1763,7 @@ ULTS.update({
     "nelson_mandela": ("miracle", "", "ffd24a", "1a1408", "cast"),
     "martin_luther_king": ("wave", "", "ffd070", "1a1408", "megaphone"),
     "dalai_lama": ("light", "", "ff9030", "1a0a04", "cast"),
+    "jacobo_grinberg": ("light", "", "40d0c0", "041a18", "cast"),
 })
 QUOTES.update({
     "stephen_hawking": ("Mi mente viaja más rápido que tus puños.", "Hasta los agujeros negros se evaporan."),
@@ -1752,13 +1771,15 @@ QUOTES.update({
     "nelson_mandela": ("Veintisiete años preso no me quitaron las ganas.", "Gané sin odio. Pero gané."),
     "martin_luther_king": ("¡Tengo un sueño: tu derrota!", "El arco de la historia se inclina hacia la justicia."),
     "dalai_lama": ("La compasión también sabe pelear.", "Te perdono... pero ya perdiste."),
+    "jacobo_grinberg": ("La conciencia no termina en el cerebro.", "La mente lo creó. La mente lo ganó."),
 })
 POWERS.update({
-    "stephen_hawking": W(name="Agujero Negro", anim="cast", power="gravity_flip", dmg=14, status="float", status_frames=80),
+    "stephen_hawking": W(name="Agujero Negro", anim="cast", power="black_hole", dmg=18),
     "alan_turing": W(name="Máquina Enigma", anim="cast", power="logic", dmg=20),
     "nelson_mandela": W(name="Reconciliación", anim="cast", power="chilean_way", dmg=18),
     "martin_luther_king": W(name="Tengo un Sueño", anim="megaphone", power="big_speech", dmg=20),
     "dalai_lama": W(name="Rueda del Dharma", anim="cast", power="celestial_order", dmg=20),
+    "jacobo_grinberg": W(name="Red Sintérgica", anim="cast", power="mind_web", dmg=16, status="invert", status_frames=150),
 })
 POWER_QUOTES.update({
     "stephen_hawking": "¡Cae al horizonte de sucesos!",
@@ -1766,6 +1787,7 @@ POWER_QUOTES.update({
     "nelson_mandela": "¡Reconciliación!",
     "martin_luther_king": "¡Tengo un sueño!",
     "dalai_lama": "¡Om mani padme hum!",
+    "jacobo_grinberg": "¡La conciencia es un campo!",
 })
 IDLE_STYLES.update({
     "stephen_hawking": "scholar",

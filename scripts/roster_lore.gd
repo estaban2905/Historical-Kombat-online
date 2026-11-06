@@ -34,7 +34,7 @@ const LORE := {
 	],
 	&"nicolas_maduro": [
 		"Fue conductor de autobús y sindicalista antes de llegar a presidente de Venezuela en 2013.",
-		"Heredó el cargo de Hugo Chávez y gobernó en medio de una crisis económica y política.",
+		"Gobernó en plena crisis hasta enero de 2026, cuando EE. UU. lo capturó. Espera juicio y se declara inocente.",
 		"Lanza arepas que rebotan y golpean al rival.",
 		"Un baile sorpresa desconcierta al rival y le hace perder el control.",
 	],
@@ -318,7 +318,7 @@ const LORE := {
 		"Físico británico que estudió los agujeros negros y el origen del universo. Enfermó muy joven y aun así siguió investigando.",
 		"Demostró que los agujeros negros emiten radiación y escribió Breve historia del tiempo para explicar el cosmos a todos.",
 		"Lanza una esfera violeta de radiación que cruza la pantalla.",
-		"Abre un agujero negro bajo el rival: lo levanta, lo deja flotando y lo estrella contra el suelo.",
+		"Abre un agujero negro delante de él: tira del rival hacia su centro tres veces y estalla, lanzándolo por los aires.",
 	],
 	&"alan_turing": [
 		"Matemático británico, padre de la informática. Imaginó una máquina capaz de calcular cualquier cosa calculable.",
@@ -343,6 +343,12 @@ const LORE := {
 		"Predica la compasión y el diálogo. Para su pueblo es la reencarnación de un maestro que elige volver para ayudar.",
 		"Un rayo de energía naranja que cruza la pantalla.",
 		"Símbolos luminosos de la Rueda del Dharma golpean al rival y lo empujan.",
+	],
+	&"jacobo_grinberg": [
+		"Neurofisiólogo mexicano que investigó la conciencia y la meditación. Fundó su propia teoría, la «sintérgica».",
+		"Desapareció en 1994 y nunca se supo qué le pasó. Muchas de sus ideas no están aceptadas por la ciencia.",
+		"Un orbe de luz turquesa que cruza la pantalla.",
+		"Teje una red de luz entre su mente y la del rival: el rival pierde el control de sus movimientos.",
 	],
 }
 

@@ -23,6 +23,7 @@ static func get_def(id: StringName) -> Dictionary:
 		&"nelson_mandela": return _mandela()
 		&"martin_luther_king": return _king()
 		&"dalai_lama": return _dalai()
+		&"jacobo_grinberg": return _grinberg()
 	return {}
 
 static func _nexo() -> Dictionary:
@@ -407,3 +408,22 @@ static func _dalai() -> Dictionary:
 			["birds", 3, 19, 24, 70, 12, "2a2a2a", 1.0],
 		],
 	}
+
+static func _grinberg() -> Dictionary:
+	return {
+		"name": "CIUDAD UNIVERSITARIA · MÉXICO",
+		"back": [
+			["sky", ["3a2a5a", "6a3a6a", "a85a70", "d88a6a", "f0b878"], 176],
+			["disc", 330, 52, 14, "ffe8b0"],
+			["mount", 120, 80, "e8eef6", 2.6, "", 0.5], ["mount", 136, 62, "8a7a9a", 5.0, "", 0.7],
+			["mount", 176, 40, "4a3a5a", 3.4, "", 0.9],
+			["rect", 130, 100, 160, 76, "9a7a5a"], ["tent", 210, 100, 176, 20, "6a4a3a", "523830"],
+			["grid", 142, 110, 7, 3, 20, 16, 10, 10, "f0d890"],
+			["palm", 60, 176, 70], ["palm", 380, 176, 64],
+			["ground", 176, "noise", "7a6a4a", "5a4c36", "8a7a58", 208],
+		],
+		"mid": [
+			["birds", 3, 24, 20, 60, 14, "2a1a2a", 1.0],
+		],
+	}
+

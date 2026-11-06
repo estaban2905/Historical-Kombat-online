@@ -281,8 +281,12 @@ func _draw_card() -> void:
 	var last := first
 	while last + 1 < Game.arcade_ladder.size() and Game.story_chapter_of(Game.arcade_ladder[last + 1]) == chapter:
 		last += 1
+	# El año de cierre es el del último rival: el creador poseído viene de cualquier tiempo y no marca la época.
+	var last_year := last
+	while last_year > first and Game.story_is_creator(last_year):
+		last_year -= 1
 	var span := "%s  ›  %s" % [_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[first])),
-		_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[last]))]
+		_year_text(FighterRegistry.get_by_id(Game.arcade_ladder[last_year]))]
 	var final := chapter >= Game.STORY_CHAPTERS.size()
 	if final:
 		span = "FUERA DEL TIEMPO"
@@ -295,7 +299,9 @@ func _draw_card() -> void:
 		HKTheme.draw_text(_overlay, Vector2(0, 208 + i * 11), react[i], 8, HKTheme.GOLD.darkened(0.1) * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 	var count := "EL COMBATE FINAL · REVANCHAS ILIMITADAS" if final \
 		else "%d COMBATES · REVANCHAS ILIMITADAS" % [last - first + 1]
-	HKTheme.draw_text(_overlay, Vector2(0, 158), count, 8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	HKTheme.draw_text(_overlay, Vector2(0, 154), count, 8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
+	if not final:
+		HKTheme.draw_text(_overlay, Vector2(0, 164), "EL CREADOR POSEÍDO VIENE DE CUALQUIER TIEMPO", 8, HKTheme.MUTED * fade, HORIZONTAL_ALIGNMENT_CENTER, 426, 0)
 
 func _centered(cx: float, y: float, text: String, color: Color) -> void:
 	HKTheme.draw_text(self, Vector2(cx - HKTheme.text_width(text, 8) * 0.5, y), text, 8, color, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)

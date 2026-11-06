@@ -157,7 +157,7 @@ id = &"agujero_negro"
 display_name = "Agujero Negro"
 kind = 2
 anim = &"cast"
-damage = 14.0
+damage = 18.0
 hitstun = 24
 blockstun = 14
 knockback = 180.0
@@ -179,9 +179,7 @@ dash_speed = 0.0
 projectile_speed = 0.0
 projectile_style = &"ball"
 projectile_lifetime = 2.0
-power = &"gravity_flip"
-status = &"float"
-status_frames = 80
+power = &"black_hole"
 
 [sub_resource type="Resource" id="R_stephen_hawking_ultimate"]
 script = ExtResource("2_attack")
@@ -251,6 +249,7 @@ jump_velocity = -360.0
 jump_forward_speed = 112.0
 strength = 0.98
 resistance = 0.97
+passive = &"horizonte_de_sucesos"
 punch_light = SubResource("R_stephen_hawking_punch_light")
 punch_heavy = SubResource("R_stephen_hawking_punch_heavy")
 kick_light = SubResource("R_stephen_hawking_kick_light")

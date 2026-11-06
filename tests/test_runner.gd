@@ -88,7 +88,7 @@ func _test_resources() -> void:
 		var ps := load(path) as PackedScene
 		check(ps != null and ps.can_instantiate(), "escena carga: " + path)
 	var roster := FighterRegistry.all()
-	check(roster.size() == 56, "roster con 56 luchadores (%d)" % roster.size())
+	check(roster.size() == 57, "roster con 57 luchadores (%d)" % roster.size())
 	var seen := {}
 	for d in roster:
 		check(not seen.has(d.id), "id único: %s" % d.id)
@@ -814,6 +814,7 @@ func _test_powers() -> void:
 		var energy_before := c.p1.energy
 		var min_y1 := 0.0
 		var min_y2 := 0.0
+		var min_x2 := 9999.0
 		var max_slow := 0
 		var max_invert := 0
 		var max_root := 0
@@ -825,6 +826,7 @@ func _test_powers() -> void:
 			await frames(1)
 			min_y1 = minf(min_y1, c.p1.position.y - c.p1.floor_y)
 			min_y2 = minf(min_y2, c.p2.position.y - c.p2.floor_y)
+			min_x2 = minf(min_x2, c.p2.position.x)
 			max_slow = maxi(max_slow, c.p2.slow_frames)
 			max_invert = maxi(max_invert, c.p2.invert_frames)
 			max_root = maxi(max_root, c.p2.root_frames)
@@ -845,6 +847,10 @@ func _test_powers() -> void:
 			&"andean_quake": check(min_y2 < -5.0, "%s: el terremoto lanza al rival (%.1f px)" % [d.id, min_y2])
 			&"dark_hypnosis": check(max_invert > 0, "%s: invierte los controles del rival" % d.id)
 			&"gravity_flip": check(min_y2 < -5.0, "%s: el rival flota (%.1f px)" % [d.id, min_y2])
+			&"mind_web": check(max_invert > 0, "%s: la red sintérgica invierte los controles del rival" % d.id)
+			&"black_hole":
+				check(min_x2 < 70.0 + 160.0 - 20.0, "%s: el agujero negro atrae al rival (x mín. %.0f)" % [d.id, min_x2])
+				check(min_y2 < -5.0, "%s: el estallido lanza al rival (%.1f px)" % [d.id, min_y2])
 			&"enlightenment": check(min_y1 < -5.0, "%s: se eleva (%.1f px)" % [d.id, min_y1])
 			&"desert_ghost": check(swapped, "%s: reaparece detrás del rival" % d.id)
 			&"divine_light": check(c.p1.energy > energy_before - atk.energy_cost + 20.0, "%s: recupera energía (%.0f)" % [d.id, c.p1.energy])
@@ -1242,6 +1248,21 @@ func _test_arcade() -> void:
 	check(Game.is_story_nexo_fight() and Game.p2_data().max_health > nexo_base * 1.4, "el Nexo tiene mucha más vida")
 	check(Game.ai_level() == 1.0, "el Nexo usa la IA al máximo")
 	check(Game.story_chapter_of(Game.STORY_NEXO_ID) == Game.STORY_CHAPTERS.size(), "el Nexo tiene su propio capítulo")
+	# La IA depende de cuántos villanos se han vencido, no de su lugar en la lista.
+	Game.p2_fighter_id = ladder[2]
+	Game.story_beaten.clear()
+	Game.story_beaten[0] = true
+	Game.story_beaten[1] = true
+	Game.arcade_stage = 2
+	var lvl_a := Game.ai_level()
+	Game.story_beaten.clear()
+	Game.story_beaten[3] = true
+	Game.story_beaten[5] = true
+	Game.arcade_stage = 4
+	check(is_equal_approx(lvl_a, Game.ai_level()), "la IA no cambia con el orden en que se vencen los villanos")
+	Game.story_beaten[4] = true
+	check(Game.ai_level() > lvl_a, "la IA sube al vencer más villanos")
+	Game.story_beaten.clear()
 	Game.mode = Game.Mode.VERSUS
 
 ## Modo Historia: el jugador elige a quién detener dentro de cada época y debe vencerlos a todos (el jefe, el último)

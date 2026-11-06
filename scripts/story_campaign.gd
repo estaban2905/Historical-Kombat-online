@@ -15,7 +15,7 @@ const CHAPTERS := [
 		&"rasputin", &"adolf_hitler", &"albert_einstein"]],
 	["REVOLUCIONES, IMPERIOS Y DESCUBRIMIENTOS", [&"ivan_el_terrible", &"nostradamus", &"hernan_cortes",
 		&"nicolas_maquiavelo", &"cristobal_colon", &"napoleon", &"nikola_tesla"]],
-	["LA ANTIGÜEDAD Y LA EDAD MEDIA", [&"gengis_kan", &"cleopatra", &"alejandro_magno", &"julio_cesar",
+	["ANTIGÜEDAD, EDAD MEDIA Y RENACIMIENTO", [&"gengis_kan", &"cleopatra", &"alejandro_magno", &"julio_cesar",
 		&"leonardo_da_vinci"]],
 ]
 ## Los buenos y justos: solo se pueden elegir (no son rivales) y están disponibles desde el principio.
@@ -25,6 +25,7 @@ const PLAYABLE_ONLY: Array[StringName] = [
 	&"isaac_newton", &"charles_darwin", &"abraham_lincoln", &"arturo_prat",
 	&"salvador_allende", &"liudmila_pavlichenko", &"mariya_oktyabrskaya", &"papa_francisco", &"isabel_ii",
 	&"stephen_hawking", &"alan_turing", &"nelson_mandela", &"martin_luther_king", &"dalai_lama",
+	&"jacobo_grinberg",
 ]
 ## Jefe de cada época (índice -> luchador), el más controvertido de su tiempo; va al final de los rivales.
 const BOSSES := {0: &"donald_trump", 1: &"adolf_hitler", 2: &"napoleon", 3: &"julio_cesar"}

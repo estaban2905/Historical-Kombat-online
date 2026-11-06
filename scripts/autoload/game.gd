@@ -287,8 +287,9 @@ func ai_level() -> float:
 	if mode == Mode.ARCADE and not arcade_ladder.is_empty():
 		if is_story_nexo_fight():
 			return 1.0
-		# Sube de forma pareja a lo largo de toda la escalera (hasta +0.5 al llegar al final).
-		level += 0.5 * arcade_stage / maxf(arcade_ladder.size() - 1.0, 1.0)
+		# Sube con los villanos vencidos (hasta +0.5 al vencerlos todos), no con su
+		# lugar en la lista: el orden elegido no cambia la dificultad del siguiente.
+		level += 0.5 * story_beaten.size() / maxf(arcade_ladder.size() - 1.0, 1.0)
 	return clampf(level, 0.0, 1.0)
 
 ## Empieza el modo Historia: todos los luchadores menos el jugador,
