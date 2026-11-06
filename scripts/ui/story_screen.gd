@@ -28,17 +28,19 @@ var _overlay: Control
 ## y el botón esperan. Solo Enter las salta todas.
 var _intro: Node
 var _skip_intros: bool = false
-## Mapa del mundo en curso (el viaje hasta la ciudad del rival); mientras existe, el resto espera.
-var _map: StoryWorldMap
+## Globo terráqueo en curso (donde se elige a quién detener y el viaje hasta su ciudad); mientras existe, el resto espera.
+var _map: StoryGlobeMap
+var _rival_fig: FighterRenderer
 var _auto_fight: bool = false
+## El creador poseído pelea en la misma batalla que el jefe: no hay nada que elegir ni viaje.
+var _skip_globe: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	var rival := Game.p2_data()
 	_load_stage(Game.stage_owner(1))
 	_add_fighter(Game.p1_data(), PLAYER_X, 1)
-	_add_fighter(rival, RIVAL_X, -1)
+	_rival_fig = _add_fighter(Game.p2_data(), RIVAL_X, -1)
 	_btn = Button.new()
 	_btn.text = "¡COMBATIR!"
 	_btn.custom_minimum_size = Vector2(110, 16)
@@ -54,12 +56,13 @@ func _ready() -> void:
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_overlay)
 	_overlay.draw.connect(_draw_card)
-	_card = Game.story_chapter_start(Game.arcade_stage)
+	_card = Game.story_chapter_fresh()
 	_auto_fight = Game.story_possessed_entry
 	Game.story_possessed_entry = false
+	_skip_globe = _auto_fight or Game.story_is_creator(Game.arcade_stage)
 	_btn.visible = false
 	_back.visible = false
-	if not _auto_fight:
+	if not _skip_globe:
 		_make_map()
 	if not _card:
 		_after_card()
@@ -71,20 +74,22 @@ func _ready() -> void:
 		else:
 			_play_era_intro()
 
-## Tras la tarjeta del capítulo: la escena de diálogo del rival, si tiene, y después el botón de combatir.
+## Tras la tarjeta del capítulo: el globo, donde se elige a quién detener y se viaja a su ciudad. El creador poseído
+## pelea en la misma batalla: sin globo.
 func _after_card() -> void:
-	# Antes del rival, el mapa del mundo: el viaje hasta su ciudad. El creador poseído pelea en la misma batalla: sin mapa.
-	if not _auto_fight:
+	if not _skip_globe:
 		_play_map()
 		return
 	_after_map()
 
-## El mapa se coloca desde el principio, tapando el escenario de la pelea, y espera (en negro) debajo de la
+## El globo se coloca desde el principio, tapando el escenario de la pelea, y espera (en negro) debajo de la
 ## tarjeta del capítulo y de las animaciones: así nunca se ve el combate antes del viaje.
 func _make_map() -> void:
-	var map := StoryWorldMap.new()
+	var map := StoryGlobeMap.new()
 	map.waiting = true
 	_map = map
+	map.picked.connect(_on_picked)
+	map.cancelled.connect(_go_back)
 	map.finished.connect(func():
 		_map = null
 		_after_map())
@@ -94,7 +99,20 @@ func _make_map() -> void:
 func _play_map() -> void:
 	_btn.visible = false
 	_back.visible = false
-	_map.start()
+	_map.waiting = false
+
+## El jugador eligió a quién detener: el escenario y el rival de debajo del globo pasan a ser los suyos.
+func _on_picked(_stage_index: int) -> void:
+	if _stage:
+		_stage.queue_free()
+	if _rival_fig:
+		_rival_fig.queue_free()
+	_load_stage(Game.stage_owner(1))
+	_rival_fig = _add_fighter(Game.p2_data(), RIVAL_X, -1)
+	# Lo nuevo se añade al final: el globo y la tarjeta tienen que seguir por encima.
+	if _map:
+		move_child(_map, -1)
+	move_child(_overlay, -1)
 
 ## Tras el mapa: la escena de diálogo del rival, si tiene, y después el botón de combatir.
 func _after_map() -> void:
@@ -145,7 +163,7 @@ func _load_stage(fighter_id: StringName) -> void:
 	_stage.show_behind_parent = true
 	add_child(_stage)
 
-func _add_fighter(d: FighterData, x: float, facing: int) -> void:
+func _add_fighter(d: FighterData, x: float, facing: int) -> FighterRenderer:
 	var r := FighterRenderer.new()
 	add_child(r)
 	r.setup(d)
@@ -153,6 +171,7 @@ func _add_fighter(d: FighterData, x: float, facing: int) -> void:
 	var s := clampf(SPRITE_H / maxf(r.approx_height(), 1.0), 0.8, 1.5)
 	r.scale = Vector2(s * facing, s)
 	r.position = Vector2(x, _stage.floor_y)
+	return r
 
 ## A la selección de luchador si se llegó desde ahí; si no (CONTINUAR), al menú.
 func _go_back() -> void:
@@ -229,7 +248,7 @@ func _draw_plate() -> void:
 	draw_rect(r, SHADE)
 	draw_rect(r, HKTheme.GOLD_DARK, false, 1.0)
 	var cx := 213.0
-	_centered(cx, 84, "COMBATE %d/%d" % [stage + 1, Game.arcade_ladder.size()], HKTheme.MUTED.lightened(0.25))
+	_centered(cx, 84, "COMBATE %d/%d" % [Game.story_fight_number(), Game.arcade_ladder.size()], HKTheme.MUTED.lightened(0.25))
 	var tag := ""
 	if Game.is_story_nexo_fight():
 		tag = "JEFE FINAL"

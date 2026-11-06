@@ -77,6 +77,11 @@ var difficulty: Difficulty = Difficulty.NORMAL
 ## y las revanchas que quedan en el capítulo.
 var arcade_ladder: Array[StringName] = []
 var arcade_stage: int = 0
+## Combates ya ganados de la partida (índices de la escalera). Dentro de cada época el jugador elige a quién detener
+## primero; para pasar a la siguiente hay que vencerlos a todos (el jefe se abre al vencer a los demás).
+var story_beaten: Dictionary = {}
+## Último combate ganado (de ahí sale la nave en el mapa); -1 = ninguno.
+var story_last_won: int = -1
 var arcade_continues: int = ARCADE_CONTINUES
 ## Revanchas gastadas en toda la partida.
 var story_continues_used: int = 0
@@ -293,6 +298,8 @@ func start_story(player_id: StringName) -> void:
 	p1_fighter_id = player_id
 	arcade_ladder = story_ladder_for(player_id)
 	arcade_stage = 0
+	story_beaten.clear()
+	story_last_won = -1
 	arcade_continues = ARCADE_CONTINUES
 	story_continues_used = 0
 	story_creator_losses = 0
@@ -323,7 +330,7 @@ func story_record_win() -> void:
 func story_snapshot() -> Dictionary:
 	return {
 		"fighter": str(p1_fighter_id),
-		"stage": arcade_stage,
+		"stage": story_frontier(),
 		"continues": arcade_continues,
 		"continues_used": story_continues_used,
 		"difficulty": int(difficulty),
@@ -336,9 +343,13 @@ func story_autosave() -> void:
 ## Guarda la partida como quedará al pasar al combate siguiente (sin avanzarlo todavía).
 func story_autosave_next() -> void:
 	var s := story_snapshot()
-	var next_stage := mini(arcade_stage + 1, arcade_ladder.size() - 1)
+	var had := story_beaten.has(arcade_stage)
+	story_beaten[arcade_stage] = true
+	var next_stage := story_frontier()
+	if not had:
+		story_beaten.erase(arcade_stage)
 	s["stage"] = next_stage
-	if story_chapter_start(next_stage):
+	if story_chapter_of(arcade_ladder[next_stage]) != story_chapter_of(arcade_ladder[arcade_stage]):
 		s["continues"] = ARCADE_CONTINUES
 	Backend.save_story(s)
 
@@ -368,6 +379,11 @@ func story_resume(save: Dictionary) -> bool:
 		difficulty = old_difficulty
 		return false
 	difficulty = diff as Difficulty
+	# Lo guardado es el primer combate sin ganar: todos los anteriores ya están vencidos.
+	story_beaten.clear()
+	for i in stage:
+		story_beaten[i] = true
+	story_last_won = stage - 1
 	arcade_stage = stage
 	arcade_continues = clampi(int(save.get("continues", ARCADE_CONTINUES)), 0, ARCADE_CONTINUES)
 	story_continues_used = maxi(int(save.get("continues_used", 0)), 0)
@@ -406,7 +422,7 @@ func _chapter_of_id(fighter_id: StringName) -> int:
 
 ## Lo que dice el Nexo al abrir un capítulo que no es el primero (vacío en el primero).
 func story_nexo_reaction() -> Array:
-	if arcade_stage == 0:
+	if story_beaten.is_empty():
 		return []
 	if story_continues_used == 0:
 		return STORY_NEXO_REACT_FLAWLESS
@@ -493,12 +509,82 @@ func arcade_outcome() -> StringName:
 		return &"complete"
 	return &"retry"
 
+## Da por ganado el combate actual y pasa al siguiente: si el jefe acaba de caer, entra el creador poseído; si no,
+## el jugador elegirá a quién detener después (aquí se deja el primero disponible, que es el que se ofrece).
 func arcade_advance() -> void:
-	arcade_stage = mini(arcade_stage + 1, arcade_ladder.size() - 1)
+	story_beaten[arcade_stage] = true
+	story_last_won = arcade_stage
+	if story_possession_follows(arcade_stage):
+		arcade_stage += 1
+	else:
+		arcade_stage = story_default_pick()
 	p2_fighter_id = arcade_ladder[arcade_stage]
 	# Cada capítulo nuevo devuelve las revanchas.
-	if story_chapter_start(arcade_stage):
+	if story_chapter_fresh():
 		arcade_continues = ARCADE_CONTINUES
+
+# --- Elegir a quién detener (modo Historia) ---
+
+## Primer combate sin ganar de toda la escalera: es el progreso que se guarda.
+func story_frontier() -> int:
+	for i in arcade_ladder.size():
+		if not story_beaten.has(i):
+			return i
+	return maxi(arcade_ladder.size() - 1, 0)
+
+## Época que se está jugando (la del primer combate sin ganar).
+func story_current_chapter() -> int:
+	if arcade_ladder.is_empty():
+		return 0
+	return story_chapter_of(arcade_ladder[story_frontier()])
+
+## ¿Aún no se ha ganado ningún combate de la época actual? (abre su animación y su tarjeta)
+func story_chapter_fresh() -> bool:
+	if arcade_ladder.is_empty():
+		return true
+	var ch := story_chapter_of(arcade_ladder[mini(arcade_stage, arcade_ladder.size() - 1)])
+	for i in arcade_ladder.size():
+		if story_chapter_of(arcade_ladder[i]) == ch and story_beaten.has(i):
+			return false
+	return true
+
+## Los combates que se pueden elegir ahora: los de la época actual aún sin ganar, salvo el creador poseído (entra solo
+## tras el jefe). El jefe de la época solo se ofrece cuando ya cayeron todos los demás.
+func story_available(i: int) -> bool:
+	if i < 0 or i >= arcade_ladder.size() or story_beaten.has(i):
+		return false
+	if story_chapter_of(arcade_ladder[i]) != story_current_chapter() or story_is_creator(i):
+		return false
+	if story_is_chapter_boss(i):
+		for j in arcade_ladder.size():
+			if j != i and story_chapter_of(arcade_ladder[j]) == story_current_chapter() and not story_is_creator(j) 					and not story_beaten.has(j):
+				return false
+	return true
+
+func story_candidates() -> Array[int]:
+	var out: Array[int] = []
+	for i in arcade_ladder.size():
+		if story_available(i):
+			out.append(i)
+	return out
+
+## El combate que se ofrece al principio: el primero disponible.
+func story_default_pick() -> int:
+	var c := story_candidates()
+	if not c.is_empty():
+		return c[0]
+	return story_frontier()
+
+## El jugador elige a quién detener.
+func story_pick(i: int) -> void:
+	if i < 0 or i >= arcade_ladder.size():
+		return
+	arcade_stage = i
+	p2_fighter_id = arcade_ladder[i]
+
+## Número de este combate en la partida (los ganados más el actual), para "COMBATE n/N".
+func story_fight_number() -> int:
+	return story_beaten.size() + (0 if story_beaten.has(arcade_stage) else 1)
 
 func arcade_use_continue() -> void:
 	if story_is_creator(arcade_stage):
