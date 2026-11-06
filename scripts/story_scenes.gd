@@ -12,22 +12,22 @@ const PLAYER := &"@jugador"
 const SCENES := {
 	# --- Los creadores del Reloj, en el orden en que se encuentran (hacia atrás en el tiempo) ---
 	&"albert_einstein": [
-		[&"albert_einstein", "LA ECUACIÓN QUE APORTÉ AHORA ME MUEVE A MÍ. EL NEXO LA USA PARA ATARME."],
+		[&"albert_einstein", "EL NEXO ME ARRANCÓ DE BERNA, 1905, Y USA MI PROPIA ECUACIÓN PARA ATARME."],
 		[&"albert_einstein", "EL TIEMPO ES RELATIVO Y EL NEXO LO ESTIRA A SU ANTOJO. VENCE A MI SOMBRA Y ME LIBERAS."],
 		[NEXO, "ÉL DIO LA TEORÍA. YO SOY LO QUE LA MÁQUINA HIZO CON ELLA."],
 	],
 	&"nikola_tesla": [
-		[&"nikola_tesla", "MI CORRIENTE ALTERNA SIGUE FLUYENDO POR EL NEXO. ES LA CUERDA QUE ME ARRASTRA."],
+		[&"nikola_tesla", "ME ARRANCÓ DE COLORADO SPRINGS, 1899. MI CORRIENTE ALTERNA ES LA CUERDA QUE ME ARRASTRA."],
 		[&"nikola_tesla", "TODO LO QUE OSCILA RESUENA. SI ROMPES MI RITMO, ROMPES SU CONTROL SOBRE MÍ."],
 		[&"nikola_tesla", "GOLPEA AL RITMO ADECUADO Y ME SOLTARÁ."],
 	],
 	&"marie_curie": [
-		[&"marie_curie", "LA RADIACTIVIDAD QUE APORTÉ ALIMENTA AL NEXO. NO SE AGOTA MIENTRAS ME TENGA."],
+		[&"marie_curie", "ME ARRANCÓ DE PARÍS, 1898. LA RADIACTIVIDAD QUE APORTÉ ALIMENTA AL NEXO."],
 		[&"marie_curie", "TODO LO RADIACTIVO DECAE CON EL TIEMPO. EL CONTROL DEL NEXO TAMBIÉN, SI LO DEBILITAS."],
 		[&"marie_curie", "NO TE DETENGAS. CUANDO CAIGA, TE DARÉ LO QUE SÉ."],
 	],
 	&"leonardo_da_vinci": [
-		[&"leonardo_da_vinci", "DISEÑÉ LOS ENGRANAJES DEL RELOJ. EL NEXO LOS HA CONVERTIDO EN MI JAULA."],
+		[&"leonardo_da_vinci", "ME ARRANCÓ DE MILÁN, 1495, Y ME OBLIGÓ A DISEÑAR EL RELOJ. SUS ENGRANAJES SON MI JAULA."],
 		[&"leonardo_da_vinci", "EN MI CUADERNO ESTÁ EL PLANO COMPLETO: UN RELOJ DE CINCO FRAGMENTOS, Y YO SOY EL ÚLTIMO ENGRANAJE."],
 		[&"leonardo_da_vinci", "OBSERVA SU MECANISMO. TODO MECANISMO TIENE UN PUNTO DÉBIL."],
 		[NEXO, "VER TODO SIN PAGAR NADA. ESO PEDÍAN. ESO SOY."],

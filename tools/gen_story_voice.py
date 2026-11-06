@@ -21,7 +21,7 @@ OUT = base.ROOT / "assets" / "sounds" / "story"
 LINES = [
     "El tiempo te eligió.",
     "Solo uno reclamará mi poder.",
-    "¿Quién merece controlar el destino de toda la historia?",
+    "¿Salvarás la Tierra... o tomarás mi lugar?",
 ]
 
 # Una por época, en el orden de Game.STORY_CHAPTERS, y la última para el combate final.

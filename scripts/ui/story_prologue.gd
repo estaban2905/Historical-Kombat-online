@@ -27,7 +27,7 @@ const VIOLET := Color("9a4dff")
 const NEXO_INTRO: Array = [
 	[2.2, 3.05, "EL TIEMPO TE ELIGIÓ."],
 	[5.6, 3.74, "SOLO UNO RECLAMARÁ MI PODER."],
-	[9.6, 5.07, "¿QUIÉN MERECE CONTROLAR EL DESTINO\nDE TODA LA HISTORIA?"],
+	[9.6, 4.63,"¿SALVARÁS LA TIERRA...\nO TOMARÁS MI LUGAR?"],
 ]
 
 var _t: float = 0.0
