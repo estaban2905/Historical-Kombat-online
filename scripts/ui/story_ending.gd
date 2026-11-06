@@ -6,7 +6,7 @@
 ##   2  la animación         cualquier tecla la salta
 ##   3  el epílogo           CONTINUAR
 ##   4  la lección del tiempo  VER CRÉDITOS
-## LIBERAR solo aparece si se llegó hasta aquí sin gastar ninguna revancha.
+## LIBERAR solo aparece si ningún creador del Reloj venció al jugador (ver Game.story_creator_losses).
 ## La voz sale de tools/gen_story_voice.py (end_1 a end_5, mismo texto que los subtítulos).
 class_name StoryEnding
 extends Control
@@ -194,8 +194,9 @@ func _say(n: int, delay: float) -> void:
 	_voice_at = delay
 	_voice_started = false
 
+## El tercer camino se abre si ningún creador del Reloj te venció: así los liberaste a todos.
 func _free_unlocked() -> bool:
-	return Game.story_continues_used == 0
+	return Game.story_creator_losses == 0
 
 func _next() -> void:
 	Sfx.play(&"confirm")
@@ -338,9 +339,14 @@ func _draw_nexo_speech() -> void:
 	HKTheme.draw_text(self, Vector2(0, 56), "EL NEXO", 16, NEXO_GOLD * Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_CENTER, W, 3)
 	for i in lines.size():
 		HKTheme.draw_text(self, Vector2(0, 100 + i * 14), lines[i], 8, HKTheme.PAPER * Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_CENTER, W, 2)
+	if _step == 0:
+		# Lo que el Nexo calla: por qué el tiempo eligió a este luchador (sin voz; el audio no cambia).
+		var note := ["LOS CREADORES YA NO ESTÁN ATADOS.", "SOLO TÚ ACEPTASTE TU DERROTA: POR ESO NO PUDE CONTROLARTE."]
+		for i in note.size():
+			HKTheme.draw_text(self, Vector2(0, 146 + i * 12), note[i], 8, Color("70e0ff") * Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_CENTER, W, 1)
 	if _step == 1:
 		if _free_unlocked():
-			HKTheme.draw_text(self, Vector2(0, 140), "NO GASTASTE NINGUNA REVANCHA: SE ABRE UN TERCER CAMINO.", 8,
+			HKTheme.draw_text(self, Vector2(0, 140), "LIBERASTE A LOS CREADORES SIN QUE TE VENCIERAN: SE ABRE UN TERCER CAMINO.", 8,
 				Color("70e0ff"), HORIZONTAL_ALIGNMENT_CENTER, W, 1)
 		else:
 			HKTheme.draw_text(self, Vector2(0, 140), "TU DECISIÓN CAMBIARÁ TODAS LAS ÉPOCAS.", 8,

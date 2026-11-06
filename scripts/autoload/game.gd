@@ -82,6 +82,10 @@ var arcade_stage: int = 0
 var arcade_continues: int = ARCADE_CONTINUES
 ## Revanchas gastadas en toda la partida.
 var story_continues_used: int = 0
+## Veces que un creador del Reloj te venció: con 0 se abre el final oculto (liberarlos sin que te venzan).
+## Solo vale durante la sesión: el servidor guarda la partida con un esquema cerrado (sin este campo), así que
+## al retomar una partida guardada vuelve a 0.
+var story_creator_losses: int = 0
 ## Fichas reforzadas de los jefes (se crean una vez por combate).
 var _boss_cache := {}
 
@@ -288,6 +292,7 @@ func start_story(player_id: StringName) -> void:
 	arcade_stage = 0
 	arcade_continues = ARCADE_CONTINUES
 	story_continues_used = 0
+	story_creator_losses = 0
 	_boss_cache.clear()
 	if not arcade_ladder.is_empty():
 		p2_fighter_id = arcade_ladder[0]
@@ -469,4 +474,6 @@ func arcade_advance() -> void:
 		arcade_continues = ARCADE_CONTINUES
 
 func arcade_use_continue() -> void:
+	if story_is_creator(arcade_stage):
+		story_creator_losses += 1
 	story_continues_used += 1
