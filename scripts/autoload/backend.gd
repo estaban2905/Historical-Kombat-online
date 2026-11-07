@@ -77,7 +77,7 @@ func check_available() -> bool:
 ## Devuelve {ok: bool, error: String}.
 func sign_up(p_email: String, password: String, p_username: String) -> Dictionary:
 	var r := await _request("POST", "/auth/register",
-		{"email": p_email, "password": password, "username": p_username}, false)
+		{"email": p_email, "password": password, "username": p_username, "accept_terms": true}, false)
 	if not r.ok:
 		return {"ok": false, "error": _error_text(r)}
 	_start_session(r.data)
@@ -98,6 +98,7 @@ func sign_in_google(id_token: String, p_username: String = "") -> Dictionary:
 	var body := {"id_token": id_token}
 	if p_username != "":
 		body["username"] = p_username
+		body["accept_terms"] = true   # solo se pide el nombre a cuentas nuevas, que ya aceptaron los términos
 	var r := await _request("POST", "/auth/google", body, false)
 	if not r.ok:
 		var need: bool = r.data is Dictionary and str(r.data.get("error", "")) == "username_required"
@@ -187,6 +188,22 @@ func change_password(current: String, new_password: String) -> Dictionary:
 		return {"ok": false, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
 	var r := await _request("POST", "/me/password", {"current_password": current, "new_password": new_password}, true)
 	return {"ok": r.ok, "error": "" if r.ok else _error_text(r)}
+
+## Borra la cuenta para siempre (POST /me/delete). Pide el nombre de jugador y, si la cuenta tiene contraseña,
+## la contraseña. Si sale bien, cierra la sesión en este equipo. Devuelve {ok, error}.
+func delete_account(confirm_username: String, password: String) -> Dictionary:
+	if not is_logged_in():
+		return {"ok": false, "error": "SESIÓN CADUCADA, ENTRA DE NUEVO"}
+	var body := {"confirm_username": confirm_username}
+	if password != "":
+		body["password"] = password
+	var r := await _request("POST", "/me/delete", body, true)
+	if not r.ok:
+		return {"ok": false, "error": _error_text(r)}
+	_clear_state()
+	_forget_session()
+	session_changed.emit()
+	return {"ok": true, "error": ""}
 
 ## Perfil público de un jugador por su nombre: {username, points, wins, losses, avatar, rank,
 ## favorite_fighter, streak, recent}. {} si no existe o no hay conexión.

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { profileController, type RankingQuery, type UpdateMeBody } from "../controllers/profile.controller.js";
-import { changePasswordSchema, matchesSchema, meSchema, publicProfileSchema, rankingSchema, updateMeSchema } from "../schemas/auth.schema.js";
+import { changePasswordSchema, deleteAccountSchema, matchesSchema, meSchema, publicProfileSchema, rankingSchema, updateMeSchema } from "../schemas/auth.schema.js";
 
 export async function profileRoutes(app: FastifyInstance): Promise<void> {
   const c = profileController(app.accounts, app.matchHistory, app.auth, app.unlocks);
@@ -17,6 +17,14 @@ export async function profileRoutes(app: FastifyInstance): Promise<void> {
     { schema: changePasswordSchema, config: rateLimit, preHandler: app.requireAuth },
     async (req, reply) => {
       await c.changePassword(req);
+      return reply.code(204).send();
+    },
+  );
+  app.post<{ Body: { confirm_username: string; password?: string } }>(
+    "/me/delete",
+    { schema: deleteAccountSchema, config: rateLimit, preHandler: app.requireAuth },
+    async (req, reply) => {
+      await c.deleteAccount(req);
       return reply.code(204).send();
     },
   );

@@ -108,6 +108,10 @@ export const profileController = (
     await auth.changePassword(req.account!, bearerToken(req)!, req.body.current_password, req.body.new_password);
   },
 
+  async deleteAccount(req: FastifyRequest<{ Body: { confirm_username: string; password?: string } }>) {
+    await auth.deleteAccount(req.account!, req.body.confirm_username, req.body.password);
+  },
+
   /** Mis últimos duelos, en el formato público (snake_case). */
   async myMatches(req: FastifyRequest<{ Querystring: { limit?: number } }>) {
     const rows = await matches.history(req.account!.id, req.query.limit ?? 20);

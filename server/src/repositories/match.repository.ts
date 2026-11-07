@@ -163,15 +163,15 @@ export class MatchRepository {
     const res = await this.db.query<HistoryRow>(
       `select m.id, m.played_at, m.reason, m.winner,
               (m.p1_id = $1) as is_p1,
-              case when m.p1_id = $1 then o2.username else o1.username end as opponent,
+              coalesce(case when m.p1_id = $1 then o2.username else o1.username end, 'JUGADOR ELIMINADO') as opponent,
               case when m.p1_id = $1 then m.p1_fighter else m.p2_fighter end as my_fighter,
               case when m.p1_id = $1 then m.p2_fighter else m.p1_fighter end as opponent_fighter,
               case when m.p1_id = $1 then m.p1_delta else m.p2_delta end as delta,
               case when m.p1_id = $1 then m.p1_rounds else m.p2_rounds end as my_rounds,
               case when m.p1_id = $1 then m.p2_rounds else m.p1_rounds end as opponent_rounds
          from matches m
-         join players o1 on o1.id = m.p1_id
-         join players o2 on o2.id = m.p2_id
+         left join players o1 on o1.id = m.p1_id
+         left join players o2 on o2.id = m.p2_id
         where m.p1_id = $1 or m.p2_id = $1
         order by m.played_at desc, m.id
         limit $2`,

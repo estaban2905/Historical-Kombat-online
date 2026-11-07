@@ -49,11 +49,13 @@ export class AccountRepository {
     email: string;
     passwordHash?: string;
     googleSub?: string;
+    termsAccepted?: boolean;
   }): Promise<Account> {
     try {
       const res = await this.db.query<AccountRow>(
-        `insert into players (username, email, password_hash, google_sub) values ($1, $2, $3, $4) returning ${COLUMNS}`,
-        [input.username, input.email, input.passwordHash ?? null, input.googleSub ?? null],
+        `insert into players (username, email, password_hash, google_sub, terms_accepted_at)
+         values ($1, $2, $3, $4, case when $5::boolean then now() end) returning ${COLUMNS}`,
+        [input.username, input.email, input.passwordHash ?? null, input.googleSub ?? null, input.termsAccepted ?? false],
       );
       return toAccount(res.rows[0]!);
     } catch (err) {
@@ -94,6 +96,14 @@ export class AccountRepository {
       [id, sub],
     );
     return res.rows.length > 0;
+  }
+
+  /**
+   * Borra la cuenta y todo lo suyo: sesiones, partidas guardadas, desbloqueos, amistades, temporadas y avisos de
+   * desincronización caen en cascada. Sus duelos quedan en el historial del rival sin el jugador (ver 012).
+   */
+  async delete(id: string): Promise<void> {
+    await this.db.query("delete from players where id = $1", [id]);
   }
 
   async findById(id: string): Promise<Account | null> {

@@ -40,11 +40,11 @@ export class AuthService {
     this.opts = { ...DEFAULTS, ...opts };
   }
 
-  async register(email: string, password: string, username: string): Promise<AuthResult> {
+  async register(email: string, password: string, username: string, acceptTerms = false): Promise<AuthResult> {
     const passwordHash = await hashPassword(password);
     let account: Account;
     try {
-      account = await this.accounts.create({ username, email: email.trim(), passwordHash });
+      account = await this.accounts.create({ username, email: email.trim(), passwordHash, termsAccepted: acceptTerms });
     } catch (err) {
       if (err instanceof DuplicateAccountError) {
         throw err.field === "email"
@@ -80,7 +80,7 @@ export class AuthService {
    * ese email (verificado por Google), pasa a ser de Google: se borra su contraseña y se
    * cierran sus sesiones (ver AccountRepository.claimForGoogle).
    */
-  async loginWithGoogle(idToken: string, username?: string): Promise<AuthResult> {
+  async loginWithGoogle(idToken: string, username?: string, acceptTerms = false): Promise<AuthResult> {
     if (!this.googleVerifier) throw GOOGLE_OFF;
     let who;
     try {
@@ -106,7 +106,7 @@ export class AuthService {
     }
     if (!username) throw USERNAME_REQUIRED;
     try {
-      return await this.issue(await this.accounts.create({ username, email: who.email, googleSub: who.sub }));
+      return await this.issue(await this.accounts.create({ username, email: who.email, googleSub: who.sub, termsAccepted: acceptTerms }));
     } catch (err) {
       if (err instanceof DuplicateAccountError) throw new AppError(409, "username_taken", "ESE NOMBRE YA ESTÁ EN USO");
       throw err;
@@ -157,6 +157,20 @@ export class AuthService {
     }
     await this.accounts.setPasswordHash(account.id, await hashPassword(next));
     await this.sessions.deleteOthers(account.id, hashToken(accessToken));
+  }
+
+  /**
+   * Borra la cuenta para siempre. Hay que escribir el nombre de jugador y, si la cuenta tiene contraseña, también
+   * la contraseña: una sesión robada no basta para destruirla.
+   */
+  async deleteAccount(account: Account, confirmUsername: string, password?: string): Promise<void> {
+    if (confirmUsername.toLowerCase() !== account.username.toLowerCase()) {
+      throw new AppError(400, "confirm_mismatch", "ESCRIBE TU NOMBRE DE JUGADOR PARA CONFIRMAR");
+    }
+    if (account.passwordHash !== null && !(password && (await verifyPassword(password, account.passwordHash)))) {
+      throw new AppError(403, "wrong_password", "LA CONTRASEÑA NO ES CORRECTA");
+    }
+    await this.accounts.delete(account.id);
   }
 
   /** La cuenta a la que pertenece un access token válido, o null. */
