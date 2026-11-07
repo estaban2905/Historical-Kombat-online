@@ -1,5 +1,6 @@
 ## Pantalla PARTIDAS GUARDADAS del modo Historia: una fila por luchador con partida (la más reciente arriba).
 ## Elegir una fila retoma esa partida; las demás se quedan como están. Se llega desde CONTINUAR del menú.
+## SUPR (o el botón BORRAR) borra la partida marcada, pidiendo confirmar con una segunda pulsación.
 ## ESC o VOLVER regresan al menú.
 class_name StorySavesScreen
 extends Control
@@ -16,6 +17,12 @@ var _first: Button
 var _status: Label
 var _header: Label
 var _hint: Label
+var _back: Button
+var _delete_btn: Button
+## Partida de la fila marcada ({} = ninguna) y luchador cuyo borrado espera confirmación ("" = ninguno).
+var _selected: Dictionary = {}
+var _pending_delete: String = ""
+var _busy: bool = false
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -67,8 +74,17 @@ func _ready() -> void:
 	_status.add_theme_color_override("font_color", HKTheme.MUTED)
 	add_child(_status)
 
-	var back := BackButton.add_to(self, _close)
-	back.grab_focus()
+	_delete_btn = Button.new()
+	_delete_btn.text = "BORRAR"
+	_delete_btn.position = Vector2(426.0 - 76.0, 6)
+	_delete_btn.size = Vector2(70, 14)
+	_delete_btn.focus_mode = Control.FOCUS_ALL
+	_delete_btn.pressed.connect(_on_delete_pressed)
+	_delete_btn.visible = false
+	add_child(_delete_btn)
+
+	_back = BackButton.add_to(self, _close)
+	_back.grab_focus()
 	_load()
 
 func _load() -> void:
@@ -101,7 +117,10 @@ func _fill(saves: Dictionary) -> void:
 	for c in _list.get_children():
 		c.queue_free()
 	_first = null
+	_selected = {}
+	_cancel_delete()
 	var rows := sorted_saves(saves)
+	_delete_btn.visible = not rows.is_empty()
 	_status.text = "" if not rows.is_empty() else "NO HAY PARTIDAS GUARDADAS"
 	var endings := 0
 	for e in Unlocks.ENDINGS:
@@ -123,6 +142,9 @@ func _fill(saves: Dictionary) -> void:
 			_resume(s))
 		b.focus_entered.connect(func():
 			Sfx.play(&"select")
+			if str(_selected.get("fighter", "")) != str(s["fighter"]):
+				_cancel_delete()
+			_selected = s
 			_hint.text = _next_text(ladder, int(s["stage"])))
 		var card := Control.new()
 		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -141,6 +163,33 @@ func _fill(saves: Dictionary) -> void:
 	if _first:
 		_first.grab_focus()
 		_hint.text = _next_text(Game.story_ladder_for(StringName(str(rows[0]["fighter"]))), int(rows[0]["stage"]))
+	else:
+		_hint.text = ""
+		_back.grab_focus()
+
+## Primera pulsación: pide confirmar. Segunda sobre la misma partida: la borra (en este equipo y en la cuenta).
+func _on_delete_pressed() -> void:
+	if _busy or Game.is_changing_scene() or _selected.is_empty():
+		return
+	var fighter := str(_selected.get("fighter", ""))
+	if _pending_delete != fighter:
+		_pending_delete = fighter
+		_delete_btn.text = "SEGURO?"
+		_hint.text = "PULSA OTRA VEZ PARA BORRAR ESTA PARTIDA"
+		Sfx.play(&"denied")
+		return
+	_busy = true
+	Sfx.play(&"confirm")
+	_status.text = "BORRANDO..."
+	await Backend.clear_story(fighter)
+	_busy = false
+	if is_inside_tree():
+		_fill(await Backend.load_stories() if Backend.is_logged_in() else Backend.stories_local())
+
+func _cancel_delete() -> void:
+	_pending_delete = ""
+	if _delete_btn:
+		_delete_btn.text = "BORRAR"
 
 ## Dibuja el contenido de una tarjeta: nombre, dificultad, época, barra de progreso, revanchas y antigüedad.
 func _draw_card(c: Control, s: Dictionary, d: FighterData, ladder: Array[StringName], latest: bool) -> void:
@@ -218,6 +267,10 @@ func _close() -> void:
 	Game.goto(Game.SCENE_MENU)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_DELETE:
+		_on_delete_pressed()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(&"ui_cancel") and not Game.is_changing_scene():
 		_close()
 		get_viewport().set_input_as_handled()

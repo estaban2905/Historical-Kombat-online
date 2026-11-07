@@ -4,14 +4,16 @@
 ## Después se puede convertir con ffmpeg (ver tools/ o el README del vídeo).
 extends Node
 
-## [luchador 1, luchador 2, velocidad de la intro (1 = normal), ticks de pelea, ¿termina en K.O.?]
+## [luchador 1, luchador 2, velocidad de la intro, ticks de pelea, ¿termina en K.O.?, tick del ultimate, quién lo lanza (1 o 2)]
+## Peleas reales de la CPU contra sí misma (combos, bloqueos, agarres, backdash). Nadie recibe energía gratis:
+## solo se llena la barra de UN luchador por clip, en el tick indicado, para que se vea su ultimate.
 const CLIPS: Array = [
-	[&"napoleon", &"julio_cesar", 1.0, 330, true],
-	[&"cleopatra", &"gengis_kan", 0.25, 300, false],
-	[&"nikola_tesla", &"marie_curie", 0.25, 300, true],
-	[&"alejandro_magno", &"abraham_lincoln", 0.25, 330, true],
+	[&"albert_einstein", &"adolf_hitler", 1.0, 1000, true, 560, 1],
+	[&"napoleon", &"julio_cesar", 0.25, 900, true, 470, 2],
+	[&"nikola_tesla", &"marie_curie", 0.25, 900, true, 420, 1],
+	[&"alejandro_magno", &"cleopatra", 0.25, 900, true, 500, 1],
 ]
-const AI_LEVEL := 0.9
+const AI_LEVEL := 1.0
 
 var combat: CombatManager
 var ai1: AIController
@@ -32,10 +34,10 @@ func _physics_process(_delta: float) -> void:
 		ai2.think()
 
 func _run() -> void:
-	await _title_card("30 LUCHADORES · ARCADE · VERSUS", 3.0, &"napoleon", &"donald_trump")
+	await _title_card("57 LUCHADORES · LA TIERRA INVADIDA", 3.0, &"albert_einstein", &"adolf_hitler")
 	for clip in CLIPS:
 		await _play_clip(clip)
-	await _title_card("UN ESCENARIO Y PODERES PROPIOS POR LUCHADOR", 3.5, &"cleopatra", &"gengis_kan")
+	await _title_card("¿QUIÉN SALVARÁ LA TIERRA DE LA HISTORIA REESCRITA?", 3.5, &"julio_cesar", &"nikola_tesla")
 	await Game.fade_to_black(0.4)
 	get_tree().quit()
 
@@ -58,12 +60,11 @@ func _play_clip(clip: Array) -> void:
 	while combat.tick_count - start < clip[3]:
 		await get_tree().physics_frame
 		var t := combat.tick_count - start
-		# Energía llena de vez en cuando para que se vean los poderes especiales.
-		if t % 80 == 20:
-			for f in combat.fighters:
-				f.add_energy(100.0)
+		# Un solo ultimate por clip: se llena la barra del luchador elegido y la CPU lo lanza.
+		if t == clip[5]:
+			combat.fighters[int(clip[6]) - 1].add_energy(100.0)
 		# Para acabar en K.O.: el rival más débil queda tocado a mitad del clip.
-		if clip[4] and not ko_forced and t > clip[3] * 0.55:
+		if clip[4] and not ko_forced and t > clip[3] * 0.72:
 			ko_forced = true
 			combat.p2.health = minf(combat.p2.health, 14.0)
 			combat.p2.health_changed.emit(combat.p2)
@@ -73,7 +74,7 @@ func _play_clip(clip: Array) -> void:
 		while combat.round_manager.phase == RoundManager.Phase.FIGHT and guard < 240:
 			guard += 1
 			await get_tree().physics_frame
-		for i in 100:
+		for i in 70:
 			await get_tree().physics_frame
 	await Game.fade_to_black(0.2)
 	var old := combat
