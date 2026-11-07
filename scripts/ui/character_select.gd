@@ -25,6 +25,12 @@ const ERAS: Array = [
 	["SIGLO XX", 1870, 1914],
 	["ACTUAL", 1915, 100000],
 ]
+## Modo VERSUS: todo el plantel en una sola cuadrícula (sin épocas), con casillas pequeñas.
+const GRID_COLS := 9
+const GRID_CELL_W := 21.0
+const GRID_CELL_H_MAX := 26.0
+const GRID_TOP := 27.0
+const GRID_MAX_H := 170.0
 const TAB_Y := 25.0
 const TAB_H := 13.0
 const P1_COLOR := Color("e83a3a")
@@ -70,6 +76,13 @@ var _view_era: int = -1
 var _focus_p: int = 1
 var _tabs: Array[bool] = [false, false, false]
 var _cells: Dictionary = {}             # índice del plantel -> casilla con el busto
+## Medidas de la rejilla. Por defecto las de las épocas; en VERSUS (_grid_mode) se recalculan para meter a todos.
+var _grid_mode: bool = false
+var _cols: int = COLS
+var _rows: int = ROWS
+var _cell: Vector2 = CELL
+var _origin: Vector2 = GRID_ORIGIN
+var _bust_scale: float = BUST_SCALE
 ## Historia: las partidas guardadas por id de luchador. Se leen del equipo al abrir y, con sesión, se
 ## completan con las de la cuenta; hasta entonces no se sabe si el luchador elegido ya tiene una.
 var _saves: Dictionary = {}
@@ -86,6 +99,9 @@ func _ready() -> void:
 	_cpu = Game.is_vs_cpu() or Game.is_online()
 	confirmed[2] = _cpu
 	roster = FighterRegistry.all().duplicate()
+	_grid_mode = Game.mode == Game.Mode.VERSUS
+	if _grid_mode:
+		_setup_grid()
 	cursor[1] = FighterRegistry.index_of(Game.p1_fighter_id)
 	cursor[2] = FighterRegistry.index_of(Game.p2_fighter_id)
 	cursor[1] = _first_unlocked(cursor[1])
@@ -150,9 +166,29 @@ func _first_unlocked(from: int) -> int:
 			return i
 	return from
 
+## VERSUS: calcula filas y tamaño de casilla para que quepa todo el plantel entre las dos placas.
+func _setup_grid() -> void:
+	_cols = GRID_COLS
+	_rows = maxi(ceili(float(roster.size()) / _cols), 1)
+	_cell = Vector2(GRID_CELL_W, minf(floorf(GRID_MAX_H / _rows), GRID_CELL_H_MAX))
+	_origin = Vector2(floorf((426.0 - _cols * _cell.x) * 0.5), GRID_TOP)
+	_bust_scale = BUST_SCALE * _cell.x / CELL.x
+
+func _by_year(a: int, b: int) -> bool:
+	return roster[a].year < roster[b].year or (roster[a].year == roster[b].year and a < b)
+
 ## Reparte el plantel por épocas (por año de nacimiento) y lo ordena dentro de cada una.
+## En VERSUS no hay épocas: una sola lista con todos, también por año.
 func _build_eras() -> void:
 	_era_lists = []
+	if _grid_mode:
+		var all: Array = []
+		for i in roster.size():
+			if not _is_locked(i):
+				all.append(i)
+		all.sort_custom(_by_year)
+		_era_lists.append(all)
+		return
 	for e in ERAS:
 		_era_lists.append([])
 	for i in roster.size():
@@ -207,7 +243,7 @@ func _build_cells() -> void:
 			continue
 		var cell := Control.new()
 		cell.clip_contents = true
-		cell.size = CELL - Vector2(2, 2)
+		cell.size = _cell - Vector2(2, 2)
 		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(cell)
 		var bust := FighterRenderer.new()
@@ -215,9 +251,9 @@ func _build_cells() -> void:
 		# Retrato fijo: se dibuja una vez en setup(); sin _process no se redibuja cada frame.
 		bust.set_process(false)
 		bust.setup(roster[i])
-		bust.scale = Vector2(BUST_SCALE, BUST_SCALE)
+		bust.scale = Vector2(_bust_scale, _bust_scale)
 		# Pies fuera de la casilla: solo se ve cabeza y hombros, grandes.
-		bust.position = Vector2(cell.size.x * 0.5 - 2.0 * BUST_SCALE, bust.approx_height() * BUST_SCALE + 1.0)
+		bust.position = Vector2(cell.size.x * 0.5 - 2.0 * _bust_scale, bust.approx_height() * _bust_scale + 1.0)
 		cell.add_child(bust)
 		_cells[i] = cell
 
@@ -232,7 +268,7 @@ func _layout_cells() -> void:
 ## Posición de la casilla de un luchador en la rejilla de su época.
 func _cell_pos(i: int) -> Vector2:
 	var slot := _slot_of(i)
-	return GRID_ORIGIN + Vector2(slot % COLS, slot / COLS) * CELL
+	return _origin + Vector2(slot % _cols, slot / _cols) * _cell
 
 func _refresh_preview(p: int) -> void:
 	var r: FighterRenderer = _previews[p]
@@ -329,22 +365,30 @@ func _handle_player(p: int) -> void:
 			c = _hop_era(c, -1) if _tabs[p] else _step(c, -1); moved = true
 		elif inp.just_pressed(&"right"):
 			c = _hop_era(c, 1) if _tabs[p] else _step(c, 1); moved = true
-		elif inp.just_pressed(&"punch_heavy"):
+		elif not _grid_mode and inp.just_pressed(&"punch_heavy"):
 			c = _hop_era(c, 1); moved = true
-		elif inp.just_pressed(&"kick_heavy"):
+		elif not _grid_mode and inp.just_pressed(&"kick_heavy"):
+			c = _hop_era(c, -1); moved = true
+		elif not _grid_mode and p == 1 and Input.is_action_just_pressed(&"gp_era_next"):
+			c = _hop_era(c, 1); moved = true
+		elif not _grid_mode and p == 1 and Input.is_action_just_pressed(&"gp_era_prev"):
 			c = _hop_era(c, -1); moved = true
 		elif inp.just_pressed(&"jump"):
-			if _tabs[p]:
+			if _grid_mode:
+				c = _vertical(list, slot, -1); moved = true
+			elif _tabs[p]:
 				pass
-			elif slot < COLS:
+			elif slot < _cols:
 				_set_tabs(p, true)
 			else:
-				c = list[slot - COLS]; moved = true
+				c = list[slot - _cols]; moved = true
 		elif inp.just_pressed(&"crouch"):
-			if _tabs[p]:
+			if _grid_mode:
+				c = _vertical(list, slot, 1); moved = true
+			elif _tabs[p]:
 				_set_tabs(p, false)
-			elif slot / COLS < (list.size() - 1) / COLS:
-				c = list[mini(slot + COLS, list.size() - 1)]; moved = true
+			elif slot / _cols < (list.size() - 1) / _cols:
+				c = list[mini(slot + _cols, list.size() - 1)]; moved = true
 		if moved:
 			_move_cursor(p, c)
 		if inp.just_pressed(&"punch_light"):
@@ -356,6 +400,14 @@ func _handle_player(p: int) -> void:
 		confirmed[p] = false
 		Sfx.play(&"select")
 		_refresh_preview(p)
+
+## VERSUS: sube (dir -1) o baja (dir 1) una fila en la misma columna, dando la vuelta en los bordes.
+## En la última fila (incompleta) se queda en la última casilla si no hay una justo debajo.
+func _vertical(list: Array, slot: int, dir: int) -> int:
+	var n := list.size()
+	var rows := (n - 1) / _cols + 1
+	var row := posmod(slot / _cols + dir, rows)
+	return list[mini(row * _cols + slot % _cols, n - 1)]
 
 func _set_tabs(p: int, on: bool) -> void:
 	_tabs[p] = on
@@ -383,20 +435,20 @@ func _confirm(p: int) -> void:
 
 ## La casilla bajo `pos` de la época mostrada (índice del plantel; -1 si está fuera de la rejilla o vacía).
 func _cell_at(pos: Vector2) -> int:
-	var rel := pos - GRID_ORIGIN
+	var rel := pos - _origin
 	if rel.x < 0.0 or rel.y < 0.0:
 		return -1
-	var col := int(rel.x / CELL.x)
-	var row := int(rel.y / CELL.y)
-	if col >= COLS or row >= ROWS or _view_era < 0:
+	var col := int(rel.x / _cell.x)
+	var row := int(rel.y / _cell.y)
+	if col >= _cols or row >= _rows or _view_era < 0:
 		return -1
-	var slot := row * COLS + col
+	var slot := row * _cols + col
 	var list: Array = _era_lists[_view_era]
 	return list[slot] if slot < list.size() else -1
 
 ## Pestaña de época bajo `pos` (-1 si no hay).
 func _tab_at(pos: Vector2) -> int:
-	if pos.y < TAB_Y or pos.y > TAB_Y + TAB_H or pos.x < 6.0 or pos.x > 420.0:
+	if _grid_mode or pos.y < TAB_Y or pos.y > TAB_Y + TAB_H or pos.x < 6.0 or pos.x > 420.0:
 		return -1
 	return clampi(int((pos.x - 6.0) / (414.0 / ERAS.size())), 0, ERAS.size() - 1)
 
@@ -543,28 +595,32 @@ func _draw() -> void:
 	if _any_locked():
 		HKTheme.draw_text(self, Vector2(0, 15), "%d/%d" % [Unlocks.fighters_unlocked(), FighterRegistry.all().size()], 8,
 			HKTheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, 420, 1)
-	_draw_tabs()
+	if not _grid_mode:
+		_draw_tabs()
 	# Rejilla de la época mostrada (fondo continuo para que no se vea el escenario entre casillas)
 	var list: Array = _era_lists[_view_era] if _view_era >= 0 else []
-	var grid := Rect2(GRID_ORIGIN - Vector2(2, 2), CELL * Vector2(COLS, ROWS) + Vector2(3, 3))
+	var grid := Rect2(_origin - Vector2(2, 2), _cell * Vector2(_cols, _rows) + Vector2(3, 3))
 	draw_rect(grid, HKTheme.INK)
-	for slot in COLS * ROWS:
-		var pos := GRID_ORIGIN + Vector2(slot % COLS, slot / COLS) * CELL
-		var r := Rect2(pos, CELL - Vector2(1, 1))
+	for slot in _cols * _rows:
+		var pos := _origin + Vector2(slot % _cols, slot / _cols) * _cell
+		var r := Rect2(pos, _cell - Vector2(1, 1))
 		draw_rect(r, HKTheme.INK)
 		if slot < list.size() and not _is_locked(list[slot]):
 			draw_rect(r.grow(-1), Color("4a2a38"))
 		elif slot < list.size():
 			# Luchador por ganar: casilla oscura con "?".
 			draw_rect(r.grow(-1), Color("26162c"))
-			HKTheme.draw_text(self, pos + Vector2(0, 19), "?", 16, Color("8a6a7a"), HORIZONTAL_ALIGNMENT_CENTER, CELL.x - 1, 0)
+			HKTheme.draw_text(self, pos + Vector2(0, 19), "?", 16, Color("8a6a7a"), HORIZONTAL_ALIGNMENT_CENTER, _cell.x - 1, 0)
 		else:
 			draw_rect(r.grow(-1), Color("1c1220"))
 	# Placas de información de cada jugador y frases de presentación
 	for p in [1, 2]:
 		_draw_plate(p)
-	_draw_quotes(grid.end.y + 6.0)
+	if not _grid_mode:   # en VERSUS la cuadrícula ocupa el sitio de las frases
+		_draw_quotes(grid.end.y + 6.0)
 	var hint := "WASD+U · ÉPOCA: I/K" if _cpu else "WASD+U · FLECHAS+NUM1 · ÉPOCA: I/K, NUM2/5"
+	if _grid_mode:
+		hint = "J1: WASD+U · J2: FLECHAS+NUM1 · MANDOS"
 	if Game.mode == Game.Mode.TRAINING:
 		hint = "WASD+U · MUÑECO: FLECHAS+NUM1 · ÉPOCA: I/K"
 	HKTheme.draw_text(self, Vector2(70, 233), hint, 8, HKTheme.MUTED.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER, 356, 1)
@@ -699,7 +755,7 @@ func _draw_cursors() -> void:
 		if _era_of(cursor[p]) != _view_era:
 			continue
 		var pos := _cell_pos(cursor[p])
-		var r := Rect2(pos - Vector2(1, 1), CELL + Vector2(1, 1))
+		var r := Rect2(pos - Vector2(1, 1), _cell + Vector2(1, 1))
 		if not _cpu and cursor[1] == cursor[2]:
 			# Casilla compartida: cada uno pinta media.
 			var half := Rect2(r.position, Vector2(r.size.x * 0.5, r.size.y)) if p == 1 \
@@ -708,4 +764,5 @@ func _draw_cursors() -> void:
 				_overlay.draw_rect(half, col, false, 2.0)
 		elif blink:
 			_overlay.draw_rect(r, col, false, 2.0)
-		HKTheme.draw_text(_overlay, pos + Vector2(1 if p == 1 else CELL.x - 15, CELL.y - 1), "%dP" % p, 8, col, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)
+		if not _grid_mode:   # la casilla pequeña no tiene sitio para "1P"/"2P"; el color del borde ya lo dice
+			HKTheme.draw_text(_overlay, pos + Vector2(1 if p == 1 else _cell.x - 15, _cell.y - 1), "%dP" % p, 8, col, HORIZONTAL_ALIGNMENT_LEFT, -1, 1)

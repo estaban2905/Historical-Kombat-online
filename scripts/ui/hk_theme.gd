@@ -153,6 +153,9 @@ static func draw_text(ci: CanvasItem, pos: Vector2, text: String, size: int, col
 ## ¿Es la tecla Enter (o Enter del teclado numérico) recién pulsada? Las intros y escenas del modo Historia
 ## solo se saltan o avanzan con ella, para no saltarlas sin querer.
 static func is_enter(event: InputEvent) -> bool:
+	var j := event as InputEventJoypadButton
+	if j != null:
+		return j.pressed and j.button_index in [JOY_BUTTON_A, JOY_BUTTON_START]
 	var k := event as InputEventKey
 	return k != null and k.pressed and not k.echo and (k.keycode == KEY_ENTER or k.keycode == KEY_KP_ENTER)
 

@@ -571,7 +571,7 @@ func _test_menu_to_fight() -> void:
 	# Con una partida guardada en el equipo el foco es de CONTINUAR (a propósito); si no, de ARCADE.
 	var cont := scene().get_node("Buttons/Continue") as Button
 	check(play.has_focus() or (cont.visible and cont.has_focus()), "el menú abre con el foco en ARCADE (o en CONTINUAR si hay partida guardada)")
-	check(scene().get_node_or_null("Buttons/Versus") == null, "el menú ya no tiene VERSUS LOCAL")
+	check(scene().get_node_or_null("Buttons/Versus") != null, "el menú tiene VERSUS LOCAL")
 	# Las pruebas de combate usan el modo de dos jugadores en el mismo equipo (fuera del menú).
 	Game.mode = Game.Mode.VERSUS
 	get_tree().change_scene_to_file(Game.SCENE_SELECT)

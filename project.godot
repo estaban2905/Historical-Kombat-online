@@ -30,6 +30,7 @@ Sfx="*res://scripts/autoload/sfx.gd"
 Music="*res://scripts/autoload/music.gd"
 Backend="*res://scripts/autoload/backend.gd"
 Online="*res://scripts/autoload/online.gd"
+Gamepad="*res://scripts/autoload/gamepad.gd"
 
 [display]
 

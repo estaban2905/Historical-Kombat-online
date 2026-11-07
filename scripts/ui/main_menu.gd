@@ -10,6 +10,7 @@ extends Control
 
 @onready var btn_continue: Button = $Buttons/Continue
 @onready var btn_play: Button = $Buttons/Play
+@onready var btn_versus: Button = $Buttons/Versus
 @onready var btn_online: Button = $Buttons/Online
 @onready var btn_training: Button = $Buttons/Training
 @onready var btn_difficulty: Button = $Buttons/Difficulty
@@ -41,6 +42,7 @@ func _ready() -> void:
 	footer.text = "v%s" % Game.VERSION
 	btn_continue.pressed.connect(_continue_story)
 	btn_play.pressed.connect(func(): _go_select(Game.Mode.ARCADE))
+	btn_versus.pressed.connect(func(): _go_select(Game.Mode.VERSUS))
 	btn_online.pressed.connect(func(): _go_select(Game.Mode.ONLINE))
 	btn_training.pressed.connect(func(): _go_select(Game.Mode.TRAINING))
 	btn_difficulty.pressed.connect(_cycle_difficulty)
@@ -52,7 +54,7 @@ func _ready() -> void:
 	_refresh_difficulty()
 	# ENTRENAMIENTO es una herramienta de desarrollo: solo se ve al correr desde el editor.
 	btn_training.visible = OS.has_feature("editor")
-	for b in [btn_continue, btn_play, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_settings, btn_credits]:
+	for b in [btn_continue, btn_play, btn_versus, btn_online, btn_training, btn_difficulty, btn_roster, btn_controls, btn_settings, btn_credits]:
 		_single_highlight(b)
 	btn_difficulty.gui_input.connect(_on_difficulty_input)
 	_spawn_duel()
@@ -135,10 +137,11 @@ func _on_difficulty_input(event: InputEvent) -> void:
 func _build_account_button() -> void:
 	if not Backend.is_configured():
 		return
-	_corner_button("RANKING", Vector2(4, 4), func(): Game.goto(Game.SCENE_RANKING))
+	var rank_btn := _corner_button("RANKING", Vector2(4, 4), func(): Game.goto(Game.SCENE_RANKING))
 	if Backend.is_logged_in():
 		_friends_btn = _corner_button("AMIGOS", Vector2(4, 22), func(): Game.goto(Game.SCENE_FRIENDS))
-	_corner_button("PERFIL" if Backend.is_logged_in() else "ENTRAR", Vector2(338, 4), _on_account_pressed)
+	var acc_btn := _corner_button("PERFIL" if Backend.is_logged_in() else "ENTRAR", Vector2(338, 4), _on_account_pressed)
+	_link_corner_buttons(rank_btn, _friends_btn, acc_btn)
 	if Backend.is_logged_in():
 		var who := Label.new()
 		who.text = "%s · %d PTS" % [Backend.username().to_upper().left(14), int(Backend.profile.get("points", 0))]
@@ -275,6 +278,42 @@ func _corner_button(text: String, pos: Vector2, on_press: Callable) -> Button:
 	add_child(b)
 	b.size = Vector2(84, 14)   # tras añadirlo: ya tiene el tema
 	return b
+
+## Navegación con mando/teclado entre las esquinas y el menú: el foco automático de Godot no llegaba a PERFIL.
+## Arriba desde el primer botón del menú va a RANKING; derecha/izquierda cruzan entre RANKING y PERFIL.
+func _link_corner_buttons(rank: Button, friends: Button, account: Button) -> void:
+	var top_menu := func() -> Control:
+		return btn_continue if btn_continue.is_visible_in_tree() else btn_play
+	for b: Button in [btn_continue, btn_play]:
+		b.gui_input.connect(func(ev: InputEvent):
+			if ev.is_action_pressed(&"ui_up") and b == top_menu.call():
+				rank.grab_focus()
+				b.accept_event())
+	rank.gui_input.connect(func(ev: InputEvent):
+		if ev.is_action_pressed(&"ui_right"):
+			account.grab_focus()
+			rank.accept_event()
+		elif ev.is_action_pressed(&"ui_down"):
+			(friends if friends != null else top_menu.call()).grab_focus()
+			rank.accept_event())
+	if friends != null:
+		friends.gui_input.connect(func(ev: InputEvent):
+			if ev.is_action_pressed(&"ui_right"):
+				account.grab_focus()
+				friends.accept_event()
+			elif ev.is_action_pressed(&"ui_up"):
+				rank.grab_focus()
+				friends.accept_event()
+			elif ev.is_action_pressed(&"ui_down"):
+				top_menu.call().grab_focus()
+				friends.accept_event())
+	account.gui_input.connect(func(ev: InputEvent):
+		if ev.is_action_pressed(&"ui_left"):
+			rank.grab_focus()
+			account.accept_event()
+		elif ev.is_action_pressed(&"ui_down"):
+			top_menu.call().grab_focus()
+			account.accept_event())
 
 func _on_account_pressed() -> void:
 	if Backend.is_logged_in():

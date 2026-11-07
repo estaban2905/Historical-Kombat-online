@@ -50,6 +50,12 @@ layout_mode = 2
 size_flags_horizontal = 4
 text = "MODO HISTORIA"
 
+[node name="Versus" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(212, 15)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "VERSUS LOCAL"
+
 [node name="Online" type="Button" parent="Buttons" unique_id=1649249600]
 custom_minimum_size = Vector2(212, 15)
 layout_mode = 2
