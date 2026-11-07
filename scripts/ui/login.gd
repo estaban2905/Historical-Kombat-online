@@ -24,6 +24,9 @@ var _username: LineEdit
 var _submit: Button
 var _toggle: Button
 var _guest: Button
+## Casilla de términos (al crear cuenta) y aviso al pie (al entrar).
+var _terms: Button
+var _legal_notice: Label
 
 func _ready() -> void:
 	theme = HKTheme.theme()
@@ -107,6 +110,12 @@ func _build_form() -> void:
 		buttons.append(_google_slot)
 	_guest = _button("JUGAR SIN CUENTA")
 	buttons.append(_guest)
+	_terms = _button("[ ] ACEPTO TÉRMINOS Y TENGO +14 AÑOS")
+	_terms.toggle_mode = true
+	_terms.toggled.connect(func(on: bool):
+		_terms.text = HKTheme.fold("[X] ACEPTO TÉRMINOS Y TENGO +14 AÑOS" if on else "[ ] ACEPTO TÉRMINOS Y TENGO +14 AÑOS"))
+	_form.move_child(_terms, _submit.get_index())
+	buttons.append(_terms)
 	_submit.pressed.connect(_on_submit)
 	_toggle.pressed.connect(_on_toggle)
 	_guest.pressed.connect(_on_guest)
@@ -116,6 +125,20 @@ func _build_form() -> void:
 		b.focus_entered.connect(func(): Sfx.play(&"select"))
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	_set_registering(false)
+	_add_legal_notice()
+
+## Aviso al pie: edad mínima y dónde leer términos y privacidad (historycombat.cl/#legal).
+func _add_legal_notice() -> void:
+	var l := Label.new()
+	_legal_notice = l
+	l.text = "AL CREAR CUENTA ACEPTAS LOS TÉRMINOS Y LA PRIVACIDAD\nHISTORYCOMBAT.CL/#LEGAL · SOLO MAYORES DE 14 AÑOS"
+	l.position = Vector2(0, 218)
+	l.custom_minimum_size = Vector2(426, 18)
+	l.size = Vector2(426, 18)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 6)
+	l.add_theme_color_override("font_color", HKTheme.MUTED)
+	add_child(l)
 
 func _field(placeholder: String) -> LineEdit:
 	var e := LineEdit.new()
@@ -160,10 +183,18 @@ func _set_registering(value: bool) -> void:
 	_email.visible = true
 	_password.visible = true
 	_username.visible = value
+	_show_terms(value)
 	_submit.text = "CREAR CUENTA" if value else "ENTRAR"
 	_toggle.text = "YA TENGO CUENTA" if value else "CREAR CUENTA NUEVA"
 	_status.text = ""
 	_fit_form()
+
+## La casilla de términos sustituye al aviso del pie mientras se crea una cuenta.
+func _show_terms(on: bool) -> void:
+	_terms.visible = on
+	_terms.button_pressed = false
+	if _legal_notice:
+		_legal_notice.visible = not on
 
 ## Con más campos visibles (crear cuenta) el formulario sube lo justo para no salirse por abajo.
 func _fit_form() -> void:
@@ -176,7 +207,7 @@ func _set_busy(busy: bool, message: String = "") -> void:
 	_status.text = message
 	for c in [_email, _username, _password]:
 		c.editable = not busy
-	for b in [_submit, _toggle, _guest, _google_slot]:
+	for b in [_submit, _toggle, _guest, _google_slot, _terms]:
 		if b:
 			b.disabled = busy
 	if _form:
@@ -211,6 +242,7 @@ func _ask_google_username(message: String) -> void:
 	_email.visible = false
 	_password.visible = false
 	_username.visible = true
+	_show_terms(true)
 	_submit.text = "CONTINUAR"
 	_toggle.text = "CANCELAR"
 	_fit_form()
@@ -227,6 +259,10 @@ func _on_submit() -> void:
 			_status.text = bad
 			Sfx.play(&"denied")
 			return
+		if not _terms.button_pressed:
+			_status.text = "ACEPTA LOS TÉRMINOS PARA CREAR LA CUENTA"
+			Sfx.play(&"denied")
+			return
 		await _finish_google(chosen)
 		return
 	var email := _email.text.strip_edges()
@@ -234,6 +270,10 @@ func _on_submit() -> void:
 	var problem := Backend.validate_credentials(email, _password.text, name, _registering)
 	if problem != "":
 		_status.text = problem
+		Sfx.play(&"denied")
+		return
+	if _registering and not _terms.button_pressed:
+		_status.text = "ACEPTA LOS TÉRMINOS PARA CREAR LA CUENTA"
 		Sfx.play(&"denied")
 		return
 	_set_busy(true, "CONECTANDO...")

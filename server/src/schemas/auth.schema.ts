@@ -68,7 +68,7 @@ export const registerSchema = {
     type: "object",
     required: ["email", "password", "username"],
     additionalProperties: false,
-    properties: { email, password, username },
+    properties: { email, password, username, accept_terms: { type: "boolean", description: "El jugador aceptó términos y privacidad" } },
   },
   response: { 201: sessionResponse, 400: errors[400], 409: errors[409], 429: errors[429] },
 } as const;
@@ -96,7 +96,11 @@ export const googleSchema = {
     type: "object",
     required: ["id_token"],
     additionalProperties: false,
-    properties: { id_token: { type: "string", minLength: 20, maxLength: 4096 }, username },
+    properties: {
+      id_token: { type: "string", minLength: 20, maxLength: 4096 },
+      username,
+      accept_terms: { type: "boolean", description: "El jugador aceptó términos y privacidad" },
+    },
   },
   response: { 200: sessionResponse, 400: errors[400], 401: errors[401], 409: errors[409], 429: errors[429], 503: errorSchema },
 } as const;
@@ -201,6 +205,22 @@ export const changePasswordSchema = {
     required: ["current_password", "new_password"],
     additionalProperties: false,
     properties: { current_password: { type: "string", minLength: 1, maxLength: 128 }, new_password: password },
+  },
+  response: { 204: { type: "null" }, 400: errors[400], 401: errors[401], 403: errorSchema, 429: errors[429] },
+} as const;
+
+export const deleteAccountSchema = {
+  tags: ["profile"],
+  summary: "Borrar mi cuenta",
+  description:
+    "Borra la cuenta y sus datos para siempre. Pide el nombre de jugador (`confirm_username`) y, si la cuenta tiene " +
+    "contraseña, también `password` (403 `wrong_password`). 400 `confirm_mismatch` si el nombre no coincide.",
+  security: [{ bearerAuth: [] }],
+  body: {
+    type: "object",
+    required: ["confirm_username"],
+    additionalProperties: false,
+    properties: { confirm_username: { type: "string", minLength: 1, maxLength: 64 }, password: { type: "string", maxLength: 128 } },
   },
   response: { 204: { type: "null" }, 400: errors[400], 401: errors[401], 403: errorSchema, 429: errors[429] },
 } as const;

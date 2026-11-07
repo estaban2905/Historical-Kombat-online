@@ -15,6 +15,15 @@ var _current: LineEdit
 var _new_pass: LineEdit
 var _save_pass: Button
 var _avatar_btn: Button
+## Borrar cuenta: un botón en la pantalla y, al pulsarlo, un panel de confirmación que oculta el resto.
+var _delete_btn: Button
+var _confirm_name: LineEdit
+var _confirm_pass: LineEdit
+var _confirm_btn: Button
+var _cancel_btn: Button
+var _warning: Label
+var _confirming: bool = false
+var _main_controls: Array[Control] = []
 var _back: Button
 var _busy: bool = false
 ## Lo que se puede elegir: "" (ninguno) y después lo desbloqueado. El índice es el que lleva puesto.
@@ -64,6 +73,13 @@ func _ready() -> void:
 		buttons.append(_save_pass)
 		_save_pass.pressed.connect(_on_save_password)
 		_new_pass.text_submitted.connect(func(_t: String): _on_save_password())
+	_delete_btn = _button("BORRAR MI CUENTA")
+	buttons.append(_delete_btn)
+	_delete_btn.pressed.connect(_open_delete)
+	_build_delete_panel()
+	for c in _form.get_children():
+		if c != _status and not (c in [_warning, _confirm_name, _confirm_pass, _confirm_btn, _cancel_btn]):
+			_main_controls.append(c)
 	_back = BackButton.add_to(self, func(): Game.goto(Game.SCENE_PROFILE))
 	# VOLVER está en su esquina, fuera del formulario: abajo desde el último botón llega a él.
 	buttons[-1].focus_neighbor_bottom = _back.get_path()
@@ -82,6 +98,68 @@ func _ready() -> void:
 		b.pressed.connect(func(): Sfx.play(&"confirm"))
 	_refresh_cosmetics()
 	_avatar_btn.grab_focus()
+
+## Panel de confirmación del borrado (oculto hasta pulsar BORRAR MI CUENTA).
+func _build_delete_panel() -> void:
+	_warning = Label.new()
+	_warning.text = "ESTO BORRA TU CUENTA, PUNTOS, AMIGOS Y PARTIDAS GUARDADAS PARA SIEMPRE. NO SE PUEDE DESHACER."
+	_warning.custom_minimum_size = Vector2(FORM_WIDTH, 40)
+	_warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_warning.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_warning.add_theme_color_override("font_color", Color("ff6b6b"))
+	_form.add_child(_warning)
+	_confirm_name = _field("ESCRIBE TU NOMBRE: %s" % Backend.username(), 16)
+	if not Backend.is_google_account():
+		_confirm_pass = _field("CONTRASEÑA", 128)
+		_confirm_pass.secret = true
+	_confirm_btn = _button("BORRAR PARA SIEMPRE")
+	_cancel_btn = _button("CANCELAR")
+	_confirm_btn.pressed.connect(_on_confirm_delete)
+	_cancel_btn.pressed.connect(_close_delete)
+	for b in [_confirm_btn, _cancel_btn]:
+		b.focus_entered.connect(func(): Sfx.play(&"select"))
+	for c in [_warning, _confirm_name, _confirm_pass, _confirm_btn, _cancel_btn]:
+		if c:
+			c.visible = false
+
+func _open_delete() -> void:
+	if _busy:
+		return
+	_confirming = true
+	for c in _main_controls:
+		c.visible = false
+	for c in [_warning, _confirm_name, _confirm_pass, _confirm_btn, _cancel_btn]:
+		if c:
+			c.visible = true
+	_status.text = ""
+	_back.visible = false
+	_confirm_name.grab_focus()
+
+func _close_delete() -> void:
+	_confirming = false
+	for c in _main_controls:
+		c.visible = true
+	for c in [_warning, _confirm_name, _confirm_pass, _confirm_btn, _cancel_btn]:
+		if c:
+			c.visible = false
+	_confirm_name.text = ""
+	if _confirm_pass:
+		_confirm_pass.text = ""
+	_status.text = ""
+	_back.visible = true
+	_delete_btn.grab_focus()
+
+func _on_confirm_delete() -> void:
+	if _busy:
+		return
+	_set_busy(true, "BORRANDO...")
+	var pw := _confirm_pass.text if _confirm_pass else ""
+	var r := await Backend.delete_account(_confirm_name.text.strip_edges(), pw)
+	if not r.ok:
+		_fail(r.error)
+		return
+	Sfx.play(&"confirm")
+	Game.goto(Game.SCENE_MENU)
 
 func _field(placeholder: String, max_len: int) -> LineEdit:
 	var e := LineEdit.new()
@@ -149,10 +227,10 @@ func _cycle(which: String, step: int) -> void:
 func _set_busy(busy: bool, message: String = "") -> void:
 	_busy = busy
 	_status.text = message
-	for c in [_name, _current, _new_pass]:
+	for c in [_name, _current, _new_pass, _confirm_name, _confirm_pass]:
 		if c:
 			c.editable = not busy
-	for b in [_avatar_btn, _save_name, _save_pass, _back]:
+	for b in [_avatar_btn, _save_name, _save_pass, _back, _delete_btn, _confirm_btn, _cancel_btn]:
 		if b:
 			b.disabled = busy
 
@@ -200,7 +278,10 @@ func _on_save_password() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel"):
-		Game.goto(Game.SCENE_PROFILE)
+		if _confirming:
+			_close_delete()
+		else:
+			Game.goto(Game.SCENE_PROFILE)
 		get_viewport().set_input_as_handled()
 
 func _draw() -> void:

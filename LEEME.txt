@@ -1,0 +1,16 @@
+HISTORY COMBAT — El Torneo de los Siglos (v0.1, acceso anticipado)
+
+Ejecuta HistoryCombat.exe. No requiere instalación. Windows 10/11 de 64 bits.
+Descárgalo solo desde https://historycombat.cl
+Windows SmartScreen puede avisar de "editor desconocido" porque el archivo aún no está firmado digitalmente.
+
+AVISOS
+- Obra de ficción y parodia. Los personajes son caricaturas de figuras históricas y públicas; ninguno ha
+  participado ni respaldado este juego. Las frases y voces son inventadas/sintéticas, no citas reales.
+- Violencia estilizada de fantasía. Para mayores de 14 años.
+- El modo online requiere cuenta (correo, nombre de jugador, contraseña o Google).
+- Términos de uso, política de privacidad, borrado de cuenta y licencias:
+  https://historycombat.cl/#legal
+- Licencias de terceros (Godot, fuentes): ver THIRD_PARTY_LICENSES.md
+
+Contacto: contacto@historycombat.cl

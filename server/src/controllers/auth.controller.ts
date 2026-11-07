@@ -7,6 +7,7 @@ export interface RegisterBody {
   email: string;
   password: string;
   username: string;
+  accept_terms?: boolean;
 }
 export interface LoginBody {
   email: string;
@@ -15,6 +16,7 @@ export interface LoginBody {
 export interface GoogleBody {
   id_token: string;
   username?: string;
+  accept_terms?: boolean;
 }
 export interface RefreshBody {
   refresh_token: string;
@@ -32,8 +34,8 @@ function toResponse(r: AuthResult) {
 
 export const authController = (auth: AuthService) => ({
   async register(req: FastifyRequest<{ Body: RegisterBody }>, reply: FastifyReply) {
-    const { email, password, username } = req.body;
-    return reply.status(201).send(toResponse(await auth.register(email, password, username)));
+    const { email, password, username, accept_terms } = req.body;
+    return reply.status(201).send(toResponse(await auth.register(email, password, username, accept_terms === true)));
   },
 
   async login(req: FastifyRequest<{ Body: LoginBody }>) {
@@ -41,7 +43,7 @@ export const authController = (auth: AuthService) => ({
   },
 
   async google(req: FastifyRequest<{ Body: GoogleBody }>) {
-    return toResponse(await auth.loginWithGoogle(req.body.id_token, req.body.username));
+    return toResponse(await auth.loginWithGoogle(req.body.id_token, req.body.username, req.body.accept_terms === true));
   },
 
   async refresh(req: FastifyRequest<{ Body: RefreshBody }>) {
